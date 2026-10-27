@@ -1,0 +1,7 @@
+"ID","rodata","data","hora","mandante","visitante","formacao_mandante","formacao_visitante","tecnico_mandante","tecnico_visitante","vencedor","arena","mandante_Placar","visitante_Placar","mandante_Estado","visitante_Estado"
+"1","1","08/08/2020","16:00","Sintetico 01","Sintetico 02","","","synthetic","synthetic","Sintetico 01"," Estadio Sintetico (synthetic, not real)","2","1","XX","XX"
+"2","1","09/08/2020","21:30","Sintetico 03","Sintetico 04","","","synthetic","synthetic","-"," Estadio Sintetico (synthetic, not real)","0","0","XX","XX"
+"3","2","20/02/2021","16:00","Sintetico 02","Sintetico 01","","","synthetic","synthetic","-"," Estadio Sintetico (synthetic, not real)","1","1","XX","XX"
+"4","2","21/02/2021","16:00","Sintetico 04","Sintetico 03","","","synthetic","synthetic",""," Estadio Sintetico (synthetic, not real)","","","XX","XX"
+"5","1","29/05/2021","16:00","Sintetico 01","Sintetico 02","","","synthetic","synthetic","Sintetico 01"," Estadio Sintetico (synthetic, not real)","3","0","XX","XX"
+"6","5","30/06/2021","16:00","Sintetico 01","Sintetico 02","","","synthetic","synthetic","Sintetico 01"," Estadio Sintetico (synthetic, not real)","1","0","XX","XX"

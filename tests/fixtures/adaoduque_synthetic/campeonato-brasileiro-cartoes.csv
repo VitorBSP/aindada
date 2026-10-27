@@ -1,0 +1,5 @@
+"partida_id","rodata","clube","cartao","atleta","num_camisa","posicao","minuto"
+"1","1","Sintetico 01","Amarelo","Atleta Sintetico (synthetic)","10","Meia","12"
+"1","1","Sintetico 01","Vermelho","Atleta Sintetico (synthetic)","5","Zagueiro","80"
+"1","1","Sintetico 02","Amarelo","Atleta Sintetico (synthetic)","9","Atacante","45"
+"999","1","Sintetico 03","Amarelo","Atleta Sintetico (synthetic, partida inexistente)","7","Meia","30"

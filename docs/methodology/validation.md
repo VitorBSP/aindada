@@ -192,9 +192,74 @@ Caminhos que ainda podem resolver o excesso de confiança de 2019–2025: mais c
 temporada (todas as rodadas, não só 10, 19 e 28) para reduzir o ruído da escolha, ou um modelo de
 força com variância própria por clube (por exemplo, filtro de Kalman) em vez de um sd global.
 
+## Deslocamento de data UTC na fonte atual (2026-10-27)
+
+Achado do Agente 01 (`docs/data-sources/c1-fonte-licenciada.md`, seção 8): em 2024–2026 a fonte
+atual grava a data do dia UTC do pontapé inicial. Jogos a partir das 21h de Brasília ficam com a
+data do dia seguinte. Na base gold, 208 linhas estão deslocadas em +1 dia: 186 encerradas (71 em
+2024, 67 em 2025 e 48 em 2026) e 22 agendadas de 2026. Nenhum jogo tem data armazenada **anterior**
+à real. A reexecução foi feita localmente, com as datas corrigidas para `America/Sao_Paulo` fora do
+repositório, sem alterar dados nem código.
+
+**Vazamento: não há.** Todos os cortes usam `match_date <= data de referência`
+(`ratings/history.py:221`, `simulation/engine.py:55`, `pipeline.py:306`,
+`data_pipeline/ingest.py:133`, `simulation/round_review.py:142`). Como a data armazenada nunca é
+anterior à real, um jogo dentro do corte sempre aconteceu de fato até aquela data. O erro só exclui
+jogos ou atrasa o rótulo da data. Isso é conservador. Datas de referência derivadas da própria
+coluna (`pipeline.py:397` e `:410`, `validation/backtest.py:214` e `round_review.py:120`) ficam um
+dia depois do real, mas o conjunto observado continua consistente com o rótulo. Os ratings processam
+cada data em lote com o estado da véspera (`ratings/history.py:186`), então mudar o dia de um jogo
+não deixa outro jogo ver o resultado dele antes da hora.
+
+| Efeito medido | 2024 | 2025 | 2026 |
+|---|---|---|---|
+| Checkpoints do backtest (rodadas 10, 19, 28) com data de referência +1 dia | 1 de 3 | 1 de 3 | — |
+| Checkpoints com algum jogo do lado errado do corte | 0 | 0 | — |
+| Visões do review-rounds com data de corte diferente | 4 | 4 | 3 |
+| Visões que deixam de fora um jogo já disputado até a data do rótulo (jogos) | 5 (7) | 4 (5) | 3 (3) |
+| Visões cujo conjunto de jogos muda após a correção | 2 | 0 | 0 |
+| Pontos do probability-history com data diferente | 9 de 37 | 6 de 36 | 6 de 32 |
+| Pontos do probability-history que deixam de fora um jogo já disputado | 2 | 1 | 0 |
+
+Backtest completo reexecutado com as datas originais (reproduz o relatório gold) e com as
+corrigidas, mesmas sementes:
+
+- Validação 2013–2018, hiperparâmetros, conjunto de variáveis, inflação de empates e incerteza:
+  **idênticos**. As decisões do modelo não mudam.
+- Partidas, teste 2019–2025, modelo escolhido: log loss 1,02133 → 1,02134 (+0,000006) e RPS sem
+  mudança na 5ª casa. Em 2024 o log loss vai de 1,02346 para 1,02348 e em 2025 de 1,00193 para
+  1,00196. A maior mudança de probabilidade por jogo é 0,0013.
+- Temporada (42 registros de checkpoint): log loss de posição 2,2144 → 2,2143, MAE de pontos
+  5,111 → 5,115 e cobertura de 90% igual (86,9%). Os 12 registros de 2024–2025 variam até ±0,10 cada,
+  em direções opostas. É ruído de Monte Carlo: os jogos restantes são ordenados por data
+  (`simulation/engine.py:57`), e a ordem muda quais números aleatórios cada jogo recebe.
+
+**Parecer: aprovado com ressalvas. Não bloqueia a migração de fontes.** O efeito nas métricas é
+desprezível e não há vazamento. Ressalvas:
+
+1. O `FootballDataOrgSource` não pode usar a data UTC (`data_pipeline/sources.py:218`). A conversão
+   para `America/Sao_Paulo` é critério de aceite do adaptador. Com a fonte atual, 2026 seguiria
+   deslocada até a troca.
+2. Os rótulos de data errados aparecem para o usuário: datas de jogos na API/frontend, a data de
+   referência do snapshot quando o último jogo é noturno e as datas do review-rounds e do
+   probability-history. Depois da migração, o review-rounds e o probability-history de 2024–2026
+   precisam ser regenerados.
+3. Não foi verificado se a fonte de 2003–2023 tem o mesmo problema (validação 2013–2018 e teste
+   2019–2023). O football-data.org só foi consultado para 2024–2026.
+
+Teste de regressão pedido ao 01, junto com o adaptador:
+
+- `utcDate` `2026-10-27T00:30:00Z` (21h30 de Brasília) gera `match_date` 2026-10-26, e
+  `2026-10-26T23:00:00Z` (20h) também gera 2026-10-26.
+- Um caso de horário de verão histórico (UTC−2, por exemplo novembro de 2018) converte corretamente.
+- Na qualidade dos dados, nenhuma partida `finished` pode ter `match_date` posterior à data de coleta
+  em Brasília, e um snapshot não pode ter jogo `finished` com data posterior à `reference_date`.
+- Na conferência local de 2024–2025 entre a fonte nova e o football-data.org, deve haver zero
+  divergências de data entre jogos encerrados.
+
 ## Testes automatizados
 
-`pytest`: 135 testes passando, nenhum pulado (regras, desempate, ratings, modelo, métricas,
+`pytest` (2026-10-27): 204 testes passando, nenhum pulado (regras, desempate, ratings, modelo, métricas,
 invariantes da simulação, seleção de modelo, dados, pipeline, snapshots e API). Os invariantes cobertos incluem: 380 jogos por
 temporada, posições como permutação, P(título) somando 1, P(rebaixamento) somando 4, 6 vagas de
 Sul-Americana por cenário, reprodutibilidade por semente, independência da ordem de jogos

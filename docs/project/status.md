@@ -921,6 +921,177 @@ Registrado pelo orquestrador a partir do relatório do 06, que verificou sem edi
 - **Observação para o 00/02**: rótulos "100%" aparecem quando o desfecho ocorre em todas as
   simulações, o que não é certeza matemática; avaliar exibir ">99,9%" nesses casos.
 
+## Agente 01: proposta de fonte licenciada para C1 (2026-10-27)
+
+- **O que mudou**: criado `docs/data-sources/c1-fonte-licenciada.md`, com status **proposta**.
+  Nenhum código, dado ou manifesto foi alterado e nenhuma conta foi criada.
+- **Proposta**:
+  - Histórico de 2003 a 2025: dataset de Adão Duque, versão 18 no Kaggle, sob GPL 2 declarada.
+  - Temporada corrente: football-data.org no plano gratuito, competição BSA, com a atribuição
+    obrigatória da cláusula 7.1.
+  - Wikipédia (pt), `brasileirao-dataset` e CBF entram só como conferência local ou manual.
+- **Evidência**: páginas oficiais acessadas em 2026-10-27 (URLs e trechos na proposta):
+  - `/coverage` e `/pricing` do football-data.org: "Serie A" do Brasil entre as 12 competições
+    gratuitas, com limite de 10 chamadas por minuto.
+  - T&C do football-data.org, cláusulas 2.3, 6.1, 7.1 e 9.1.
+  - Metadados do Kaggle: `licenseNameNullable: "GPL 2"` e versão 18, cobrindo 2003 a 2025.
+  - API do GitHub: o repositório do Adão Duque não tem `license`, e o openfootball tem CC0.
+  - O openfootball Brasil recente vem do football-data.org (README `yorobot/fbup` e gem
+    `footballdata-api` com `bin/fbdat`). Ele está 5 semanas atrasado: 277 placares em 2026.
+  - Wikidata: 0 partidas da Série A, segundo consulta SPARQL.
+- **Premissas e limitações**:
+  - Não há parecer jurídico.
+  - Ainda não se sabe quais temporadas o plano gratuito devolve.
+  - Os termos da CBF não foram lidos (falha de TLS) e os da API-Football também não (403).
+  - O `FootballDataOrgSource` atual tira a data em UTC. Os jogos das 21h30 de Brasília caem no dia
+    seguinte, e isso precisa ser corrigido antes do uso.
+- **Próximos responsáveis**:
+  - **Dono do produto**: os itens 1 a 7 da seção 6 da proposta. O principal é criar a conta, gerar o
+    token, guardá-lo em segredo e rodar a sondagem das temporadas.
+  - **00**: aprovar a combinação e o novo valor de `LicenseStatus`.
+  - **00 e 07**: decidir a persistência do SQLite, já que o asset público redistribuiria placares.
+  - **01**: implementar o adaptador e a ingestão por precedência depois da aprovação.
+  - **02 e 06**: recalcular ratings, treino e backtest sem os dados do Sofascore.
+  - **08 e 05**: texto de atribuição (C2).
+
+### Handoff do Agente 01: consulta de teste do football-data.org (2026-10-27)
+
+- **O que mudou**: `docs/data-sources/c1-fonte-licenciada.md` ganhou a seção 8, "Consulta de teste
+  (2026-10-27)", e os itens de temporadas e atraso saíram de "a verificar". Nenhum código, dado,
+  manifesto ou `clubs.csv` foi alterado. As respostas brutas ficaram fora do repositório.
+- **Evidência**: 4 chamadas locais autorizadas pelo dono, todas com HTTP 200 e sem erro:
+  - `/v4/competitions/BSA`: temporada corrente de 2026-01-28 a 2026-12-02, rodada atual 33.
+  - BSA 2024: 380 partidas, todas `FINISHED`.
+  - BSA 2025: 380 partidas, todas `FINISHED`.
+  - BSA 2026: 380 partidas (319 `FINISHED`, 40 `SCHEDULED`, 20 `TIMED`, 1 `POSTPONED`).
+  - Todo `FINISHED` tem placar `fullTime`. O limite ficou entre 9 e 7 requisições livres por minuto.
+- **Comparação local** com `data/silver/matches.csv`: os 1.140 pares casam e há 0 divergências de
+  placar em 1.079 jogos encerrados. O atraso em 2026 é de horas: nenhum jogo disputado está faltando.
+- **Problema de qualidade aberto (01, 06)**: em 207 jogos de 2024 a 2026, a fonte atual
+  (`brasileirao-dataset`/Sofascore) grava a data do dia UTC, um dia depois da data de Brasília (71,
+  67 e 69 por temporada). A validação temporal desses jogos fica deslocada em um dia. O
+  `FootballDataOrgSource` atual repetiria o erro (usa a data UTC), então a conversão para
+  `America/Sao_Paulo` passa a ser obrigatória.
+- **Premissas e limitações**:
+  - Não foram consultadas temporadas anteriores a 2024.
+  - O atraso foi medido num único ponto.
+  - Os 27 nomes de clubes da API não têm alias no `clubs.csv`. A lista está na seção 8.4 e entra
+    junto com o adaptador.
+- **Próximos responsáveis**:
+  - **00**: aprovar a combinação (Adão Duque até 2025, football-data.org de 2026 em diante, e o
+    football-data.org 2024–2025 como conferência local), além do valor de `LicenseStatus`.
+  - **01**: depois da aprovação, implementar o adaptador com a correção de fuso e os aliases.
+  - **06**: avaliar o impacto do deslocamento de data de 2024 a 2026 no backtest.
+
+## Decisão do Agente 00: fontes licenciadas para C1, ADR-0008 (2026-10-27)
+
+- **O que mudou** (só documentação; nenhum código, dado ou contrato foi alterado ainda):
+  - `docs/decisions/ADR-0008-fontes-licenciadas-c1.md` criado, com status **aceito com condições**;
+  - adendos nos ADR-0002 e ADR-0007 (C1, itens 4 e 8);
+  - `docs/project/risks.md`: R1 e R12 atualizados, R13 a R16 novos.
+- **Decisão 1, combinação aprovada com ajustes:**
+  - publicação: Adão Duque, versão 18 no Kaggle, para 2003–2025, e football-data.org para 2026+;
+  - conferência local: football-data.org 2024–2025 e `brasileirao-dataset`;
+  - conferência manual: CBF;
+  - sem fallback silencioso, e fonte de conferência nunca entra no gold;
+  - riscos 9.1, 11.1, 6.1 (segredo do Actions aceito), 2.3 (`github.io` aceito como domínio único) e
+    GPL-2 com coleta "de páginas do Google": avaliados com condições no ADR.
+- **Decisão 2, contrato:**
+  - `LicenseStatus.LICENSED_WITH_ATTRIBUTION = "licensed_with_attribution"`;
+  - `AllowedUse` fechado: `research_local`, `prototype_local`, `public_display_derived`,
+    `redistribution`;
+  - `SourceManifest` ganha `license_name`, `terms_url`, `terms_checked_at` e `attribution`, com
+    validador;
+  - `DataInfo.sources` no snapshot;
+  - gate com as regras G1 a G5.
+- **Decisão 3, persistência:**
+  - SQLite e Adão Duque v18 vão para um repositório **privado** de estado, gratuito;
+  - o asset público `snapshots-db` foi revogado;
+  - nenhum SQLite, raw ou silver em artefato público;
+  - a história publicada recomeça com fontes licenciadas, com reconstrução identificada como tal.
+- **Evidência:**
+  - leitura da proposta do 01 (seções 1 a 8) e do `catalog.md` versionado (`git show HEAD:`);
+  - leitura de `contracts.py` (hoje com 4 valores de `LicenseStatus` e `allowed_uses` como strings
+    livres) e de `sources.py` (o `FootballDataOrgSource` tira `.date()` de `utcDate` em UTC);
+  - leitura de `storage/schema.py` (`MatchPrediction` e `MatchImpactInfo` têm placares) e de
+    `snapshots.py` (o payload é o snapshot inteiro);
+  - `update-predictions.yml` envia `snapshots.sqlite` como artefato;
+  - o export atual só tem a temporada 2026 e as métricas.
+- **Premissas e limitações:**
+  - não é parecer jurídico;
+  - "a verificar": validade máxima da credencial do repositório privado e visibilidade dos artefatos
+    do Actions em repositório público (07);
+  - a premissa de que a data do Adão Duque está no fuso de Brasília será testada no relatório de
+    conferência.
+- **Dependência em aberto:** a avaliação do 06 sobre o deslocamento de data de 2024–2026, já em
+  andamento. Não bloqueia o 01, mas é entrada obrigatória da revalidação do backtest, e o
+  `model_version` novo só é aceito depois dela.
+- **Próximos responsáveis**, na ordem do plano do ADR-0008:
+  1. **01**, passos 1 a 9:
+     - contrato;
+     - fuso `America/Sao_Paulo` no `FootballDataOrgSource`;
+     - `AdaoDuqueSource` com fixture sintética;
+     - 27 aliases e os do Adão Duque;
+     - precedência por temporada em `config.py` (autorizada só essa constante);
+     - `sources.json`;
+     - correções manuais migradas;
+     - relatório de conferência;
+     - catálogo e testes.
+     - Fora do escopo: corrigir a data do `BrasileiraoDatasetSource`, cartões de 2026, Wikipédia
+       automatizada e redistribuição.
+  2. **00 e 04:** `DataInfo.sources`, `schema_version` e `load_inputs` com várias fontes.
+  3. **02:** recalcular sem o Sofascore, com `model_version` e `data_version` novos, revisão por
+     rodada e reconstrução da história de 2026.
+  4. **06:** revalidar o backtest (`validation.md`), a validação temporal e as regras G1 a G5.
+  5. **07:** repositório privado de estado, segredos, gate e remoção do SQLite do artefato.
+  6. **08 e 05:** atribuição (C2).
+  7. **03:** confirmar o desempate por cartões com cobertura zero em 2026.
+- **Pendências do dono do produto:**
+  - baixar o Kaggle v18 (exige conta);
+  - aceitar os riscos por escrito;
+  - criar o repositório privado, a credencial e os segredos;
+  - aprovar a atribuição;
+  - ler os termos da CBF e definir quem faz a conferência;
+  - confirmar o domínio único;
+  - aceitar o recomeço ou a reconstrução da história publicada;
+  - opcional: escrever ao autor do dataset.
+- **Estado de C1:** em andamento. A publicação continua bloqueada.
+
+### Handoff do Agente 06: impacto do deslocamento de data UTC (2026-10-27)
+
+- **Parecer: aprovado com ressalvas. Não bloqueia a migração de fontes.** Não há vazamento e o
+  efeito nas métricas é desprezível. A correção de fuso no adaptador é critério de aceite.
+- **O que mudou**: `docs/methodology/validation.md` ganhou a seção "Deslocamento de data UTC na
+  fonte atual (2026-10-27)", e a contagem de testes foi atualizada. Código, dados e relatórios gold
+  não foram tocados. A reexecução com datas corrigidas ficou fora do repositório.
+- **Evidência**:
+  - Na gold há 208 linhas com data +1 dia: 186 encerradas (71, 67 e 48) e 22 agendadas de 2026.
+  - Nenhuma linha tem data anterior à real. Como todos os cortes usam `<=`, isso só pode excluir
+    jogos, nunca vazar.
+  - Backtest completo com datas originais e corrigidas, mesmas sementes. A versão original reproduz
+    os registros gold.
+  - Validação, hiperparâmetros e escolhas do modelo ficaram idênticos.
+  - Teste de partidas: log loss 1,02133 → 1,02134. Temporada: log loss de posição 2,2144 → 2,2143
+    e cobertura de 90% igual. Os registros de 2024–2025 só mostram ruído de Monte Carlo.
+  - Checkpoints: 2 dos 6 de 2024–2025 têm data de referência +1 dia e 0 têm jogo do lado errado.
+  - Review-rounds: 5, 4 e 3 visões (2024, 2025 e 2026) deixam de fora um jogo já disputado até a
+    data do rótulo. Só 2 visões de 2024 mudam de conjunto de jogos depois da correção.
+  - Probability-history: 9, 6 e 6 pontos mudam de data.
+  - `pytest`: 204 passaram.
+- **Premissas e limitações**:
+  - A referência de data correta é o football-data.org convertido para Brasília (seção 8 da proposta
+    C1).
+  - Não foi verificado se 2003–2023 tem o mesmo problema.
+- **Próximos responsáveis**:
+  - **01**: no `FootballDataOrgSource` (`data_pipeline/sources.py:218`), converter `utcDate` para
+    `America/Sao_Paulo` e incluir os testes de regressão listados em `validation.md`. São eles:
+    21h30 fica no mesmo dia, horário de verão histórico, nenhum jogo `finished` com data posterior
+    à coleta em Brasília e zero divergências de data na conferência de 2024–2025. Também verificar
+    o problema em 2003–2023, se houver fonte com horário.
+  - **02/04**: depois da migração, regenerar review-rounds, probability-history e snapshots de
+    2024–2026.
+  - **06**: reexecutar o backtest e validar quando a nova base estiver ingerida.
+
 ## Agente 02: corrida pela Sul-Americana, 100 mil simulações e dificuldade da tabela (2026-10-27)
 
 - **O que mudou** (nada commitado):
@@ -996,3 +1167,165 @@ Registrado pelo orquestrador a partir do relatório do 06, que verificou sem edi
 - **Próximo responsável**: Agente 01 deve marcar `postponed` na fonte/contrato para o jogo adiado (hoje
   `scheduled` com data antiga); Agente 06 deve auditar contraste do novo fundo e a leitura do índice de
   dificuldade; a aba Rodada a rodada (sessão parceira) ainda trata o adiado pela própria regra.
+
+## Agente 01: migração de fontes do ADR-0008, passos 1 a 9 (2026-10-27) — implementado, ingestão real pendente
+
+- **O que mudou** (nada commitado; só fixtures sintéticas, nenhuma chamada real à API, nenhum dado
+  real versionado):
+  - **Passo 1, contrato** (`contracts.py`): `LicenseStatus.LICENSED_WITH_ATTRIBUTION`; `AllowedUse`
+    fechado; `SourceManifest` com `allowed_uses: list[AllowedUse]`, `license_name`, `terms_url`,
+    `terms_checked_at`, `attribution` e validador da Decisão 2 (para `verified_open` e
+    `licensed_with_attribution` exige nome, URL e data dos termos; para `licensed_with_attribution`,
+    também a atribuição). Novos `most_restrictive_license` e `SourceManifest.allows_public_display`,
+    para o passo 10. Manifestos antigos do `brasileirao_dataset` continuam válidos.
+  - **Passo 2**, `data_pipeline/football_data_org.py` (novo; a classe saiu de `sources.py`):
+    - data = `utcDate` → America/Sao_Paulo → `.date()`;
+    - token só por `FOOTBALL_DATA_ORG_TOKEN`, com `repr` mascarado e fora de log e de mensagens;
+    - ≥ 6 s entre chamadas e espera de `X-RequestCounter-Reset` em 429;
+    - `IN_PLAY`, `PAUSED` e `LIVE` → `scheduled`; status desconhecido ou duração diferente de
+      `REGULAR` falham;
+    - `AWARDED` só com placar em `known_exceptions.csv`, senão `AwardedMatchError` antes de gravar;
+    - payload bruto byte a byte em `data/raw/football_data_org/v4-<UTC>/matches_<temporada>.json`,
+      mais `requests.json` (`retrieved_at` por requisição) e manifesto com SHA-256.
+  - **Passo 3**, `data_pipeline/adaoduque.py` (novo):
+    - lê `data/raw/adaoduque/v18/` (`campeonato-brasileiro-full.csv` e `-cartoes.csv`) e confere o
+      SHA-256 contra `data/reference/source_pins.json` (novo, versionado, hashes ainda vazios);
+    - falha com mensagem clara se faltam arquivos, hashes ou se o hash diverge;
+    - `brasileirao pin-adaoduque` fixa os hashes, passo humano depois de conferir com o espelho;
+    - data dd/mm/aaaa tratada como Brasília; temporada pelo ano, com 2020 indo até fevereiro de 2021;
+    - sem placar → `scheduled`;
+    - fixture sintética em `tests/fixtures/adaoduque_synthetic/`.
+  - **Passo 4**: os 27 aliases da seção 8.4 em `data/reference/clubs.csv`. Os 45 nomes do formato
+    Adão Duque (2003–2023) já resolviam. Os de 2024–2025 da v18 só se confirmam depois do download.
+  - **Passo 5**:
+    - `config.PUBLICATION_SOURCE_BY_SEASON`: só essa constante em `config.py`, autorizada pelo 00;
+    - `data_pipeline/composition.py` (novo) monta a composição por temporada sem fallback e grava
+      `data/silver/sources.json`;
+    - G1 na ingestão: fonte sem `public_display_derived` falha;
+    - partida `finished` com data posterior ao dia de coleta em Brasília falha;
+    - `match_id` estável `<temporada>-<mandante>-<visitante>`, com sufixo `-r<rodada>` para par
+      repetido (2009), documentado no catálogo; ele substitui `bds-<id>`;
+    - `ingest_raw` mantém o manifesto se os hashes não mudaram (reingestão idêntica);
+    - CLI: `ingest` é publicação por padrão. O `brasileirao_dataset` só roda com
+      `--research-source brasileirao_dataset` e grava `sources.json` com `mode: research`.
+  - **Passo 6**:
+    - `corrections.py` grava a fonte-base na coluna `source`
+      (`<fonte>+manual_correction@<evidência>:<data>`, G2);
+    - correção redundante vai para o `changes.jsonl` (`manual_correction_redundant`);
+    - `manual_corrections.example.csv` (sintético) versionado;
+    - o `manual_corrections.csv` local (ignorado) foi migrado para os IDs estáveis
+      `2026-coritiba-gremio` e `2026-flamengo-atletico-mg`. Elas ficam até a primeira ingestão
+      real registrá-las como redundantes; depois o 01 as remove.
+    - O trabalho não commitado anterior do 01 (`corrections.py`, `test_corrections.py`, `ingest.py`,
+      `cli.py`) foi integrado.
+  - **Passo 7**, `data_pipeline/conference.py` (novo) e `brasileirao conference`:
+    - pares football-data.org × Adão Duque (2024–2025, tolerância 0) e Adão Duque ×
+      `brasileirao_dataset` (2003–2023, ±1 dia);
+    - detalhe em `data/silver/conference_report.json` e divergências no `changes.jsonl`;
+    - só contagens na saída e no catálogo.
+  - **Qualidade** (`validation.py`): erro `finished_after_reference`, pedido pelo 06;
+    `load_awarded_results`; `known_exceptions.csv` ganhou as colunas `source_name`,
+    `source_match_id`, `home_goals` e `away_goals` (vazias nas 4 linhas atuais). `validate` usa o
+    dia de Brasília como referência padrão.
+  - **Passo 8**:
+    - `catalog.md` reescrito: linha do Adão Duque, papéis da Decisão 1, composição, `match_id`,
+      conferência e política 6 (W.O.);
+    - os placares reais da alteração não commitada saíram (B1);
+    - a linha dos escudos reflete `nao_livre`, `used: false` e marcador neutro;
+    - `c1-fonte-licenciada.md` marcada "aprovada com ajustes (ADR-0008)".
+- **Evidência**:
+  - `.venv/Scripts/python.exe -m pytest -q`: **374 passed** (eram 204). São 170 testes novos:
+    `test_license_contract.py` 15, `test_football_data_org.py` 28, `test_adaoduque.py` 16,
+    `test_club_aliases.py` 78, `test_composition.py` 19, `test_conference.py` 8, mais 4 em
+    `test_data_pipeline.py` e 2 em `test_corrections.py`.
+  - Os testes de regressão do 06 estão cobertos:
+    - `2026-10-27T00:30Z` → 26/10;
+    - `2026-10-26T23:00Z` → 26/10;
+    - `2018-11-11T02:30Z` → 11/11 (UTC−2);
+    - partida `finished` posterior à coleta ou à referência falha.
+  - `ruff check src apps tests scripts`: ok. `ruff format --check`: ok. `mypy`: sem erros em 48
+    arquivos. Antes da mudança, os três já estavam verdes (204 passed), então não há erro
+    preexistente a separar.
+  - `brasileirao ingest` sem os arquivos da v18 sai com a mensagem de arquivos ausentes, e
+    `data/silver` não muda. `brasileirao conference` sai com "nenhum par de fontes disponível".
+  - Caminho de pesquisa rodado numa cópia em scratchpad, fora de `data/` do projeto:
+    - 9.545 partidas de 2003 a 2026 com `match_id` único;
+    - só os 2 jogos de 2009 recebem sufixo (`-r12` e `-r31`);
+    - `quality_report` sem erros, com 1 aviso de 2026 como antes;
+    - segunda escrita byte a byte idêntica.
+- **Decisões onde o ADR deixava margem**:
+  - hashes da v18 fixados em `data/reference/source_pins.json` (versionado; hashes não são dados);
+  - bronze do Adão Duque copiado para `data/raw/adaoduque_kaggle/v18/`, com a pasta de entrada do
+    dono separada;
+  - `retrieved_at` do Adão Duque = maior mtime dos arquivos baixados;
+  - football-data.org 2024–2025 baixado no mesmo `--fetch`, 3 chamadas, para a conferência;
+  - atribuição do Adão Duque provisória até o C2;
+  - status desconhecido e duração diferente de `REGULAR` falham, em vez de virar `scheduled`;
+  - colunas novas em `known_exceptions.csv` para o placar de W.O.
+- **Premissas e limitações**:
+  - Nomes dos arquivos da v18 supostos iguais aos do espelho do GitHub (conferido em 2026-10-27).
+  - `data/raw/adaoduque/v18/` vazio; contagens reais por temporada e fonte e a conferência
+    **pendentes** (passo 9, parte real).
+  - `pipeline.load_inputs` ainda lê só o manifesto do `brasileirao_dataset` (passo 10, 00/04).
+    `DataInfo.sources`, workflow e `storage/schema.py` não foram tocados.
+  - `zoneinfo` no Windows depende do pacote `tzdata` (instalado no `.venv`, 2026.5, mas não
+    declarado no `pyproject.toml`). No Linux do CI usa a base do sistema.
+  - Alterações não commitadas de outro agente, **não tocadas**: `src/brasileirao/simulation/round_review.py`
+    e `tests/unit/test_round_review.py` (domínio do 02, sem handoff registrado). O `cli.py` também
+    tem as mudanças do 00/02 em `simulate` e `review-rounds`, preservadas.
+  - Pedido do 08 (jogo adiado como `postponed`): o football-data.org já devolve `POSTPONED`, então
+    resolve com a migração. O `brasileirao_dataset` não distingue adiado.
+- **Próximos responsáveis**:
+  - **Dono do produto**:
+    - baixar a v18 do Kaggle para `data/raw/adaoduque/v18/`;
+    - rodar `brasileirao pin-adaoduque`, conferir os hashes contra o espelho e versionar
+      `source_pins.json`;
+    - depois rodar `brasileirao ingest --fetch` com o token no `.env`.
+  - **01**:
+    - rodar a ingestão real e `brasileirao conference`;
+    - registrar no catálogo as contagens por temporada e fonte e as contagens da conferência;
+    - remover as 2 correções redundantes;
+    - confirmar os nomes de 2024–2025 da v18.
+  - **00/04**: passo 10 (`DataInfo.sources`, `load_inputs` lendo `data/silver/sources.json`,
+    `data_version` composto). Avaliar se `tzdata` entra no `pyproject.toml` (00/07).
+  - **02**: o `match_id` mudou de formato; snapshots e revisão por rodada precisam ser regerados
+    (passo 11).
+  - **06**: auditar contrato, fuso, G1/G2 na ingestão e os testes novos; a conferência real entra no
+    passo 12.
+
+
+## Parecer do Agente 06: entrega do 01, passos 1–9 do ADR-0008 (2026-10-27)
+
+Registrado pelo orquestrador a partir do relatório do 06, que auditou sem editar arquivos.
+
+- **Parecer**: **aprovado com condições** para commit e push no repositório privado.
+- **Evidência**:
+  - **Checagens**: pytest com 374 passed; `ruff check` e `ruff format --check` sem erros; mypy sem
+    erros em 48 arquivos.
+  - **Regressão numa cópia**: o pipeline atual com o gold antigo continua funcionando. O `ingest` de
+    publicação sem a v18 falha sem gravar nada. O `ingest --research-source brasileirao_dataset` é
+    idempotente, e `simulate` e `export-web` funcionam com os IDs novos.
+  - **`.gitignore`**: cobre os dados brutos e derivados das novas fontes.
+  - **Arquivos versionados**: nenhum placar real nem ID da fonte.
+  - **Fixtures**: marcadas `synthetic`.
+  - **Token**: só no header, e o `repr` aparece mascarado.
+- **Condições**:
+  1. O commit leva só o escopo do 01. Ficam fora `round_review.py`, `test_round_review.py`,
+     `.claude/launch.json`, `apps/web/assets/app.js` e `apps/web/assets/styles.css`, que são
+     alterações paralelas sem handoff.
+  2. Não rodar `simulate` nem `export-web` sobre a ingestão nova antes do passo 10 (00/04). O
+     `DataInfo` ainda aponta para o `brasileirao_dataset`.
+  3. Não disparar o `update-predictions.yml` antes do passo 13 (07).
+- **Não bloqueantes**:
+  - **N1, 00/07**: declarar `tzdata` nas dependências.
+  - **N2, 01**: `validate --reference-date` com data passada agora dá erro em jogos reais.
+  - **N3, 01**: o `changes.jsonl` acumula entradas repetidas a cada ingestão.
+  - **N4, 01**: testes fracos (log com `extra`; teste de correção que passa sem verificar no CI).
+  - **N5, 01**: `SourceManifest` sem `frozen`.
+  - **N6, 01**: `compose` não confere o nome do manifesto.
+  - **N7, 01**: `retrieved_at` do Adão Duque vem do mtime dos arquivos.
+  - **N8, 07**: o gate deve rejeitar `sources.json` com `mode` diferente de `publication`.
+  - **N9, 02**: o `match_id` novo muda a ordem dos sorteios; exige `data_version` e `model_version`
+    novos.
+  - **N10, 07**: passar `--season` explicitamente no workflow.
+  - **N11, 00**: confirmar a menção a IDs de confrontos, sem placar, neste arquivo.

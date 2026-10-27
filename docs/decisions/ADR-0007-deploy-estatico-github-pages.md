@@ -123,3 +123,19 @@ sigla e cores, e `crests_provenance.json` passou a registrá-los como `nao_livre
   05) para evitar as 5 chamadas `/api/*` com 404.
 - Para virar "aceito", este ADR precisa de C1–C6 cumpridas e dos pareceres do 00 e do 06
   registrados em `docs/project/status.md`.
+
+## Adendo (2026-10-27): ADR-0008 muda C1 e o item 4
+- **C1:** o caminho aprovado é o do ADR-0008. A condição só é cumprida com o plano de
+  implementação concluído (01 → 00/04 → 02 → 06 → 07), o backtest revalidado e as pendências do
+  dono resolvidas.
+- **Item 4 (persistência), substituído:**
+  - o asset público `snapshots-db` não será criado;
+  - o `snapshots.sqlite` (o payload tem placares) e os arquivos do Adão Duque v18 ficam num
+    **repositório privado** de estado, gratuito, acessado por uma credencial restrita guardada em
+    segredo;
+  - artefatos do Actions no repositório público não levam SQLite, raw nem silver.
+- **Item 8 (gate), ampliado:** passam a valer as regras G1 a G5 do ADR-0008 (licença por linha do
+  gold, correções manuais, fontes do snapshot, texto de atribuição no export e no HTML, nenhum
+  arquivo de dados no artefato).
+- **Item 3 (versionamento):** sem mudança. Os dados do Adão Duque, mesmo sob GPL-2, não são
+  versionados no repositório público.

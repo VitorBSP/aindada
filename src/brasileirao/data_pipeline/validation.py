@@ -95,6 +95,16 @@ def _season_issues(season: int, season_matches: pd.DataFrame, reference_date: da
         issues.append(
             QualityIssue(severity=Severity.ERROR, code="negative_score", season=season, detail="placar negativo")
         )
+    finished_late = finished[finished["match_date"].dt.date > reference_date]
+    if len(finished_late):
+        issues.append(
+            QualityIssue(
+                severity=Severity.ERROR,
+                code="finished_after_reference",
+                season=season,
+                detail=f"{len(finished_late)} partidas encerradas com data posterior a {reference_date}",
+            )
+        )
     unscored = season_matches[season_matches["status"] != MatchStatus.FINISHED.value]
     overdue = unscored[unscored["match_date"].dt.date < reference_date]
     if len(overdue):
@@ -118,7 +128,35 @@ def load_known_exceptions(path: Path) -> dict[tuple[int, str], str]:
     if not path.exists():
         return {}
     exceptions_data = pd.read_csv(path)
-    return {(as_int(row.season), str(row.code)): str(row.note) for row in exceptions_data.itertuples(index=False)}
+    return {
+        (as_int(row.season), str(row.code)): str(row.note)
+        for row in exceptions_data.itertuples(index=False)
+        if str(row.code) != AWARDED_CODE
+    }
+
+
+AWARDED_CODE = "awarded"
+
+
+def load_awarded_results(path: Path, source_name: str) -> dict[str, tuple[int, int]]:
+    """Placar decidido de partidas `AWARDED` (W.O.), por ID da partida na fonte.
+
+    Linhas `code=awarded` de `known_exceptions.csv` precisam de `source_name`, `source_match_id`,
+    `home_goals` e `away_goals`; a evidência vai na nota.
+    """
+    if not path.exists():
+        return {}
+    exceptions_data = pd.read_csv(path, dtype=str, keep_default_na=False)
+    if "source_match_id" not in exceptions_data.columns:
+        return {}
+    awarded: dict[str, tuple[int, int]] = {}
+    for row in exceptions_data[exceptions_data["code"] == AWARDED_CODE].itertuples(index=False):
+        if str(row.source_name) != source_name:
+            continue
+        if not (str(row.source_match_id) and str(row.home_goals) and str(row.away_goals)):
+            raise ValueError(f"exceção awarded incompleta em {path}: {row}")
+        awarded[str(row.source_match_id)] = (int(str(row.home_goals)), int(str(row.away_goals)))
+    return awarded
 
 
 def _apply_known_exceptions(

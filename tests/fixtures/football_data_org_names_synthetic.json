@@ -1,0 +1,19 @@
+{
+  "note": "synthetic fixture: the 27 club names used by football-data.org for BSA (section 8.4 of the C1 proposal, ADR-0008) in invented, unplayed pairings without scores; not real fixtures",
+  "matches": [
+    {"id": 9001, "utcDate": "2032-05-01T19:00:00Z", "status": "SCHEDULED", "matchday": 1, "homeTeam": {"name": "AC Goianiense"}, "awayTeam": {"name": "Botafogo FR"}, "score": {"fullTime": {"home": null, "away": null}}},
+    {"id": 9002, "utcDate": "2032-05-01T19:00:00Z", "status": "SCHEDULED", "matchday": 1, "homeTeam": {"name": "CA Mineiro"}, "awayTeam": {"name": "CA Paranaense"}, "score": {"fullTime": {"home": null, "away": null}}},
+    {"id": 9003, "utcDate": "2032-05-01T19:00:00Z", "status": "SCHEDULED", "matchday": 1, "homeTeam": {"name": "Ceará SC"}, "awayTeam": {"name": "Chapecoense AF"}, "score": {"fullTime": {"home": null, "away": null}}},
+    {"id": 9004, "utcDate": "2032-05-01T19:00:00Z", "status": "SCHEDULED", "matchday": 1, "homeTeam": {"name": "Clube do Remo"}, "awayTeam": {"name": "Coritiba FBC"}, "score": {"fullTime": {"home": null, "away": null}}},
+    {"id": 9005, "utcDate": "2032-05-01T19:00:00Z", "status": "SCHEDULED", "matchday": 1, "homeTeam": {"name": "CR Flamengo"}, "awayTeam": {"name": "CR Vasco da Gama"}, "score": {"fullTime": {"home": null, "away": null}}},
+    {"id": 9006, "utcDate": "2032-05-01T19:00:00Z", "status": "SCHEDULED", "matchday": 1, "homeTeam": {"name": "Criciúma EC"}, "awayTeam": {"name": "Cruzeiro EC"}, "score": {"fullTime": {"home": null, "away": null}}},
+    {"id": 9007, "utcDate": "2032-05-01T19:00:00Z", "status": "SCHEDULED", "matchday": 1, "homeTeam": {"name": "Cuiabá EC"}, "awayTeam": {"name": "EC Bahia"}, "score": {"fullTime": {"home": null, "away": null}}},
+    {"id": 9008, "utcDate": "2032-05-01T19:00:00Z", "status": "SCHEDULED", "matchday": 1, "homeTeam": {"name": "EC Juventude"}, "awayTeam": {"name": "EC Vitória"}, "score": {"fullTime": {"home": null, "away": null}}},
+    {"id": 9009, "utcDate": "2032-05-01T19:00:00Z", "status": "SCHEDULED", "matchday": 1, "homeTeam": {"name": "Fluminense FC"}, "awayTeam": {"name": "Fortaleza EC"}, "score": {"fullTime": {"home": null, "away": null}}},
+    {"id": 9010, "utcDate": "2032-05-01T19:00:00Z", "status": "SCHEDULED", "matchday": 1, "homeTeam": {"name": "Grêmio FBPA"}, "awayTeam": {"name": "Mirassol FC"}, "score": {"fullTime": {"home": null, "away": null}}},
+    {"id": 9011, "utcDate": "2032-05-01T19:00:00Z", "status": "SCHEDULED", "matchday": 1, "homeTeam": {"name": "RB Bragantino"}, "awayTeam": {"name": "Santos FC"}, "score": {"fullTime": {"home": null, "away": null}}},
+    {"id": 9012, "utcDate": "2032-05-01T19:00:00Z", "status": "SCHEDULED", "matchday": 1, "homeTeam": {"name": "São Paulo FC"}, "awayTeam": {"name": "SC Corinthians Paulista"}, "score": {"fullTime": {"home": null, "away": null}}},
+    {"id": 9013, "utcDate": "2032-05-01T19:00:00Z", "status": "SCHEDULED", "matchday": 1, "homeTeam": {"name": "SC Internacional"}, "awayTeam": {"name": "SC Recife"}, "score": {"fullTime": {"home": null, "away": null}}},
+    {"id": 9014, "utcDate": "2032-05-01T19:00:00Z", "status": "SCHEDULED", "matchday": 1, "homeTeam": {"name": "SE Palmeiras"}, "awayTeam": {"name": "AC Goianiense"}, "score": {"fullTime": {"home": null, "away": null}}}
+  ]
+}

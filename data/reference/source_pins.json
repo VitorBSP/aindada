@@ -1,0 +1,8 @@
+{
+  "adaoduque_kaggle": {
+    "version": "kaggle-v18",
+    "origin": "https://www.kaggle.com/datasets/adaoduque/campeonato-brasileiro-de-futebol",
+    "files": {},
+    "note": "SHA-256 dos arquivos da versão 18, a fixar com 'brasileirao pin-adaoduque' depois do download pelo dono do produto e da conferência contra o espelho do GitHub (ADR-0008). Vazio: a ingestão de publicação falha."
+  }
+}

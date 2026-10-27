@@ -7,13 +7,36 @@ import json
 import logging
 from datetime import UTC, date, datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from brasileirao.competition_rules.season_rules import load_season_rules
 from brasileirao.config import PATHS, SimulationConfig
+from brasileirao.data_pipeline.adaoduque import AdaoDuqueFilesError, AdaoDuqueSource
 from brasileirao.data_pipeline.clubs import load_club_registry
-from brasileirao.data_pipeline.ingest import ingest_raw, read_matches, write_gold, write_silver
+from brasileirao.data_pipeline.composition import (
+    CompositionError,
+    CompositionMode,
+    compose,
+    latest_ingestion,
+    load_source_input,
+    normalized_frame,
+    publication_plan,
+    write_composition,
+)
+from brasileirao.data_pipeline.conference import CONFERENCE_PAIRS, compare_sources, counts_table
+from brasileirao.data_pipeline.corrections import load_corrections
+from brasileirao.data_pipeline.football_data_org import (
+    AwardedMatchError,
+    FootballDataOrgSource,
+    MissingTokenError,
+)
+from brasileirao.data_pipeline.ingest import append_changes, ingest_raw, read_matches, write_gold
 from brasileirao.data_pipeline.sources import BrasileiraoDatasetSource
-from brasileirao.data_pipeline.validation import load_known_exceptions, run_quality_checks
+from brasileirao.data_pipeline.validation import (
+    load_awarded_results,
+    load_known_exceptions,
+    run_quality_checks,
+)
 from brasileirao.insights.criteria import load_criteria
 from brasileirao.insights.editorial import (
     EditorialError,
@@ -30,22 +53,107 @@ from brasileirao.validation.report import run_backtest_report
 
 LOGGER = get_logger("brasileirao.cli")
 DEFAULT_CHECKOUT = PATHS.raw / "_sources" / "brasileirao-dataset"
+DEFAULT_ADAODUQUE_DIR = PATHS.raw / "adaoduque" / "v18"
+SOURCE_PINS = PATHS.reference / "source_pins.json"
+BRASILIA = ZoneInfo("America/Sao_Paulo")
 
 
-def command_ingest(arguments: argparse.Namespace) -> None:
+def _ingest_research(arguments: argparse.Namespace) -> None:
+    """Só pesquisa local: `brasileirao-dataset` (Sofascore em 2024+), nunca publicável (ADR-0008)."""
     source = BrasileiraoDatasetSource(Path(arguments.checkout))
     snapshot = source.fetch(arguments.revision) if arguments.fetch else source.snapshot_from_checkout()
     raw_dir = ingest_raw(snapshot, PATHS.raw)
-    registry = load_club_registry()
-    write_silver(raw_dir, registry, PATHS.silver)
+    source_input = load_source_input(raw_dir)
+    seasons = {match.season: source.source_name for match in source_input.matches}
+    composition = compose({source.source_name: source_input}, seasons, load_club_registry(), CompositionMode.RESEARCH)
+    write_composition(composition, PATHS.silver, load_corrections(PATHS.reference / "manual_corrections.csv"))
     write_gold(PATHS.silver, PATHS.gold)
-    print(f"ingestão concluída: {raw_dir}")
+    print(f"ingestão de PESQUISA concluída (não publicável): {raw_dir}")
+
+
+def _football_data_seasons(publication_seasons: list[int]) -> list[int]:
+    conference_seasons = [
+        season
+        for pair in CONFERENCE_PAIRS
+        if FootballDataOrgSource.source_name in (pair.candidate, pair.reference)
+        for season in pair.seasons
+    ]
+    return sorted(set(publication_seasons) | set(conference_seasons))
+
+
+def command_ingest(arguments: argparse.Namespace) -> None:
+    if arguments.research_source:
+        _ingest_research(arguments)
+        return
+    plan = publication_plan(arguments.season)
+    awarded = load_awarded_results(PATHS.reference / "known_exceptions.csv", FootballDataOrgSource.source_name)
+    try:
+        adaoduque_raw = ingest_raw(AdaoDuqueSource(Path(arguments.adaoduque_dir), SOURCE_PINS).snapshot(), PATHS.raw)
+        if arguments.fetch:
+            publication_seasons = [season for season, name in plan.items() if name == FootballDataOrgSource.source_name]
+            football_data = FootballDataOrgSource.from_environment()
+            football_raw = ingest_raw(
+                football_data.fetch(_football_data_seasons(publication_seasons), PATHS.raw, awarded), PATHS.raw
+            )
+        else:
+            football_raw = latest_ingestion(PATHS.raw, FootballDataOrgSource.source_name)
+        inputs = {
+            AdaoDuqueSource.source_name: load_source_input(adaoduque_raw),
+            FootballDataOrgSource.source_name: load_source_input(football_raw, awarded),
+        }
+        composition = compose(inputs, plan, load_club_registry())
+    except (AdaoDuqueFilesError, MissingTokenError, AwardedMatchError, CompositionError) as error:
+        raise SystemExit(f"ingestão de publicação interrompida, nada foi gravado na silver/gold: {error}") from error
+    write_composition(composition, PATHS.silver, load_corrections(PATHS.reference / "manual_corrections.csv"))
+    write_gold(PATHS.silver, PATHS.gold)
+    for season, source_name in sorted(plan.items()):
+        n_matches = sum(1 for record in composition.records if record.season == season)
+        print(f"{season}: {source_name} ({n_matches} partidas)")
+    print("ingestão de publicação concluída; composição em data/silver/sources.json")
+
+
+def command_pin_adaoduque(arguments: argparse.Namespace) -> None:
+    try:
+        hashes = AdaoDuqueSource(Path(arguments.adaoduque_dir), SOURCE_PINS).pin_current_files()
+    except AdaoDuqueFilesError as error:
+        raise SystemExit(str(error)) from error
+    for name, digest in hashes.items():
+        print(f"{digest}  {name}")
+    print(f"hashes gravados em {SOURCE_PINS}; confira contra o espelho do GitHub antes de versionar")
+
+
+def command_conference(arguments: argparse.Namespace) -> None:
+    registry = load_club_registry()
+    awarded = load_awarded_results(PATHS.reference / "known_exceptions.csv", FootballDataOrgSource.source_name)
+    frames = {}
+    for source_name in sorted({name for pair in CONFERENCE_PAIRS for name in (pair.candidate, pair.reference)}):
+        try:
+            frames[source_name] = normalized_frame(
+                load_source_input(latest_ingestion(PATHS.raw, source_name), awarded), registry
+            )
+        except CompositionError as error:
+            print(f"sem conferência com {source_name}: {error}")
+    reports = [
+        compare_sources(frames[pair.candidate], frames[pair.reference], pair)
+        for pair in CONFERENCE_PAIRS
+        if pair.candidate in frames and pair.reference in frames
+    ]
+    if not reports:
+        raise SystemExit("nenhum par de fontes disponível para conferência")
+    PATHS.silver.mkdir(parents=True, exist_ok=True)
+    (PATHS.silver / "conference_report.json").write_text(
+        json.dumps([report.model_dump() for report in reports], indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+    append_changes(PATHS.silver, [entry for report in reports for entry in report.divergences])
+    print(json.dumps(counts_table(reports), indent=2, ensure_ascii=False))
 
 
 def command_validate(arguments: argparse.Namespace) -> None:
     matches_data = read_matches(PATHS.gold / "matches_model.csv")
     reference = (
-        date.fromisoformat(arguments.reference_date) if arguments.reference_date else datetime.now(tz=UTC).date()
+        date.fromisoformat(arguments.reference_date)
+        if arguments.reference_date
+        else datetime.now(tz=UTC).astimezone(BRASILIA).date()
     )
     report = run_quality_checks(
         matches_data, reference, load_known_exceptions(PATHS.reference / "known_exceptions.csv")
@@ -164,11 +272,32 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--verbose", action="store_true")
     commands = parser.add_subparsers(dest="command", required=True)
 
-    ingest = commands.add_parser("ingest", help="ingestão raw → silver → gold")
+    ingest = commands.add_parser(
+        "ingest", help="ingestão raw → silver → gold (publicação: Adão Duque v18 até 2025 e football-data.org 2026+)"
+    )
+    ingest.add_argument("--season", type=int, default=datetime.now(tz=UTC).astimezone(BRASILIA).year)
+    ingest.add_argument("--adaoduque-dir", default=str(DEFAULT_ADAODUQUE_DIR), help="arquivos da v18 do Kaggle")
+    ingest.add_argument(
+        "--fetch",
+        action="store_true",
+        help="consulta a football-data.org (FOOTBALL_DATA_ORG_TOKEN); sem ela, usa a última ingestão raw",
+    )
+    ingest.add_argument(
+        "--research-source",
+        choices=["brasileirao_dataset"],
+        default=None,
+        help="SÓ PESQUISA LOCAL: ingere o brasileirao-dataset (não publicável)",
+    )
     ingest.add_argument("--checkout", default=str(DEFAULT_CHECKOUT), help="clone local do brasileirao-dataset")
-    ingest.add_argument("--fetch", action="store_true", help="clona/atualiza o repositório antes")
-    ingest.add_argument("--revision", default=None, help="commit específico (reprodutibilidade)")
+    ingest.add_argument("--revision", default=None, help="commit do brasileirao-dataset (pesquisa)")
     ingest.set_defaults(handler=command_ingest)
+
+    pin = commands.add_parser("pin-adaoduque", help="fixa o SHA-256 dos arquivos da v18 do Adão Duque")
+    pin.add_argument("--adaoduque-dir", default=str(DEFAULT_ADAODUQUE_DIR))
+    pin.set_defaults(handler=command_pin_adaoduque)
+
+    conference = commands.add_parser("conference", help="conferência local entre fontes (só contagens na saída)")
+    conference.set_defaults(handler=command_conference)
 
     validate = commands.add_parser("validate", help="checagens de integridade")
     validate.add_argument("--reference-date", default=None)

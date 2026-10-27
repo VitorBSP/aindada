@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
+from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -8,9 +9,14 @@ from pydantic import ValidationError
 
 from brasileirao.contracts import MatchRecord, MatchStatus
 from brasileirao.data_pipeline.clubs import ClubRegistry, UnknownClubError
+from brasileirao.data_pipeline.football_data_org import FootballDataOrgSource
 from brasileirao.data_pipeline.ingest import detect_changes
-from brasileirao.data_pipeline.sources import FootballDataOrgSource
-from brasileirao.data_pipeline.validation import Severity, run_quality_checks
+from brasileirao.data_pipeline.validation import (
+    Severity,
+    load_awarded_results,
+    load_known_exceptions,
+    run_quality_checks,
+)
 
 SYNTHETIC_FOOTBALL_DATA_PAYLOAD = {
     "note": "synthetic fixture shaped like football-data.org v4; not real results",
@@ -122,3 +128,36 @@ def test_detect_changes_reports_new_result(synthetic_matches: pd.DataFrame) -> N
     current.loc[pending, ["home_goals", "away_goals", "status"]] = [1, 0, "finished"]
     changed = {change["change"] for change in detect_changes(previous, current)}
     assert {"status", "home_goals"} <= changed
+
+
+def test_quality_checks_flag_finished_match_after_reference(synthetic_matches: pd.DataFrame) -> None:
+    season = synthetic_matches[synthetic_matches["season"] == 2030]
+    reference = season.loc[season["status"] == "finished", "match_date"].max().date() - timedelta(days=1)
+    codes = {issue.code for issue in run_quality_checks(season, reference).issues}
+    assert "finished_after_reference" in codes
+
+
+def test_awarded_results_are_read_from_known_exceptions(tmp_path: Path) -> None:
+    path = tmp_path / "known_exceptions.csv"
+    path.write_text(
+        "season,code,note,source_name,source_match_id,home_goals,away_goals\n"
+        "2032,awarded,synthetic W.O.,football_data_org,101,3,0\n"
+        "2032,match_count,synthetic,,,,\n",
+        encoding="utf-8",
+    )
+    assert load_awarded_results(path, "football_data_org") == {"101": (3, 0)}
+
+
+def test_awarded_rows_are_not_quality_exceptions(tmp_path: Path) -> None:
+    path = tmp_path / "known_exceptions.csv"
+    path.write_text(
+        "season,code,note,source_name,source_match_id,home_goals,away_goals\n"
+        "2032,awarded,synthetic W.O.,football_data_org,101,3,0\n",
+        encoding="utf-8",
+    )
+    assert load_known_exceptions(path) == {}
+
+
+def test_project_known_exceptions_have_no_awarded_rows_yet() -> None:
+    path = Path(__file__).resolve().parents[2] / "data" / "reference" / "known_exceptions.csv"
+    assert load_awarded_results(path, "football_data_org") == {}

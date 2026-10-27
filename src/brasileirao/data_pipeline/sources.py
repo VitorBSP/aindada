@@ -1,7 +1,8 @@
 """Adaptadores de fontes de dados.
 
 Cada adaptador entrega registros brutos e metadados de proveniência. A normalização para
-os contratos da camada silver acontece em `ingest.py`.
+os contratos da camada silver acontece em `ingest.py` e a composição por temporada em
+`composition.py`. Adaptadores de publicação: `adaoduque.py` e `football_data_org.py` (ADR-0008).
 """
 
 from __future__ import annotations
@@ -14,7 +15,7 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
-from brasileirao.contracts import LicenseStatus, MatchStatus
+from brasileirao.contracts import AllowedUse, LicenseStatus, MatchStatus
 
 BRASILEIRAO_DATASET_REPO = "https://github.com/leeofernandes1980/brasileirao-dataset.git"
 BRASILEIRAO_DATASET_MATCHES = "dashboard/public/data/json/partidas_resumo.json"
@@ -51,7 +52,16 @@ class SourceSnapshot:
     files: dict[str, Path]
     license_status: LicenseStatus
     license_notes: str
-    allowed_uses: tuple[str, ...]
+    allowed_uses: tuple[AllowedUse, ...]
+    license_name: str | None = None
+    terms_url: str | None = None
+    terms_checked_at: date | None = None
+    attribution: str | None = None
+    raw_dir_name: str | None = None
+
+    @property
+    def target_dir_name(self) -> str:
+        return self.raw_dir_name or self.version[:12]
 
 
 def _optional_int(value: Any) -> int | None:
@@ -67,7 +77,9 @@ class BrasileiraoDatasetSource:
 
     2003–2023: dataset histórico de Adão Duque. 2024–2026: coletado pelo mantenedor via
     API não oficial do Sofascore. O repositório não declara licença; uso restrito a
-    pesquisa local até verificação (ver docs/data-sources/catalog.md).
+    pesquisa local e à conferência (ADR-0008). Não é fonte de publicação: só roda pela opção
+    explícita de pesquisa da CLI. A data é a do dia UTC do pontapé inicial em 2024+ e não pode
+    ser convertida (a fonte não traz a hora); a conferência usa tolerância de ±1 dia.
     """
 
     source_name = "brasileirao_dataset"
@@ -77,7 +89,7 @@ class BrasileiraoDatasetSource:
         "restringem coleta automatizada e uso comercial. Uso permitido aqui: pesquisa e "
         "protótipo local. Bloqueado para publicação comercial até acordo de licença."
     )
-    allowed_uses = ("research_local", "prototype_local")
+    allowed_uses = (AllowedUse.RESEARCH_LOCAL, AllowedUse.PROTOTYPE_LOCAL)
 
     def __init__(self, checkout_dir: Path, repo_url: str = BRASILEIRAO_DATASET_REPO) -> None:
         self.checkout_dir = checkout_dir
@@ -153,74 +165,3 @@ class BrasileiraoDatasetSource:
             for record in records
             if record.get("temporada") is not None and record.get("clube")
         ]
-
-
-_FOOTBALL_DATA_ORG_STATUS = {
-    "FINISHED": MatchStatus.FINISHED,
-    "AWARDED": MatchStatus.FINISHED,
-    "SCHEDULED": MatchStatus.SCHEDULED,
-    "TIMED": MatchStatus.SCHEDULED,
-    "IN_PLAY": MatchStatus.SCHEDULED,
-    "PAUSED": MatchStatus.SCHEDULED,
-    "POSTPONED": MatchStatus.POSTPONED,
-    "SUSPENDED": MatchStatus.POSTPONED,
-    "CANCELLED": MatchStatus.CANCELLED,
-}
-
-
-class FootballDataOrgSource:
-    """API football-data.org v4, competição BSA (Série A). Requer token gratuito.
-
-    Pronto para uso, ainda não validado contra a API real neste ambiente (rede bloqueada).
-    """
-
-    source_name = "football_data_org"
-    base_url = "https://api.football-data.org/v4"
-    license_status = LicenseStatus.REQUIRES_AGREEMENT
-    license_notes = (
-        "Uso conforme termos da football-data.org (plano gratuito com atribuição e limites de "
-        "requisições). Verificar cláusulas de uso comercial antes de publicação."
-    )
-
-    def __init__(self, api_token: str) -> None:
-        self.api_token = api_token
-
-    def fetch_season_payload(self, season: int) -> dict[str, Any]:
-        import httpx  # noqa: PLC0415
-
-        response = httpx.get(
-            f"{self.base_url}/competitions/BSA/matches",
-            params={"season": season},
-            headers={"X-Auth-Token": self.api_token},
-            timeout=30.0,
-        )
-        response.raise_for_status()
-        payload: dict[str, Any] = response.json()
-        return payload
-
-    @staticmethod
-    def parse_matches(payload: dict[str, Any], season: int) -> list[RawMatch]:
-        parsed_matches: list[RawMatch] = []
-        for match in payload.get("matches", []):
-            status = _FOOTBALL_DATA_ORG_STATUS.get(str(match.get("status")), MatchStatus.SCHEDULED)
-            full_time = (match.get("score") or {}).get("fullTime") or {}
-            home_goals = _optional_int(full_time.get("home"))
-            away_goals = _optional_int(full_time.get("away"))
-            if status != MatchStatus.FINISHED or home_goals is None or away_goals is None:
-                home_goals, away_goals = None, None
-                if status == MatchStatus.FINISHED:
-                    status = MatchStatus.SCHEDULED
-            parsed_matches.append(
-                RawMatch(
-                    source_match_id=str(match["id"]),
-                    season=season,
-                    round=_optional_int(match.get("matchday")),
-                    match_date=datetime.fromisoformat(str(match["utcDate"]).replace("Z", "+00:00")).date(),
-                    home_name=str(match["homeTeam"]["name"]),
-                    away_name=str(match["awayTeam"]["name"]),
-                    home_goals=home_goals,
-                    away_goals=away_goals,
-                    status=status,
-                )
-            )
-        return parsed_matches

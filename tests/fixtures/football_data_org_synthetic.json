@@ -1,0 +1,20 @@
+{
+  "note": "synthetic fixture shaped like football-data.org v4 /competitions/BSA/matches; clubs and scores are invented, not real results",
+  "matches": [
+    {"id": 101, "utcDate": "2032-10-27T00:30:00Z", "status": "FINISHED", "matchday": 1,
+     "homeTeam": {"name": "Sintetico 01"}, "awayTeam": {"name": "Sintetico 02"},
+     "score": {"duration": "REGULAR", "fullTime": {"home": 2, "away": 1}}},
+    {"id": 102, "utcDate": "2032-10-26T23:00:00Z", "status": "IN_PLAY", "matchday": 1,
+     "homeTeam": {"name": "Sintetico 03"}, "awayTeam": {"name": "Sintetico 04"},
+     "score": {"duration": "REGULAR", "fullTime": {"home": 1, "away": 0}}},
+    {"id": 103, "utcDate": "2032-10-26T22:00:00Z", "status": "PAUSED", "matchday": 1,
+     "homeTeam": {"name": "Sintetico 05"}, "awayTeam": {"name": "Sintetico 06"},
+     "score": {"duration": "REGULAR", "fullTime": {"home": 0, "away": 0}}},
+    {"id": 104, "utcDate": "2032-10-25T19:00:00Z", "status": "POSTPONED", "matchday": 1,
+     "homeTeam": {"name": "Sintetico 07"}, "awayTeam": {"name": "Sintetico 08"},
+     "score": {"duration": "REGULAR", "fullTime": {"home": null, "away": null}}},
+    {"id": 105, "utcDate": "2032-11-02T00:30:00Z", "status": "TIMED", "matchday": 2,
+     "homeTeam": {"name": "Sintetico 09"}, "awayTeam": {"name": "Sintetico 10"},
+     "score": {"duration": "REGULAR", "fullTime": {"home": null, "away": null}}}
+  ]
+}

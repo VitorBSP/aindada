@@ -11,6 +11,13 @@ SNAPSHOT_SCHEMA_VERSION = "1.1"
 ROUND_REVIEW_SCHEMA_VERSION = "1.0"
 INSIGHT_RULES_VERSION = "rules-2026.10.1"
 
+# Fonte de publicação por temporada (primeira, última ou None = em aberto, source_name). ADR-0008, Decisão 1.
+# Temporada fora da tabela não tem fonte e faz a ingestão falhar; não há fallback.
+PUBLICATION_SOURCE_BY_SEASON: tuple[tuple[int, int | None, str], ...] = (
+    (2003, 2025, "adaoduque_kaggle"),
+    (2026, None, "football_data_org"),
+)
+
 
 def _project_root() -> Path:
     env_root = os.environ.get("BRASILEIRAO_ROOT")

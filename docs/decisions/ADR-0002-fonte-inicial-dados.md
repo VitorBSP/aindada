@@ -19,3 +19,12 @@ para pesquisa e protótipo local, com status `research_only_unverified` no manif
 ## Consequências
 - Publicação pública ou comercial fica **bloqueada** até haver uma fonte licenciada para 2024+.
 - Os resultados devem ser conferidos com a CBF antes de qualquer divulgação.
+
+## Adendo (2026-10-27): fonte de publicação definida no ADR-0008
+- O ADR-0008 (aceito com condições) define as fontes de **publicação**: Adão Duque, versão 18 no
+  Kaggle (GPL-2), para 2003–2025, e football-data.org (plano gratuito, atribuição obrigatória) para
+  2026 em diante.
+- O `brasileirao-dataset` continua `research_only_unverified`. Ele passa a servir **só** para
+  pesquisa e conferência local e sai do caminho de publicação.
+- Este ADR continua valendo até o plano do ADR-0008 ser implementado e revalidado. Até lá, a
+  publicação continua bloqueada.

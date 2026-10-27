@@ -1,47 +1,47 @@
 club_id,display_name,short_name,state,aliases
 america-mg,América-MG,AME,MG,America-MG
 america-rn,América-RN,ARN,RN,America-RN
-athletico-pr,Athletico-PR,CAP,PR,Athletico-PR|Atletico-PR
-atletico-go,Atlético-GO,ACG,GO,Atletico-GO
-atletico-mg,Atlético-MG,CAM,MG,Atletico-MG
+athletico-pr,Athletico-PR,CAP,PR,Athletico-PR|Atletico-PR|CA Paranaense
+atletico-go,Atlético-GO,ACG,GO,Atletico-GO|AC Goianiense
+atletico-mg,Atlético-MG,CAM,MG,Atletico-MG|CA Mineiro
 avai,Avaí,AVA,SC,Avai
-bahia,Bahia,BAH,BA,Bahia
+bahia,Bahia,BAH,BA,Bahia|EC Bahia
 gremio-barueri,Grêmio Barueri / Prudente,GBA,SP,Barueri|Gremio Prudente|Grêmio Barueri
-botafogo,Botafogo,BOT,RJ,Botafogo-RJ|Botafogo
-bragantino,Red Bull Bragantino,RBB,SP,Bragantino|Red Bull Bragantino
+botafogo,Botafogo,BOT,RJ,Botafogo-RJ|Botafogo|Botafogo FR
+bragantino,Red Bull Bragantino,RBB,SP,Bragantino|Red Bull Bragantino|RB Bragantino
 brasiliense,Brasiliense,BRS,DF,Brasiliense
 csa,CSA,CSA,AL,CSA
-ceara,Ceará,CEA,CE,Ceara
-chapecoense,Chapecoense,CHA,SC,Chapecoense
-corinthians,Corinthians,COR,SP,Corinthians
-coritiba,Coritiba,CFC,PR,Coritiba
-criciuma,Criciúma,CRI,SC,Criciuma
-cruzeiro,Cruzeiro,CRU,MG,Cruzeiro
-cuiaba,Cuiabá,CUI,MT,Cuiaba
+ceara,Ceará,CEA,CE,Ceara|Ceará SC
+chapecoense,Chapecoense,CHA,SC,Chapecoense|Chapecoense AF
+corinthians,Corinthians,COR,SP,Corinthians|SC Corinthians Paulista
+coritiba,Coritiba,CFC,PR,Coritiba|Coritiba FBC
+criciuma,Criciúma,CRI,SC,Criciuma|Criciúma EC
+cruzeiro,Cruzeiro,CRU,MG,Cruzeiro|Cruzeiro EC
+cuiaba,Cuiabá,CUI,MT,Cuiaba|Cuiabá EC
 figueirense,Figueirense,FIG,SC,Figueirense
-flamengo,Flamengo,FLA,RJ,Flamengo
-fluminense,Fluminense,FLU,RJ,Fluminense
-fortaleza,Fortaleza,FOR,CE,Fortaleza
+flamengo,Flamengo,FLA,RJ,Flamengo|CR Flamengo
+fluminense,Fluminense,FLU,RJ,Fluminense|Fluminense FC
+fortaleza,Fortaleza,FOR,CE,Fortaleza|Fortaleza EC
 goias,Goiás,GOI,GO,Goias
-gremio,Grêmio,GRE,RS,Gremio
+gremio,Grêmio,GRE,RS,Gremio|Grêmio FBPA
 guarani,Guarani,GUA,SP,Guarani
-internacional,Internacional,INT,RS,Internacional
+internacional,Internacional,INT,RS,Internacional|SC Internacional
 ipatinga,Ipatinga,IPA,MG,Ipatinga
 joinville,Joinville,JEC,SC,Joinville
-juventude,Juventude,JUV,RS,Juventude
-mirassol,Mirassol,MIR,SP,Mirassol
+juventude,Juventude,JUV,RS,Juventude|EC Juventude
+mirassol,Mirassol,MIR,SP,Mirassol|Mirassol FC
 nautico,Náutico,NAU,PE,Nautico
-palmeiras,Palmeiras,PAL,SP,Palmeiras
+palmeiras,Palmeiras,PAL,SP,Palmeiras|SE Palmeiras
 parana,Paraná,PAR,PR,Parana|Paraná Clube
 paysandu,Paysandu,PAY,PA,Paysandu|Paysandu SC
 ponte-preta,Ponte Preta,PON,SP,Ponte Preta
 portuguesa,Portuguesa,POR,SP,Portuguesa
-remo,Remo,REM,PA,Remo
+remo,Remo,REM,PA,Remo|Clube do Remo
 santa-cruz,Santa Cruz,STA,PE,Santa Cruz
 santo-andre,Santo André,STO,SP,Santo Andre|EC Santo André
-santos,Santos,SAN,SP,Santos
+santos,Santos,SAN,SP,Santos|Santos FC
 sao-caetano,São Caetano,SCA,SP,Sao Caetano
-sao-paulo,São Paulo,SAO,SP,Sao Paulo
-sport,Sport,SPT,PE,Sport
-vasco,Vasco da Gama,VAS,RJ,Vasco
-vitoria,Vitória,VIT,BA,Vitoria
+sao-paulo,São Paulo,SAO,SP,Sao Paulo|São Paulo FC
+sport,Sport,SPT,PE,Sport|SC Recife
+vasco,Vasco da Gama,VAS,RJ,Vasco|CR Vasco da Gama
+vitoria,Vitória,VIT,BA,Vitoria|EC Vitória

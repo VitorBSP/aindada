@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import date, datetime
 from enum import StrEnum
 
@@ -16,10 +17,42 @@ class MatchStatus(StrEnum):
 
 
 class LicenseStatus(StrEnum):
+    """Status de licença de uma fonte, do mais permissivo ao mais restritivo (ADR-0008, Decisão 2)."""
+
     VERIFIED_OPEN = "verified_open"
+    LICENSED_WITH_ATTRIBUTION = "licensed_with_attribution"
     RESEARCH_ONLY_UNVERIFIED = "research_only_unverified"
     REQUIRES_AGREEMENT = "requires_agreement"
     BLOCKED = "blocked"
+
+
+PUBLISHABLE_LICENSE_STATUSES = frozenset({LicenseStatus.VERIFIED_OPEN, LicenseStatus.LICENSED_WITH_ATTRIBUTION})
+
+
+def most_restrictive_license(statuses: Iterable[LicenseStatus]) -> LicenseStatus:
+    """Status mais restritivo de um conjunto de fontes, pela ordem de declaração do enum."""
+    ordered = list(LicenseStatus)
+    collected = list(statuses)
+    if not collected:
+        raise ValueError("nenhum status de licença informado")
+    return max(collected, key=ordered.index)
+
+
+class AllowedUse(StrEnum):
+    """Vocabulário fechado de usos permitidos (ADR-0008, Decisão 2).
+
+    `public_display_derived`: o site público exibe resultados derivados e os fatos de partida da
+    temporada exibida, com atribuição; não inclui arquivos de dados em lote. `redistribution`: a
+    licença permitiria publicar os dados em lote; declarar o uso não autoriza exercê-lo.
+    """
+
+    RESEARCH_LOCAL = "research_local"
+    PROTOTYPE_LOCAL = "prototype_local"
+    PUBLIC_DISPLAY_DERIVED = "public_display_derived"
+    REDISTRIBUTION = "redistribution"
+
+
+PUBLIC_USES = frozenset({AllowedUse.PUBLIC_DISPLAY_DERIVED, AllowedUse.REDISTRIBUTION})
 
 
 class Club(BaseModel):
@@ -72,6 +105,8 @@ class ClubCardTotals(BaseModel):
 
 
 class SourceManifest(BaseModel):
+    """Proveniência de uma ingestão. Os campos de termos são obrigatórios para fontes publicáveis."""
+
     source_name: str
     origin: str
     version: str
@@ -79,7 +114,40 @@ class SourceManifest(BaseModel):
     files: dict[str, str]
     license_status: LicenseStatus
     license_notes: str
-    allowed_uses: list[str]
+    allowed_uses: list[AllowedUse]
+    license_name: str | None = None
+    terms_url: str | None = None
+    terms_checked_at: date | None = None
+    attribution: str | None = None
+
+    @model_validator(mode="after")
+    def _check_license_terms(self) -> SourceManifest:
+        publishable = self.license_status in PUBLISHABLE_LICENSE_STATUSES
+        public_uses = sorted(use.value for use in PUBLIC_USES.intersection(self.allowed_uses))
+        if public_uses and not publishable:
+            raise ValueError(f"{self.source_name}: usos {public_uses} exigem licença verificada ou com atribuição")
+        if publishable:
+            missing = [
+                name
+                for name, value in (
+                    ("license_name", self.license_name),
+                    ("terms_url", self.terms_url),
+                    ("terms_checked_at", self.terms_checked_at),
+                )
+                if value is None or (isinstance(value, str) and not value.strip())
+            ]
+            if missing:
+                raise ValueError(f"{self.source_name}: {self.license_status.value} sem {missing}")
+        if self.license_status == LicenseStatus.LICENSED_WITH_ATTRIBUTION and not (self.attribution or "").strip():
+            raise ValueError(f"{self.source_name}: licensed_with_attribution sem texto de atribuição")
+        return self
+
+    @property
+    def allows_public_display(self) -> bool:
+        return (
+            self.license_status in PUBLISHABLE_LICENSE_STATUSES
+            and AllowedUse.PUBLIC_DISPLAY_DERIVED in self.allowed_uses
+        )
 
 
 class StandingRow(BaseModel):

@@ -1,0 +1,2 @@
+match_id,home_id,away_id,source_status,source_home_goals,source_away_goals,status,home_goals,away_goals,evidence_name,evidence_url,checked_at,note
+2032-sintetico-01-sintetico-02,sintetico-01,sintetico-02,finished,0,0,finished,0,1,synthetic,https://example.org/synthetic-match,2032-10-27,"synthetic: exemplo de formato, não é resultado real. O arquivo real (manual_corrections.csv) é ignorado pelo git (decisão B1)."
