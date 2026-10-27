@@ -734,3 +734,30 @@ Registrado pelo orquestrador a partir do relatório do 06, que auditou sem edita
     `git fsck` e `git rev-list --objects --all`.
   - **07**: o `.gitignore` ganhou uma linha (`manual_corrections.csv`). O push privado depende da
     reauditoria do 06.
+
+## Evidência da reescrita do histórico (Agente 00, 2026-10-27)
+
+- **Novo histórico**: o commit raiz `5bd17d0` ("Commit inicial do brasileirao-predictions (histórico
+  reescrito, decisão B1)"), mais este commit de evidência. Os commits 682e1fb e 3f935bf foram
+  apagados, sem remote e sem push.
+- **Evidência**:
+  - Depois de `git reflog expire --expire=now --all` e `git gc --prune=now --aggressive`:
+    - `git rev-list --all` lista só `5bd17d0`;
+    - `git cat-file -t 682e1fb` e `git cat-file -t 3f935bf` respondem "Not a valid object name";
+    - `git fsck --unreachable --no-reflogs` não lista nada;
+    - `git rev-list --objects --all` e `git cat-file --batch-all-objects` contam o mesmo número
+      de objetos (272), ou seja, não sobrou objeto fora do histórico;
+    - os blobs antigos dos 7 arquivos limpos não existem mais no repositório.
+  - A varredura com `git grep` em todos os commits não encontra nenhum desses padrões:
+    - clube real seguido de placar, %, pontos ou p.p.;
+    - os valores retirados;
+    - `bds-<n>`.
+  - pytest num clone limpo (PYTHONPATH e BRASILEIRAO_ROOT apontando para o clone; o import vem do
+    clone): **158 passed**.
+  - pytest na árvore de trabalho, com o trabalho do 01 ainda fora do git: 173 passed em 4 de 5
+    execuções. A primeira teve 1 falha intermitente, que não se repetiu e não foi identificada. O
+    06 deve acompanhar.
+  - `sha256sum -c`: os 6 arquivos não versionados ou alterados do 01 estão idênticos ao backup
+    feito antes da reescrita.
+- **Backup do histórico antigo**: fica só fora do repositório, no scratchpad da sessão do 00, e
+  contém os números reais. Não deve ser publicado. Apagar depois da reauditoria do 06.
