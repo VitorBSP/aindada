@@ -9,7 +9,7 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 
 from brasileirao.competition_rules.season_rules import load_season_rules
-from brasileirao.config import PATHS
+from brasileirao.config import PATHS, SimulationConfig
 from brasileirao.data_pipeline.clubs import load_club_registry
 from brasileirao.data_pipeline.ingest import ingest_raw, read_matches, write_gold, write_silver
 from brasileirao.data_pipeline.sources import BrasileiraoDatasetSource
@@ -181,8 +181,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     simulate = commands.add_parser("simulate", help="gera snapshots de previsão")
     simulate.add_argument("--season", type=int, default=2026)
-    simulate.add_argument("--simulations", type=int, default=10_000)
-    simulate.add_argument("--seed", type=int, default=2026)
+    simulate.add_argument("--simulations", type=int, default=SimulationConfig().n_simulations)
+    simulate.add_argument("--seed", type=int, default=SimulationConfig().seed)
     simulate.add_argument("--reference-date", default=None)
     simulate.add_argument("--history-from-round", type=int, default=None)
     simulate.add_argument("--history-simulations", type=int, default=2000)
@@ -190,8 +190,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     review = commands.add_parser("review-rounds", help="visões rodada a rodada e atribuição das mudanças")
     review.add_argument("--season", type=int, default=2026)
-    review.add_argument("--simulations", type=int, default=10_000)
-    review.add_argument("--seed", type=int, default=2026)
+    review.add_argument("--simulations", type=int, default=SimulationConfig().round_review_simulations)
+    review.add_argument("--seed", type=int, default=SimulationConfig().seed)
     review.set_defaults(handler=command_review_rounds)
 
     export = commands.add_parser("export-web", help="exporta JSON estático para apps/web/data")

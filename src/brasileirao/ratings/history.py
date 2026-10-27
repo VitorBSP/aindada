@@ -55,6 +55,31 @@ class RatingState:
         return replace(self, ratings=dict(self.ratings))
 
 
+def match_features(state: RatingState, home: ClubRating, away: ClubRating) -> dict[str, float]:
+    """Features pré-jogo entre dois ratings quaisquer (inclusive hipotéticos, como o clube médio)."""
+    return {
+        "elo_home": home.elo,
+        "elo_away": away.elo,
+        "elo_diff": home.elo - away.elo,
+        "ad_log_home": expected_log_goals(state.base, state.home_effect, home.attack, away.defense, True),
+        "ad_log_away": expected_log_goals(state.base, state.home_effect, away.attack, home.defense, False),
+        "form_home": home.form,
+        "form_away": away.form,
+        "form_diff": home.form - away.form,
+    }
+
+
+def average_rating(ratings: Iterable[ClubRating]) -> ClubRating:
+    """Clube de força média: média simples de Elo, ataque, defesa e forma."""
+    values = list(ratings)
+    return ClubRating(
+        elo=float(np.mean([rating.elo for rating in values])),
+        attack=float(np.mean([rating.attack for rating in values])),
+        defense=float(np.mean([rating.defense for rating in values])),
+        form=float(np.mean([rating.form for rating in values])),
+    )
+
+
 def form_smoothing(span_matches: int) -> float:
     return 2.0 / (span_matches + 1.0)
 
@@ -106,19 +131,7 @@ class RatingEngine:
         self.state.season_clubs = clubs_in_season
 
     def pre_match_features(self, home_id: str, away_id: str) -> dict[str, float]:
-        home, away = self.state.ratings[home_id], self.state.ratings[away_id]
-        return {
-            "elo_home": home.elo,
-            "elo_away": away.elo,
-            "elo_diff": home.elo - away.elo,
-            "ad_log_home": expected_log_goals(self.state.base, self.state.home_effect, home.attack, away.defense, True),
-            "ad_log_away": expected_log_goals(
-                self.state.base, self.state.home_effect, away.attack, home.defense, False
-            ),
-            "form_home": home.form,
-            "form_away": away.form,
-            "form_diff": home.form - away.form,
-        }
+        return match_features(self.state, self.state.ratings[home_id], self.state.ratings[away_id])
 
     def process_batch(self, batch: list[tuple[str, str, int, int]]) -> None:
         elo_params = self.params.elo

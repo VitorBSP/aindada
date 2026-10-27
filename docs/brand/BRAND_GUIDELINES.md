@@ -114,6 +114,8 @@ Na aba do navegador, use `docs/brand/assets/simbolo/favicon.svg`.
 | Vermelho-sinal | `#D9381E` | cor da marca; texto só em tamanho grande (4,25:1 sobre papel) |
 | Sinal no escuro | `#FF6A4D` | texto em vermelho sobre tinta (6,2:1) |
 
+| Fundo da interface | `#FAFAF7` | fundo do site no tema claro (D-031); superfície `#FFFFFF`, fio `#E2E1DB`. O Papel continua nos arquivos de marca |
+
 Tokens de interface (dados, estados, tema escuro): ver "Aplicações em interface" e `apps/web/assets/styles.css`.
 
 ## Tipografia — assinatura aprovada (D-021)
@@ -151,11 +153,17 @@ Implementada em `apps/web/` (tokens no topo de `assets/styles.css`). Princípios
 - **Tema escuro:** fundo tinta `#17191C`, texto papel; assinatura reversa no cabeçalho.
 - **Voz:** sobretítulo + manchete curta (formato ilustrativo: "Clube A na frente. Clube B: ainda
   dá."); números em negrito no texto; "não dá mais" só com certeza matemática.
-- **Mosaico de pontos (D-030):** imagem-assinatura da home. 1.000 pontos em 50 colunas, preenchidos
-  por coluna, um grupo por clube (maior resto para fechar exatamente 1.000); cores na ordem tinta,
-  azul, âmbar e cinza para os demais; nota manuscrita em serifa itálica ("cada ponto, 10
-  simulações"); legenda com links para os clubes. Sem animação. Substitui a lista "Chance de título"
-  na home para não repetir a informação.
+- **Mosaico de pontos (D-030, D-031):** imagem-assinatura da home. 1.000 pontos em 50 colunas, preenchidos
+  por coluna, um grupo por clube (maior resto para fechar exatamente 1.000). Cada disputa usa a sua
+  cor (título em tinta, G4 em azul, rebaixamento em vermelho), com grupos vizinhos alternando tom cheio
+  e 50%; sigla do clube acima de grupos com 40 pontos ou mais. Em disputas com várias vagas, os pontos
+  são vagas (4 por simulação). Nota manuscrita em serifa itálica ("cada ponto, N simulações" ou "N
+  vagas"); legenda em grade com escudo, link e chance. Sem animação.
+- **Home por disputa (D-031):** seletor segmentado Título · G4 · Rebaixamento. A edição destaca a
+  disputa que mais mudou desde a atualização anterior (ou a mais aberta) e diz por quê.
+- **Escudos (D-031):** em todas as listas de clubes, a 18–22 px; 26 px na faixa de troca de clube e
+  40–48 px na grade e no título do clube. Marcador neutro (D-028/D-029) onde não há escudo livre.
+- **Abas (D-031):** sublinhado vermelho-sinal no item ativo, rótulo do grupo em serifa itálica.
 - **Cabeçalho de edição (D-030):** primeira linha em serifa itálica com a data por extenso e a
   rodada ("depois da rodada N" ou "rodada N em andamento", só quando a revisão por rodada é da
   mesma data); segunda linha com jogos disputados, simulações e "modelo experimental".

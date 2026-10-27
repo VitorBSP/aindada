@@ -50,10 +50,31 @@ esperados saem dessa matriz.
 
 Saídas por clube: P(posição k) para k = 1..20, título, vice, G4, rebaixamento, Libertadores
 (grupos, preliminar, total) e Sul-Americana por cenário e em faixa, pontos esperados, mediana,
-intervalo de 90%, gols pró e contra esperados.
+intervalo de 90%, gols pró e contra esperados. Desde o schema 1.1 também saem a corrida pela
+Sul-Americana (`sudamericana_race`, ver `sudamericana-race.md`) e a tabela restante com pontos
+esperados por mando e índice de dificuldade (`schedule`, ver `schedule-difficulty.md`).
 
-Desempenho: 10 mil temporadas com 72 jogos restantes levam ~3 s, mais ~5 s para aplicar os 32
-cenários externos.
+Os placares são sorteados em blocos de 100 mil jogos simulados (`SAMPLING_CHUNK_ROWS`) para limitar
+a memória; os uniformes são consumidos na mesma ordem, então a semente reproduz o mesmo resultado
+com ou sem blocos.
+
+Número de simulações (2026-10-27): o snapshot da data de referência usa **100 mil** temporadas
+(`SimulationConfig.n_simulations`, padrão de `simulate --simulations`). O erro-padrão de Monte Carlo
+de uma probabilidade p é √(p(1−p)/n): no pior caso (p = 50%) cai de 0,50 p.p. com 10 mil para
+0,16 p.p. com 100 mil. Medição local (i5-11300H, 61 jogos restantes, 32 cenários): `build_snapshot`
+leva ~4 s com 10 mil e ~20 s com 100 mil; o pico de memória do processo (working set) passa de
+~380 MiB para ~700 MiB, graças ao sorteio em blocos. O `simulate` completo (carga, simulação,
+gravação e exportação) levou ~22 s com 100 mil.
+
+Fora dos 100 mil, por custo:
+
+- **Snapshots históricos** (`--history-simulations`, padrão 2.000): não foram reprocessados; o
+  histórico de probabilidades mistura snapshots de 2 mil e 10 mil com o atual de 100 mil, e o
+  `n_simulations` de cada ponto fica registrado em `probability-history.json`.
+- **Revisão rodada a rodada** (`review-rounds`): roda duas simulações da temporada inteira por
+  rodada (66 simulações para 33 visões). Com 10 mil levou ~25 min (pico rastreado de ~290 MB); com
+  100 mil seriam ~4 h e alguns GB. O padrão passa a ser `SimulationConfig.round_review_simulations
+  = 20_000`, o mesmo valor da revisão publicada.
 
 ## Revisão rodada a rodada
 

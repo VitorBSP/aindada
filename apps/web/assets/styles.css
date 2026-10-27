@@ -9,12 +9,12 @@
 }
 
 :root {
-  --paper: #f7f5ef;
-  --surface: #fffdf8;
+  --paper: #fafaf7;
+  --surface: #ffffff;
   --ink: #17191c;
   --ink-soft: #4a4e55;
   --ink-faint: #6b6f76;
-  --rule: #dcd8cc;
+  --rule: #e2e1db;
   --rule-strong: #17191c;
   --signal: #d9381e;
   --title: #17191c;
@@ -116,10 +116,10 @@ a:hover { text-decoration-color: var(--signal); }
 }
 :root[data-theme="dark"] .brand .logo-light { display: none; }
 :root[data-theme="dark"] .brand .logo-dark { display: block; }
-nav { display: flex; flex-wrap: wrap; gap: 2px 18px; }
-nav a { text-decoration: none; color: var(--ink-soft); padding: 4px 0; border-bottom: 2px solid transparent; font-size: 15px; font-weight: 500; }
-nav a:hover { color: var(--ink); }
-nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--signal); font-weight: 600; }
+.masthead nav { display: flex; flex-wrap: wrap; gap: 2px 18px; }
+.masthead nav a { text-decoration: none; color: var(--ink-soft); padding: 4px 0; border-bottom: 2px solid transparent; font-size: 15px; font-weight: 500; }
+.masthead nav a:hover { color: var(--ink); }
+.masthead nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--signal); font-weight: 600; }
 .reference-bar { font-size: 13px; color: var(--ink-soft); padding-top: 8px; padding-bottom: 8px; border-top: 1px solid var(--rule); display: flex; flex-wrap: wrap; gap: 2px 18px; }
 .reference-bar strong { color: var(--ink); font-weight: 650; }
 .pill { font-size: 13px; color: var(--ink-faint); font-style: italic; font-family: var(--serif); }
@@ -261,6 +261,53 @@ main p.highlight-links { font-family: var(--sans); font-size: 14px; color: var(-
 main > p.highlight-links { margin: -8px 0 24px; }
 .highlights-block { margin-bottom: 8px; }
 
+/* Escolha de disputa (home) e de visão (tabela) */
+.race-switch { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; margin: 0 0 22px; }
+.race-switch .note { margin: 0; }
+.segmented { display: inline-flex; border: 1px solid var(--ink); }
+.segmented a { font-size: 14px; font-weight: 600; padding: 7px 16px; text-decoration: none; color: var(--ink); }
+.segmented a + a { border-left: 1px solid var(--ink); }
+.segmented a:hover { background: color-mix(in srgb, var(--ink) 8%, transparent); }
+.segmented a[aria-current="page"] { background: var(--ink); color: var(--paper); }
+.race-heading { border-top: 0; margin-top: 8px; padding-top: 0; font-size: 26px; }
+.lede-method { color: var(--ink-faint); font-size: 16px; }
+.mosaic-labels text { font-family: var(--sans); font-size: 12px; font-weight: 700; fill: var(--ink-soft); }
+.mosaic-legend { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.mosaic-legend li { display: flex; align-items: center; gap: 2px; }
+.mosaic-legend strong { margin-left: auto; padding-right: 12px; font-variant-numeric: tabular-nums; }
+
+.table-tabs { display: flex; flex-wrap: wrap; gap: 4px 36px; margin: 8px 0 14px; border-bottom: 1px solid var(--rule); }
+.tabs { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 18px; }
+.tabs-label { font-size: 13px; color: var(--ink-faint); font-family: var(--serif); font-style: italic; }
+.tabs a { text-decoration: none; font-size: 15px; font-weight: 600; color: var(--ink-soft); padding: 6px 0; border-bottom: 3px solid transparent; margin-bottom: -1px; }
+.tabs a:hover { color: var(--ink); }
+.tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--signal); }
+.standings th.view-start, .standings td.view-start { border-left: 1px solid var(--rule-strong); padding-left: 12px; }
+.rank { font-size: 11px; color: var(--ink-faint); font-weight: 500; }
+.difficulty { display: inline-block; min-width: 36px; padding: 2px 6px; font-weight: 700; background: color-mix(in srgb, var(--danger) calc(var(--d) * 40%), transparent); }
+.upcoming { display: inline-flex; gap: 8px; }
+.upcoming-match { display: inline-flex; align-items: center; gap: 2px; }
+.upcoming-match.rated { padding: 2px 3px; background: color-mix(in srgb, var(--danger) calc(var(--d) * 32%), transparent); }
+main p.upcoming-line { font-family: var(--sans); font-size: 14px; color: var(--ink-soft); display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.venue { font-size: 10px; font-weight: 700; color: var(--ink-faint); }
+td.club .club-cell { gap: 8px; }
+
+/* Clubes */
+.club-grid { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); border-top: 1px solid var(--rule-strong); }
+main > ul.club-grid li { font-family: var(--sans); font-size: 15px; }
+.club-tile { display: grid; grid-template-columns: 40px 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center; padding: 14px 8px 14px 0; border-bottom: 1px solid var(--rule); text-decoration: none; }
+.club-tile .crest, .club-tile .crest-spacer { grid-row: 1 / 3; }
+.club-tile-name { font-weight: 650; line-height: 1.2; overflow-wrap: normal; hyphens: manual; }
+.club-tile-meta { font-size: 12px; color: var(--ink-faint); }
+.club-tile:hover .club-tile-name { text-decoration: underline; text-decoration-color: var(--signal); }
+.club-strip { display: flex; gap: 4px; overflow-x: auto; padding: 0 0 10px; margin: 0 0 22px; border-bottom: 1px solid var(--rule); scrollbar-width: thin; }
+.club-strip a { flex: none; display: inline-flex; padding: 5px; border-bottom: 3px solid transparent; opacity: .55; }
+.club-strip a:hover, .club-strip a:focus-visible { opacity: 1; }
+.club-strip a[aria-current="page"] { opacity: 1; border-bottom-color: var(--signal); }
+.club-heading { display: flex; align-items: center; gap: 14px; }
+.postponed { color: var(--sudamericana); font-weight: 650; }
+.match .home .club-cell { justify-content: flex-end; }
+
 /* Rodapé */
 .site-footer { border-top: 3px solid var(--rule-strong); padding-top: 16px; padding-bottom: 40px; font-size: 13px; color: var(--ink-faint); display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start; }
 .site-footer img { width: 28px; height: auto; display: block; }
@@ -275,6 +322,8 @@ main > p.highlight-links { margin: -8px 0 24px; }
   .match .triple-cell { grid-column: 1 / -1; order: 3; }
   .match .match-meta, .match .impact-row { order: 4; }
   .match .home { text-align: left; }
+  .match .home .club-cell { justify-content: flex-start; }
+  .segmented a { padding: 7px 12px; }
   .match .away { text-align: right; }
   .lede { font-size: 17px; }
   .stat .big { font-size: 28px; }

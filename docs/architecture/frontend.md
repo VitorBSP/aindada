@@ -4,10 +4,10 @@ MVP estático em `apps/web` (ADR-0005). Rotas por hash:
 
 | Rota | Conteúdo |
 |---|---|
-| `#/` | chance de título, risco de rebaixamento, disputa pela Libertadores (faixas), mudanças desde o snapshot anterior, aviso de jogos sem placar |
-| `#/classificacao` | tabela real e projeção (pontos com intervalo de 90%, posição média, título, G4, Libertadores grupos/total, Sul-Americana, rebaixamento) e seletor de cenário externo |
-| `#/clubes/{id}` | probabilidades, distribuição de posição, evolução temporal, força estimada, próximos jogos, cenários favorável e desfavorável |
-| `#/partidas` | jogos restantes com 1X2, gols esperados e placar mais provável; últimos resultados |
+| `#/` e `#/inicio/{titulo,g4,rebaixamento}` | home por disputa (D-031): sem parâmetro, mostra a disputa que mais mudou desde o snapshot anterior (soma das variações por vaga ≥ 5 p.p.) ou, sem mudança relevante, a mais aberta (Σ p(1−p) por vaga); o usuário pode trocar. Manchete e texto da disputa, mosaico de 1.000 pontos (vagas da disputa), faixas da Libertadores na visão G4, mudanças da disputa desde o snapshot anterior, aviso de jogos recentes sem placar |
+| `#/classificacao/{visão}` | colunas fixas (Pts, J, V, SG, Pts proj. com intervalo de 90%, Pos. média) e um grupo variável escolhido pelo usuário: `titulo`, `libertadores` (G4, Liberta. grupos, Liberta. total, com seletor de cenário), `sul-americana` (com seletor de cenário), `rebaixamento`, `forca` (Elo, ataque, defesa com posição no quesito) e `dificuldade` (índice total, em casa e fora, pontos esperados em casa e fora, lidos de `team.schedule` do snapshot, e escudos dos próximos 5 adversários) |
+| `#/clubes` e `#/clubes/{id}` | sem id: grade de escudos em ordem de classificação. Com id: faixa de escudos para trocar de clube, probabilidades, distribuição de posição, evolução temporal, força estimada, dificuldade do que falta (`team.schedule`), próximos jogos (adiados no fim), cenários favorável e desfavorável |
+| `#/partidas` | jogos restantes com 1X2, gols esperados e placar mais provável; seção "Adiado, data a definir" para jogo sem placar com data mais de 7 dias antes da data de referência (provisório até o Agente 01 marcar `postponed` na fonte); últimos resultados |
 | `#/rodadas/{n}` | por rodada: gráfico de onde o campeonato mudou (resultados vs. força), resumo da rodada (quem mais subiu e caiu, jogo decisivo, maior surpresa), tabela real com variação decomposta, jogos do intervalo com os clubes afetados e a avaliação de todas as rodadas (intensidade, líder, favorito, jogo decisivo, surpresa) |
 | `#/rodadas/time/{id}` | por time: posição e chances atuais com variação desde a pré-temporada, gráficos de chances e de posição (real e projetada) por rodada, momentos que mais mudaram a temporada e tabela rodada a rodada com os jogos do time e o efeito de cada um |
 | `#/rodadas/comparar/{ids}` | comparativo de até 3 times numa métrica (título, G4, rebaixamento, posição, pontos, pontos projetados), com tabela de valores, e a tabela de todos os times em qualquer rodada escolhida |
@@ -36,3 +36,5 @@ bloco só na rodada mais recente. Só entram insights cuja data de referência �
 
 Verificação: capturas de tela em 1280 px e 375 px via Playwright, sem erros de JavaScript e sem
 rolagem horizontal.
+
+Escudos aparecem em todas as páginas (D-031): `crest()` em `app.js` lê `assets/crests/manifest.json`, com a mesma regra do marcador neutro de `rounds.js` (D-028/D-029).

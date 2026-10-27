@@ -38,6 +38,7 @@ from brasileirao.data_pipeline.validation import (
 from brasileirao.frame_values import as_int, as_timestamp
 from brasileirao.logging_utils import get_logger
 from brasileirao.prediction.goals_model import GoalsModel
+from brasileirao.prediction.schedule import build_schedules
 from brasileirao.ratings.history import RatingEngine, RatingState, build_state_as_of
 from brasileirao.simulation.engine import SeasonSimulator, SimulationResult
 from brasileirao.simulation.round_review import METRICS, RoundView, build_round_view, round_cutoffs
@@ -54,7 +55,10 @@ from brasileirao.storage.schema import (
     RoundReview,
     RoundViewInfo,
     ScenarioRange,
+    ScheduleInfo,
+    ScheduleScaleInfo,
     StandingEntry,
+    SudamericanaRace,
     TeamPrediction,
 )
 from brasileirao.storage.snapshots import SnapshotStore
@@ -176,6 +180,10 @@ def build_snapshot(
     result = prepared.simulator.run(n_simulations, seed, model_config.dynamic_ratings, model_config.uncertainty)
     scenarios = enumerate_external_scenarios(rules, registry.display_name)
     summaries, _ = build_team_summaries(result, rules, scenarios)
+    schedules, scale = build_schedules(
+        result.remaining_matches, engine.state, model, result.club_ids, rules.points_win, rules.points_draw
+    )
+    schedule_by_club = {schedule.club_id: schedule for schedule in schedules}
 
     table = result.observed_table
     current_order = rank_table(table, rules)
@@ -227,6 +235,12 @@ def build_snapshot(
                 libertadores_prelim=_scenario_range(summary.libertadores_prelim),
                 libertadores_total=_scenario_range(summary.libertadores_total),
                 sudamericana=_scenario_range(summary.sudamericana),
+                sudamericana_race=(
+                    SudamericanaRace.model_validate(asdict(summary.sudamericana_race))
+                    if summary.sudamericana_race
+                    else None
+                ),
+                schedule=ScheduleInfo.model_validate(asdict(schedule_by_club[summary.club_id])),
                 ratings=RatingsInfo(elo=rating.elo, attack=rating.attack, defense=rating.defense, form=rating.form),
             )
         )
@@ -269,6 +283,7 @@ def build_snapshot(
             cup_redirect_policy=rules.cup_redirect_policy.value,
         ),
         scenarios=[ExternalScenarioInfo(scenario_id=scenario.scenario_id, **scenario.labels) for scenario in scenarios],
+        schedule_scale=ScheduleScaleInfo.model_validate(asdict(scale)),
         standings=standings,
         teams=sorted(teams, key=lambda team: (-team.expected_points, team.name)),
         matches=matches,

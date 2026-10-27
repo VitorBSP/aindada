@@ -903,3 +903,96 @@ Registrado pelo orquestrador a partir do relatório do 06, que verificou sem edi
     também precisa ter os placares retirados.
   - **06**: teste `test_crests_manifest.py`.
   - **Dono do produto**: Q17 (siglas e cores).
+
+## Agente 08: mosaico, cabeçalho de edição e anotações (D-030, 2026-10-27)
+
+- **O que mudou**: `apps/web/assets/app.js` (`titleMosaic`/`allocateDots`; `renderReferenceBar` como
+  cabeçalho de edição com `editionRound`; `lineChart` com rótulos diretos e anotações via
+  `chartAnnotations`/`openMetric`; `signedPercent` corrige "-0%" em ataque e defesa) e
+  `apps/web/assets/styles.css` (seções de edição, mosaico e anotações). Na home com mosaico, a lista
+  de chance de título sai e o risco de queda vira seção própria.
+- **Evidência**: capturas em 1280 px (home, dois clubes) e 520 px no tema escuro, com o Edge em modo
+  headless; navegador do app em 375 px: 6 rotas sem rolagem horizontal, mosaico com exatamente 1.000
+  pontos, anotações presentes nas páginas de clube, console sem erros além dos 404 esperados de
+  `/api/*` no servidor estático. Valores exibidos no registro local (decisão B1).
+- **Premissas**: o mosaico representa a probabilidade agregada do snapshot (pontos alocados pelo maior
+  resto), não sorteios individuais; a legenda diz isso. As anotações são fatos do histórico e não
+  passam pelo fluxo editorial, porque não atribuem causa.
+- **Observação para o 00/02**: rótulos "100%" aparecem quando o desfecho ocorre em todas as
+  simulações, o que não é certeza matemática; avaliar exibir ">99,9%" nesses casos.
+
+## Agente 02: corrida pela Sul-Americana, 100 mil simulações e dificuldade da tabela (2026-10-27)
+
+- **O que mudou** (nada commitado):
+  - `simulation/summary.py`: vagas continentais agregadas por arranjo de posições dos clubes citados
+    nos cenários externos (resultado idêntico ao cálculo direto, ~9× mais rápido); novas
+    `sudamericana_all_scenarios`/`sudamericana_any_scenario` e `sudamericana_race` (classificação
+    da corrida sem pesos para os cenários). Método: `docs/methodology/sudamericana-race.md`.
+  - `prediction/schedule.py` (novo): pontos esperados nos jogos restantes (total, casa, fora) e
+    índice de dificuldade 0–100 (50 = tabela média da liga), com ranking e força do adversário por
+    jogo. Método e escala: `docs/methodology/schedule-difficulty.md`.
+  - `ratings/history.py`: `match_features` e `average_rating` extraídos (sem mudança de resultado).
+  - `simulation/engine.py`: sorteio de placares em blocos de 100 mil jogos simulados; mesma semente,
+    mesmo resultado (teste com blocos de 7 linhas).
+  - `config.py` (Agente 00): `SimulationConfig.n_simulations = 100_000`, novo
+    `round_review_simulations = 20_000`, `SNAPSHOT_SCHEMA_VERSION = "1.1"`. `cli.py` (Agente 00): os
+    padrões de `simulate` e `review-rounds` passam a vir de `SimulationConfig`.
+  - `pipeline.py` (Agente 00): `build_snapshot` publica `teams[].sudamericana_race`,
+    `teams[].schedule` e `schedule_scale`.
+  - `storage/schema.py` (**handoff ao Agente 04**): novos `SudamericanaRace`, `ScheduleInfo`,
+    `ScheduleMatchInfo` e `ScheduleScaleInfo`; campos opcionais em `TeamPrediction` e
+    `PredictionSnapshot`, então os snapshots antigos continuam válidos. A API (`apps/api`) não
+    precisou mudar: devolve `TeamPrediction` inteiro.
+  - `competition_rules/` (Agente 03) **não foi alterado**. A agregação supõe que `allocate_slots`
+    só distingue os clubes citados nos cenários; se isso mudar, ajustar `_external_clubs`.
+  - Testes novos: `tests/unit/test_schedule.py`, `tests/unit/test_sudamericana_race.py`,
+    `tests/integration/test_snapshot_schedule_and_race.py` (dados sintéticos).
+- **Evidência**:
+  - `.venv/Scripts/python.exe -m pytest -q`: 204 passed; `-m ruff check .`: ok;
+    `-m ruff format --check .`: ok; `-m mypy src`: sem erros em 43 arquivos.
+  - Equivalência da agregação na base real, 10 mil simulações: diferença máxima 0 em grupos,
+    preliminar e Sul-Americana, nos 32 cenários.
+  - Snapshot de 2026-10-26 regenerado com `simulate --season 2026 --reference-date 2026-10-26`
+    (100 mil, semente 2026, schema 1.1, mesma versão de dados) e reexportado com
+    `export-web --season 2026`. `build_snapshot`: ~4 s com 10 mil e ~20 s com 100 mil; pico de
+    working set de ~380 MiB para ~700 MiB; `simulate` completo em ~22 s.
+  - `predictions.json`: de ~293 kB para ~348 kB (gzip: ~24 kB para ~38 kB). O aumento vem dos campos
+    novos, não do número de simulações.
+- **Decisões**:
+  - Snapshots históricos não foram reprocessados (seguem com 2 mil e 10 mil); o `n_simulations` de
+    cada ponto está no `probability-history.json`.
+  - `review-rounds` fica em 20 mil (o valor da revisão publicada). Com 10 mil a revisão completa levou
+    ~25 min; com 100 mil seriam ~4 h estimadas.
+- **Premissas e limitações**:
+  - O centro da faixa (`midpoint`) só ordena; não é probabilidade e não deve ser exibido como chance.
+  - A dificuldade usa ratings congelados na data e uma escala recalculada a cada data; o ranking é a
+    leitura mais estável entre datas.
+  - O jogo adiado sem data entra na tabela restante e na simulação como os demais.
+- **Próximos responsáveis**:
+  - **04**: revisar e aceitar as mudanças em `storage/schema.py`.
+  - **06**: auditar os testes novos e a equivalência da agregação; avaliar se o índice de dificuldade
+    precisa de registro em `validation.md` (não é modelo preditivo novo).
+  - **08/05**: exibir a classificação da Sul-Americana com a faixa `min`–`max` e ordenar por
+    `sudamericana_race.rank`, e a tabela restante por `schedule`. Campos em
+    `docs/methodology/sudamericana-race.md` e `docs/methodology/schedule-difficulty.md`.
+  - **00**: ciente das mudanças em `config.py`, `cli.py` e `pipeline.py`.
+
+## Agente 08: revisão do front, home por disputa, tabela por visões e dificuldade (D-031, 2026-10-27)
+
+- **O que mudou**: `apps/web/assets/app.js`, `apps/web/assets/styles.css`, `apps/web/index.html` (cor de tema e
+  texto "100 mil simulações"), `docs/architecture/frontend.md`, `docs/brand/BRAND_DECISIONS.md` (D-031) e
+  `docs/brand/BRAND_GUIDELINES.md`. Fundo da interface `#FAFAF7`; home `#/inicio/{titulo,g4,rebaixamento}`
+  com destaque automático (disputa que mais mudou ou mais aberta); mosaico por vagas; escudos em todas as
+  páginas (`crest()` próprio em `app.js`, mesma regra do marcador neutro); tabela `#/classificacao/{visão}`
+  com colunas fixas e grupos Título, Libertadores, Sul-Americana (ordenada por `sudamericana_race.rank`),
+  Rebaixamento, Força e Dificuldade (ordenada por `schedule.difficulty_rank`); grade e faixa de escudos em
+  Clubes; seção "Dificuldade do que falta" na página do clube; jogo sem placar há mais de 7 dias da data de
+  referência aparece como "adiado, data a definir". Consome os campos `schedule` e `sudamericana_race`
+  entregues pelo Agente 02 (schema 1.1); `midpoint` não é exibido.
+- **Evidência**: navegador do app em 1280 px e 375 px: 15 rotas sem rolagem horizontal e com conteúdo,
+  console só com os 404 esperados de `/api/*` no servidor estático; contraste WCAG das cores de texto sobre
+  `#FAFAF7` entre 4,8:1 e 16,8:1 (vermelho-sinal 4,4:1, só texto grande, como antes).
+- **Premissas**: a regra "adiado" do front é provisória.
+- **Próximo responsável**: Agente 01 deve marcar `postponed` na fonte/contrato para o jogo adiado (hoje
+  `scheduled` com data antiga); Agente 06 deve auditar contraste do novo fundo e a leitura do índice de
+  dificuldade; a aba Rodada a rodada (sessão parceira) ainda trata o adiado pela própria regra.

@@ -25,6 +25,8 @@ from brasileirao.ratings.history import RatingState, form_smoothing
 FloatArray = npt.NDArray[np.float64]
 IntArray = npt.NDArray[np.int64]
 
+SAMPLING_CHUNK_ROWS = 100_000
+
 
 @dataclass(frozen=True)
 class SimulationResult:
@@ -64,11 +66,19 @@ def _sample_scores(
     draw_inflation: float,
     generator: np.random.Generator,
 ) -> tuple[IntArray, IntArray]:
+    """Sorteia placares em blocos de `SAMPLING_CHUNK_ROWS` jogos simulados para limitar a memória.
+
+    Os uniformes são consumidos na mesma ordem com ou sem blocos, logo a semente reproduz o resultado.
+    """
     flat_home, flat_away = home_rate.reshape(-1), away_rate.reshape(-1)
-    probabilities = score_matrix(flat_home, flat_away, rho, max_goals, draw_inflation).reshape(len(flat_home), -1)
-    cumulative = np.cumsum(probabilities, axis=1)
-    draws = generator.random(len(flat_home))[:, None]
-    flat_index = np.minimum((cumulative < draws).sum(axis=1), probabilities.shape[1] - 1)
+    flat_index = np.empty(len(flat_home), dtype=np.int64)
+    n_scores = (max_goals + 1) ** 2
+    for start in range(0, len(flat_home), SAMPLING_CHUNK_ROWS):
+        stop = min(start + SAMPLING_CHUNK_ROWS, len(flat_home))
+        probabilities = score_matrix(flat_home[start:stop], flat_away[start:stop], rho, max_goals, draw_inflation)
+        cumulative = np.cumsum(probabilities.reshape(stop - start, -1), axis=1)
+        draws = generator.random(stop - start)[:, None]
+        flat_index[start:stop] = np.minimum((cumulative < draws).sum(axis=1), n_scores - 1)
     home_goals = (flat_index // (max_goals + 1)).reshape(home_rate.shape)
     away_goals = (flat_index % (max_goals + 1)).reshape(home_rate.shape)
     return home_goals.astype(np.int64), away_goals.astype(np.int64)

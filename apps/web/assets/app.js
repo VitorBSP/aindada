@@ -2,7 +2,7 @@
   "use strict";
 
   const SEASON = 2026;
-  const state = { snapshot: null, history: [], metrics: null, rounds: null, insights: [], apiMode: false, scenarioChoice: {} };
+  const state = { snapshot: null, history: [], metrics: null, rounds: null, insights: [], crests: {}, apiMode: false, scenarioChoice: {} };
   const main = document.getElementById("main");
 
   const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (char) => (
@@ -38,7 +38,30 @@
 
   const teamById = (clubId) => state.snapshot.teams.find((team) => team.club_id === clubId);
   const nameOf = (clubId) => (teamById(clubId) || { name: clubId }).name;
-  const clubLink = (clubId) => `<a href="#/clubes/${encodeURIComponent(clubId)}">${escapeHtml(nameOf(clubId))}</a>`;
+
+  const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
+  const BADGE_LABEL = /^[A-Z]{2,4}$/;
+
+  function crest(clubId, size = 20) {
+    const entry = state.crests[clubId];
+    if (entry && entry.file) {
+      return `<img class="crest" src="assets/crests/${encodeURIComponent(entry.file)}" alt="" width="${size}" height="${size}" loading="lazy" decoding="async">`;
+    }
+    const badge = entry && entry.badge;
+    if (badge && typeof badge.label === "string" && BADGE_LABEL.test(badge.label) && HEX_COLOR.test(badge.bg) && HEX_COLOR.test(badge.fg)) {
+      const text = size < 32 ? badge.label.charAt(0) : badge.label;
+      const fontSize = Math.round(size * (size < 32 ? 0.6 : 0.32));
+      return `<span class="crest crest-badge" aria-hidden="true" style="width:${size}px;height:${size}px;font-size:${fontSize}px;--badge-bg:${badge.bg};--badge-fg:${badge.fg}">${escapeHtml(text)}</span>`;
+    }
+    return `<span class="crest-spacer" style="width:${size}px" aria-hidden="true"></span>`;
+  }
+
+  const clubLink = (clubId, size = 18, trailing = false) => `<a class="club-cell" href="#/clubes/${encodeURIComponent(clubId)}">${trailing ? "" : crest(clubId, size)}<span>${escapeHtml(nameOf(clubId))}</span>${trailing ? crest(clubId, size) : ""}</a>`;
+
+  const DAY_MS = 86400000;
+  const POSTPONED_AFTER_DAYS = 7;
+  const daysBefore = (iso, reference) => (new Date(reference + "T12:00:00") - new Date(iso + "T12:00:00")) / DAY_MS;
+  const isPostponed = (match) => match.status !== "finished" && daysBefore(match.match_date, state.snapshot.reference_date) > POSTPONED_AFTER_DAYS;
 
   const SCENARIO_KEYS = [
     ["libertadores_champion", "Campeão da Libertadores"],
@@ -101,15 +124,16 @@
     }).join("");
   }
 
-  function changesSinceLast() {
+  function changesSinceLast(onlyKey = null) {
     if (state.history.length < 2) return "";
     const latest = state.history[state.history.length - 1];
     const previous = state.history[state.history.length - 2];
     const changes = [];
+    const metrics = [["title", "título"], ["relegation", "rebaixamento"], ["top4", "G4"]].filter(([key]) => !onlyKey || key === onlyKey);
     for (const [clubId, values] of Object.entries(latest.teams)) {
       const before = previous.teams[clubId];
       if (!before) continue;
-      for (const [key, label] of [["title", "título"], ["relegation", "rebaixamento"], ["top4", "G4"]]) {
+      for (const [key, label] of metrics) {
         const delta = values[key] - before[key];
         if (Math.abs(delta) >= 0.05) changes.push({ clubId, label, delta, now: values[key] });
       }
@@ -123,13 +147,15 @@
     }).join("") + "</ul>";
   }
 
+  const matchName = (match) => `${escapeHtml(nameOf(match.home_id))} x ${escapeHtml(nameOf(match.away_id))}`;
+
   function overdueWarning() {
     const generated = state.snapshot.generated_at.slice(0, 10);
-    const overdue = state.snapshot.matches.filter((match) => match.status !== "finished" && match.match_date < generated);
-    if (!overdue.length) return "";
-    const list = overdue.map((match) => `${escapeHtml(nameOf(match.home_id))} x ${escapeHtml(nameOf(match.away_id))} (${formatShortDate(match.match_date)})`).join("; ");
-    const count = overdue.length === 1 ? "1 jogo com data passada ainda está" : `${overdue.length} jogos com data passada ainda estão`;
-    return `<details class="warning"><summary><strong>${count} sem placar na fonte de dados.</strong> Podem ter sido adiados ou ainda não registrados; entram na simulação como não disputados.</summary><p>${list}.</p></details>`;
+    const pending = state.snapshot.matches.filter((match) => match.status !== "finished" && !isPostponed(match) && match.match_date < generated);
+    if (!pending.length) return "";
+    const list = pending.map((match) => `${matchName(match)} (${formatShortDate(match.match_date)})`).join("; ");
+    const count = pending.length === 1 ? "1 jogo recente ainda está" : `${pending.length} jogos recentes ainda estão`;
+    return `<details class="warning"><summary><strong>${count} sem placar na fonte de dados.</strong> Entram na simulação como não disputados até o placar chegar.</summary><p>${list}.</p></details>`;
   }
 
   const MAX_HOME_SECONDARY = 2;
@@ -167,107 +193,176 @@
 
   const MOSAIC_DOTS = 1000;
   const MOSAIC_COLUMNS = 50;
-  const MOSAIC_COLORS = ["var(--title)", "var(--libertadores)", "var(--sudamericana)"];
+  const MOSAIC_LABEL_MIN_DOTS = 40;
 
-  function allocateDots(teams, total) {
-    const exact = teams.map((team) => ({ team, raw: team.title * total }));
-    const allocated = exact.map((item) => ({ team: item.team, dots: Math.floor(item.raw), rest: item.raw - Math.floor(item.raw) }));
+  const RACES = {
+    titulo: { key: "title", label: "Título", noun: "título", slots: 1, color: "var(--title)" },
+    g4: { key: "top4", label: "G4", noun: "G4", slots: 4, color: "var(--libertadores)" },
+    rebaixamento: { key: "relegation", label: "Rebaixamento", noun: "rebaixamento", slots: 4, color: "var(--danger)" },
+  };
+  const RACE_MOVEMENT_THRESHOLD = 0.05;
+
+  function allocateDots(shares, total) {
+    const allocated = shares.map((item) => ({ ...item, dots: Math.floor(item.share * total), rest: item.share * total - Math.floor(item.share * total) }));
     let missing = total - allocated.reduce((sum, item) => sum + item.dots, 0);
     [...allocated].sort((left, right) => right.rest - left.rest).forEach((item) => { if (missing > 0) { item.dots += 1; missing -= 1; } });
     return allocated.filter((item) => item.dots > 0);
   }
 
-  function titleMosaic(teams) {
-    const contenders = teams.filter((team) => team.title > 0).sort((left, right) => right.title - left.title);
+  const raceTeams = (race) => state.snapshot.teams.filter((team) => team[race.key] > 0).sort((left, right) => right[race.key] - left[race.key]);
+  const groupOpacity = (index) => (index % 2 ? 0.5 : 1);
+
+  function raceMosaic(race) {
+    const contenders = raceTeams(race);
     if (!contenders.length) return "";
-    const groups = allocateDots(contenders, MOSAIC_DOTS);
-    const perDot = state.snapshot.n_simulations / MOSAIC_DOTS;
-    const cell = 10, rows = MOSAIC_DOTS / MOSAIC_COLUMNS, top = 34;
-    const width = MOSAIC_COLUMNS * cell, height = rows * cell + top;
+    const groups = allocateDots(contenders.map((team) => ({ team, share: team[race.key] / race.slots })), MOSAIC_DOTS);
+    const perDot = state.snapshot.n_simulations * race.slots / MOSAIC_DOTS;
+    const cell = 10, rows = MOSAIC_DOTS / MOSAIC_COLUMNS, top = 26, bottom = 30;
+    const width = MOSAIC_COLUMNS * cell, height = top + rows * cell + bottom;
     let index = 0;
+    let labelEnd = -Infinity;
+    const labels = [];
     const dots = groups.map((group, groupIndex) => {
-      const color = MOSAIC_COLORS[groupIndex] || "var(--ink-faint)";
+      const startColumn = Math.floor(index / rows);
       const circles = [];
       for (let count = 0; count < group.dots; count += 1, index += 1) {
         const column = Math.floor(index / rows), row = index % rows;
         circles.push(`<circle cx="${column * cell + cell / 2}" cy="${top + row * cell + cell / 2}" r="3.4"/>`);
       }
-      return `<g fill="${color}">${circles.join("")}</g>`;
+      const labelX = startColumn * cell + 1;
+      if (group.dots >= MOSAIC_LABEL_MIN_DOTS && labelX > labelEnd + 6) {
+        labels.push(`<text x="${labelX}" y="${top - 9}">${escapeHtml(group.team.short_name)}</text>`);
+        labelEnd = labelX + group.team.short_name.length * 9;
+      }
+      return `<g fill="${race.color}" fill-opacity="${groupOpacity(groupIndex)}">${circles.join("")}</g>`;
     }).join("");
-    const leaderColumns = Math.max(1, Math.ceil(groups[0].dots / rows));
-    const noteX = Math.min(leaderColumns * cell * 0.5, width - 160);
+    const unit = race.slots === 1 ? "simulações" : `vagas de ${race.noun}`;
+    const lastX = width - cell / 2, lastY = top + rows * cell - cell / 2;
     const annotation = `<g class="annotation" aria-hidden="true">
-      <path d="M${noteX + 4},${top - 4} q-6,-12 10,-20" fill="none"/>
-      <text x="${noteX + 18}" y="${top - 22}">cada ponto, ${perDot.toLocaleString("pt-BR")} simulações</text></g>`;
+      <path d="M${lastX},${lastY + 6} q2,12 -16,16" fill="none"/>
+      <text x="${lastX - 20}" y="${height - 6}" text-anchor="end">cada ponto, ${perDot.toLocaleString("pt-BR")} ${unit}</text></g>`;
     const others = contenders.length - groups.length;
     const description = groups.map((group) => `${group.team.name}: ${group.dots} pontos`).join("; ");
-    const legend = groups.map((group, groupIndex) => `<li><span class="mosaic-swatch" style="background:${MOSAIC_COLORS[groupIndex] || "var(--ink-faint)"}"></span>
-      ${clubLink(group.team.club_id)} <strong>${pct(group.team.title)}</strong></li>`).join("");
+    const legend = groups.map((group, groupIndex) => `<li><span class="mosaic-swatch" style="background:${race.color};opacity:${groupOpacity(groupIndex)}"></span>
+      ${clubLink(group.team.club_id)} <strong>${pct(group.team[race.key])}</strong></li>`).join("");
+    const simulations = state.snapshot.n_simulations.toLocaleString("pt-BR");
+    const explanation = race.slots === 1
+      ? `Quem termina campeão em cada uma das ${simulations} simulações, agrupadas em ${MOSAIC_DOTS.toLocaleString("pt-BR")} pontos.`
+      : `Em cada simulação, ${race.slots} clubes terminam no ${race.noun}: são ${(state.snapshot.n_simulations * race.slots).toLocaleString("pt-BR")} vagas no total, agrupadas em ${MOSAIC_DOTS.toLocaleString("pt-BR")} pontos. Ao lado do clube, a chance dele.`;
     return `<figure class="mosaic">
-      <svg class="mosaic-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Mosaico do título em ${MOSAIC_DOTS.toLocaleString("pt-BR")} pontos, cada um igual a ${perDot.toLocaleString("pt-BR")} simulações. ${escapeHtml(description)}.">${annotation}${dots}</svg>
+      <svg class="mosaic-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Mosaico de ${escapeHtml(race.noun)} em ${MOSAIC_DOTS.toLocaleString("pt-BR")} pontos, cada um igual a ${perDot.toLocaleString("pt-BR")} ${unit}. ${escapeHtml(description)}."><g class="mosaic-labels">${labels.join("")}</g>${dots}${annotation}</svg>
       <figcaption>
         <ul class="mosaic-legend">${legend}</ul>
-        <p class="note">Quem termina campeão em cada uma das ${state.snapshot.n_simulations.toLocaleString("pt-BR")} simulações, agrupadas em ${MOSAIC_DOTS.toLocaleString("pt-BR")} pontos.${others > 0 ? ` ${others} clube(s) com chance menor que 1 em ${MOSAIC_DOTS.toLocaleString("pt-BR")} não chegam a um ponto.` : ""}</p>
+        <p class="note">${explanation}${others > 0 ? ` ${others} clube(s) com chance menor que um ponto não aparecem.` : ""}</p>
       </figcaption>
     </figure>`;
   }
 
-  function renderHome() {
-    const teams = state.snapshot.teams;
-    const contenders = teams.filter((team) => team.title >= 0.005).sort((left, right) => right.title - left.title);
-    const libertadoresFight = teams.filter((team) => team.libertadores_total.max > 0.02 && team.libertadores_total.min < 0.98)
-      .sort((left, right) => scenarioMid(right.libertadores_total) - scenarioMid(left.libertadores_total)).slice(0, 8);
-    const relegation = teams.filter((team) => team.relegation >= 0.01).sort((left, right) => right.relegation - left.relegation);
-    const leader = contenders[0];
-    const challenger = contenders[1];
-    let headline = "Quem ainda dá?";
-    if (leader && challenger) {
-      headline = `${escapeHtml(leader.name)} na frente. ${escapeHtml(challenger.name)}: ainda dá${challenger.title < 0.05 ? ", por pouco" : ""}.`;
-    } else if (leader) {
-      headline = `Só ${escapeHtml(leader.name)} ainda aparece com o título nas simulações.`;
-    }
+  function raceMovement(race) {
+    const latest = state.history[state.history.length - 1];
+    const previous = state.history[state.history.length - 2];
+    if (!latest || !previous || latest.reference_date !== state.snapshot.reference_date) return 0;
+    return Object.entries(latest.teams).reduce((sum, [clubId, values]) => {
+      const before = previous.teams[clubId];
+      return before ? sum + Math.abs(values[race.key] - before[race.key]) : sum;
+    }, 0) / race.slots;
+  }
+
+  const raceOpenness = (race) => state.snapshot.teams.reduce((sum, team) => sum + team[race.key] * (1 - team[race.key]), 0) / race.slots;
+
+  function featuredRace() {
+    const ranked = Object.entries(RACES).map(([id, race]) => ({ id, movement: raceMovement(race), openness: raceOpenness(race) }));
+    const moved = ranked.filter((item) => item.movement >= RACE_MOVEMENT_THRESHOLD).sort((left, right) => right.movement - left.movement);
+    if (moved.length) return { id: moved[0].id, reason: "movement" };
+    return { id: ranked.sort((left, right) => right.openness - left.openness)[0].id, reason: "openness" };
+  }
+
+  const joinNames = (teams) => {
+    const names = teams.map((team) => escapeHtml(team.name));
+    return names.length > 1 ? `${names.slice(0, -1).join(", ")} e ${names[names.length - 1]}` : names.join("");
+  };
+  const NEAR_CERTAIN = 0.99;
+
+  function raceStory(raceId) {
+    const race = RACES[raceId];
+    const teams = raceTeams(race);
     const simulations = state.snapshot.n_simulations.toLocaleString("pt-BR");
-    const titleLede = `Jogamos os ${state.snapshot.remaining_matches} jogos que faltam ${simulations} vezes, a partir da tabela real.
-      ${leader ? `O título fica com ${escapeHtml(leader.name)} em <strong>${pct(leader.title)}</strong> das simulações${challenger ? ` e com ${escapeHtml(challenger.name)} em <strong>${pct(challenger.title)}</strong>` : ""}.` : ""}
-      Cada porcentagem diz em quantas dessas simulações aquilo aconteceu.`;
-    const mosaic = titleMosaic(teams);
-    const insights = currentInsights();
-    const lead = insights.find((insight) => insight.placement === "home_lead");
-    const secondary = insights.filter((insight) => insight.placement === "home_secondary").slice(0, MAX_HOME_SECONDARY);
-    const opening = lead
-      ? `<span class="kicker">Destaques da rodada · dados até ${formatDate(state.snapshot.reference_date)}</span>
-        <h1>${escapeHtml(lead.headline)}</h1>
-        <p class="lede">${escapeHtml(lead.body)}</p>
-        ${insightLinks(lead)}
-        ${secondary.length ? `<div class="highlights">${secondary.map(insightArticle).join("")}</div>` : ""}
-        ${overdueWarning()}
-        <h2>${headline}</h2>
-        <p>${titleLede}</p>`
-      : `<span class="kicker">Briga pelo título</span>
-        <h1>${headline}</h1>
-        <p class="lede">${titleLede}</p>
-        ${overdueWarning()}`;
-    main.innerHTML = `
-      ${opening}
-      ${mosaic}
-      ${mosaic
-        ? `<h2 id="h-z4">Risco de queda</h2><section aria-labelledby="h-z4">${raceRows(relegation, (team) => team.relegation, "danger")}</section>`
-        : `<div class="grid">
-        <section class="card" aria-labelledby="h-title"><h3 id="h-title">Chance de título</h3>${raceRows(contenders, (team) => team.title, "")}</section>
-        <section class="card" aria-labelledby="h-z4"><h3 id="h-z4">Risco de queda</h3>${raceRows(relegation, (team) => team.relegation, "danger")}</section>
-      </div>`}
-      <h2>Briga pela Libertadores</h2>
-      <p class="note">A vaga ainda depende de quem ganha Libertadores, Sul-Americana e Copa do Brasil. Por isso mostramos uma faixa: o menor e o maior valor entre os ${state.snapshot.scenarios.length} cenários possíveis. Não chutamos quem vence esses torneios.</p>
-      <div>${libertadoresFight.map((team) => {
+    const method = `Jogamos os ${state.snapshot.remaining_matches} jogos que faltam ${simulations} vezes, a partir da tabela real. Cada porcentagem diz em quantas dessas simulações aquilo aconteceu.`;
+    if (raceId === "titulo") {
+      const [leader, challenger] = teams.filter((team) => team.title >= 0.005);
+      if (!leader) return { headline: "Quem ainda dá?", lede: method };
+      const headline = challenger
+        ? `${escapeHtml(leader.name)} na frente. ${escapeHtml(challenger.name)}: ainda dá${challenger.title < 0.05 ? ", por pouco" : ""}.`
+        : `Só ${escapeHtml(leader.name)} ainda aparece com o título nas simulações.`;
+      const detail = `O título fica com ${escapeHtml(leader.name)} em <strong>${pct(leader.title)}</strong> das simulações${challenger ? ` e com ${escapeHtml(challenger.name)} em <strong>${pct(challenger.title)}</strong>` : ""}.`;
+      return { headline, lede: `${detail} <span class="lede-method">${method}</span>` };
+    }
+    const settled = teams.filter((team) => team[race.key] >= NEAR_CERTAIN);
+    const open = teams.filter((team) => team[race.key] >= 0.01 && team[race.key] < NEAR_CERTAIN);
+    const spots = race.slots - settled.length;
+    const allSimulations = settled.every((team) => team[race.key] === 1) ? "todas as" : "praticamente todas as";
+    const verb = raceId === "g4" ? (settled.length > 1 ? "terminam no G4" : "termina no G4") : (settled.length > 1 ? "caem" : "cai");
+    const settledText = settled.length ? `${joinNames(settled)} ${verb} em ${allSimulations} simulações. ` : "";
+    const rest = raceId === "g4" ? (spots > 1 ? `As ${spots} vagas restantes` : "A vaga restante") : (spots > 1 ? `As outras ${spots} quedas` : "A outra queda");
+    const openText = open.length ? `${rest} ${spots > 1 ? "ficam" : "fica"} entre ${joinNames(open.slice(0, 6))}${open.length > 6 ? ` e mais ${open.length - 6}` : ""}.` : "";
+    const headline = raceId === "g4"
+      ? `G4: ${spots > 0 ? `${spots === 1 ? "uma vaga" : `${spots} vagas`} em aberto, ${open.length} ${open.length === 1 ? "clube" : "clubes"} na briga.` : "as quatro vagas já têm dono nas simulações."}`
+      : `Quatro caem. ${spots > 0 ? `${open.length} ${open.length === 1 ? "clube ainda corre" : "clubes ainda correm"} risco por ${spots === 1 ? "uma vaga" : `${spots} vagas`}.` : "As simulações já apontam os quatro."}`;
+    return { headline, lede: `${settledText}${openText} <span class="lede-method">${method}</span>` };
+  }
+
+  function raceSwitch(selected, featured) {
+    const links = Object.entries(RACES).map(([id, race]) => `<a href="#/inicio/${id}" ${id === selected ? 'aria-current="page"' : ""}>${race.label}</a>`).join("");
+    const previous = state.history[state.history.length - 2];
+    const why = featured.reason === "movement" && previous
+      ? `a disputa que mais mudou desde ${formatDate(previous.reference_date)}`
+      : "a disputa mais aberta agora";
+    const hint = selected === featured.id ? `Em destaque nesta edição: ${why}.` : `<a href="#/inicio/${featured.id}">Voltar ao destaque da edição</a> (${RACES[featured.id].noun}, ${why}).`;
+    return `<div class="race-switch"><nav class="segmented" aria-label="Escolha a disputa">${links}</nav><p class="note">${hint}</p></div>`;
+  }
+
+  function libertadoresRanges() {
+    const fight = state.snapshot.teams.filter((team) => team.libertadores_total.max > 0.02 && team.libertadores_total.min < 0.98)
+      .sort((left, right) => scenarioMid(right.libertadores_total) - scenarioMid(left.libertadores_total)).slice(0, 8);
+    if (!fight.length) return "";
+    return `<h2>E a Libertadores?</h2>
+      <p class="note">Além do G4, há vagas que dependem de quem ganha Libertadores, Sul-Americana e Copa do Brasil. Por isso mostramos uma faixa: o menor e o maior valor entre os ${state.snapshot.scenarios.length} cenários possíveis. Não chutamos quem vence esses torneios.</p>
+      <div>${fight.map((team) => {
         const range = team.libertadores_total;
         return `<div class="race-row">${clubLink(team.club_id)}
           <div class="bar-track" role="img" aria-label="${escapeHtml(team.name)}: ${scenarioValue(range)}">
             <div class="bar-fill lib" style="width:${(range.min * 100).toFixed(1)}%"></div>
             <div class="bar-range" style="left:${(range.min * 100).toFixed(1)}%;width:${((range.max - range.min) * 100).toFixed(1)}%"></div>
           </div><span class="value">${scenarioValue(range)}</span></div>`;
-      }).join("")}</div>
-      <h2>O que mudou desde a última atualização</h2>
-      ${changesSinceLast()}`;
+      }).join("")}</div>`;
+  }
+
+  function renderHome(requested) {
+    const featured = featuredRace();
+    const raceId = RACES[requested] ? requested : featured.id;
+    const race = RACES[raceId];
+    const story = raceStory(raceId);
+    const insights = currentInsights();
+    const lead = insights.find((insight) => insight.placement === "home_lead");
+    const secondary = insights.filter((insight) => insight.placement === "home_secondary").slice(0, MAX_HOME_SECONDARY);
+    const leadBlock = lead
+      ? `<span class="kicker">Destaques da rodada · dados até ${formatDate(state.snapshot.reference_date)}</span>
+        <h1>${escapeHtml(lead.headline)}</h1>
+        <p class="lede">${escapeHtml(lead.body)}</p>
+        ${insightLinks(lead)}
+        ${secondary.length ? `<div class="highlights">${secondary.map(insightArticle).join("")}</div>` : ""}`
+      : "";
+    const heading = lead ? `<h2 class="race-heading">${story.headline}</h2>` : `<h1>${story.headline}</h1>`;
+    main.innerHTML = `
+      ${leadBlock}
+      ${raceSwitch(raceId, featured)}
+      ${heading}
+      <p class="lede">${story.lede}</p>
+      ${overdueWarning()}
+      ${raceMosaic(race)}
+      ${raceId === "g4" ? libertadoresRanges() : ""}
+      <h2>O que mudou em ${race.noun} desde a última atualização</h2>
+      ${changesSinceLast(race.key)}`;
   }
 
   function scenarioStatus() {
@@ -313,37 +408,136 @@
     if (clear) clear.addEventListener("click", () => { state.scenarioChoice = {}; rerender(); });
   }
 
-  function renderStandings() {
+  const elo = (team) => Math.round(team.ratings.elo);
+  const rankOf = (team, accessor) => [...state.snapshot.teams].sort((left, right) => accessor(right) - accessor(left)).indexOf(team) + 1;
+
+  const TABLE_VIEWS = {
+    titulo: {
+      label: "Título",
+      head: ["Título"],
+      cells: (team) => [probCell(team.title, "title")],
+    },
+    libertadores: {
+      label: "Libertadores",
+      scenarios: true,
+      head: ["G4", "Liberta. grupos", "Liberta. total"],
+      cells: (team) => [probCell(team.top4, "lib"), scenarioValue(team.libertadores_groups), scenarioValue(team.libertadores_total)],
+      caption: "G4 = terminar entre os quatro primeiros. Liberta. grupos e total incluem as vagas que dependem de Libertadores, Sul-Americana e Copa do Brasil: sem cenário escolhido, mostramos a faixa entre todos os cenários.",
+    },
+    "sul-americana": {
+      label: "Sul-Americana",
+      scenarios: true,
+      head: ["Corrida", "Sul-Americana", "Vale em todos os cenários"],
+      order: (team) => (team.sudamericana_race ? team.sudamericana_race.rank : team.current_position),
+      cells: (team) => {
+        const race = team.sudamericana_race;
+        if (!race) return ["–", scenarioValue(team.sudamericana), "–"];
+        const spread = race.rank_best === race.rank_worst ? "" : ` <span class="rank">${race.rank_best}º a ${race.rank_worst}º</span>`;
+        return [`<strong>${race.rank}º</strong>${spread}`, scenarioValue(team.sudamericana), pct(race.all_scenarios)];
+      },
+      caption: "Ordenada pela corrida da Sul-Americana: a vaga depende de quem ganha Libertadores, Sul-Americana e Copa do Brasil, então a coluna Sul-Americana mostra a faixa entre os cenários (ou só os que combinam com a sua escolha), e Corrida mostra a posição do clube nessa disputa e, em cinza, a melhor e a pior conforme o cenário. Vale em todos os cenários = chance de terminar com a vaga seja quem for campeão desses torneios.",
+    },
+    rebaixamento: {
+      label: "Rebaixamento",
+      head: ["Rebaix."],
+      cells: (team) => [probCell(team.relegation, "danger")],
+    },
+    forca: {
+      label: "Força",
+      head: ["Elo", "Ataque", "Defesa"],
+      cells: (team) => [
+        `${elo(team)} <span class="rank">${rankOf(team, (item) => item.ratings.elo)}º</span>`,
+        `${signedPercent(team.ratings.attack)} <span class="rank">${rankOf(team, (item) => item.ratings.attack)}º</span>`,
+        `${signedPercent(team.ratings.defense)} <span class="rank">${rankOf(team, (item) => item.ratings.defense)}º</span>`,
+      ],
+      caption: "Elo: força geral; 1500 é a média da liga. Ataque: gols marcados em relação à média, já descontada a força dos adversários. Defesa: positivo significa sofrer menos gols que a média. Em cinza, a posição do clube em cada quesito.",
+    },
+    dificuldade: {
+      label: "Dificuldade da tabela",
+      head: ["Dificuldade", "Em casa", "Fora", "Pts esp. casa", "Pts esp. fora", "Próximos jogos"],
+      order: (team) => (team.schedule ? team.schedule.difficulty_rank : team.current_position),
+      cells: (team) => {
+        const schedule = team.schedule;
+        const upcoming = upcomingCrests(team);
+        if (!schedule) return ["–", "–", "–", "–", "–", upcoming];
+        return [
+          difficultyCell(schedule.difficulty, schedule.difficulty_rank),
+          difficultyCell(schedule.difficulty_home, schedule.difficulty_home_rank),
+          difficultyCell(schedule.difficulty_away, schedule.difficulty_away_rank),
+          `${num(schedule.expected_points_home)} <span class="rank">em ${schedule.home_matches}</span>`,
+          `${num(schedule.expected_points_away)} <span class="rank">em ${schedule.away_matches}</span>`,
+          upcoming,
+        ];
+      },
+    },
+  };
+  const TABLE_GROUPS = [["Chances", ["titulo", "libertadores", "sul-americana", "rebaixamento"]], ["Clubes", ["forca", "dificuldade"]]];
+  const UPCOMING_SHOWN = 5;
+
+  function difficultyCell(value, rank = null) {
+    if (value === null || value === undefined) return "–";
+    return `<span class="difficulty" style="--d:${Math.min(1, Math.max(0, value / 100))}">${Math.round(value)}</span>${rank ? ` <span class="rank">${rank}º</span>` : ""}`;
+  }
+
+  const matchById = (matchId) => state.snapshot.matches.find((match) => match.match_id === matchId);
+
+  function upcomingCrests(team) {
+    const clubId = team.club_id;
+    const fromSchedule = team.schedule && team.schedule.matches
+      ? team.schedule.matches.map((item) => ({ ...item, match: matchById(item.match_id) })).filter((item) => !item.match || !isPostponed(item.match))
+      : state.snapshot.matches.filter((match) => match.status !== "finished" && !isPostponed(match) && (match.home_id === clubId || match.away_id === clubId))
+        .map((match) => ({ opponent_id: match.home_id === clubId ? match.away_id : match.home_id, venue: match.home_id === clubId ? "home" : "away", difficulty: null }));
+    return `<span class="upcoming">${fromSchedule.slice(0, UPCOMING_SHOWN).map((item) => {
+      const home = item.venue === "home";
+      const level = item.difficulty === null || item.difficulty === undefined ? "" : ` · dificuldade ${Math.round(item.difficulty)}`;
+      const tint = level ? ` style="--d:${Math.min(1, Math.max(0, item.difficulty / 100))}"` : "";
+      return `<span class="upcoming-match${level ? " rated" : ""}"${tint} title="${home ? "Em casa" : "Fora"} contra ${escapeHtml(nameOf(item.opponent_id))}${level}">${crest(item.opponent_id, 18)}<span class="venue">${home ? "C" : "F"}</span></span>`;
+    }).join("")}</span>`;
+  }
+
+  function difficultyNote() {
+    const sample = state.snapshot.teams.find((team) => team.schedule);
+    if (!sample) return `<p class="note">O índice de dificuldade da tabela ainda não está nesta atualização. Por enquanto, a coluna mostra os próximos adversários (C = em casa, F = fora).</p>`;
+    return `<p class="note">Dificuldade de 0 a 100: 50 é uma tabela média do campeonato; quanto maior, menos pontos um time comum faria nesses jogos. Jogar fora é sempre mais difícil que em casa, por isso compare casa com casa e fora com fora (em cinza, a posição entre os 20; 1º = mais difícil). Pts esp. = pontos esperados nos jogos que faltam, já com a força do clube. Próximos jogos: C = em casa, F = fora; fundo mais forte = jogo mais difícil.</p>`;
+  }
+
+  function tableTabs(selected) {
+    return `<div class="table-tabs">${TABLE_GROUPS.map(([group, ids]) => `<nav class="tabs" aria-label="${group}"><span class="tabs-label">${group}</span>${ids.map((id) =>
+      `<a href="#/classificacao/${id}" ${id === selected ? 'aria-current="page"' : ""}>${TABLE_VIEWS[id].label}</a>`).join("")}</nav>`).join("")}</div>`;
+  }
+
+  function renderStandings(requested) {
     const snapshot = state.snapshot;
-    const teamsByPosition = [...snapshot.teams].sort((left, right) => left.current_position - right.current_position);
+    const viewId = TABLE_VIEWS[requested] ? requested : "titulo";
+    const view = TABLE_VIEWS[viewId];
+    const order = view.order || ((team) => team.current_position);
+    const teamsByPosition = [...snapshot.teams].sort((left, right) => order(left) - order(right) || left.current_position - right.current_position);
     const rows = teamsByPosition.map((team) => {
       const zone = team.current_position <= 5 ? "zone-lib" : team.current_position <= 11 ? "zone-sula" : team.current_position > 16 ? "zone-z4" : "";
       const standing = snapshot.standings.find((entry) => entry.club_id === team.club_id);
       return `<tr class="${zone}">
         <td class="pos">${team.current_position}</td>
         <td class="left club">${clubLink(team.club_id)}</td>
-        <td>${standing.points}</td><td>${standing.played}</td><td>${standing.wins}</td><td>${standing.goal_difference > 0 ? "+" : ""}${standing.goal_difference}</td>
+        <td><strong>${standing.points}</strong></td><td>${standing.played}</td><td>${standing.wins}</td><td>${standing.goal_difference > 0 ? "+" : ""}${standing.goal_difference}</td>
         <td><strong>${num(team.expected_points)}</strong><div class="range">${Math.round(team.points_interval_90[0])}–${Math.round(team.points_interval_90[1])}</div></td>
         <td>${num(team.expected_position)}</td>
-        <td>${probCell(team.title, "title")}</td>
-        <td>${probCell(team.top4, "lib")}</td>
-        <td>${scenarioValue(team.libertadores_groups)}</td>
-        <td>${scenarioValue(team.libertadores_total)}</td>
-        <td>${scenarioValue(team.sudamericana)}</td>
-        <td>${probCell(team.relegation, "danger")}</td>
+        ${view.cells(team).map((cell, index) => `<td class="${index === 0 ? "view-start" : ""}${viewId === "dificuldade" && index === view.head.length - 1 ? " left" : ""}">${cell}</td>`).join("")}
       </tr>`;
     }).join("");
+    const head = view.head.map((label, index) => `<th class="${index === 0 ? "view-start" : ""}${viewId === "dificuldade" && index === view.head.length - 1 ? " left" : ""}">${label}</th>`).join("");
     main.innerHTML = `
       <span class="kicker">Tabela</span>
       <h1>Como está e como deve terminar</h1>
-      <p class="lede">A tabela real em ${formatDate(snapshot.reference_date)} ao lado do que as simulações projetam para a última rodada.</p>
+      <p class="lede">A tabela real em ${formatDate(snapshot.reference_date)} ao lado do que as simulações projetam para a última rodada. Escolha o que ver nas últimas colunas.</p>
+      ${tableTabs(viewId)}
+      ${view.scenarios ? scenarioPanel() : ""}
+      ${viewId === "dificuldade" ? difficultyNote() : ""}
+      <div class="table-scroll"><table class="standings">
+        <thead><tr><th>#</th><th class="left">Clube</th><th>Pts</th><th>J</th><th>V</th><th>SG</th><th>Pts proj.</th><th>Pos. média</th>${head}</tr></thead>
+        <tbody>${rows}</tbody></table></div>
       <div class="legend"><span class="l-lib">G5 (Libertadores via Brasileirão)</span><span class="l-sula">faixa típica da Sul-Americana</span><span class="l-z4">Z4</span></div>
-      ${scenarioPanel()}
-      <div class="table-scroll"><table>
-        <caption class="note" style="caption-side:bottom;text-align:left;padding:8px">Pts proj. = média simulada (intervalo de 90%). Libertadores e Sul-Americana dependem de torneios externos: sem cenário escolhido, mostramos a faixa entre todos os cenários.</caption>
-        <thead><tr><th>#</th><th class="left">Clube</th><th>Pts</th><th>J</th><th>V</th><th>SG</th><th>Pts proj.</th><th>Pos. média</th><th>Título</th><th>G4</th><th>Liberta. grupos</th><th>Liberta. total</th><th>Sul-Americana</th><th>Rebaix.</th></tr></thead>
-        <tbody>${rows}</tbody></table></div>`;
-    bindScenarioPanel(renderStandings);
+      <p class="note">Pts proj. = média simulada de pontos no fim (embaixo, o intervalo de 90%). Pos. média = posição final média nas simulações.${view.caption ? ` ${view.caption}` : ""}</p>`;
+    if (view.scenarios) bindScenarioPanel(() => renderStandings(viewId));
   }
 
   const NOISE_Z = 3;
@@ -437,8 +631,9 @@
           <span class="t-home" style="width:${match.p_home * 100}%">${Math.round(match.p_home * 100)}</span>
           <span class="t-draw" style="width:${match.p_draw * 100}%">${Math.round(match.p_draw * 100)}</span>
           <span class="t-away" style="width:${match.p_away * 100}%">${Math.round(match.p_away * 100)}</span></div>`;
-    const meta = finished ? `Rodada ${match.round ?? "?"}` : `Rodada ${match.round ?? "?"} · gols esperados ${num(match.xg_home)} × ${num(match.xg_away)} · placar mais provável ${match.most_likely_score.replace("-", " × ")} (${pct(match.most_likely_score_probability)})`;
-    return `<div class="match"><div class="home">${clubLink(match.home_id)}</div><div class="triple-cell">${middle}</div><div class="away">${clubLink(match.away_id)}</div><div class="match-meta">${meta}</div></div>`;
+    const when = isPostponed(match) ? ` · <strong class="postponed">adiado, data a definir</strong>` : "";
+    const meta = finished ? `Rodada ${match.round ?? "?"}` : `Rodada ${match.round ?? "?"}${when} · gols esperados ${num(match.xg_home)} × ${num(match.xg_away)} · placar mais provável ${match.most_likely_score.replace("-", " × ")} (${pct(match.most_likely_score_probability)})`;
+    return `<div class="match"><div class="home">${clubLink(match.home_id, 22, true)}</div><div class="triple-cell">${middle}</div><div class="away">${clubLink(match.away_id, 22)}</div><div class="match-meta">${meta}</div></div>`;
   }
 
   function signedPercent(value) {
@@ -448,14 +643,20 @@
 
   function renderClub(clubId) {
     const snapshot = state.snapshot;
-    const picker = `<div class="club-picker">${[...snapshot.teams].sort((left, right) => left.name.localeCompare(right.name, "pt-BR"))
-      .map((team) => `<a href="#/clubes/${team.club_id}" ${team.club_id === clubId ? 'aria-current="true"' : ""}>${escapeHtml(team.name)}</a>`).join("")}</div>`;
+    const byPosition = [...snapshot.teams].sort((left, right) => left.current_position - right.current_position);
     const team = teamById(clubId);
     if (!team) {
-      main.innerHTML = `<h1>Clubes</h1><p class="lede">Escolha um clube para ver as probabilidades detalhadas.</p>${picker}`;
+      const tiles = byPosition.map((item) => `<li><a class="club-tile" href="#/clubes/${encodeURIComponent(item.club_id)}">
+        ${crest(item.club_id, 40)}<span class="club-tile-name">${escapeHtml(item.name)}</span>
+        <span class="club-tile-meta">${item.current_position}º · ${item.current_points} pts</span></a></li>`).join("");
+      main.innerHTML = `<span class="kicker">Clubes</span><h1>Escolha um clube</h1>
+        <p class="lede">Chances, força estimada, próximos jogos e como tudo mudou ao longo do campeonato. Em ordem de classificação.</p>
+        <ul class="club-grid">${tiles}</ul>`;
       return;
     }
-    const upcoming = snapshot.matches.filter((match) => match.status !== "finished" && (match.home_id === clubId || match.away_id === clubId)).slice(0, 6);
+    const picker = `<nav class="club-strip" aria-label="Trocar de clube">${byPosition.map((item) => `<a href="#/clubes/${encodeURIComponent(item.club_id)}" title="${escapeHtml(item.name)}" aria-label="${escapeHtml(item.name)}" ${item.club_id === clubId ? 'aria-current="page"' : ""}>${crest(item.club_id, 26)}</a>`).join("")}</nav>`;
+    const remaining = snapshot.matches.filter((match) => match.status !== "finished" && (match.home_id === clubId || match.away_id === clubId));
+    const upcoming = [...remaining.filter((match) => !isPostponed(match)).slice(0, 6), ...remaining.filter(isPostponed)];
     const scenarioRows = snapshot.scenarios.map((scenario) => ({ scenario, value: team.libertadores_total.by_scenario[scenario.scenario_id] }))
       .sort((left, right) => right.value - left.value);
     const describe = (scenario) => `Liberta: ${escapeHtml(scenario.libertadores_champion)} · Sul-Americana: ${escapeHtml(scenario.sudamericana_champion)} · Copa do Brasil: ${escapeHtml(scenario.cup_champion)} (vice ${escapeHtml(scenario.cup_runner_up)})`;
@@ -463,13 +664,13 @@
     const history = state.history.map((entry) => entry.teams[clubId] || { title: 0, top4: 0, relegation: 0 });
     main.innerHTML = `
       ${picker}
-      <h1>${escapeHtml(team.name)}</h1>
+      <h1 class="club-heading">${crest(clubId, 48)}<span>${escapeHtml(team.name)}</span></h1>
       <p class="lede">${team.current_position}º lugar com ${team.current_points} pontos em ${team.played} jogos. Projeção: ${num(team.expected_points)} pontos (90% entre ${Math.round(team.points_interval_90[0])} e ${Math.round(team.points_interval_90[1])}).</p>
       <div class="stat-row">
         <div class="stat"><span class="label">Título</span><span class="big">${pct(team.title)}</span></div>
         <div class="stat"><span class="label">G4</span><span class="big">${pct(team.top4)}</span></div>
         <div class="stat"><span class="label">Libertadores</span><span class="big">${scenarioValue(team.libertadores_total)}</span><span class="sub">grupos ${scenarioValue(team.libertadores_groups)} · prévia ${scenarioValue(team.libertadores_prelim)}</span></div>
-        <div class="stat"><span class="label">Sul-Americana</span><span class="big">${scenarioValue(team.sudamericana)}</span></div>
+        <div class="stat"><span class="label">Sul-Americana</span><span class="big">${scenarioValue(team.sudamericana)}</span>${team.sudamericana_race ? `<span class="sub"><a href="#/classificacao/sul-americana">${team.sudamericana_race.rank}º na corrida</a></span>` : ""}</div>
         <div class="stat"><span class="label">Rebaixamento</span><span class="big">${pct(team.relegation)}</span></div>
       </div>
       <h2>Distribuição da posição final</h2>${positionChart(team.position_probabilities)}
@@ -490,6 +691,7 @@
         <div class="stat"><span class="label">Defesa</span><span class="big">${signedPercent(team.ratings.defense)}</span><span class="sub">positivo = sofre menos</span></div>
         <div class="stat"><span class="label">Gols projetados</span><span class="big">${Math.round(team.expected_goals_for)}–${Math.round(team.expected_goals_against)}</span><span class="sub">pró–contra no fim</span></div>
       </div>
+      ${clubSchedule(team)}
       <h2>Próximos jogos</h2>${upcoming.length ? upcoming.map(matchRow).join("") : "<p class='note'>Sem jogos restantes.</p>"}
       <h2>Cenários externos</h2>
       ${variesByScenario ? `<p class="note">A chance de Libertadores depende dos torneios ainda em disputa.</p>
@@ -498,9 +700,26 @@
         : `<p class="note">Os resultados de Libertadores, Sul-Americana e Copa do Brasil praticamente não alteram a chance de vaga deste clube (${scenarioValue(team.libertadores_total)}).</p>`}`;
   }
 
+  function clubSchedule(team) {
+    const schedule = team.schedule;
+    if (!schedule) return "";
+    const venueStat = (label, value, rank, points, games) => (value === null || value === undefined ? "" : `<div class="stat"><span class="label">${label}</span><span class="big">${Math.round(value)}</span><span class="sub">${rank === 1 ? "a mais difícil" : `${rank}ª mais difícil`} · ${num(points)} pts esperados em ${games} ${games === 1 ? "jogo" : "jogos"}</span></div>`);
+    const gap = schedule.expected_points - schedule.average_team_points;
+    return `<h2>Dificuldade do que falta</h2>
+      <div class="stat-row">
+        <div class="stat"><span class="label">Tabela</span><span class="big">${Math.round(schedule.difficulty)}</span><span class="sub">${schedule.difficulty_rank === 1 ? "a mais difícil das 20" : `${schedule.difficulty_rank}ª mais difícil das 20`}</span></div>
+        ${venueStat("Em casa", schedule.difficulty_home, schedule.difficulty_home_rank, schedule.expected_points_home, schedule.home_matches)}
+        ${venueStat("Fora", schedule.difficulty_away, schedule.difficulty_away_rank, schedule.expected_points_away, schedule.away_matches)}
+      </div>
+      <p>Nos ${schedule.remaining_matches} jogos que faltam, ${escapeHtml(team.name)} deve somar <strong>${num(schedule.expected_points)} pontos</strong>. Um time de força média faria ${num(schedule.average_team_points)} contra os mesmos adversários${Math.abs(gap) >= 0.5 ? `: a força do clube ${gap > 0 ? "soma" : "tira"} ${num(Math.abs(gap))} ${Math.abs(gap) >= 1.5 ? "pontos" : "ponto"}` : ""}.</p>
+      <p class="upcoming-line">Próximos adversários ${upcomingCrests(team)}</p>
+      ${difficultyNote()}`;
+  }
+
   function renderMatches() {
     const snapshot = state.snapshot;
-    const remaining = snapshot.matches.filter((match) => match.status !== "finished");
+    const remaining = snapshot.matches.filter((match) => match.status !== "finished" && !isPostponed(match));
+    const postponed = snapshot.matches.filter(isPostponed);
     const recent = snapshot.matches.filter((match) => match.status === "finished").slice(-10).reverse();
     const byDate = {};
     remaining.forEach((match) => { (byDate[match.match_date] = byDate[match.match_date] || []).push(match); });
@@ -511,6 +730,8 @@
       <div class="legend"><span class="l-home">mandante</span><span class="l-draw">empate</span><span class="l-away">visitante</span></div>
       ${overdueWarning()}
       ${Object.entries(byDate).map(([day, matches]) => `<section class="match-day"><h3>${formatShortDate(day)}</h3>${matches.map(matchRow).join("")}</section>`).join("")}
+      ${postponed.length ? `<section class="match-day"><h3>Adiado, data a definir</h3>${postponed.map(matchRow).join("")}
+        <p class="note">Nas simulações, ${postponed.length === 1 ? "este jogo conta" : "estes jogos contam"} como ainda a disputar.</p></section>` : ""}
       <h2>Últimos resultados</h2>${recent.map(matchRow).join("")}`;
   }
 
@@ -532,6 +753,9 @@
       <p>Pelo <a href="${escapeHtml(snapshot.regulation.url)}">${escapeHtml(snapshot.regulation.title)}</a> (${escapeHtml(snapshot.regulation.date)}): do 1º ao 4º vão à fase de grupos da Libertadores 2027 e o 5º à fase preliminar. O campeão da Copa do Brasil vai à fase de grupos e o vice à preliminar. Os campeões da Libertadores e da Sul-Americana 2026 também se classificam, e as vagas liberadas descem para o melhor colocado ainda não classificado. A Sul-Americana fica com os seis melhores restantes. Os quatro últimos são rebaixados.</p>
       <p>Situação em ${escapeHtml(snapshot.external_context.as_of)}: ${snapshot.external_context.notes.map(escapeHtml).join(" ")} Como esses torneios não têm vencedor definido, mostramos faixas entre os ${snapshot.scenarios.length} cenários possíveis. Não estimamos a chance de cada um.</p>
       <p class="note">Interpretação do § 5º do Art. 6º adotada: "${escapeHtml(snapshot.external_context.cup_redirect_policy)}" (texto ambíguo; ver documentação).</p>
+      <p>Na corrida da Sul-Americana, os clubes são ordenados pela faixa entre os cenários. A coluna "vale em todos os cenários" é a chance de terminar com a vaga seja quem for campeão dos outros torneios; ela nunca atribui peso a um cenário.</p>
+      <h2>Dificuldade da tabela</h2>
+      <p>Para cada jogo que falta, calculamos quantos pontos um time de força média faria contra aquele adversário, naquele mando, com o mesmo modelo dos jogos. A soma vira uma nota de 0 a 100: 50 é uma tabela média do campeonato, e quanto maior, menos pontos um time comum faria. Jogar fora é sempre mais difícil, por isso casa e fora também têm posição entre os 20. Os pontos esperados do clube usam a força dele e as chances de cada jogo.</p>
       <h2>Validação</h2>
       ${metrics ? `<p>Backtesting temporal: o modelo de cada temporada foi treinado só com temporadas anteriores. Os hiperparâmetros foram escolhidos em ${metrics.validation_seasons[0]}–${metrics.validation_seasons[metrics.validation_seasons.length - 1]} e o teste foi feito em ${metrics.test_seasons[0]}–${metrics.test_seasons[metrics.test_seasons.length - 1]}. Valores menores são melhores.</p>
         <div class="table-scroll"><table><thead><tr><th class="left">Modelo</th><th>Log loss</th><th>Brier</th><th>RPS</th></tr></thead><tbody>${metricRows}</tbody></table></div>
@@ -552,22 +776,35 @@
       </ul>`;
   }
 
+  let lastSection = null;
+
   function route() {
     if (!state.snapshot) return;
     const [, section = "", parameter = "", ...rest] = location.hash.replace(/^#/, "").split("/");
-    document.querySelectorAll("nav a").forEach((link) => {
-      const active = (link.dataset.route === "home" && !section) || link.dataset.route === section;
+    const isHome = !section || section === "inicio";
+    document.querySelectorAll(".masthead nav a").forEach((link) => {
+      const active = (link.dataset.route === "home" && isHome) || link.dataset.route === section;
       if (active) link.setAttribute("aria-current", "page"); else link.removeAttribute("aria-current");
     });
-    if (section === "classificacao") renderStandings();
+    if (section === "classificacao") renderStandings(parameter);
     else if (section === "clubes") renderClub(decodeURIComponent(parameter));
     else if (section === "partidas") renderMatches();
     else if (section === "rodadas") {
       window.Rounds.render(main, [parameter, ...rest], { review: state.rounds, escapeHtml, pct, num, formatDate, formatShortDate, highlights: roundHighlights });
     }
     else if (section === "metodologia") renderMethodology();
-    else renderHome();
-    window.scrollTo(0, 0);
+    else renderHome(parameter);
+    const sameView = (isHome ? "inicio" : section) === lastSection && section !== "clubes";
+    lastSection = isHome ? "inicio" : section;
+    if (!sameView) window.scrollTo(0, 0);
+  }
+
+  async function loadCrests() {
+    try {
+      const response = await fetch("assets/crests/manifest.json", { headers: { Accept: "application/json" } });
+      if (response.ok) return await response.json();
+    } catch (error) { /* sem escudos: a interface usa só os nomes */ }
+    return {};
   }
 
   async function start() {
@@ -581,6 +818,7 @@
     state.metrics = await fetchJson("/models/metrics");
     state.rounds = await fetchJson(`/seasons/${SEASON}/rounds`);
     state.insights = (await fetchJson(`/seasons/${SEASON}/insights`)) || [];
+    state.crests = await loadCrests();
     renderReferenceBar();
     route();
   }

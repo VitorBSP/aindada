@@ -55,6 +55,66 @@ class RatingsInfo(BaseModel):
     form: float
 
 
+class SudamericanaRace(BaseModel):
+    """Corrida pela Sul-Americana sem pesos para os cenários externos.
+
+    `all_scenarios`/`any_scenario`: probabilidade de a vaga valer em todos / em pelo menos um cenário.
+    `midpoint`: centro da faixa mín.–máx. por cenário (só ordena; não é probabilidade).
+    `rank`: posição na classificação da corrida; `rank_best`/`rank_worst`: extremos entre cenários.
+    """
+
+    all_scenarios: float
+    any_scenario: float
+    midpoint: float
+    rank: int
+    rank_best: int
+    rank_worst: int
+
+
+class ScheduleMatchInfo(BaseModel):
+    match_id: str
+    round: int | None
+    match_date: str
+    opponent_id: str
+    venue: str
+    p_win: float
+    p_draw: float
+    p_loss: float
+    expected_points: float
+    average_team_points: float
+    difficulty: float
+    opponent_strength: float
+
+
+class ScheduleInfo(BaseModel):
+    """Jogos restantes do clube: pontos esperados e dificuldade (0–100, 50 = tabela média da liga)."""
+
+    remaining_matches: int
+    home_matches: int
+    away_matches: int
+    expected_points: float
+    expected_points_home: float
+    expected_points_away: float
+    average_team_points: float
+    difficulty: float | None
+    opponent_strength: float | None
+    difficulty_home: float | None
+    difficulty_away: float | None
+    difficulty_rank: int | None
+    difficulty_home_rank: int | None
+    difficulty_away_rank: int | None
+    matches: list[ScheduleMatchInfo]
+
+
+class ScheduleScaleInfo(BaseModel):
+    """Âncoras do índice de dificuldade, em pontos por jogo de um clube de força média."""
+
+    reference_points: float
+    reference_points_home: float
+    reference_points_away: float
+    half_range_points: float
+
+
 class TeamPrediction(BaseModel):
     club_id: str
     name: str
@@ -77,6 +137,8 @@ class TeamPrediction(BaseModel):
     libertadores_prelim: ScenarioRange
     libertadores_total: ScenarioRange
     sudamericana: ScenarioRange
+    sudamericana_race: SudamericanaRace | None = None
+    schedule: ScheduleInfo | None = None
     ratings: RatingsInfo
 
 
@@ -134,6 +196,7 @@ class PredictionSnapshot(BaseModel):
     regulation: dict[str, str]
     external_context: ExternalContextInfo
     scenarios: list[ExternalScenarioInfo]
+    schedule_scale: ScheduleScaleInfo | None = None
     standings: list[StandingEntry]
     teams: list[TeamPrediction]
     matches: list[MatchPrediction]

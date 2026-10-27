@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 MODEL_VERSION = "poisson-elo-ad-0.1.0"
-SNAPSHOT_SCHEMA_VERSION = "1.0"
+SNAPSHOT_SCHEMA_VERSION = "1.1"
 ROUND_REVIEW_SCHEMA_VERSION = "1.0"
 INSIGHT_RULES_VERSION = "rules-2026.10.1"
 
@@ -117,9 +117,13 @@ class ModelTrainingConfig:
 
 @dataclass(frozen=True)
 class SimulationConfig:
-    n_simulations: int = 10_000
+    """`round_review_simulations` fica abaixo de `n_simulations`: a revisão roda duas simulações da
+    temporada inteira por rodada (~25 min com 10 mil; ~4 h estimadas com 100 mil)."""
+
+    n_simulations: int = 100_000
     seed: int = 2026
     dynamic_ratings: bool = True
+    round_review_simulations: int = 20_000
 
 
 PATHS = ProjectPaths()
