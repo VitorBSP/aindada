@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Esboço B2: balão de conversa com percentual">
+  <!-- Exploração (não aprovado): a conversa de arquibancada respondida em porcentagem -->
+  <path d="M16 6 H48 a10 10 0 0 1 10 10 V38 a10 10 0 0 1 -10 10 H27 L14 59 V48 a10 10 0 0 1 -8 -10 V16 a10 10 0 0 1 10 -10 Z" fill="var(--accent, #D9381E)"/>
+  <g fill="none" stroke="var(--paper, #F7F5EF)" stroke-width="4" stroke-linecap="round">
+    <circle cx="23" cy="18" r="4.5"/>
+    <circle cx="41" cy="36" r="4.5"/>
+    <path d="M42 14 L22 40"/>
+  </g>
+</svg>

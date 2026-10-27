@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assinatura AInda dá?</title>
+<link rel="icon" href="../simbolo/favicon.svg" type="image/svg+xml">
+<style>
+  :root { --page: #ffffff; --text: #1d1f22; --muted: #5d636b; --line: #e2e0d8; color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--text); font: 15px/1.5 system-ui, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 1120px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 28px 0 8px; }
+  p.note { color: var(--muted); margin: 0 0 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 10px; }
+  .panel { border-radius: 10px; padding: 28px; border: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
+  .panel .lbl { font-size: 12px; opacity: .75; }
+  .papel { background: #F7F5EF; color: #17191C; }
+  .tinta { background: #17191C; color: #F7F5EF; }
+  .branco { background: #fff; color: #111; }
+  .preto { background: #000; color: #fff; }
+  img { display: block; max-width: 100%; height: auto; }
+  .header { display: flex; align-items: center; gap: 16px; padding: 12px 18px; border-radius: 10px; }
+  .header nav { margin-left: auto; font-size: 13px; opacity: .8; }
+</style>
+</head>
+<body>
+<main>
+  <h1>AInda dá? — assinatura</h1>
+  <p class="note">D-019, D-020, D-021 · 2026-10-26. Inter Tight 800 convertida em contorno, com o símbolo no lugar do "?". A altura da assinatura é a altura do símbolo: versão completa com 64 px de altura ou mais; abaixo disso, a reduzida.</p>
+
+  <h2>Versões</h2>
+  <div class="grid">
+    <div class="panel papel"><span class="lbl">principal</span><img src="ainda-da-assinatura.svg" width="440" alt="AInda dá?"></div>
+    <div class="panel tinta"><span class="lbl">reversa</span><img src="ainda-da-assinatura-reversa.svg" width="440" alt="AInda dá?"></div>
+    <div class="panel branco"><span class="lbl">mono</span><img src="ainda-da-assinatura-mono.svg" width="440" alt="AInda dá?"></div>
+    <div class="panel preto"><span class="lbl">mono reversa</span><img src="ainda-da-assinatura-mono-reversa.svg" width="440" alt="AInda dá?"></div>
+  </div>
+
+  <h2>Reduzida, no cabeçalho (30 px de altura)</h2>
+  <div class="grid">
+    <div class="header papel"><img src="ainda-da-assinatura-reduzida.svg" style="height:30px;width:auto" alt="AInda dá?"><nav>Classificação · Clubes · Partidas</nav></div>
+    <div class="header tinta"><img src="ainda-da-assinatura-reduzida-reversa.svg" style="height:30px;width:auto" alt="AInda dá?"><nav>Classificação · Clubes · Partidas</nav></div>
+  </div>
+
+  <h2>Conferência</h2>
+  <p class="note">Largura de "AInda dá" em contorno: 382,01 (1 em = 100). Largura medida no navegador com a mesma fonte, peso 800 e espaçamento -0,04 em: 382,02. Kerning e espaçamento reproduzidos.</p>
+</main>
+</body>
+</html>

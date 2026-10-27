@@ -1,0 +1,30 @@
+{
+  "model_version": "poisson-elo-ad-0.1.0",
+  "feature_set": "elo_attack_defense",
+  "rating_params": {
+    "elo": {
+      "k_factor": 10.0,
+      "home_advantage": 50.0,
+      "season_regression": 0.3,
+      "initial_rating": 1500.0,
+      "promoted_offset": 0.0
+    },
+    "attack_defense": {
+      "learning_rate": 0.015,
+      "season_regression": 0.15,
+      "global_learning_rate": 0.002,
+      "initial_log_goal_rate": 0.1,
+      "initial_home_effect": 0.3
+    },
+    "form": {
+      "span_matches": 2
+    }
+  },
+  "dynamic_ratings_in_simulation": true,
+  "draw_inflation": false,
+  "simulation_uncertainty": {
+    "coefficient_draws": false,
+    "strength_sd": 0.0
+  },
+  "source_report": "backtest_report.json"
+}

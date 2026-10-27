@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Estilo 7: faixa de torcida pintada">
+  <!-- Ainda dá? — exploração de símbolo (não aprovado). Linha manual/arquibancada: interrogação pintada a pincel numa faixa de torcida. -->
+  <path d="M7 14 Q19 9 32 14 T57 14 V46 Q45 51 32 46 T7 46 Z" fill="var(--accent, #D9381E)"/>
+  <path d="M7 9 V60 M57 9 V60" stroke="var(--ink, #17191C)" stroke-width="3" stroke-linecap="round"/>
+  <path d="M24.5 23.5 c-0.5 -5.5 4.5 -8.7 8.8 -8.4 c4.8 0.3 7.6 3.4 7.2 7.2 c-0.5 4.6 -6.3 5.6 -7.7 9.6 l-0.6 2.8" fill="none" stroke="var(--paper, #F7F5EF)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M30.2 39.6 q2.4 -1.6 4.4 0.2 q1 2.6 -1.6 3.4 q-3.4 0.4 -2.8 -3.6 Z" fill="var(--paper, #F7F5EF)" stroke="var(--paper, #F7F5EF)" stroke-width="1.4" stroke-linejoin="round"/>
+</svg>

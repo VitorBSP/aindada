@@ -1,0 +1,57 @@
+# Política de versionamento do repositório público: ADR-0007, item 3 (tabela).
+# Vale desde o primeiro commit. Antes de mudar, consulte o Agente 00 e o Agente 06.
+
+# --- Python, ambiente e ferramentas -------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# --- Segredos ------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Configuração local de ferramentas -----------------------------------------
+.claude/settings.local.json
+.DS_Store
+Thumbs.db
+*.log
+
+# --- Dados derivados da fonte restrita (ADR-0007; parecer 06 B1/B2) ------------
+# Cópia da fonte restrita, inclusive manifestos.
+data/raw/
+# Derivados linha a linha da fonte restrita.
+data/silver/
+# Em data/gold/ só entram hiperparâmetros e métricas agregadas.
+data/gold/*
+!data/gold/model_config.json
+!data/gold/backtest_report.json
+# Snapshots (SQLite) persistem fora do git (ADR-0007, item 4).
+data/snapshots/
+*.sqlite
+*.sqlite3
+*.db
+# Textos editoriais citam números derivados da fonte restrita; versionar só depois de C1.
+data/editorial/
+# Export estático com placares e probabilidades; gerado só no workflow.
+apps/web/data/
+# Correções manuais: match_id e placares da fonte restrita (decisão B1 do 00, 2026-10-27).
+data/reference/manual_corrections.csv
+
+# --- Escudos não livres (ADR-0007 C3; parecer 06 B3) ---------------------------
+# © dos clubes, sem licença livre. Ficam só na cópia local até autorização.
+apps/web/assets/crests/bragantino.png
+apps/web/assets/crests/corinthians.png
+apps/web/assets/crests/vasco.svg

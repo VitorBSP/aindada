@@ -1,0 +1,27 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+
+  pipeline:
+    build: .
+    profiles: ["pipeline"]
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./data:/app/data
+      - ./apps/web/data:/app/apps/web/data
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >
+        python -m brasileirao.cli ingest --fetch &&
+        python -m brasileirao.cli validate &&
+        python -m brasileirao.cli simulate --season ${SEASON:-2026} --simulations ${N_SIMULATIONS:-10000}

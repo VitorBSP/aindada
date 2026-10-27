@@ -1,0 +1,46 @@
+# Critérios configuráveis do 08A e da validação editorial (regras a partir de rules-2026.10.0; versão vigente em config.py).
+# Probabilidades em fração (0–1); variações em pontos percentuais (p.p.).
+# Ao implementar o módulo, mover para a configuração central (src/brasileirao/config.py) ou
+# carregar este arquivo; o sha256 deste arquivo vira o criteria_hash de cada lote.
+
+[noise]
+z = 3.0                         # múltiplos do erro de Monte Carlo para aceitar uma variação
+relative_min_base = 0.05        # variação relativa só com base >= 5%
+
+[materiality]                   # variação mínima, em p.p., para cada disputa
+title_pp = 4.0
+top4_pp = 6.0
+relegation_pp = 5.0
+libertadores_floor_pp = 6.0     # subida do limite inferior da faixa
+materiality_full_pp = 20.0      # variação que recebe materialidade 1,0
+
+[title]
+concentration_delta = 0.3       # mudança no nº efetivo de candidatos (1/Σp²)
+outsider_min = 0.05             # título >= 5% fora do G4
+
+[relegation]
+critical_high = 0.70
+critical_low = 0.40
+hidden_risk_min = 0.10          # risco >= 10% com posição atual <= 14
+
+[continental]
+range_wide = 0.30               # faixa de Libertadores com largura >= 30 p.p.
+sula_outside_min = 0.40
+
+[surprise]
+position_gap = 4.0              # |posição atual − posição média projetada|
+position_spread = 8             # intervalo de 90% da posição final, em lugares
+streak_rounds = 4
+surprise_max = 0.20             # resultado com probabilidade pré-jogo <= 20%
+upset_favorite_min = 0.50
+
+[editorial]
+novelty_window = 3              # rodadas sem repetir formato + clube
+max_home_highlights = 3
+max_per_club_home = 1
+
+[scoring]
+w_relevance = 0.40
+w_novelty = 0.20
+w_materiality = 0.30
+w_diversity = 0.10

@@ -1,0 +1,62 @@
+{
+  "athletico-pr": {
+    "file": "athletico-pr.svg"
+  },
+  "atletico-mg": {
+    "file": "atletico-mg.svg"
+  },
+  "bahia": {
+    "file": "bahia.svg"
+  },
+  "botafogo": {
+    "file": "botafogo.svg"
+  },
+  "bragantino": {
+    "file": "bragantino.png"
+  },
+  "chapecoense": {
+    "file": "chapecoense.svg"
+  },
+  "corinthians": {
+    "file": "corinthians.png"
+  },
+  "coritiba": {
+    "file": "coritiba.svg"
+  },
+  "cruzeiro": {
+    "file": "cruzeiro.svg"
+  },
+  "flamengo": {
+    "file": "flamengo.svg"
+  },
+  "fluminense": {
+    "file": "fluminense.svg"
+  },
+  "gremio": {
+    "file": "gremio.svg"
+  },
+  "internacional": {
+    "file": "internacional.svg"
+  },
+  "mirassol": {
+    "file": "mirassol.png"
+  },
+  "palmeiras": {
+    "file": "palmeiras.svg"
+  },
+  "remo": {
+    "file": "remo.svg"
+  },
+  "santos": {
+    "file": "santos.png"
+  },
+  "sao-paulo": {
+    "file": "sao-paulo.svg"
+  },
+  "vasco": {
+    "file": "vasco.svg"
+  },
+  "vitoria": {
+    "file": "vitoria.svg"
+  }
+}

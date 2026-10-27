@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Estilo 4: interrogação de trajetórias">
+  <!-- Ainda dá? — exploração de símbolo (não aprovado). Linha de traço fino: três trajetórias possíveis convergem para o mesmo ponto; uma é destacada. -->
+  <g fill="none" stroke-linecap="round" stroke-width="3.4">
+    <path d="M17 16.5 A16 16 0 1 1 42.3 34.3 C36 37 32 38 32 42" stroke="var(--ink, #17191C)"/>
+    <path d="M21.7 18.2 A11 11 0 1 1 38.3 31 C34.5 34 32 37 32 42" stroke="var(--accent, #D9381E)"/>
+    <path d="M26.4 19.9 A6 6 0 1 1 35.4 26.9 C33.5 30 32 35 32 42" stroke="var(--ink, #17191C)"/>
+  </g>
+  <circle cx="32" cy="52" r="4.6" fill="var(--accent, #D9381E)"/>
+</svg>

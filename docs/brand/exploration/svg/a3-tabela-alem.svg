@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Esboço A3: tabela que vai além">
+  <!-- Exploração (não aprovado): linhas da tabela; a linha destacada atravessa a borda, como a projeção que vai além da rodada atual -->
+  <rect width="64" height="64" rx="14" fill="var(--bg, #0E1A2B)"/>
+  <rect x="12" y="13" width="52" height="7" rx="0" fill="var(--accent, #FFD23F)"/>
+  <rect x="12" y="25" width="30" height="5" rx="2.5" fill="var(--ink, #EEF2F6)"/>
+  <rect x="12" y="35" width="24" height="5" rx="2.5" fill="var(--ink, #EEF2F6)"/>
+  <rect x="12" y="45" width="34" height="5" rx="2.5" fill="var(--ink, #EEF2F6)"/>
+</svg>

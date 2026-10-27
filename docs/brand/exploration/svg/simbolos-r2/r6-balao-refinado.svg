@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Rodada 2, 6: balão vazado refinado">
+  <!-- Ainda dá? — símbolo, rodada 2 (não aprovado). Refino do estilo 6: balão arredondado, rabicho marcado e interrogação mais encorpada. -->
+  <ellipse cx="33" cy="28" rx="26" ry="22" fill="var(--accent, #D9381E)"/>
+  <path d="M14 40 L6 58 L26 48 Z" fill="var(--accent, #D9381E)" stroke-linecap="round" stroke-linejoin="round" stroke="var(--accent, #D9381E)" stroke-width="2"/>
+  <path d="M25.5 20 a8 8 0 1 1 11.2 7.4 c-2.4 1.2 -3.2 2.7 -3.2 5.2 V33.5" fill="none" stroke="var(--paper, #F7F5EF)" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="33.5" cy="42" r="3.7" fill="var(--paper, #F7F5EF)"/>
+</svg>

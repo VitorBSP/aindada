@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AInda dá? — símbolo compacto">
+  <!-- AInda dá? — símbolo aprovado (D-017). Não redesenhar; ver docs/brand/BRAND_GUIDELINES.md -->
+  <path d="M21 16 a11 11 0 1 1 15.4 10.1 c-3.2 1.5 -4.4 3.6 -4.4 7.4 V33" fill="none" stroke="#17191C" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="13" y="40" width="38" height="21" rx="10.5" fill="none" stroke="#17191C" stroke-width="4"/>
+  <rect x="17.5" y="44.5" width="21" height="12" rx="6" fill="#D9381E"/>
+  <g fill="#F7F5EF" stroke="#F7F5EF"><circle cx="24.6" cy="47.6" r="1.9"/><circle cx="31.4" cy="53.4" r="1.9"/><path d="M32 46.6 L24 54.4" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></g>
+</svg>

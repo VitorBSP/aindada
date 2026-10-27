@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Símbolo AInda dá?</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style>
+  :root { --page: #ffffff; --text: #1d1f22; --muted: #5d636b; --line: #e2e0d8; color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--text); font: 15px/1.5 system-ui, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 1120px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 32px 0 8px; }
+  p.note { color: var(--muted); margin: 0 0 12px; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .tile { border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
+  .tile .lbl { width: 100%; font-size: 12px; opacity: .75; }
+  .papel { background: #F7F5EF; color: #17191C; }
+  .tinta { background: #17191C; color: #F7F5EF; }
+  .branco { background: #FFFFFF; color: #111; }
+  .preto { background: #000; color: #fff; }
+  img { display: block; }
+  .avatar { width: 110px; height: 110px; border-radius: 50%; display: grid; place-items: center; }
+  .avatar.small { width: 40px; height: 40px; }
+  .lockup { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-radius: 10px; }
+  .wordmark { font-family: "Archivo", "Arial Black", Arial, sans-serif; font-weight: 800; font-size: 34px; letter-spacing: -0.03em; line-height: 1; }
+  .wordmark .q { color: #D9381E; }
+  .tab { display: inline-flex; align-items: center; gap: 8px; background: #e9eaed; border-radius: 8px 8px 0 0; padding: 6px 12px; font-size: 12px; color: #333; }
+  .tab.dark { background: #35363a; color: #e8eaed; }
+</style>
+</head>
+<body>
+<main>
+  <h1>AInda dá? — símbolo aprovado</h1>
+  <p class="note">D-017 · 2026-10-26. Interrogação com barra de chance e % no preenchimento. A partir de 64 px usa-se a versão completa; abaixo disso, a reduzida, sem o %.</p>
+
+  <h2>Versão completa</h2>
+  <div class="row" id="full"></div>
+
+  <h2>Versão reduzida (abaixo de 64 px) e favicon</h2>
+  <div class="row" id="small"></div>
+  <div style="height:10px"></div>
+  <div class="row">
+    <span class="tab"><img src="favicon.svg" width="16" height="16" alt="">AInda dá? — Série A</span>
+    <span class="tab dark"><img src="favicon.svg" width="16" height="16" alt="">AInda dá? — Série A</span>
+  </div>
+
+  <h2>Foto de perfil</h2>
+  <div class="row">
+    <div class="tile papel"><span class="lbl">papel</span>
+      <div class="avatar papel" style="border:1px solid #e2e0d8"><img src="ainda-da-simbolo.svg" width="76" height="76" alt=""></div>
+      <div class="avatar small papel" style="border:1px solid #e2e0d8"><img src="ainda-da-simbolo-reduzido.svg" width="28" height="28" alt=""></div>
+    </div>
+    <div class="tile tinta"><span class="lbl">tinta</span>
+      <div class="avatar tinta"><img src="ainda-da-simbolo-reverso.svg" width="76" height="76" alt=""></div>
+    </div>
+  </div>
+
+  <h2>Assinatura provisória (tipografia ainda não decidida)</h2>
+  <div class="row">
+    <div class="lockup papel"><img src="ainda-da-simbolo.svg" width="48" height="48" alt=""><span class="wordmark">AInda dá<span class="q">?</span></span></div>
+    <div class="lockup tinta"><img src="ainda-da-simbolo-reverso.svg" width="48" height="48" alt=""><span class="wordmark">AInda dá<span class="q">?</span></span></div>
+  </div>
+</main>
+<script>
+  const FULL = [
+    ["ainda-da-simbolo.svg", "principal", "papel"],
+    ["ainda-da-simbolo-reverso.svg", "reversa", "tinta"],
+    ["ainda-da-simbolo-mono.svg", "mono", "branco"],
+    ["ainda-da-simbolo-mono-reverso.svg", "mono reversa", "preto"],
+  ];
+  function tile(file, label, bg, sizes) {
+    const node = document.createElement("div");
+    node.className = `tile ${bg}`;
+    node.innerHTML = `<span class="lbl">${label}</span>`;
+    for (const size of sizes) {
+      const image = document.createElement("img");
+      image.src = file;
+      image.width = image.height = size;
+      image.alt = "";
+      node.append(image);
+    }
+    return node;
+  }
+  const zoom = new URLSearchParams(location.search).get("zoom");
+  if (zoom) document.body.style.zoom = zoom;
+  for (const [file, label, bg] of FULL) document.getElementById("full").append(tile(file, label, bg, [192, 96, 64, 48]));
+  document.getElementById("small").append(
+    tile("ainda-da-simbolo-reduzido.svg", "reduzida no papel", "papel", [48, 32, 24, 16]),
+    tile("ainda-da-simbolo.svg", "completa abaixo de 64 px, para comparar (não usar)", "papel", [48, 32, 16]),
+  );
+</script>
+</body>
+</html>

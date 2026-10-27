@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aindada.local/contracts/insight.schema.json",
+  "title": "Contrato de insights 08A → 08 → 04",
+  "description": "Versão 1.0.0 (2026-10-26). Candidatos gerados pelo 08A, revisão editorial do 08 e insight publicado pelo 04. Todo número citado no texto precisa aparecer em evidence.",
+  "oneOf": [
+    { "$ref": "#/$defs/insight_batch" },
+    { "$ref": "#/$defs/editorial_review" },
+    { "$ref": "#/$defs/published_insight" }
+  ],
+  "$defs": {
+    "contract_version": { "type": "string", "const": "1.0.0" },
+    "insight_id": {
+      "type": "string",
+      "pattern": "^ins_[0-9a-f]{16}$",
+      "description": "sha256(rule_id | snapshot_id | subjects ordenados | metric), 16 primeiros hex. Determinístico: a mesma entrada gera o mesmo id."
+    },
+    "snapshot_ref": {
+      "type": "object",
+      "required": ["snapshot_id", "season", "reference_date", "model_version", "data_version", "seed", "n_simulations"],
+      "additionalProperties": false,
+      "properties": {
+        "snapshot_id": { "type": "string", "minLength": 1 },
+        "season": { "type": "integer", "minimum": 2003 },
+        "reference_date": { "type": "string", "format": "date" },
+        "round_number": { "type": ["integer", "null"], "minimum": 0 },
+        "model_version": { "type": "string", "minLength": 1 },
+        "data_version": { "type": "string", "minLength": 1 },
+        "seed": { "type": "integer" },
+        "n_simulations": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "subject": {
+      "type": "object",
+      "required": ["kind", "id"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "enum": ["club", "match", "league"] },
+        "id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" }
+      }
+    },
+    "evidence_item": {
+      "type": "object",
+      "required": ["source", "path", "metric", "current"],
+      "additionalProperties": false,
+      "properties": {
+        "source": { "enum": ["predictions", "probability_history", "rounds", "metrics"] },
+        "path": { "type": "string", "description": "Caminho no JSON de origem, ex.: teams[club_id=palmeiras].title" },
+        "metric": { "type": "string" },
+        "current": { "type": "number" },
+        "previous": { "type": ["number", "null"] },
+        "previous_snapshot_id": { "type": ["string", "null"] },
+        "delta_pp": { "type": ["number", "null"], "description": "(current − previous) × 100" },
+        "relative_change": { "type": ["number", "null"], "description": "(current − previous) / previous; nulo quando previous < relative_min_base" },
+        "range": {
+          "type": ["object", "null"],
+          "required": ["min", "max"],
+          "additionalProperties": false,
+          "properties": { "min": { "type": "number" }, "max": { "type": "number" } },
+          "description": "Obrigatório para vagas que dependem de torneios externos"
+        },
+        "noise_threshold_pp": { "type": ["number", "null"], "description": "Limiar de ruído usado no teste, em p.p." }
+      }
+    },
+    "insight_candidate": {
+      "type": "object",
+      "required": ["insight_id", "insight_version", "rule_id", "category", "subjects", "headline", "body", "evidence", "reference_period", "relevance", "uncertainty", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "insight_id": { "$ref": "#/$defs/insight_id" },
+        "insight_version": { "type": "integer", "minimum": 1 },
+        "rule_id": { "type": "string", "pattern": "^[A-Z_]+$" },
+        "category": { "enum": ["title", "relegation", "libertadores", "sudamericana", "surprise", "trend", "match", "season"] },
+        "subjects": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/subject" } },
+        "headline": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "body": { "type": "string", "minLength": 1, "maxLength": 320 },
+        "evidence": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evidence_item" } },
+        "reference_period": {
+          "type": "object",
+          "required": ["from", "to"],
+          "additionalProperties": false,
+          "properties": { "from": { "type": "string", "format": "date" }, "to": { "type": "string", "format": "date" } }
+        },
+        "relevance": {
+          "type": "object",
+          "required": ["relevance", "novelty", "materiality", "diversity", "score"],
+          "additionalProperties": false,
+          "properties": {
+            "relevance": { "type": "number", "minimum": 0, "maximum": 1 },
+            "novelty": { "type": "number", "minimum": 0, "maximum": 1 },
+            "materiality": { "type": "number", "minimum": 0, "maximum": 1 },
+            "diversity": { "type": "number", "minimum": 0, "maximum": 1 },
+            "score": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "suggested_placement": { "type": "array", "items": { "enum": ["home", "club", "round", "matches", "season"] } },
+        "suggested_visual": { "enum": ["before_after_bar", "range_bar", "mini_series", "position_distribution", "match_line", "text_only"] },
+        "uncertainty": {
+          "type": "object",
+          "required": ["passes_noise_test", "notes"],
+          "additionalProperties": false,
+          "properties": {
+            "passes_noise_test": { "type": "boolean" },
+            "causal_claim": { "enum": ["none", "temporal_only", "decomposition_supported"], "description": "none: sem causa; temporal_only: 'depois de'; decomposition_supported: efeito atribuído com base na decomposição" },
+            "depends_on_external_tournaments": { "type": "boolean" },
+            "notes": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "llm_assisted": { "type": "boolean", "default": false },
+        "status": { "const": "candidate" }
+      }
+    },
+    "insight_batch": {
+      "type": "object",
+      "required": ["contract_version", "batch_id", "generated_at", "snapshot_ref", "rules_version", "criteria_hash", "candidates"],
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": { "$ref": "#/$defs/contract_version" },
+        "batch_id": { "type": "string", "minLength": 1 },
+        "generated_at": { "type": "string", "format": "date-time" },
+        "snapshot_ref": { "$ref": "#/$defs/snapshot_ref" },
+        "previous_snapshot_ref": { "oneOf": [{ "$ref": "#/$defs/snapshot_ref" }, { "type": "null" }] },
+        "rules_version": { "type": "string", "pattern": "^rules-\\d{4}\\.\\d{2}\\.\\d+$" },
+        "criteria_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "sha256 do arquivo de critérios usado" },
+        "synthetic": { "type": "boolean", "description": "true apenas em fixtures de teste" },
+        "candidates": { "type": "array", "items": { "$ref": "#/$defs/insight_candidate" } }
+      }
+    },
+    "editorial_review": {
+      "type": "object",
+      "required": ["contract_version", "insight_id", "insight_version", "decision", "reason", "checklist", "editor", "reviewed_at", "criteria_hash"],
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": { "$ref": "#/$defs/contract_version" },
+        "insight_id": { "$ref": "#/$defs/insight_id" },
+        "insight_version": { "type": "integer", "minimum": 1 },
+        "decision": { "enum": ["approved", "needs_revision", "rejected"] },
+        "reason": { "type": "string", "minLength": 1 },
+        "checklist": {
+          "type": "object",
+          "required": ["correct", "supported", "interesting", "adds_information", "clear", "on_voice", "not_duplicate", "visual_fit", "not_misleading"],
+          "additionalProperties": false,
+          "properties": {
+            "correct": { "type": "boolean" },
+            "supported": { "type": "boolean" },
+            "interesting": { "type": "boolean" },
+            "adds_information": { "type": "boolean" },
+            "clear": { "type": "boolean" },
+            "on_voice": { "type": "boolean" },
+            "not_duplicate": { "type": "boolean" },
+            "visual_fit": { "type": "boolean" },
+            "not_misleading": { "type": "boolean" }
+          }
+        },
+        "edited_headline": { "type": ["string", "null"], "maxLength": 80 },
+        "edited_body": { "type": ["string", "null"], "maxLength": 320 },
+        "placement": { "type": ["string", "null"], "enum": ["home_lead", "home_secondary", "club", "round", "matches", "season", null] },
+        "priority": { "type": ["integer", "null"], "minimum": 1 },
+        "editor": { "type": "string", "description": "agente-08 ou identificação humana" },
+        "reviewed_at": { "type": "string", "format": "date-time" },
+        "criteria_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "decision": { "const": "approved" } } },
+          "then": {
+            "required": ["placement", "priority"],
+            "properties": {
+              "checklist": {
+                "properties": {
+                  "correct": { "const": true },
+                  "supported": { "const": true },
+                  "not_misleading": { "const": true }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "published_insight": {
+      "type": "object",
+      "required": ["contract_version", "insight_id", "insight_version", "rule_id", "status", "headline", "body", "placement", "priority", "snapshot_ref", "evidence", "published_at"],
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": { "$ref": "#/$defs/contract_version" },
+        "insight_id": { "$ref": "#/$defs/insight_id" },
+        "insight_version": { "type": "integer", "minimum": 1 },
+        "rule_id": { "type": "string", "pattern": "^[A-Z_]+$", "description": "Regra de origem; usada no cálculo de novidade" },
+        "status": { "enum": ["published", "retired"] },
+        "headline": { "type": "string", "maxLength": 80 },
+        "body": { "type": "string", "maxLength": 320 },
+        "placement": { "enum": ["home_lead", "home_secondary", "club", "round", "matches", "season"] },
+        "priority": { "type": "integer", "minimum": 1 },
+        "subjects": { "type": "array", "items": { "$ref": "#/$defs/subject" } },
+        "visual": { "type": "string" },
+        "snapshot_ref": { "$ref": "#/$defs/snapshot_ref" },
+        "evidence": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evidence_item" } },
+        "published_at": { "type": "string", "format": "date-time" },
+        "retired_at": { "type": ["string", "null"], "format": "date-time" },
+        "retired_reason": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

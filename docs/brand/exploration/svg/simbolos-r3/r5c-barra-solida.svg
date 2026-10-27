@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Rodada 3, R5c: barra sólida">
+  <!-- Ainda dá? — símbolo, rodada 3 (não aprovado). Variação do R5: sem contorno; trilho em tinta e preenchimento no vermelho-sinal. -->
+  <path d="M22 18 a10 10 0 1 1 14 9.2 c-3 1.4 -4 3.4 -4 6.8 V35" fill="none" stroke="var(--ink, #17191C)" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="15" y="45" width="34" height="9" rx="4.5" fill="var(--ink, #17191C)"/>
+  <rect x="15" y="45" width="21" height="9" rx="4.5" fill="var(--accent, #D9381E)"/>
+</svg>

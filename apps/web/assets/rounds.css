@@ -1,0 +1,56 @@
+/* Aba "Rodada a rodada" (rounds.js). Só tokens de styles.css; regras visuais do Agente 08 (D-024). */
+
+.rounds-tabs { display: flex; flex-wrap: wrap; gap: 4px 20px; margin: 4px 0 8px; border-bottom: 1px solid var(--rule); }
+.rounds-tabs a { text-decoration: none; font-size: 15px; font-weight: 600; color: var(--ink-soft); padding: 6px 0; border-bottom: 3px solid transparent; margin-bottom: -1px; }
+.rounds-tabs a:hover { color: var(--ink); }
+.rounds-tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--ink); }
+
+.club-cell { display: inline-flex; align-items: center; gap: 6px; vertical-align: middle; }
+a.club-cell { text-decoration: none; }
+a.club-cell:hover span { text-decoration: underline; }
+.crest { display: inline-block; flex: none; object-fit: contain; vertical-align: middle; }
+.crest-spacer { display: inline-block; flex: none; }
+.chip .crest, .chip .crest-spacer { margin-right: 4px; }
+.chip .crest-spacer { width: 0 !important; margin: 0; }
+
+.team-heading { display: flex; align-items: center; gap: 12px; font-size: 28px; }
+
+.intensity { display: inline-block; font-size: 14px; font-weight: 500; color: var(--ink-soft); }
+h2 .intensity { margin-left: 8px; vertical-align: middle; }
+.intensity-high { color: var(--ink); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.intensity-low { color: var(--ink-faint); }
+
+.season-table td { vertical-align: top; }
+.season-table .range, td .range { display: block; font-size: 12px; color: var(--ink-faint); }
+td .club-cell + .range, td .club-cell ~ .range { display: inline; margin-left: 4px; }
+
+.result { font-variant-numeric: tabular-nums; }
+.result-V { font-weight: 700; }
+.result-D { color: var(--ink-soft); }
+
+.series-chart .marker { stroke: var(--paper); stroke-width: 1.5; }
+.series-chart .series-label { fill: var(--ink); font-size: 12px; font-weight: 700; }
+.series-chart .hit { fill: transparent; }
+.series-chart .hit:hover { fill: color-mix(in srgb, var(--ink) 6%, transparent); }
+.series-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; font-size: 13px; margin: 4px 0 8px; }
+.legend-item { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+
+.compare-picker { display: flex; flex-wrap: wrap; gap: 4px 18px; padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
+.compare-picker button { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 14px; font-weight: 500; padding: 3px 0; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--ink-soft); cursor: pointer; }
+.compare-picker button:hover { color: var(--ink); }
+.compare-picker button[aria-pressed="true"] { color: var(--ink); font-weight: 650; border-bottom-color: var(--signal); }
+tr.selected-team td { font-weight: 700; }
+tr.selected-team td:first-child { box-shadow: inset 3px 0 0 var(--ink); }
+
+.data-table { margin: 8px 0 0; }
+.data-table summary { cursor: pointer; font-size: 14px; font-weight: 600; padding: 6px 0; }
+
+@media (max-width: 560px) {
+  .metric-picker-wide { flex-wrap: wrap; border-right: 0; border-bottom: 0; }
+  .metric-picker-wide button { flex: 1 1 33%; border-left: 0 !important; border-right: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
+  .team-heading { font-size: 22px; }
+  .rounds-tabs { gap: 4px 14px; }
+  .rounds-tabs a { font-size: 14px; }
+  .compare-picker { gap: 4px 14px; }
+  .compare-picker button { font-size: 13px; }
+}

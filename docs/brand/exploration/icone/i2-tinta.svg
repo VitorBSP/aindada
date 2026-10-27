@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="AInda dá?">
+  <!-- AInda dá? — ícone de app, tinta (exploração, não aprovado). Símbolo dentro da zona segura de 80% -->
+  <rect width="512" height="512" fill="#17191C"/>
+  <g transform="translate(168.23 102.40) scale(5.4857) translate(-16 -3)">
+    <path d="M22 17 a10 10 0 1 1 14 9.2 c-3 1.4 -4 3.4 -4 6.8 V34" fill="none" stroke="#F7F5EF" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="18" y="42" width="28" height="15" rx="7.5" fill="none" stroke="#F7F5EF" stroke-width="3"/>
+  <rect x="21.5" y="45.5" width="15" height="8" rx="4" fill="#D9381E"/>
+  <g fill="#F7F5EF" stroke="#F7F5EF"><circle cx="27.2" cy="48.1" r="1.1"/><circle cx="30.8" cy="50.9" r="1.1"/><path d="M31.2 47.2 L26.8 51.8" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round"/></g>
+  </g>
+</svg>

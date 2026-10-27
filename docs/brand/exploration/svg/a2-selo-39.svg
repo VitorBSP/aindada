@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Esboço A2: selo 39">
+  <!-- Exploração (não aprovado). Numerais em <text> só no esboço; na versão final, convertidos em contorno -->
+  <rect width="64" height="64" rx="14" fill="var(--bg, #0E1A2B)"/>
+  <text x="32" y="43" text-anchor="middle" font-family="'Barlow Condensed','Arial Narrow','Roboto Condensed',sans-serif" font-weight="800" font-size="36" letter-spacing="-1" fill="var(--ink, #EEF2F6)">39</text>
+  <rect x="18" y="49" width="28" height="5" rx="2.5" fill="var(--accent, #FFD23F)"/>
+</svg>

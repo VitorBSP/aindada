@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Símbolos Ainda dá? 2</title>
+<style>
+  :root { --page: #ffffff; --text: #1d1f22; --muted: #5d636b; --line: #e2e0d8; color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--text); font: 15px/1.5 system-ui, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 1120px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 18px; margin: 40px 0 4px; border-top: 1px solid var(--line); padding-top: 24px; }
+  h3 { font-size: 14px; margin: 24px 0 4px; }
+  p.note { color: var(--muted); margin: 0 0 12px; }
+  .warn { background: #fff4d6; border: 1px solid #e7cf86; padding: 8px 12px; border-radius: 6px; font-size: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .cell { border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .cell .name { font-size: 13px; font-weight: 600; }
+  .cell .line { font-size: 12px; color: var(--muted); }
+  .sizes { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .tile { border-radius: 10px; padding: 12px; display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; border: 1px solid var(--line); }
+  .tile .lbl { width: 100%; font-size: 11px; opacity: .75; }
+  svg { display: block; }
+
+  .pal-main { --ink: #17191C; --accent: #D9381E; --track: #928B7C; --paper: #F7F5EF; --faint: #DCD8CC; background: #F7F5EF; color: #17191C; }
+  .pal-rev { --ink: #F7F5EF; --accent: #FF6A4D; --track: #6E727A; --paper: #17191C; --faint: #34383D; background: #17191C; color: #F7F5EF; }
+  .mono { --ink: #111; --accent: #111; --track: #9A9A9A; --paper: #fff; --faint: #D6D6D6; background: #fff; color: #111; }
+  .mono-rev { --ink: #fff; --accent: #fff; --track: #777; --paper: #111; --faint: #3A3A3A; background: #111; color: #fff; }
+  .on-signal { --ink: #F7F5EF; --accent: #17191C; --track: #F2A493; --paper: #D9381E; --faint: #E8705B; background: #D9381E; color: #F7F5EF; }
+
+  .lockup { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; }
+  .wordmark { font-family: "Archivo", "Arial Black", Arial, sans-serif; font-weight: 800; font-size: 26px; letter-spacing: -0.03em; line-height: 1; }
+  .wordmark .q { color: var(--accent); }
+  .appicon { width: 64px; height: 64px; border-radius: 15px; display: grid; place-items: center; box-shadow: 0 1px 3px rgba(0,0,0,.18); }
+  .avatar { border-radius: 50%; display: grid; place-items: center; overflow: hidden; }
+  .tab { display: inline-flex; align-items: center; gap: 8px; background: #e9eaed; border-radius: 8px 8px 0 0; padding: 6px 12px; font-size: 12px; color: #333; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Ainda dá? — símbolos, rodada 2</h1>
+  <p class="note">Iteração 4 · 2026-10-26 · Agente 08. Pedido (D-015): fundir % e ?, opções mais usuais, seguir o balão vazado e a barra de chance. Nada aqui é símbolo aprovado.</p>
+  <p class="warn">O wordmark usa fonte do sistema e mudam entre computadores. Na versão final, viram contorno.</p>
+
+  <h2>Visão geral</h2>
+  <p class="note">Paleta principal. Cada símbolo em 96, 48, 32 e 16 px.</p>
+  <div class="grid" id="overview"></div>
+
+  <h2>Lado a lado em tamanho real de uso</h2>
+  <p class="note">Primeira linha em 32 px (cabeçalho); segunda em 16 px (favicon).</p>
+  <div class="tile pal-main" id="side32"></div>
+  <div style="height:8px"></div>
+  <div class="tile pal-main" id="side16"></div>
+
+  <h2>Aplicações</h2>
+  <p class="note">Ícone de app no papel e no vermelho-sinal, aba do navegador e assinatura com o nome.</p>
+  <div class="grid" id="apps"></div>
+
+  <h2>Foto de perfil (recorte redondo)</h2>
+  <p class="note">Instagram, X e WhatsApp mostram o avatar em círculo: 110 px (perfil) e 40 px (lista e comentários), no papel e no vermelho-sinal.</p>
+  <div class="grid" id="avatars"></div>
+
+  <h2>Versões por estilo</h2>
+  <div id="detail"></div>
+</main>
+<script>
+  const STYLES = [
+    ["r1-percentual-pergunta", "R1 · Percentual com pergunta", "fusão % + ?"],
+    ["r2-ligadura", "R2 · Ligadura ?%", "fusão % + ?"],
+    ["r3-balao-ligadura", "R3 · Balão com ?%", "fusão + balão"],
+    ["r4-balao-barra", "R4 · Balão com barra", "balão + barra"],
+    ["r5-barra-refinada", "R5 · Barra refinada", "refino da barra"],
+    ["r6-balao-refinado", "R6 · Balão refinado", "refino do balão"],
+    ["r7-anel", "R7 · Anel de progresso", "usual"],
+    ["r8-bloco", "R8 · Bloco ?%", "usual"],
+  ];
+  const VERSIONS = [["pal-main", "principal"], ["pal-rev", "reversa"], ["mono", "mono"], ["mono-rev", "mono reversa"]];
+  const cache = {};
+  let uid = 0;
+  async function load(name) {
+    if (!cache[name]) cache[name] = await (await fetch(`svg/simbolos-r2/${name}.svg`)).text();
+    return cache[name];
+  }
+  function symbol(markup, size) {
+    const holder = document.createElement("span");
+    uid += 1;
+    holder.innerHTML = markup.trim().replaceAll("s8-orbita", `s8-orbita-${uid}`);
+    const svg = holder.querySelector("svg");
+    svg.setAttribute("width", size);
+    svg.setAttribute("height", size);
+    return svg;
+  }
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text) node.textContent = text;
+    return node;
+  }
+  async function render() {
+    const overview = document.getElementById("overview");
+    const side32 = document.getElementById("side32");
+    const side16 = document.getElementById("side16");
+    const apps = document.getElementById("apps");
+    const detail = document.getElementById("detail");
+    for (const [name, title, line] of STYLES) {
+      const markup = await load(name);
+
+      const cell = el("div", "cell pal-main");
+      cell.append(el("div", "name", title), el("div", "line", line));
+      const sizes = el("div", "sizes");
+      for (const size of [96, 48, 32, 16]) sizes.append(symbol(markup, size));
+      cell.append(sizes);
+      overview.append(cell);
+
+      side32.append(symbol(markup, 32));
+      side16.append(symbol(markup, 16));
+
+      const app = el("div", "cell");
+      app.append(el("div", "name", title));
+      const icons = el("div", "sizes");
+      const iconPaper = el("div", "appicon pal-main");
+      iconPaper.append(symbol(markup, 44));
+      const iconSignal = el("div", "appicon on-signal");
+      iconSignal.append(symbol(markup, 44));
+      icons.append(iconPaper, iconSignal);
+      const tab = el("div", "tab");
+      tab.append(symbol(markup, 16), el("span", "", "Ainda dá? — Série A"));
+      const lockup = el("div", "lockup pal-main");
+      const word = el("span", "wordmark", "Ainda dá");
+      word.append(el("span", "q", "?"));
+      lockup.append(symbol(markup, 34), word);
+      app.append(icons, tab, lockup);
+      apps.append(app);
+
+      const avatarCell = el("div", "cell");
+      avatarCell.append(el("div", "name", title));
+      const avatarRow = el("div", "sizes");
+      for (const [paletteClass, size] of [["pal-main", 110], ["on-signal", 110], ["pal-main", 40], ["on-signal", 40]]) {
+        const avatar = el("div", `avatar ${paletteClass}`);
+        avatar.style.width = avatar.style.height = `${size}px`;
+        avatar.append(symbol(markup, Math.round(size * 0.68)));
+        avatarRow.append(avatar);
+      }
+      avatarCell.append(avatarRow);
+      document.getElementById("avatars").append(avatarCell);
+
+      detail.append(el("h3", "", title));
+      const row = el("div", "row");
+      for (const [paletteClass, label] of VERSIONS) {
+        const tile = el("div", `tile ${paletteClass}`);
+        tile.append(el("div", "lbl", label));
+        for (const size of [128, 48, 32, 16]) tile.append(symbol(markup, size));
+        row.append(tile);
+      }
+      detail.append(row);
+    }
+  }
+  render().then(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("zoom")) document.body.style.zoom = params.get("zoom");
+    const only = params.get("secao");
+    if (!only) return;
+    const keep = document.getElementById(only);
+    for (const child of document.querySelector("main").children) {
+      if (child !== keep && child !== keep.previousElementSibling) child.style.display = "none";
+    }
+  });
+</script>
+</body>
+</html>

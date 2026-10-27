@@ -1,0 +1,125 @@
+"""Configuração central do projeto."""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass, field
+from pathlib import Path
+
+MODEL_VERSION = "poisson-elo-ad-0.1.0"
+SNAPSHOT_SCHEMA_VERSION = "1.0"
+ROUND_REVIEW_SCHEMA_VERSION = "1.0"
+INSIGHT_RULES_VERSION = "rules-2026.10.1"
+
+
+def _project_root() -> Path:
+    env_root = os.environ.get("BRASILEIRAO_ROOT")
+    if env_root:
+        return Path(env_root).resolve()
+    return Path(__file__).resolve().parents[2]
+
+
+@dataclass(frozen=True)
+class ProjectPaths:
+    root: Path = field(default_factory=_project_root)
+
+    @property
+    def data(self) -> Path:
+        return self.root / "data"
+
+    @property
+    def raw(self) -> Path:
+        return self.data / "raw"
+
+    @property
+    def silver(self) -> Path:
+        return self.data / "silver"
+
+    @property
+    def gold(self) -> Path:
+        return self.data / "gold"
+
+    @property
+    def reference(self) -> Path:
+        return self.data / "reference"
+
+    @property
+    def snapshots_db(self) -> Path:
+        return Path(os.environ.get("BRASILEIRAO_SNAPSHOT_DB", self.data / "snapshots" / "snapshots.sqlite"))
+
+    @property
+    def web_static_data(self) -> Path:
+        return self.root / "apps" / "web" / "data"
+
+    @property
+    def clubs_reference(self) -> Path:
+        return self.reference / "clubs.csv"
+
+    @property
+    def editorial(self) -> Path:
+        return Path(os.environ.get("BRASILEIRAO_EDITORIAL_DIR", self.data / "editorial"))
+
+    @property
+    def insight_criteria(self) -> Path:
+        return self.root / "docs" / "storytelling" / "contracts" / "insight-criteria.toml"
+
+
+@dataclass(frozen=True)
+class EloParams:
+    k_factor: float = 20.0
+    home_advantage: float = 70.0
+    season_regression: float = 0.25
+    initial_rating: float = 1500.0
+    promoted_offset: float = 0.0
+
+
+@dataclass(frozen=True)
+class AttackDefenseParams:
+    learning_rate: float = 0.03
+    season_regression: float = 0.3
+    global_learning_rate: float = 0.002
+    initial_log_goal_rate: float = 0.1
+    initial_home_effect: float = 0.3
+
+
+@dataclass(frozen=True)
+class FormParams:
+    span_matches: int = 6
+
+
+@dataclass(frozen=True)
+class RatingParams:
+    elo: EloParams = field(default_factory=EloParams)
+    attack_defense: AttackDefenseParams = field(default_factory=AttackDefenseParams)
+    form: FormParams = field(default_factory=FormParams)
+
+
+@dataclass(frozen=True)
+class SimulationUncertainty:
+    """Incerteza propagada em cada simulação.
+
+    `coefficient_draws` sorteia os coeficientes do modelo de gols da normal assintótica;
+    `strength_sd` soma a cada clube uma força latente N(0, sd²) na escala log dos gols,
+    fixa ao longo da temporada simulada.
+    """
+
+    coefficient_draws: bool = False
+    strength_sd: float = 0.0
+
+
+@dataclass(frozen=True)
+class ModelTrainingConfig:
+    training_seasons_window: int = 10
+    first_training_season: int = 2006
+    poisson_alpha: float = 1e-3
+    max_goals: int = 10
+
+
+@dataclass(frozen=True)
+class SimulationConfig:
+    n_simulations: int = 10_000
+    seed: int = 2026
+    dynamic_ratings: bool = True
+
+
+PATHS = ProjectPaths()

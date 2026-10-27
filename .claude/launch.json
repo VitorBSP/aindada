@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "brand-board",
+      "runtimeExecutable": ".venv/Scripts/python.exe",
+      "runtimeArgs": ["-m", "http.server", "8091", "--directory", "docs/brand/exploration"],
+      "port": 8091
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": ".venv/Scripts/python.exe",
+      "runtimeArgs": ["-m", "http.server", "8080", "--directory", "apps/web"],
+      "port": 8080
+    },
+    {
+      "name": "brand-assets",
+      "runtimeExecutable": ".venv/Scripts/python.exe",
+      "runtimeArgs": ["-m", "http.server", "8092", "--directory", "docs/brand/assets"],
+      "port": 8092
+    }
+  ]
+}

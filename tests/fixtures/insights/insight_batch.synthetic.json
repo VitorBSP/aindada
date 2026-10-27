@@ -1,0 +1,65 @@
+{
+  "contract_version": "1.0.0",
+  "batch_id": "synthetic-batch-001",
+  "generated_at": "2026-10-26T12:00:00-03:00",
+  "synthetic": true,
+  "snapshot_ref": {
+    "snapshot_id": "synthetic-2026-r31",
+    "season": 2026,
+    "reference_date": "2026-10-18",
+    "round_number": 31,
+    "model_version": "synthetic-model",
+    "data_version": "synthetic-data",
+    "seed": 1,
+    "n_simulations": 10000
+  },
+  "previous_snapshot_ref": {
+    "snapshot_id": "synthetic-2026-r30",
+    "season": 2026,
+    "reference_date": "2026-10-11",
+    "round_number": 30,
+    "model_version": "synthetic-model",
+    "data_version": "synthetic-data",
+    "seed": 1,
+    "n_simulations": 10000
+  },
+  "rules_version": "rules-2026.10.0",
+  "criteria_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "candidates": [
+    {
+      "insight_id": "ins_0123456789abcdef",
+      "insight_version": 1,
+      "rule_id": "RELEG_RISER",
+      "category": "relegation",
+      "subjects": [{ "kind": "club", "id": "clube-sintetico-a", "label": "Clube Sintético A" }],
+      "headline": "Clube Sintético A se aproxima da zona de queda",
+      "body": "O risco subiu de 20% para 32% em uma rodada. Dado sintético, apenas para teste do contrato.",
+      "evidence": [
+        {
+          "source": "probability_history",
+          "path": "teams[club_id=clube-sintetico-a].relegation",
+          "metric": "relegation",
+          "current": 0.32,
+          "previous": 0.20,
+          "previous_snapshot_id": "synthetic-2026-r30",
+          "delta_pp": 12.0,
+          "relative_change": 0.6,
+          "range": null,
+          "noise_threshold_pp": 1.84
+        }
+      ],
+      "reference_period": { "from": "2026-10-11", "to": "2026-10-18" },
+      "relevance": { "relevance": 0.9, "novelty": 1.0, "materiality": 0.6, "diversity": 1.0, "score": 0.84 },
+      "suggested_placement": ["home", "club"],
+      "suggested_visual": "before_after_bar",
+      "uncertainty": {
+        "passes_noise_test": true,
+        "causal_claim": "none",
+        "depends_on_external_tournaments": false,
+        "notes": ["Fixture sintética"]
+      },
+      "llm_assisted": false,
+      "status": "candidate"
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ícone de app AInda dá?</title>
+<style>
+  :root { --page: #ffffff; --text: #1d1f22; --muted: #5d636b; --line: #e2e0d8; color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--text); font: 15px/1.5 system-ui, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 1120px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 24px 0 8px; }
+  p.note { color: var(--muted); margin: 0 0 12px; }
+  .options { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .option { border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+  .option .name { font-weight: 600; font-size: 14px; }
+  .shapes { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+  .ios img { border-radius: 22.5%; display: block; }
+  .android img { border-radius: 50%; display: block; }
+  .screen { border-radius: 16px; padding: 20px; display: grid; grid-template-columns: repeat(8, 64px); gap: 18px 22px; justify-content: start; }
+  .screen.light { background: linear-gradient(135deg, #dfe7ef, #f1ece2); }
+  .screen.dark { background: linear-gradient(135deg, #151a24, #2a2234); }
+  .app { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; }
+  .screen.dark .app { color: #eee; }
+  .app img, .app .ph { width: 60px; height: 60px; border-radius: 22.5%; display: block; }
+  .ph { box-shadow: inset 0 0 0 1px rgba(0,0,0,.06); }
+</style>
+</head>
+<body>
+<main>
+  <h1>AInda dá? — opções de ícone de aplicativo</h1>
+  <p class="note">2026-10-26 · Agente 08. Todas usam o símbolo aprovado (D-017, D-018) com 60% da altura do ícone, dentro da zona segura de 80% dos ícones adaptáveis do Android. Exploração: nenhuma opção aprovada. Os ícones vizinhos são blocos genéricos, não apps reais.</p>
+
+  <h2>Opções (formato iOS 180 e 60 px; Android redondo 108 px)</h2>
+  <div class="options" id="options"></div>
+
+  <h2>Tela inicial clara</h2>
+  <div class="screen light" id="light"></div>
+  <h2>Tela inicial escura</h2>
+  <div class="screen dark" id="dark"></div>
+</main>
+<script>
+  const OPTIONS = [
+    ["i1-papel", "1 · Papel"],
+    ["i2-tinta", "2 · Tinta"],
+    ["i3-sinal", "3 · Vermelho-sinal"],
+    ["i4-sinal-tinta", "4 · Sinal com pílula em tinta"],
+  ];
+  const NEIGHBORS = ["#3d7be0", "#2fb36b", "#f2b230", "#ffffff", "#8a5cf6", "#111111", "#e85d9a", "#4bb8d6"];
+  const options = document.getElementById("options");
+  for (const [file, name] of OPTIONS) {
+    const card = document.createElement("div");
+    card.className = "option";
+    card.innerHTML = `<span class="name">${name}</span>
+      <div class="shapes">
+        <span class="ios"><img src="${file}.svg" width="180" height="180" alt=""></span>
+        <span class="ios"><img src="${file}.svg" width="60" height="60" alt=""></span>
+        <span class="android"><img src="${file}.svg" width="108" height="108" alt=""></span>
+      </div>`;
+    options.append(card);
+  }
+  for (const screenId of ["light", "dark"]) {
+    const screen = document.getElementById(screenId);
+    let neighbor = 0;
+    for (let cell = 0; cell < 16; cell += 1) {
+      const app = document.createElement("div");
+      app.className = "app";
+      if (cell % 4 === 1) {
+        const [file, name] = OPTIONS[Math.floor(cell / 4)];
+        app.innerHTML = `<img src="${file}.svg" alt=""><span>AInda dá?</span>`;
+        app.title = name;
+      } else {
+        app.innerHTML = `<span class="ph" style="background:${NEIGHBORS[neighbor % NEIGHBORS.length]}"></span><span>App</span>`;
+        neighbor += 1;
+      }
+      screen.append(app);
+    }
+  }
+</script>
+</body>
+</html>

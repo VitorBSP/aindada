@@ -1,0 +1,27 @@
+# Atualização agendada das previsões. DESATIVADA até a revisão de licença dos dados (ADR-0002)
+# e aprovação dos Agentes 00 e 06. Para ativar, descomente o bloco `schedule`.
+name: update-predictions
+
+on:
+  workflow_dispatch:
+  # schedule:
+  #   - cron: "0 9 * * 2,4"   # terças e quintas, 06:00 em Brasília
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[api,sources]"
+      - run: python -m brasileirao.cli ingest --fetch
+      - run: python -m brasileirao.cli validate
+      - run: python -m brasileirao.cli simulate --season 2026 --simulations 10000
+      - uses: actions/upload-artifact@v4
+        with:
+          name: snapshot
+          path: |
+            data/snapshots/snapshots.sqlite
+            apps/web/data/

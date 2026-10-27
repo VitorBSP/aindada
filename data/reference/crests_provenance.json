@@ -1,0 +1,224 @@
+{
+  "athletico-pr": {
+    "file": "athletico-pr.svg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/4/43/Athletico_Paranaense_%28Logo_2019%29.svg",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Athletico_Paranaense_(Logo_2019).svg",
+    "author": "Clube Athletico Paranaense",
+    "license": "PD-textlogo (domínio público por não atingir originalidade; marca registrada — {{Trademarked}})",
+    "license_status": "livre",
+    "retrieved_at": "2026-10-27T01:42:34+00:00",
+    "sha256": "4513a8fcbfdef54a2af7e008213d75be1698738ee1495c4ac5190b510d1e326a"
+  },
+  "atletico-mg": {
+    "file": "atletico-mg.svg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/27/Clube_Atl%C3%A9tico_Mineiro_logo.svg",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Clube_Atl%C3%A9tico_Mineiro_logo.svg",
+    "author": "Clube Atlético Mineiro",
+    "license": "PD-textlogo (domínio público por não atingir originalidade; marca registrada — {{Trademarked}})",
+    "license_status": "livre",
+    "retrieved_at": "2026-10-27T01:42:38+00:00",
+    "sha256": "3bff1a1b81693af24870d132aa85e6bfd83fb9a08f61cac15b43bfc8f3834d30"
+  },
+  "bahia": {
+    "file": "bahia.svg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/2c/Esporte_Clube_Bahia_logo.svg",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Esporte_Clube_Bahia_logo.svg",
+    "author": "Esporte Clube Bahia",
+    "license": "PD-textlogo (domínio público por não atingir originalidade; marca registrada — {{Trademarked}})",
+    "license_status": "livre",
+    "retrieved_at": "2026-10-27T01:42:41+00:00",
+    "sha256": "9682ff13422146bc9e4fc6997434b7c1d09045952a1787d2b6c33c8ff08ae1b1"
+  },
+  "botafogo": {
+    "file": "botafogo.svg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/5/52/Botafogo_de_Futebol_e_Regatas_logo.svg",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Botafogo_de_Futebol_e_Regatas_logo.svg",
+    "author": "Botafogo de Futebol e Regatas",
+    "license": "PD-textlogo (domínio público por não atingir originalidade; marca registrada — {{Trademarked}})",
+    "license_status": "livre",
+    "retrieved_at": "2026-10-27T01:42:45+00:00",
+    "sha256": "0368f1641da5c2c6f3c936ae64abe1e1dd08b06bf3e40cd4a76b1f37d06f0fe0",
+    "source_sha256": "fe8fa7a786973d9c4997609417fb2fbb206d1ec6fee598856decdd4707c110b9",
+    "modification": "atributo viewBox acrescentado ao elemento <svg> para permitir redimensionamento; desenho inalterado"
+  },
+  "bragantino": {
+    "file": "bragantino.png",
+    "source_url": "https://upload.wikimedia.org/wikipedia/pt/9/9e/RedBullBragantino.png",
+    "file_page_url": "https://pt.wikipedia.org/wiki/Ficheiro:RedBullBragantino.png",
+    "author": "Red Bull Bragantino",
+    "license": "Não livre: © Red Bull Bragantino; enviado à Wikipédia em português como conteúdo restrito (uso restrito, sem licença livre)",
+    "license_status": "livre",
+    "retrieved_at": "2026-10-27T01:43:33+00:00",
+    "sha256": "399001857b62274b12f0024ca60af8d3c0ce72a495be7f9eb016f060de04a7e6",
+    "license_status_override": {
+      "decided_by": "dono do produto",
+      "decided_at": "2026-10-26",
+      "previous_status": "nao_livre_uso_local",
+      "note": "Status definido por decisão do dono do produto, contra a evidência da fonte: o arquivo não tem licença livre (ver campo license)."
+    }
+  },
+  "chapecoense": {
+    "file": "chapecoense.svg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/4/4e/Logo_Associa%C3%A7%C3%A3o_Chapecoense_de_Futebol.svg",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Logo_Associa%C3%A7%C3%A3o_Chapecoense_de_Futebol.svg",
+    "author": "Chapecoense",
+    "license": "PD-textlogo (domínio público por não atingir originalidade; marca registrada — {{Trademarked}})",
+    "license_status": "livre",
+    "retrieved_at": "2026-10-27T01:42:48+00:00",
+    "sha256": "b512787b8307272069b50b1b805ef61d9f99afe7353622c7673c770eb198f061",
+    "source_sha256": "26ecc3ee650eb28f85ccf73a393705468eb33704a92c0244c31fb006076395e3",
+    "modification": "atributo viewBox acrescentado ao elemento <svg> para permitir redimensionamento; desenho inalterado"
+  },
+  "corinthians": {
+    "file": "corinthians.png",
+    "source_url": "https://upload.wikimedia.org/wikipedia/pt/b/b4/Corinthians_simbolo.png",
+    "file_page_url": "https://pt.wikipedia.org/wiki/Ficheiro:Corinthians_simbolo.png",
+    "author": "Sport Club Corinthians Paulista",
+    "license": "Não livre: © Sport Club Corinthians Paulista; enviado à Wikipédia em português como conteúdo restrito (uso restrito, sem licença livre)",
+    "license_status": "livre",
+    "retrieved_at": "2026-10-27T01:44:05+00:00",
+    "sha256": "98aded1a8a28ad7092725f24d5c4cb6cad697543a1efb349c08170e98013eb05",
+    "license_status_override": {
+      "decided_by": "dono do produto",
+      "decided_at": "2026-10-26",
+      "previous_status": "nao_livre_uso_local",
+      "note": "Status definido por decisão do dono do produto, contra a evidência da fonte: o arquivo não tem licença livre (ver campo license)."
+    }
+  },
+  "coritiba": {
+    "file": "coritiba.svg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/b/bd/Coritiba_Foot_Ball_Club_logo.svg",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Coritiba_Foot_Ball_Club_logo.svg",
+    "author": "Coritiba Foot Ball Club",
+    "license": "PD-textlogo (domínio público por não atingir originalidade; marca registrada — {{Trademarked}})",
+    "license_status": "livre",
+    "retrieved_at": "2026-10-27T01:42:51+00:00",
+    "sha256": "c167b6898554986eb9cc951810b616bc7c4777a1edbc0549083ac31ea75d8529"
+  },
+  "cruzeiro": {
+    "file": "cruzeiro.svg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/9/90/Cruzeiro_Esporte_Clube_%28logo%29.svg",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Cruzeiro_Esporte_Clube_(logo).svg",
+    "author": "Cruzeiro Esporte Clube",
+    "license": "PD-textlogo (domínio público por não atingir originalidade; marca registrada — {{Trademarked}})",
+    "license_status": "livre",
+    "retrieved_at": "2026-10-27T01:42:55+00:00",
+    "sha256": "a0baedcf95112e44d32c4ac6a43b24cb7c9e025cd4c934dde497a39777c0cbe8"
+  },
+  "flamengo": {
+    "file": "flamengo.svg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/9/96/Clube_de_Regatas_do_Flamengo_logo.svg",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Clube_de_Regatas_do_Flamengo_logo.svg",
+    "author": "Clube de Regatas do Flamengo",
+    "license": "PD-textlogo (domínio público por não atingir originalidade; marca registrada — {{Trademarked}})",
+    "license_status": "livre",
+    "retrieved_at": "2026-10-27T01:42:58+00:00",
+    "sha256": "a84dc1d0e608bc05e4ecc971a642055df96b4fef1c4af9329d1effe41839b0af"
+  },
+  "fluminense": {
+    "file": "fluminense.svg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/1/12/Fluminense_Football_Club.svg",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Fluminense_Football_Club.svg",
+    "author": "Fluminense FC",
+    "license": "PD-textlogo (domínio público por não atingir originalidade; marca registrada — {{Trademarked}})",
+    "license_status": "livre",
+    "retrieved_at": "2026-10-27T01:43:02+00:00",
+    "sha256": "7c763ef61e9921bb80cf1bc8564afb630b26a4e0b018d8bf6c7096f3cc40dc9e"
+  },
+  "gremio": {
+    "file": "gremio.svg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/08/Gremio_logo.svg",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Gremio_logo.svg",
+    "author": "Grêmio Foot-Ball Porto Alegrense",
+    "license": "PD-textlogo (domínio público por não atingir originalidade; marca registrada — {{Trademarked}})",
+    "license_status": "livre",
+    "retrieved_at": "2026-10-27T01:43:05+00:00",
+    "sha256": "0956f496ff445b8844aa201d0d4ab8e119c19b9d51e35d5fe06fc36b8444361f"
+  },
+  "internacional": {
+    "file": "internacional.svg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/c/c5/Sport_Club_Internacional_logo.svg",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Sport_Club_Internacional_logo.svg",
+    "author": "Sport Club Internacional",
+    "license": "PD-textlogo (domínio público por não atingir originalidade; marca registrada — {{Trademarked}})",
+    "license_status": "livre",
+    "retrieved_at": "2026-10-27T01:43:09+00:00",
+    "sha256": "8949fb108c84810363c4d921ce869fea0bec45ab5cb136ccf26346806a091c27"
+  },
+  "mirassol": {
+    "file": "mirassol.png",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/f/fd/Mirassol_Futebol_Clube_logo_%283_stars%29.png",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Mirassol_Futebol_Clube_logo_(3_stars).png",
+    "author": "Mirassol Futebol Clube",
+    "license": "PD-textlogo + PD-shape (domínio público por não atingir originalidade; marca registrada — {{Trademarked}})",
+    "license_status": "livre",
+    "retrieved_at": "2026-10-27T01:43:12+00:00",
+    "sha256": "6002a215eee897b55c5aca44880332f9bad672c525c4a34ed8869a74a56f8258"
+  },
+  "palmeiras": {
+    "file": "palmeiras.svg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/6/68/Sociedade_Esportiva_Palmeiras_logo_%281_red_star%29.svg",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Sociedade_Esportiva_Palmeiras_logo_(1_red_star).svg",
+    "author": "Sociedade Esportiva Palmeiras",
+    "license": "PD-textlogo (domínio público por não atingir originalidade; marca registrada — {{Trademarked}})",
+    "license_status": "livre",
+    "retrieved_at": "2026-10-27T01:43:16+00:00",
+    "sha256": "b94877f5b3ff40dd178a099af06396eb4536eba0f775ba0aceded133f68078ef"
+  },
+  "remo": {
+    "file": "remo.svg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/7/70/Clube_do_Remo.svg",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Clube_do_Remo.svg",
+    "author": "Clube do Remo",
+    "license": "PD-textlogo (domínio público por não atingir originalidade; marca registrada — {{Trademarked}})",
+    "license_status": "livre",
+    "retrieved_at": "2026-10-27T01:43:19+00:00",
+    "sha256": "16242749bfe28286e674034b0362572975c9e2fdc1dcdc288ff3c4efef560e1f"
+  },
+  "santos": {
+    "file": "santos.png",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/0e/Santos_Futebol_Clube_logo_%28with_stars_and_crown%29.png",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Santos_Futebol_Clube_logo_(with_stars_and_crown).png",
+    "author": "Santos F.C.",
+    "license": "PD-textlogo (domínio público por não atingir originalidade; marca registrada — {{Trademarked}})",
+    "license_status": "livre",
+    "retrieved_at": "2026-10-27T01:43:23+00:00",
+    "sha256": "4833d510db584cba48a849f6d065cf6aae5663cd6e365ecfb40515830a9af94d"
+  },
+  "sao-paulo": {
+    "file": "sao-paulo.svg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/f/f4/S%C3%A3o_Paulo_Futebol_Clube_logo_%282022%29.svg",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:S%C3%A3o_Paulo_Futebol_Clube_logo_(2022).svg",
+    "author": "São Paulo FC",
+    "license": "PD-textlogo + PD-shape (domínio público por não atingir originalidade; marca registrada — {{Trademarked}})",
+    "license_status": "livre",
+    "retrieved_at": "2026-10-27T01:43:26+00:00",
+    "sha256": "d52bbed4f278cdf285dff6e1f39c1765273f629a37b3ae01d1de76017cb3b102"
+  },
+  "vasco": {
+    "file": "vasco.svg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/pt/8/8b/EscudoDoVascoDaGama.svg",
+    "file_page_url": "https://pt.wikipedia.org/wiki/Ficheiro:EscudoDoVascoDaGama.svg",
+    "author": "Club de Regatas Vasco da Gama",
+    "license": "Não livre: © Club de Regatas Vasco da Gama; enviado à Wikipédia em português como conteúdo restrito (uso restrito, sem licença livre)",
+    "license_status": "livre",
+    "retrieved_at": "2026-10-27T01:44:08+00:00",
+    "sha256": "71aaf0d7ee7f118f27499c7511a0be4e5b5c2dcab92661b374a8edeb48ad530f",
+    "license_status_override": {
+      "decided_by": "dono do produto",
+      "decided_at": "2026-10-26",
+      "previous_status": "nao_livre_uso_local",
+      "note": "Status definido por decisão do dono do produto, contra a evidência da fonte: o arquivo não tem licença livre (ver campo license)."
+    }
+  },
+  "vitoria": {
+    "file": "vitoria.svg",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/1/15/Esporte_Clube_Vit%C3%B3ria_%282024%29.svg",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Esporte_Clube_Vit%C3%B3ria_(2024).svg",
+    "author": "Esporte Clube Vitória",
+    "license": "PD-textlogo (domínio público por não atingir originalidade; marca registrada — {{Trademarked}})",
+    "license_status": "livre",
+    "retrieved_at": "2026-10-27T01:43:30+00:00",
+    "sha256": "0b425156ea11a09095f240047c5d38ceef09a3d2d8e5bd5dfffd6fc6da8154cb"
+  }
+}

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Esboço B1: interrogação com barra de probabilidade">
+  <!-- Exploração (não aprovado): o ponto da interrogação vira uma barra de chance parcialmente cheia -->
+  <rect width="64" height="64" rx="14" fill="var(--bg, #F7F5EF)"/>
+  <path d="M22 20 a10 10 0 1 1 14 9.2 c-3 1.4 -4 3.4 -4 6.8 V37" fill="none" stroke="var(--ink, #17191C)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="21" y="47" width="22" height="7" rx="3.5" fill="var(--faint, #C9C3B3)"/>
+  <rect x="21" y="47" width="14" height="7" rx="3.5" fill="var(--accent, #D9381E)"/>
+</svg>

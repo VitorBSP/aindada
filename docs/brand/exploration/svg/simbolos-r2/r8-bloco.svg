@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Rodada 2, 8: bloco ?%">
+  <!-- Ainda dá? — símbolo, rodada 2 (não aprovado). Opção usual: quadrado de aplicativo com ? grande e % pequeno. -->
+  <rect width="64" height="64" rx="14" fill="var(--accent, #D9381E)"/>
+  <path d="M15 21 a10 10 0 1 1 14 9.2 c-3 1.4 -4 3.4 -4 6.8 V39" fill="none" stroke="var(--paper, #F7F5EF)" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="25" cy="50" r="4.3" fill="var(--paper, #F7F5EF)"/>
+  <g fill="none" stroke="var(--paper, #F7F5EF)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="44" cy="38" r="3.2"/>
+    <circle cx="53" cy="51" r="3.2"/>
+    <path d="M55 35 L42 54"/>
+  </g>
+</svg>

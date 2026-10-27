@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Estilo 8: selo circular">
+  <!-- Ainda dá? — exploração de símbolo (não aprovado). Linha retrô/carimbo: selo de arquibancada com o nome em volta. Texto vivo só no esboço. -->
+  <defs>
+    <path id="s8-orbita" d="M32 32 m-24 0 a24 24 0 1 1 48 0 a24 24 0 1 1 -48 0"/>
+  </defs>
+  <circle cx="32" cy="32" r="30" fill="none" stroke="var(--ink, #17191C)" stroke-width="2.6"/>
+  <circle cx="32" cy="32" r="18" fill="none" stroke="var(--ink, #17191C)" stroke-width="1.4"/>
+  <text font-family="'Archivo','Arial Black','Arial',sans-serif" font-weight="800" font-size="7.2" letter-spacing="1.6" fill="var(--ink, #17191C)"><textPath href="#s8-orbita" startOffset="0">AINDA DÁ? · AINDA DÁ? · AINDA DÁ? ·</textPath></text>
+  <path d="M27 27 a5.5 5.5 0 1 1 7.7 5 c-1.6 0.8 -2.2 1.9 -2.2 3.6 V36.5" fill="none" stroke="var(--accent, #D9381E)" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="32.5" cy="42" r="2.6" fill="var(--accent, #D9381E)"/>
+</svg>

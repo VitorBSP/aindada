@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quadro de exploração A e B</title>
+<style>
+  :root {
+    --page: #ffffff;
+    --text: #1d1f22;
+    --muted: #5d636b;
+    --line: #e2e0d8;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--text); font: 15px/1.5 system-ui, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 1120px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 18px; margin: 40px 0 4px; border-top: 1px solid var(--line); padding-top: 24px; }
+  h3 { font-size: 14px; margin: 20px 0 8px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  p.note { color: var(--muted); margin: 0 0 12px; }
+  .warn { background: #fff4d6; border: 1px solid #e7cf86; padding: 8px 12px; border-radius: 6px; font-size: 14px; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; }
+  .tile { border-radius: 10px; padding: 16px; display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; border: 1px solid var(--line); }
+  .tile .lbl { width: 100%; font-size: 12px; opacity: .75; }
+  .tile svg { display: block; }
+
+  .pal-a { --bg: #0E1A2B; --ink: #EEF2F6; --accent: #FFD23F; --faint: #6B7C93; background: #0E1A2B; color: #EEF2F6; }
+  .pal-a-inv { --bg: #EEF2F6; --ink: #0E1A2B; --accent: #8A6700; --faint: #8A97A8; background: #EEF2F6; color: #0E1A2B; }
+  .pal-b { --bg: #F7F5EF; --ink: #17191C; --accent: #D9381E; --faint: #C9C3B3; --paper: #F7F5EF; background: #F7F5EF; color: #17191C; }
+  .pal-b-inv { --bg: #17191C; --ink: #F7F5EF; --accent: #FF6A4D; --faint: #4A4E55; --paper: #17191C; background: #17191C; color: #F7F5EF; }
+  .mono { --bg: transparent; --ink: #111; --accent: #111; --faint: #111; --paper: #fff; background: #fff; color: #111; }
+  .mono-rev { --bg: transparent; --ink: #fff; --accent: #fff; --faint: #fff; --paper: #111; background: #111; color: #fff; }
+
+  .mock-header { border-radius: 10px; padding: 10px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .mock-header nav { margin-left: auto; display: flex; gap: 14px; font-size: 13px; opacity: .85; flex-wrap: wrap; }
+
+  .card { width: 340px; max-width: 100%; aspect-ratio: 1 / 1; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 10px; }
+  .card .kicker { display: flex; align-items: center; gap: 8px; }
+  .card .big { font-size: 34px; line-height: 1.05; font-weight: 800; margin-top: auto; }
+  .card .sub { font-size: 15px; opacity: .9; }
+  .card .foot { font-size: 11px; opacity: .75; }
+  .card .hl { color: var(--accent); }
+  .cond { font-family: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif; letter-spacing: .01em; }
+  .bar { height: 10px; border-radius: 5px; background: var(--faint); position: relative; overflow: hidden; }
+  .bar > span { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 5px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Quadro de exploração — direções A e B</h1>
+  <p class="note">Iteração 2 · 2026-10-26 · Agente 08. Esboços para conversa; nada aqui é aprovado.</p>
+  <p class="warn">Os wordmarks usam fontes do sistema e mudam de aparência entre computadores. Na versão final, o texto vira contorno. Clubes e números dos cartões são ilustrativos (decisão B1, 2026-10-27); não são dados reais.</p>
+
+  <h2>A — Rodada 39</h2>
+  <p class="note">Paleta "Noite de rodada". A marca nasce escura: o amarelo só funciona sobre a noite. Na versão clara, o destaque vira ocre (#8A6700).</p>
+  <div id="a-symbols"></div>
+
+  <h3>Aplicação — cabeçalho</h3>
+  <div class="mock-header pal-a">
+    <span data-svg="a3-tabela-alem" data-size="32"></span>
+    <span data-svg="a4-wordmark-rodada39" data-h="26"></span>
+    <nav><span>Classificação</span><span>Clubes</span><span>Partidas</span><span>Metodologia</span></nav>
+  </div>
+
+  <h3>Aplicação — cartão social</h3>
+  <div class="row">
+    <div class="card pal-a">
+      <div class="kicker"><span data-svg="a4-wordmark-rodada39" data-h="20"></span></div>
+      <div class="big cond">QUEM LEVANTA<br>A TAÇA?</div>
+      <div class="sub cond" style="font-size:22px">Clube A <span class="hl">62%</span> · Clube B <span class="hl">38%</span></div>
+      <span data-svg="a1-regua-38-1" data-w="292"></span>
+      <div class="foot">10 mil simulações do fim do campeonato · exemplo ilustrativo</div>
+    </div>
+  </div>
+
+  <h2>B — Ainda Dá</h2>
+  <p class="note">Paleta "Papel e tinta" com o vermelho-sinal como voz da marca. Nasce clara e editorial; o modo escuro usa o sinal mais claro (#FF6A4D).</p>
+  <div id="b-symbols"></div>
+
+  <h3>Aplicação — cabeçalho</h3>
+  <div class="mock-header pal-b" style="border:1px solid var(--line)">
+    <span data-svg="b2-balao-percentual" data-size="32"></span>
+    <span data-svg="b3-wordmark-aindada" data-h="26"></span>
+    <nav><span>Classificação</span><span>Clubes</span><span>Partidas</span><span>Metodologia</span></nav>
+  </div>
+
+  <h3>Aplicação — cartões sociais</h3>
+  <div class="row">
+    <div class="card pal-b" style="border:1px solid var(--line)">
+      <div class="kicker"><span data-svg="b3-wordmark-aindada" data-h="22"></span></div>
+      <div class="big">Clube B:<br>ainda dá.</div>
+      <div class="sub">O título do Clube B aparece em <b class="hl">38%</b> das simulações.</div>
+      <div class="bar"><span style="width:38%"></span></div>
+      <div class="foot">10 mil simulações · exemplo ilustrativo · 2 pts atrás do líder</div>
+    </div>
+    <div class="card pal-b-inv">
+      <div class="kicker"><span data-svg="b3-wordmark-aindada" data-h="22"></span></div>
+      <div class="big">Clube C escapa?</div>
+      <div class="sub">Fica na Série A em <b class="hl">72%</b> das simulações. Cai em 28%.</div>
+      <div class="bar"><span style="width:72%"></span></div>
+      <div class="foot">10 mil simulações · exemplo ilustrativo</div>
+    </div>
+  </div>
+</main>
+<script>
+  const SYMBOLS = {
+    a: [["a3-tabela-alem", "A3 tabela que vai além"], ["a2-selo-39", "A2 selo 39"], ["a1-regua-38-1", "A1 régua 38+1"], ["a4-wordmark-rodada39", "A4 wordmark"]],
+    b: [["b1-pergunta-barra", "B1 interrogação-barra"], ["b2-balao-percentual", "B2 balão percentual"], ["b3-wordmark-aindada", "B3 wordmark"]],
+  };
+  const PALETTES = {
+    a: [["pal-a", "principal (escura)"], ["pal-a-inv", "reversa (clara)"], ["mono", "monocromática"], ["mono-rev", "mono reversa"]],
+    b: [["pal-b", "principal (clara)"], ["pal-b-inv", "reversa (escura)"], ["mono", "monocromática"], ["mono-rev", "mono reversa"]],
+  };
+  const cache = {};
+  async function load(name) {
+    if (!cache[name]) {
+      const response = await fetch(`svg/${name}.svg`);
+      cache[name] = await response.text();
+    }
+    return cache[name];
+  }
+  function sized(markup, opts) {
+    const holder = document.createElement("span");
+    holder.innerHTML = markup.trim();
+    const svg = holder.querySelector("svg");
+    const [, , vbWidth, vbHeight] = svg.getAttribute("viewBox").split(/\s+/).map(Number);
+    let width;
+    let height;
+    if (opts.size) { width = height = opts.size; }
+    if (opts.h) { height = opts.h; width = Math.round(opts.h * vbWidth / vbHeight); }
+    if (opts.w) { width = opts.w; height = Math.round(opts.w * vbHeight / vbWidth); }
+    svg.setAttribute("width", width);
+    svg.setAttribute("height", height);
+    return svg;
+  }
+  async function renderGroup(key) {
+    const target = document.getElementById(`${key}-symbols`);
+    for (const [name, label] of SYMBOLS[key]) {
+      const markup = await load(name);
+      const heading = document.createElement("h3");
+      heading.textContent = label;
+      target.append(heading);
+      const row = document.createElement("div");
+      row.className = "row";
+      const isWordmark = name.includes("wordmark") || name.includes("regua");
+      for (const [paletteClass, paletteLabel] of PALETTES[key]) {
+        const tile = document.createElement("div");
+        tile.className = `tile ${paletteClass}`;
+        const caption = document.createElement("div");
+        caption.className = "lbl";
+        caption.textContent = paletteLabel;
+        tile.append(caption);
+        const sizes = isWordmark ? [{ h: 40 }, { h: 20 }] : [{ size: 128 }, { size: 48 }, { size: 32 }, { size: 16 }];
+        for (const opts of sizes) tile.append(sized(markup, opts));
+        row.append(tile);
+      }
+      target.append(row);
+    }
+  }
+  async function renderSlots() {
+    for (const slot of document.querySelectorAll("[data-svg]")) {
+      const markup = await load(slot.dataset.svg);
+      slot.append(sized(markup, { size: Number(slot.dataset.size) || 0, h: Number(slot.dataset.h) || 0, w: Number(slot.dataset.w) || 0 }));
+    }
+  }
+  renderGroup("a").then(() => renderGroup("b")).then(renderSlots);
+</script>
+</body>
+</html>

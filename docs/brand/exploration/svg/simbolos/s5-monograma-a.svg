@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Estilo 5: monograma á com acento-trajetória">
+  <!-- Ainda dá? — exploração de símbolo (não aprovado). Linha tipográfica: o 'á' de 'dá'; o acento agudo é uma trajetória que sobe. -->
+  <circle cx="28" cy="41" r="11" fill="none" stroke="var(--ink, #17191C)" stroke-width="7"/>
+  <path d="M39 30 V52" fill="none" stroke="var(--ink, #17191C)" stroke-width="7" stroke-linecap="round"/>
+  <path d="M28 21 L44 8" fill="none" stroke="var(--accent, #D9381E)" stroke-width="7" stroke-linecap="round"/>
+</svg>

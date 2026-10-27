@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Rodada 2, 1: percentual com pergunta">
+  <!-- Ainda dá? — símbolo, rodada 2 (não aprovado). Fusão: um sinal de % cujo círculo superior virou um ponto de interrogação. -->
+  <path d="M47 8 L19 56" fill="none" stroke="var(--ink, #17191C)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M11 15 a6.5 6.5 0 1 1 9.1 6 c-1.9 0.9 -2.6 2.1 -2.6 4.4 V26.5" fill="none" stroke="var(--accent, #D9381E)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="17.5" cy="34" r="3" fill="var(--accent, #D9381E)"/>
+  <circle cx="45" cy="46" r="7.5" fill="none" stroke="var(--ink, #17191C)" stroke-width="5.5"/>
+</svg>

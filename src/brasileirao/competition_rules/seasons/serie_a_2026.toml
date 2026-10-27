@@ -1,0 +1,54 @@
+[competition]
+season = 2026
+name = "Campeonato Brasileiro Série A 2026"
+n_clubs = 20
+points_win = 3
+points_draw = 1
+regulation_title = "Regulamento Específico da Competição — Campeonato Brasileiro Série A 2026"
+regulation_url = "https://stcbfsiteprdimgbrs.blob.core.windows.net/img-site/cdn/REC_Brasileiro_Serie_A_2026_c984f8cf05.pdf"
+regulation_date = "2025-12-15"
+regulation_articles = "Art. 6º (Libertadores), 7º (Sul-Americana), 8º (rebaixamento), 14 (formato), 15 (desempate)"
+
+[tiebreakers]
+# Art. 15. Confronto direto só entre dois clubes (§ 2º); soma de pontos e depois saldo nos jogos entre eles (§ 1º).
+order = ["points", "wins", "goal_difference", "goals_for", "head_to_head", "fewer_red_cards", "fewer_yellow_cards", "draw_lot"]
+head_to_head_max_clubs = 2
+
+[relegation]
+# Art. 8º
+count = 4
+
+[libertadores]
+# Art. 6º, alíneas a–e
+league_slots = ["groups", "groups", "groups", "groups", "prelim"]
+# Art. 6º, § 1º
+cup_champion_phase = "groups"
+cup_runner_up_phase = "prelim"
+# Art. 6º, § 2º: títulos continentais 2026 ocupam vaga CONMEBOL (fase de grupos).
+continental_title_phase = "groups"
+# Art. 6º, § 5º: leitura textual ("equivalent_slot_only") ou ampla ("any_other_qualification").
+# Ver docs/methodology/competition-rules.md.
+cup_redirect_policy = "equivalent_slot_only"
+
+[sudamericana]
+# Art. 7º: seis melhores colocados excluídos os já classificados à Libertadores.
+count = 6
+
+[external]
+# Situação em 2026-10-26. club_id da Série A ou "foreign:<nome>" para clubes estrangeiros.
+as_of = "2026-10-26"
+libertadores_champion = ""
+libertadores_finalists = ["palmeiras", "foreign:Estudiantes"]
+libertadores_note = "Final em jogo único em 28/11/2026, Estádio Centenário (Montevidéu)."
+sudamericana_champion = ""
+sudamericana_finalists = ["atletico-mg", "foreign:Boca Juniors"]
+sudamericana_note = "Final em jogo único em 21/11/2026, Barranquilla."
+cup_champion = ""
+cup_runner_up = ""
+cup_semifinals = [["palmeiras", "vasco"], ["gremio", "atletico-mg"]]
+cup_note = "Semifinais em 01/11 e 07–08/11/2026; final em jogo único em 06/12/2026, Brasília (após o fim da Série A)."
+sources = [
+  "https://www.cnnbrasil.com.br/esportes/futebol/copa-do-brasil/copa-do-brasil-cbf-define-datas-das-semifinais-de-2026/",
+  "https://www.olympics.com/pt/noticias/copa-libertadores-2026-final-palmeiras-estudiantes",
+  "https://www.lance.com.br/futebol-nacional/atletico-mg-x-boca-juniors-ingressos-data-horario-e-local-da-final-da-sul-americana.html",
+]
