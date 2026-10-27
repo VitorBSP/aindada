@@ -69,14 +69,23 @@
     return `<span class="prob prob-${kind}" style="--p:${intensity}">${pct(value)}</span>`;
   }
 
+  const formatEditionDate = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+  function editionRound(snapshot) {
+    const views = state.rounds && state.rounds.rounds;
+    const latest = views && views[views.length - 1];
+    if (!latest || latest.reference_date !== snapshot.reference_date || !latest.round_number) return "";
+    return latest.partial ? ` · rodada ${latest.round_number} em andamento` : ` · depois da rodada ${latest.round_number}`;
+  }
+
   function renderReferenceBar() {
     const snapshot = state.snapshot;
     const bar = document.getElementById("reference-bar");
     bar.innerHTML = `
-      <span>Dados até <strong>${formatDate(snapshot.reference_date)}</strong></span>
-      <span><strong>${snapshot.observed_matches}</strong> de ${snapshot.observed_matches + snapshot.remaining_matches} jogos disputados</span>
-      <span><strong>${snapshot.n_simulations.toLocaleString("pt-BR")}</strong> simulações do resto do campeonato</span>
-      <span class="pill">Modelo experimental</span>`;
+      <p class="edition"><span class="edition-name">Edição de ${formatEditionDate(snapshot.reference_date)}</span>${editionRound(snapshot)}</p>
+      <p class="edition-facts"><strong>${snapshot.observed_matches}</strong> de ${snapshot.observed_matches + snapshot.remaining_matches} jogos disputados ·
+        <strong>${snapshot.n_simulations.toLocaleString("pt-BR")}</strong> simulações do resto do campeonato ·
+        <span class="pill">modelo experimental</span></p>`;
   }
 
   function raceRows(teams, accessor, kind) {
@@ -156,6 +165,53 @@
     </section>`;
   }
 
+  const MOSAIC_DOTS = 1000;
+  const MOSAIC_COLUMNS = 50;
+  const MOSAIC_COLORS = ["var(--title)", "var(--libertadores)", "var(--sudamericana)"];
+
+  function allocateDots(teams, total) {
+    const exact = teams.map((team) => ({ team, raw: team.title * total }));
+    const allocated = exact.map((item) => ({ team: item.team, dots: Math.floor(item.raw), rest: item.raw - Math.floor(item.raw) }));
+    let missing = total - allocated.reduce((sum, item) => sum + item.dots, 0);
+    [...allocated].sort((left, right) => right.rest - left.rest).forEach((item) => { if (missing > 0) { item.dots += 1; missing -= 1; } });
+    return allocated.filter((item) => item.dots > 0);
+  }
+
+  function titleMosaic(teams) {
+    const contenders = teams.filter((team) => team.title > 0).sort((left, right) => right.title - left.title);
+    if (!contenders.length) return "";
+    const groups = allocateDots(contenders, MOSAIC_DOTS);
+    const perDot = state.snapshot.n_simulations / MOSAIC_DOTS;
+    const cell = 10, rows = MOSAIC_DOTS / MOSAIC_COLUMNS, top = 34;
+    const width = MOSAIC_COLUMNS * cell, height = rows * cell + top;
+    let index = 0;
+    const dots = groups.map((group, groupIndex) => {
+      const color = MOSAIC_COLORS[groupIndex] || "var(--ink-faint)";
+      const circles = [];
+      for (let count = 0; count < group.dots; count += 1, index += 1) {
+        const column = Math.floor(index / rows), row = index % rows;
+        circles.push(`<circle cx="${column * cell + cell / 2}" cy="${top + row * cell + cell / 2}" r="3.4"/>`);
+      }
+      return `<g fill="${color}">${circles.join("")}</g>`;
+    }).join("");
+    const leaderColumns = Math.max(1, Math.ceil(groups[0].dots / rows));
+    const noteX = Math.min(leaderColumns * cell * 0.5, width - 160);
+    const annotation = `<g class="annotation" aria-hidden="true">
+      <path d="M${noteX + 4},${top - 4} q-6,-12 10,-20" fill="none"/>
+      <text x="${noteX + 18}" y="${top - 22}">cada ponto, ${perDot.toLocaleString("pt-BR")} simulações</text></g>`;
+    const others = contenders.length - groups.length;
+    const description = groups.map((group) => `${group.team.name}: ${group.dots} pontos`).join("; ");
+    const legend = groups.map((group, groupIndex) => `<li><span class="mosaic-swatch" style="background:${MOSAIC_COLORS[groupIndex] || "var(--ink-faint)"}"></span>
+      ${clubLink(group.team.club_id)} <strong>${pct(group.team.title)}</strong></li>`).join("");
+    return `<figure class="mosaic">
+      <svg class="mosaic-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Mosaico do título em ${MOSAIC_DOTS.toLocaleString("pt-BR")} pontos, cada um igual a ${perDot.toLocaleString("pt-BR")} simulações. ${escapeHtml(description)}.">${annotation}${dots}</svg>
+      <figcaption>
+        <ul class="mosaic-legend">${legend}</ul>
+        <p class="note">Quem termina campeão em cada uma das ${state.snapshot.n_simulations.toLocaleString("pt-BR")} simulações, agrupadas em ${MOSAIC_DOTS.toLocaleString("pt-BR")} pontos.${others > 0 ? ` ${others} clube(s) com chance menor que 1 em ${MOSAIC_DOTS.toLocaleString("pt-BR")} não chegam a um ponto.` : ""}</p>
+      </figcaption>
+    </figure>`;
+  }
+
   function renderHome() {
     const teams = state.snapshot.teams;
     const contenders = teams.filter((team) => team.title >= 0.005).sort((left, right) => right.title - left.title);
@@ -174,6 +230,7 @@
     const titleLede = `Jogamos os ${state.snapshot.remaining_matches} jogos que faltam ${simulations} vezes, a partir da tabela real.
       ${leader ? `O título fica com ${escapeHtml(leader.name)} em <strong>${pct(leader.title)}</strong> das simulações${challenger ? ` e com ${escapeHtml(challenger.name)} em <strong>${pct(challenger.title)}</strong>` : ""}.` : ""}
       Cada porcentagem diz em quantas dessas simulações aquilo aconteceu.`;
+    const mosaic = titleMosaic(teams);
     const insights = currentInsights();
     const lead = insights.find((insight) => insight.placement === "home_lead");
     const secondary = insights.filter((insight) => insight.placement === "home_secondary").slice(0, MAX_HOME_SECONDARY);
@@ -192,10 +249,13 @@
         ${overdueWarning()}`;
     main.innerHTML = `
       ${opening}
-      <div class="grid">
+      ${mosaic}
+      ${mosaic
+        ? `<h2 id="h-z4">Risco de queda</h2><section aria-labelledby="h-z4">${raceRows(relegation, (team) => team.relegation, "danger")}</section>`
+        : `<div class="grid">
         <section class="card" aria-labelledby="h-title"><h3 id="h-title">Chance de título</h3>${raceRows(contenders, (team) => team.title, "")}</section>
         <section class="card" aria-labelledby="h-z4"><h3 id="h-z4">Risco de queda</h3>${raceRows(relegation, (team) => team.relegation, "danger")}</section>
-      </div>
+      </div>`}
       <h2>Briga pela Libertadores</h2>
       <p class="note">A vaga ainda depende de quem ganha Libertadores, Sul-Americana e Copa do Brasil. Por isso mostramos uma faixa: o menor e o maior valor entre os ${state.snapshot.scenarios.length} cenários possíveis. Não chutamos quem vence esses torneios.</p>
       <div>${libertadoresFight.map((team) => {
@@ -286,9 +346,44 @@
     bindScenarioPanel(renderStandings);
   }
 
-  function lineChart(series, height = 220) {
+  const NOISE_Z = 3;
+  const MIN_ANNOTATED_JUMP = 0.05;
+  const formatDay = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+
+  function openMetric(history) {
+    const latest = history[history.length - 1] || {};
+    return ["title", "top4", "relegation"].sort((left, right) => {
+      const spread = (key) => (latest[key] || 0) * (1 - (latest[key] || 0));
+      return spread(right) - spread(left) || (latest[right] || 0) - (latest[left] || 0);
+    })[0];
+  }
+
+  function chartAnnotations(values) {
+    const notes = [];
+    let jump = null;
+    for (let index = 1; index < values.length; index += 1) {
+      const before = values[index - 1], after = values[index];
+      const n0 = state.history[index - 1].n_simulations, n1 = state.history[index].n_simulations;
+      const noise = Math.sqrt(before * (1 - before) / n0 + after * (1 - after) / n1);
+      const delta = after - before;
+      if (Math.abs(delta) < Math.max(MIN_ANNOTATED_JUMP, NOISE_Z * noise)) continue;
+      if (!jump || Math.abs(delta) > Math.abs(jump.delta)) jump = { index, delta };
+    }
+    if (jump) {
+      const sign = jump.delta > 0 ? "+" : "−";
+      notes.push({ index: jump.index, above: jump.delta > 0, text: `maior ${jump.delta > 0 ? "alta" : "queda"}: ${sign}${Math.round(Math.abs(jump.delta) * 100)} p.p. em ${formatDay(state.history[jump.index].reference_date)}` });
+    }
+    const peakIndex = values.reduce((best, value, index) => (value > values[best] ? index : best), 0);
+    const isLast = peakIndex === values.length - 1;
+    if (values[peakIndex] >= 0.05 && !isLast && (!jump || Math.abs(peakIndex - jump.index) > 2)) {
+      notes.push({ index: peakIndex, above: true, text: `pico: ${pct(values[peakIndex])} em ${formatDay(state.history[peakIndex].reference_date)}` });
+    }
+    return notes;
+  }
+
+  function lineChart(series, height = 240, annotated = null) {
     if (!state.history.length) return "<p class='note'>Sem histórico.</p>";
-    const width = 640, left = 36, right = 12, top = 12, bottom = 28;
+    const width = 640, left = 36, right = 128, top = 26, bottom = 28;
     const points = state.history.length;
     const x = (index) => left + (points === 1 ? 0 : (index / (points - 1)) * (width - left - right));
     const y = (value) => top + (1 - value) * (height - top - bottom);
@@ -298,10 +393,27 @@
       const path = item.values.map((value, index) => `${index ? "L" : "M"}${x(index).toFixed(1)},${y(value).toFixed(1)}`).join("");
       return `<path d="${path}" fill="none" stroke="${item.color}" stroke-width="2.5"/>`;
     }).join("");
-    const legend = series.map((item) => `<span style="color:${item.color};font-weight:700">■</span> ${escapeHtml(item.label)}`).join(" &nbsp; ");
-    return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Evolução das probabilidades">${grid}${lines}
+    const ends = series.map((item) => ({ item, y: y(item.values[item.values.length - 1]) })).sort((a, b) => a.y - b.y);
+    for (let index = 1; index < ends.length; index += 1) ends[index].y = Math.max(ends[index].y, ends[index - 1].y + 14);
+    const floor = height - bottom;
+    for (let index = ends.length - 1; index >= 0; index -= 1) {
+      const limit = index === ends.length - 1 ? floor : ends[index + 1].y - 14;
+      ends[index].y = Math.min(ends[index].y, limit);
+    }
+    const labels = ends.map(({ item, y: labelY }) => `<text class="series-end" x="${width - right + 8}" y="${(labelY + 4).toFixed(1)}" style="fill:${item.color}">${escapeHtml(item.label)} ${pct(item.values[item.values.length - 1])}</text>`).join("");
+    const notes = annotated ? chartAnnotations(annotated.values).map((note) => {
+      const px = x(note.index), py = y(annotated.values[note.index]);
+      const above = note.above && annotated.values[note.index] < 0.85;
+      const toLeft = px > left + (width - left - right) * 0.6;
+      const tx = toLeft ? px - 14 : px + 14, ty = above ? py - 16 : py + 22;
+      return `<g class="annotation"><circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="3.5"/>
+        <path d="M${px.toFixed(1)},${(py + (above ? -5 : 5)).toFixed(1)} Q${px.toFixed(1)},${ty.toFixed(1)} ${(tx + (toLeft ? 4 : -4)).toFixed(1)},${(ty - 4).toFixed(1)}" fill="none"/>
+        <text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" text-anchor="${toLeft ? "end" : "start"}">${escapeHtml(note.text)}</text></g>`;
+    }).join("") : "";
+    const description = series.map((item) => `${item.label} ${pct(item.values[item.values.length - 1])}`).join(", ");
+    return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Evolução das chances de ${formatDate(first)} a ${formatDate(last)}: ${escapeHtml(description)}">${grid}${lines}${notes}${labels}
       <text x="${left}" y="${height - 6}">${formatDate(first)}</text><text x="${width - right}" y="${height - 6}" text-anchor="end">${formatDate(last)}</text></svg>
-      <div class="note">${legend}</div>`;
+      ${annotated ? `<p class="note">Anotações marcam o pico e a maior virada em ${escapeHtml(annotated.label.toLowerCase())}; só aparecem variações acima de ${Math.round(MIN_ANNOTATED_JUMP * 100)} pontos percentuais e de ${NOISE_Z} vezes o erro da simulação.</p>` : ""}`;
   }
 
   function positionChart(probabilities) {
@@ -327,6 +439,11 @@
           <span class="t-away" style="width:${match.p_away * 100}%">${Math.round(match.p_away * 100)}</span></div>`;
     const meta = finished ? `Rodada ${match.round ?? "?"}` : `Rodada ${match.round ?? "?"} · gols esperados ${num(match.xg_home)} × ${num(match.xg_away)} · placar mais provável ${match.most_likely_score.replace("-", " × ")} (${pct(match.most_likely_score_probability)})`;
     return `<div class="match"><div class="home">${clubLink(match.home_id)}</div><div class="triple-cell">${middle}</div><div class="away">${clubLink(match.away_id)}</div><div class="match-meta">${meta}</div></div>`;
+  }
+
+  function signedPercent(value) {
+    const rounded = Math.round(value * 100);
+    return `${rounded > 0 ? "+" : rounded < 0 ? "−" : ""}${Math.abs(rounded)}%`;
   }
 
   function renderClub(clubId) {
@@ -357,16 +474,20 @@
       </div>
       <h2>Distribuição da posição final</h2>${positionChart(team.position_probabilities)}
       <h2>Evolução ao longo da temporada</h2>
-      ${lineChart([
-        { label: "Título", color: "var(--title)", values: history.map((item) => item.title) },
-        { label: "G4", color: "var(--libertadores)", values: history.map((item) => item.top4) },
-        { label: "Rebaixamento", color: "var(--danger)", values: history.map((item) => item.relegation) },
-      ])}
+      ${(() => {
+        const series = [
+          { key: "title", label: "Título", color: "var(--title)", values: history.map((item) => item.title) },
+          { key: "top4", label: "G4", color: "var(--libertadores)", values: history.map((item) => item.top4) },
+          { key: "relegation", label: "Rebaixamento", color: "var(--danger)", values: history.map((item) => item.relegation) },
+        ];
+        const focus = openMetric(history);
+        return lineChart(series, 240, series.find((item) => item.key === focus));
+      })()}
       <h2>Força estimada</h2>
       <div class="stat-row">
         <div class="stat"><span class="label">Elo</span><span class="big">${Math.round(team.ratings.elo)}</span><span class="sub">média da liga = 1500</span></div>
-        <div class="stat"><span class="label">Ataque</span><span class="big">${team.ratings.attack >= 0 ? "+" : ""}${num(team.ratings.attack * 100, 0)}%</span><span class="sub">gols marcados vs. média</span></div>
-        <div class="stat"><span class="label">Defesa</span><span class="big">${team.ratings.defense >= 0 ? "+" : ""}${num(team.ratings.defense * 100, 0)}%</span><span class="sub">positivo = sofre menos</span></div>
+        <div class="stat"><span class="label">Ataque</span><span class="big">${signedPercent(team.ratings.attack)}</span><span class="sub">gols marcados vs. média</span></div>
+        <div class="stat"><span class="label">Defesa</span><span class="big">${signedPercent(team.ratings.defense)}</span><span class="sub">positivo = sofre menos</span></div>
         <div class="stat"><span class="label">Gols projetados</span><span class="big">${Math.round(team.expected_goals_for)}–${Math.round(team.expected_goals_against)}</span><span class="sub">pró–contra no fim</span></div>
       </div>
       <h2>Próximos jogos</h2>${upcoming.length ? upcoming.map(matchRow).join("") : "<p class='note'>Sem jogos restantes.</p>"}

@@ -230,6 +230,28 @@ details.warning p { margin: 8px 0 0; }
 .changes { list-style: none; padding: 0; margin: 0; }
 .changes li { padding: 7px 0; border-bottom: 1px solid var(--rule); }
 
+/* Cabeçalho de edição */
+.reference-bar { justify-content: space-between; align-items: baseline; gap: 2px 24px; }
+.reference-bar p { margin: 0; }
+.edition { font-size: 14px; color: var(--ink-soft); }
+.edition-name { font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--ink); }
+.edition-facts { font-size: 13px; }
+
+/* Mosaico do título */
+.mosaic { margin: 8px 0 28px; }
+.mosaic-chart { width: 100%; max-width: 760px; height: auto; display: block; }
+.mosaic-legend { list-style: none; padding: 0; margin: 10px 0 4px; display: flex; flex-wrap: wrap; gap: 4px 22px; font-size: 15px; }
+.mosaic-legend a { text-decoration: none; font-weight: 600; }
+.mosaic-legend a:hover { text-decoration: underline; }
+.mosaic-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+.mosaic figcaption .note { margin: 4px 0 0; }
+
+/* Anotações e rótulos diretos nos gráficos */
+.annotation path { stroke: var(--ink-soft); stroke-width: 1; }
+.annotation circle { fill: var(--paper); stroke: var(--ink); stroke-width: 1.5; }
+.chart .annotation text, .mosaic-chart .annotation text { font-family: var(--serif); font-style: italic; font-size: 12.5px; fill: var(--ink-soft); }
+.chart .series-end { font-family: var(--sans); font-size: 12px; font-weight: 650; }
+
 /* Destaques editoriais (insights publicados) */
 .highlights { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px 40px; margin: 8px 0 28px; }
 .highlight { border-top: 1px solid var(--rule-strong); padding-top: 12px; }

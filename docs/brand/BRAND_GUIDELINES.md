@@ -149,8 +149,19 @@ Implementada em `apps/web/` (tokens no topo de `assets/styles.css`). Princípios
   em âmbar `#8A5300`; queda em vermelho `#B3261E`; empate em cinza `#6B6F76`. Todas com 4,5:1 ou mais
   sobre o papel; no tema escuro, versões claras com 5,5:1 ou mais sobre tinta.
 - **Tema escuro:** fundo tinta `#17191C`, texto papel; assinatura reversa no cabeçalho.
-- **Voz:** sobretítulo + manchete curta ("Flamengo na frente. Palmeiras: ainda dá."); números em
-  negrito no texto; "não dá mais" só com certeza matemática.
+- **Voz:** sobretítulo + manchete curta (formato ilustrativo: "Clube A na frente. Clube B: ainda
+  dá."); números em negrito no texto; "não dá mais" só com certeza matemática.
+- **Mosaico de pontos (D-030):** imagem-assinatura da home. 1.000 pontos em 50 colunas, preenchidos
+  por coluna, um grupo por clube (maior resto para fechar exatamente 1.000); cores na ordem tinta,
+  azul, âmbar e cinza para os demais; nota manuscrita em serifa itálica ("cada ponto, 10
+  simulações"); legenda com links para os clubes. Sem animação. Substitui a lista "Chance de título"
+  na home para não repetir a informação.
+- **Cabeçalho de edição (D-030):** primeira linha em serifa itálica com a data por extenso e a
+  rodada ("depois da rodada N" ou "rodada N em andamento", só quando a revisão por rodada é da
+  mesma data); segunda linha com jogos disputados, simulações e "modelo experimental".
+- **Anotações em gráficos (D-030):** ponto vazado + linha curva fina + texto em serifa itálica, em
+  cinza; no máximo duas por gráfico; só fatos do dado (pico, maior alta ou queda acima de 5 p.p. e
+  de 3 erros-padrão), nunca causa. Séries com rótulo direto no fim da linha, sem legenda separada.
 ## Usos incorretos — ver o símbolo; demais elementos pendentes
 
 ## Entrega ao frontend (Etapa 4)
