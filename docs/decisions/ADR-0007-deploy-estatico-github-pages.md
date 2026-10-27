@@ -21,7 +21,8 @@ Bloqueio vigente: os dados de 2024+ vêm do Sofascore via `brasileirao-dataset`
 (`research_only_unverified`, ADR-0002). Os de 2003–2023 vêm do mesmo repositório, que não tem
 arquivo LICENSE, e a licença do dataset de origem não está registrada no catálogo. Os três escudos
 de Bragantino, Corinthians e Vasco são © dos clubes; o `license_status_override` não muda a licença
-real.
+real. *Resolvido em 2026-10-27 (D-028/D-029): os três foram substituídos por um marcador neutro com
+sigla e cores, e `crests_provenance.json` passou a registrá-los como `nao_livre`, `used: false`.*
 
 ## Decisão
 1. **Arquitetura**: site estático (`apps/web` + export JSON) publicado no GitHub Pages por um

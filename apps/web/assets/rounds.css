@@ -10,6 +10,7 @@ a.club-cell { text-decoration: none; }
 a.club-cell:hover span { text-decoration: underline; }
 .crest { display: inline-block; flex: none; object-fit: contain; vertical-align: middle; }
 .crest-spacer { display: inline-block; flex: none; }
+.crest-badge { display: inline-flex; align-items: center; justify-content: center; flex: none; box-sizing: border-box; border-radius: 50%; border: 1px solid var(--ink-faint); background: var(--badge-bg); color: var(--badge-fg); font-family: var(--sans); font-weight: 700; line-height: 1; letter-spacing: 0; user-select: none; }
 .chip .crest, .chip .crest-spacer { margin-right: 4px; }
 .chip .crest-spacer { width: 0 !important; margin: 0; }
 

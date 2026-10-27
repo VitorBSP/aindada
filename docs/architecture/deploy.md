@@ -154,9 +154,10 @@ domínio próprio pode ser apontado depois sem mudar a arquitetura.
    `research_only_unverified` e vem do Sofascore. O site publica dados derivados (placares, tabela e
    probabilidades). É preciso uma fonte licenciada (por exemplo, football-data.org com token, cujos
    termos também precisam ser verificados) ou um parecer do 00.
-2. **Escudos**: Bragantino, Corinthians e Vasco são © dos clubes; o `license_status_override` do
-   dono do produto não muda a licença real. Os outros 17 são PD-textlogo, mas são marcas registradas.
-   Cabe a 00/06 decidir entre autorização, uso nominativo avaliado ou marcador neutro no build público.
+2. **Escudos** (resolvido em 2026-10-27, D-028/D-029): Bragantino, Corinthians e Vasco aparecem com
+   um marcador neutro (sigla e cores); os arquivos ficam só no disco local, ignorados pelo git e pelo
+   `.dockerignore`. Os outros 17 são PD-textlogo, marcas registradas usadas só para identificar os
+   clubes, com atribuição no rodapé e em "Como calculamos".
 3. **Gate 00/06** (AGENTS.md e contrato do 07): nenhum deploy público sem as duas revisões.
 4. **Docker e compose** ainda não foram executados (status.md). Isso não afeta a opção estática, mas
    o critério de aceite do 07 continua aberto.
@@ -170,6 +171,5 @@ domínio próprio pode ser apontado depois sem mudar a arquitetura.
   caminho excluído; busca de segredos e de arquivos acima de 1 MB no que seria versionado; `pytest`
   num clone limpo do repositório (só arquivos versionados). Resultados no handoff do 07 em
   `docs/project/status.md`.
-- Os 3 escudos não livres continuam no disco local (não foram apagados) e em
-  `apps/web/assets/crests/manifest.json`, que é versionado. Num checkout limpo, `rounds.js` montaria
-  `<img>` para arquivos inexistentes (404). O marcador com a sigla é do 05 (C3).
+- Os 3 escudos não livres continuam no disco local como evidência (não foram apagados), mas o
+  `manifest.json` usa `badge` para eles desde 2026-10-27 (D-029); nenhum arquivo do site os referencia.

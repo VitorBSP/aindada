@@ -677,7 +677,7 @@ Registrado pelo orquestrador a partir do relatório do 06, que auditou sem edita
   idêntica à do ge.globo nas 20 linhas, na mesma ordem. Probabilidades e variações por clube
   em relação ao snapshot 28 (errado) no registro local `data/editorial/status_numeros_reais.md`. O snapshot
   28 continua no banco, mas não é exibido (o 29 é o mais recente para a mesma data).
-- **Revisão rodada a rodada**: regenerada sobre o snapshot corrigido.
+- **Revisão rodada a rodada**: regenerada sobre o snapshot corrigido (33 visões, rodadas 0 a 32, 20.000 simulações). Regra de "parcial" corrigida em `round_cutoffs`: a última visão só é parcial se ainda faltar jogo da própria rodada (a 32, completa, aparecia como parcial). `pytest`: 173 passaram.
 - **Próximo responsável**: 08/08A rodar o lote editorial de 26/10 sobre o snapshot 29; 01 remover
   as correções quando a fonte passar a concordar (a ingestão as reporta como redundantes).
 
@@ -761,3 +761,145 @@ Registrado pelo orquestrador a partir do relatório do 06, que auditou sem edita
     feito antes da reescrita.
 - **Backup do histórico antigo**: fica só fora do repositório, no scratchpad da sessão do 00, e
   contém os números reais. Não deve ser publicado. Apagar depois da reauditoria do 06.
+
+## Reauditoria B1 do Agente 06 (2026-10-27)
+
+Registrado pelo orquestrador a partir do relatório do 06, que auditou sem editar arquivos.
+
+- **Parecer**:
+  - Push de `main` para um repositório GitHub **privado**: **aprovado**.
+  - **B1 resolvido**.
+  - Tornar **público**: ainda **reprovado**. Faltam B2 (escudos), B3 (workflow), um LICENSE na raiz
+    e C1 (licença da fonte de 2024+).
+- **Evidência**:
+  - O único ref é `refs/heads/main` (3c368c0). `fsck --unreachable` não lista nada.
+  - Há 277 objetos, iguais ao que `rev-list --objects --all` alcança.
+  - Os commits 682e1fb e 3f935bf não existem mais.
+  - A varredura de todos os blobs e mensagens deu 62 ocorrências, todas aceitáveis: falsos
+    positivos, agregados sem clube e nomes sem resultado.
+  - pytest: 158 passed num clone limpo; 173 passed três vezes na árvore de trabalho.
+- **Achados de baixa severidade**:
+  1. **Edição sem handoff em `round_review.py` e `test_round_review.py`** (domínio do 02). Ela
+     explica a falha intermitente: houve uma corrida com o teste antigo. O 02 precisa registrar o
+     handoff.
+  2. **`model.md:79-81`**: "confronto direto" permite deduzir qual foi o jogo, mas não o placar. A
+     remoção é opcional (02).
+  3. **`CONTENT_GUIDELINES.md:17,19` e `BRAND_EXPLORATION.md:195`**: faltam a marca "ilustrativo" e
+     a troca de um clube real por "Clube X". Retoque opcional (08).
+  4. **`catalog.md:27-29`**, só na árvore de trabalho: tem placares reais. O 01 limpa antes de
+     commitar.
+- **Próximos responsáveis**:
+  - 07: push privado.
+  - 02: handoff de `round_review`.
+  - 01: `catalog.md`, `corrections` com exemplo sintético e B2.
+  - 05: marcador e atribuição dos escudos.
+  - Dono do produto: LICENSE e C1.
+
+## Agente 08: marcador neutro para os 3 escudos não livres (2026-10-27)
+
+- **Decisão**: D-028 (conceito, aprovado pelo dono do produto no chat em 2026-10-27). Red Bull
+  Bragantino, Corinthians e Vasco passam a usar um círculo com sigla e cores do clube; os outros 17
+  mantêm os escudos do Commons. D-029 é a especificação, proposta do Agente 08 e aberta à revisão do
+  dono (Q17). A especificação completa está em `docs/brand/BRAND_DECISIONS.md`, seção "Marcador
+  neutro dos clubes sem escudo livre".
+- **O que mudou**: só `docs/brand/BRAND_DECISIONS.md` e esta seção. Nenhum arquivo de `apps/web/`
+  foi editado.
+- **Evidência**: as siglas RBB, COR e VAS são o `short_name` de `data/reference/clubs.csv` e
+  aparecem assim no export `apps/web/data/api/seasons/2026/rounds.json`. Os contrastes foram
+  calculados pela luminância relativa WCAG: texto 5,88:1 (RBB) e 21:1 (COR, VAS); fio do círculo
+  4,63:1 no tema claro e 5,57:1 no escuro. Não houve renderização nem medição em tela.
+- **Próximo responsável**:
+  - **05**:
+    - trocar as 3 entradas do `manifest.json` para `badge`;
+    - fazer `crest()` em `rounds.js` aceitar `badge` (inicial abaixo de 32 px, sigla a partir de 32 px,
+      `aria-hidden`, validação de hex);
+    - adicionar `.crest-badge` em `rounds.css`;
+    - colocar a frase de atribuição no rodapé e a seção "Escudos" em "Como calculamos";
+    - conferir em 375 e 1280 px, nos temas claro e escuro, nos tamanhos 16, 18, 20 e 48 px.
+  - **01**: remover `bragantino.png`, `corinthians.png` e `vasco.svg` de `apps/web/assets/crests/`;
+    atualizar as 3 entradas de `data/reference/crests_provenance.json` (marcador próprio, sem fonte
+    externa; corrigir o `license_status` conforme B2).
+  - **06**: conferir o contraste na tela, o `aria-hidden`, o modo `forced-colors` e a ausência dos 3
+    arquivos no build (B2/C3).
+  - **Dono do produto**: revisar as siglas e as cores (Q17).
+
+## Escudos não livres substituídos por marcador neutro — B2, parte do 01 (2026-10-27)
+
+- **O que mudou**: em `data/reference/crests_provenance.json`, `bragantino`, `corinthians` e
+  `vasco` agora têm `license_status: "nao_livre"`, `used: false` e
+  `replacement: "marcador_neutro"`. O `license_status_override` ("livre", de 2026-10-26) saiu e foi
+  para `license_status_history`, junto com a nova decisão do dono do produto (2026-10-27): os três
+  escudos não serão usados. URL, licença original e SHA-256 continuam no arquivo. O campo
+  `research_2026_10_27` registra a pesquisa: o Commons não tem versão livre do escudo atual de
+  nenhum dos três. Corinthians e Vasco já tiveram arquivos apagados de lá por copyright. Do
+  Bragantino só existe a versão 1995–2020, de antes da Red Bull, com PD-textlogo em revisão. O
+  escudo do Vasco de 1920 (domínio público por idade) foi avaliado e descartado por uniformidade.
+- **Evidência**: `python -m json.tool data/reference/crests_provenance.json` deu OK. O pytest está
+  na resposta do 01 ao orquestrador. Nenhum código em `src/`, `tests/`, `apps/` ou `.github/` lê
+  `crests_provenance.json`.
+- **Premissas e limitações**: os arquivos locais `apps/web/assets/crests/bragantino.png`,
+  `corinthians.png` e `vasco.svg` foram mantidos (são ignorados pelo git). O
+  `apps/web/assets/crests/manifest.json` (do 05) ainda pode apontar para eles. As menções ao
+  override em `docs/architecture/deploy.md` e no ADR-0007 (do 00/07) estão desatualizadas.
+- **Próximo responsável**: **08** decide a forma do marcador (sigla e cores). **05** tira as
+  entradas dos três do manifest da web e implementa o marcador. **00/07** atualizam
+  `deploy.md` e o ADR-0007. **06** revalida o B2.
+
+## Agente 05: marcador neutro e atribuição dos escudos (D-028, D-029) (2026-10-27)
+
+- **O que mudou** (só em `apps/web/`):
+  - `assets/crests/manifest.json`: `bragantino`, `corinthians` e `vasco` passaram a usar `badge`
+    (RBB `#C8102E`/`#FFFFFF`, COR `#FFFFFF`/`#000000`, VAS `#000000`/`#FFFFFF`), sem `file`;
+  - `assets/rounds.js`: `crest()` lê `file`, depois `badge` e só então cai no comportamento sem
+    entrada. Valida `bg`/`fg` com `/^#[0-9A-Fa-f]{6}$/` e `label` com `/^[A-Z]{2,4}$/`, passa o texto
+    por `escapeHtml` e usa `aria-hidden="true"`. Abaixo de 32 px mostra a inicial (corpo
+    `round(size × 0.6)`); a partir de 32 px mostra a sigla (corpo `round(size × 0.32)`);
+  - `assets/rounds.css`: `.crest-badge` conforme D-029;
+  - `index.html`: linha de atribuição dos escudos no rodapé. O texto de licença dos dados (C2)
+    continua igual;
+  - `assets/app.js`: seção "Escudos" em "Como calculamos".
+- **Evidência**: com o site servido por `http.server` e aberto no Chrome headless, o DOM mostra os
+  marcadores com 16 px/10 px (chips da rodada 3), 18 px/11 px (lista de times e comparativo),
+  20 px/12 px (tabelas) e 48 px/15 px ("VAS" no título da página do time). Há capturas a 1280 px
+  nos temas claro e escuro. O servidor não recebeu nenhum pedido dos 3 arquivos antigos e não
+  houve 404 de escudo (os únicos 404 foram as rotas `/api/...`, que são o fallback esperado do
+  site estático). O console ficou sem mensagens: a captura do console foi testada antes com uma
+  mensagem de prova. `grep` em `apps/` e `src/` não acha referência a `bragantino.png`,
+  `corinthians.png` ou `vasco.svg`. `pytest`: 173 passaram.
+- **Limitações**: não houve conferência visual real em 375 px, porque o Chrome headless no
+  Windows não renderiza viewport menor que cerca de 500 px. O marcador tem tamanho fixo e
+  `flex: none`, então a largura da página não deveria mudar sua aparência, mas isso não foi
+  confirmado. O modo `forced-colors` não foi testado. Os 3 arquivos continuam em
+  `apps/web/assets/crests/`, ignorados pelo git e sem uso. Se o build copiar a pasta inteira,
+  eles vão junto, e a remoção cabe ao 01 (B2/C3).
+- **Próximo responsável**:
+  - **06**: conferir o contraste na tela, o `forced-colors`, 375 px num navegador real e a
+    ausência dos 3 arquivos no build;
+  - **01**: remover os arquivos locais;
+  - **Dono do produto**: Q17 (siglas e cores).
+
+## Parecer do Agente 06: marcador neutro, B2 (2026-10-27)
+
+Registrado pelo orquestrador a partir do relatório do 06, que verificou sem editar arquivos.
+
+- **Parecer**: B2 **resolvido com condições**.
+- **Evidência**:
+  - **`crest()`**: valida cor e sigla, passa o texto por `escapeHtml` e segue a ordem
+    `file` → `badge` → fallback.
+  - **Contraste**: os valores recalculados conferem com a D-029. O fio do círculo tem razão de pelo
+    menos 4,63 com o fundo.
+  - **`forced-colors`**: o marcador continua visível, sem precisar de CSS próprio.
+  - **Escudos**: nenhum dos 3 está em arquivo versionado ou no histórico, e o `manifest.json` só tem
+    `badge` para eles.
+  - **Atribuição**: os textos conferem com `crests_provenance.json`.
+  - **pytest**: 173 passed.
+  - **Visual em 375 px**: conferido pelo orquestrador no navegador, nos temas claro e escuro, sem
+    rolagem horizontal.
+- **Ressalvas tratadas**:
+  - R1: criado o `.dockerignore`, que exclui os 3 arquivos locais e os dados não versionáveis.
+  - Notas de resolução no ADR-0007 e no `deploy.md`.
+- **Pendências**:
+  - **01**: `catalog.md:14` ainda descreve o override antigo. É uma alteração não commitada, que
+    também precisa ter os placares retirados.
+  - **06**: teste `test_crests_manifest.py`.
+  - **Dono do produto**: Q17 (siglas e cores).

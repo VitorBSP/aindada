@@ -25,6 +25,8 @@
   const TEAM_SERIES = [SERIES[0], SERIES[1], { color: "var(--danger)", dash: "2 4", marker: "triangle", name: "linha pontilhada, triângulo" }];
 
   const ui = { metric: "title", teamMetric: {}, compare: null, compareMetric: "title", compareRound: null };
+  const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
+  const BADGE_LABEL = /^[A-Z]{2,4}$/;
   let crests = {};
   let crestsRequested = false;
   let helpers = null;
@@ -52,8 +54,16 @@
 
   function crest(clubId, size = 20) {
     const entry = crests[clubId];
-    if (!entry || !entry.file) return size > 24 ? "" : `<span class="crest-spacer" style="width:${size}px" aria-hidden="true"></span>`;
-    return `<img class="crest" src="assets/crests/${encodeURIComponent(entry.file)}" alt="" width="${size}" height="${size}" loading="lazy" decoding="async">`;
+    if (entry && entry.file) {
+      return `<img class="crest" src="assets/crests/${encodeURIComponent(entry.file)}" alt="" width="${size}" height="${size}" loading="lazy" decoding="async">`;
+    }
+    const badge = entry && entry.badge;
+    if (badge && typeof badge.label === "string" && BADGE_LABEL.test(badge.label) && HEX_COLOR.test(badge.bg) && HEX_COLOR.test(badge.fg)) {
+      const text = size < 32 ? badge.label.charAt(0) : badge.label;
+      const fontSize = Math.round(size * (size < 32 ? 0.6 : 0.32));
+      return `<span class="crest crest-badge" aria-hidden="true" style="width:${size}px;height:${size}px;font-size:${fontSize}px;--badge-bg:${badge.bg};--badge-fg:${badge.fg}">${escapeHtml(text)}</span>`;
+    }
+    return size > 24 ? "" : `<span class="crest-spacer" style="width:${size}px" aria-hidden="true"></span>`;
   }
 
   const clubName = (clubId) => (review.clubs[clubId] || { name: clubId }).name;

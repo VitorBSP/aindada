@@ -47,15 +47,32 @@
     "file_page_url": "https://pt.wikipedia.org/wiki/Ficheiro:RedBullBragantino.png",
     "author": "Red Bull Bragantino",
     "license": "Não livre: © Red Bull Bragantino; enviado à Wikipédia em português como conteúdo restrito (uso restrito, sem licença livre)",
-    "license_status": "livre",
+    "license_status": "nao_livre",
     "retrieved_at": "2026-10-27T01:43:33+00:00",
     "sha256": "399001857b62274b12f0024ca60af8d3c0ce72a495be7f9eb016f060de04a7e6",
-    "license_status_override": {
-      "decided_by": "dono do produto",
-      "decided_at": "2026-10-26",
-      "previous_status": "nao_livre_uso_local",
-      "note": "Status definido por decisão do dono do produto, contra a evidência da fonte: o arquivo não tem licença livre (ver campo license)."
-    }
+    "used": false,
+    "replacement": "marcador_neutro",
+    "license_status_history": [
+      {
+        "status": "nao_livre_uso_local",
+        "until": "2026-10-26",
+        "note": "status inicial pela evidência da fonte"
+      },
+      {
+        "status": "livre",
+        "decided_by": "dono do produto",
+        "decided_at": "2026-10-26",
+        "note": "Status definido por decisão do dono do produto, contra a evidência da fonte: o arquivo não tem licença livre (ver campo license).",
+        "superseded_at": "2026-10-27"
+      },
+      {
+        "status": "nao_livre",
+        "decided_by": "dono do produto",
+        "decided_at": "2026-10-27",
+        "note": "Escudo não será usado nem publicado; substituído por marcador neutro com sigla e cores (implementação do 05, decisão de marca do 08). O arquivo local fica só como evidência de proveniência."
+      }
+    ],
+    "research_2026_10_27": "Não há versão livre do escudo atual (Red Bull Bragantino) no Wikimedia Commons. O Commons só tem a versão 1995–2020, anterior à Red Bull, com PD-textlogo em revisão; não corresponde ao escudo atual."
   },
   "chapecoense": {
     "file": "chapecoense.svg",
@@ -75,15 +92,32 @@
     "file_page_url": "https://pt.wikipedia.org/wiki/Ficheiro:Corinthians_simbolo.png",
     "author": "Sport Club Corinthians Paulista",
     "license": "Não livre: © Sport Club Corinthians Paulista; enviado à Wikipédia em português como conteúdo restrito (uso restrito, sem licença livre)",
-    "license_status": "livre",
+    "license_status": "nao_livre",
     "retrieved_at": "2026-10-27T01:44:05+00:00",
     "sha256": "98aded1a8a28ad7092725f24d5c4cb6cad697543a1efb349c08170e98013eb05",
-    "license_status_override": {
-      "decided_by": "dono do produto",
-      "decided_at": "2026-10-26",
-      "previous_status": "nao_livre_uso_local",
-      "note": "Status definido por decisão do dono do produto, contra a evidência da fonte: o arquivo não tem licença livre (ver campo license)."
-    }
+    "used": false,
+    "replacement": "marcador_neutro",
+    "license_status_history": [
+      {
+        "status": "nao_livre_uso_local",
+        "until": "2026-10-26",
+        "note": "status inicial pela evidência da fonte"
+      },
+      {
+        "status": "livre",
+        "decided_by": "dono do produto",
+        "decided_at": "2026-10-26",
+        "note": "Status definido por decisão do dono do produto, contra a evidência da fonte: o arquivo não tem licença livre (ver campo license).",
+        "superseded_at": "2026-10-27"
+      },
+      {
+        "status": "nao_livre",
+        "decided_by": "dono do produto",
+        "decided_at": "2026-10-27",
+        "note": "Escudo não será usado nem publicado; substituído por marcador neutro com sigla e cores (implementação do 05, decisão de marca do 08). O arquivo local fica só como evidência de proveniência."
+      }
+    ],
+    "research_2026_10_27": "Não há versão livre do escudo atual no Wikimedia Commons; arquivos do escudo já foram apagados do Commons por violação de copyright."
   },
   "coritiba": {
     "file": "coritiba.svg",
@@ -201,15 +235,32 @@
     "file_page_url": "https://pt.wikipedia.org/wiki/Ficheiro:EscudoDoVascoDaGama.svg",
     "author": "Club de Regatas Vasco da Gama",
     "license": "Não livre: © Club de Regatas Vasco da Gama; enviado à Wikipédia em português como conteúdo restrito (uso restrito, sem licença livre)",
-    "license_status": "livre",
+    "license_status": "nao_livre",
     "retrieved_at": "2026-10-27T01:44:08+00:00",
     "sha256": "71aaf0d7ee7f118f27499c7511a0be4e5b5c2dcab92661b374a8edeb48ad530f",
-    "license_status_override": {
-      "decided_by": "dono do produto",
-      "decided_at": "2026-10-26",
-      "previous_status": "nao_livre_uso_local",
-      "note": "Status definido por decisão do dono do produto, contra a evidência da fonte: o arquivo não tem licença livre (ver campo license)."
-    }
+    "used": false,
+    "replacement": "marcador_neutro",
+    "license_status_history": [
+      {
+        "status": "nao_livre_uso_local",
+        "until": "2026-10-26",
+        "note": "status inicial pela evidência da fonte"
+      },
+      {
+        "status": "livre",
+        "decided_by": "dono do produto",
+        "decided_at": "2026-10-26",
+        "note": "Status definido por decisão do dono do produto, contra a evidência da fonte: o arquivo não tem licença livre (ver campo license).",
+        "superseded_at": "2026-10-27"
+      },
+      {
+        "status": "nao_livre",
+        "decided_by": "dono do produto",
+        "decided_at": "2026-10-27",
+        "note": "Escudo não será usado nem publicado; substituído por marcador neutro com sigla e cores (implementação do 05, decisão de marca do 08). O arquivo local fica só como evidência de proveniência."
+      }
+    ],
+    "research_2026_10_27": "Não há versão livre do escudo atual no Wikimedia Commons; arquivos do escudo já foram apagados do Commons por violação de copyright. O escudo de 1920 (domínio público por idade) foi avaliado e descartado para manter a uniformidade (todos os clubes com o escudo atual ou marcador neutro)."
   },
   "vitoria": {
     "file": "vitoria.svg",

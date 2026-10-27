@@ -1,0 +1,18 @@
+.git
+.venv
+**/__pycache__
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.env
+.env.*
+!.env.example
+.claude
+data/raw
+data/silver
+data/editorial
+data/snapshots
+# Escudos não livres (D-028/D-029): ficam só no disco local como evidência.
+apps/web/assets/crests/bragantino.png
+apps/web/assets/crests/corinthians.png
+apps/web/assets/crests/vasco.svg

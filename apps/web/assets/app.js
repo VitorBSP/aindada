@@ -420,6 +420,8 @@
       <h2>Dados</h2>
       <p>Fonte: ${escapeHtml(snapshot.data.source)}, versão <code>${escapeHtml(snapshot.data.version.slice(0, 12))}</code>, coletada em ${escapeHtml(snapshot.data.retrieved_at.slice(0, 10))}. Status de licença: <strong>${escapeHtml(snapshot.data.license_status)}</strong>. Uso restrito a pesquisa local até a licença ser verificada.</p>
       ${snapshot.data.warnings.length ? `<div class="warning">${snapshot.data.warnings.map(escapeHtml).join("<br>")}</div>` : ""}
+      <h2>Escudos</h2>
+      <p>Os escudos vêm do Wikimedia Commons, onde estão em domínio público por não atingirem originalidade (PD-textlogo; Mirassol e São Paulo também PD-shape). Domínio público de direito autoral não muda a marca: os escudos são marcas registradas dos clubes, aparecem só para identificar cada time e não indicam relação nem apoio dos clubes ao AInda dá?. Red Bull Bragantino, Corinthians e Vasco da Gama aparecem com a sigla e as cores do clube, porque não há escudo atual deles com licença livre.</p>
       <h2>Limitações</h2>
       <ul>
         <li>O modelo não conhece lesões, suspensões, troca de treinador nem rodízio por outras competições.</li>

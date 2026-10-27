@@ -46,6 +46,8 @@ Propostas que ainda aguardam decisão ficam em "Questões abertas".
 | D-025 | 2026-10-26 | Correção do seletor de cenários (as escolhas parciais eram apagadas a cada redesenho) e interface mais calma: texto corrido em serifa (Georgia), rótulos sem maiúsculas espaçadas, sobretítulos sem vermelho, pesos menores | Agente 08, sob D-022, a pedido do dono do produto ("essa parte de selecionar está quebrada", "muita cara de IA, reduza um pouco") | defeito de uso e excesso de padrões visuais genéricos |
 | D-026 | 2026-10-26 | O Agente 08 passa a ser **Marca, Storytelling, UX e Engajamento** (contrato `agents/08-brand-storytelling-ux.md`) e coordena o novo subagente **08A — Insights e Inteligência Editorial**, com fluxo de aprovação editorial obrigatório | dono do produto (pedido "Evolução do Agente 08") | foco do produto passa da marca para a experiência e as histórias |
 | D-027 | 2026-10-26 | Versão **compacta** do símbolo e da assinatura, que mantém o % entre 30 e 63 px (pílula e % maiores, como ajuste óptico). Passa a ser usada no cabeçalho do site no lugar da reduzida; a reduzida (sem %) fica só abaixo de 30 px | Agente 08, a pedido do dono do produto ("o símbolo do Ainda dá ? está sem a % que tínhamos definido pequeninha no símbolo") | o % é parte da identidade aprovada e sumia no cabeçalho |
+| D-028 | 2026-10-27 | **Marcador neutro no lugar do escudo** para Red Bull Bragantino, Corinthians e Vasco da Gama: sigla e cores do clube num círculo, nos três por uniformidade. Sem escudos históricos e sem imitações do escudo. Os outros 17 clubes continuam com os escudos do Commons (PD-textlogo/PD-shape). **Status: aprovado pelo dono do produto em 2026-10-27** (conceito) | dono do produto (decisão no chat, 2026-10-27, repassada pelo orquestrador) | os três escudos não têm licença livre (bloqueio B2/C3 do deploy público) |
+| D-029 | 2026-10-27 | Especificação do marcador (siglas, cores, forma, tamanhos, contrato do `manifest.json`) e texto de atribuição dos 17 escudos, na seção "Marcador neutro dos clubes sem escudo livre" abaixo. **Status: proposta do Agente 08** (sob D-022); siglas e cores ainda não revisadas pelo dono do produto (Q17) | Agente 08 | executar D-028 sem usar elementos figurativos das marcas |
 
 ## Propostas rejeitadas ou reconsideradas pelo dono do produto
 
@@ -79,6 +81,84 @@ diretamente no app. Novas questões entram aqui.
 | Q14 | Qual símbolo da rodada 2 seguir? | respondida em parte: D-016 (R5, R4, R8 com %?) |
 | Q15 | Variante e papel de cada símbolo | respondida: D-017 (R5 com % é o símbolo; R4 e R8 ficam em espera, sem decisão de descarte) |
 | Q16 | Tipografia do nome no logotipo | respondida: D-021 (Inter Tight 800, sem destaque) |
+| Q17 | Siglas e cores do marcador neutro (D-029) estão boas? | aberta: proposta do Agente 08, em uso até revisão do dono do produto |
+
+## Marcador neutro dos clubes sem escudo livre (D-028, D-029)
+
+Conceito aprovado pelo dono do produto em 2026-10-27 (D-028). Os valores abaixo são proposta do
+Agente 08 (D-029). O marcador é dado, não marca: identifica o clube ao lado do nome, como os escudos
+(BRAND_GUIDELINES, princípio 4).
+
+**Forma**: círculo cheio (`border-radius: 50%`), com o mesmo tamanho quadrado do escudo que substitui.
+Não imita o contorno de nenhum escudo real e não leva cruz, estrela, touro nem outro elemento
+figurativo. Fio de 1 px em `var(--ink-faint)` em todos os temas, para o disco branco não sumir no
+papel claro e o preto não sumir no fundo escuro.
+
+**Siglas e cores** (sigla = `short_name` de `data/reference/clubs.csv`, a mesma que o site já
+mostra em `clubShort`, conferida no export `rounds.json`). Só cores institucionais genéricas.
+
+| `club_id` | Sigla | Inicial (< 32 px) | Fundo | Texto | Contraste texto/fundo |
+|---|---|---|---|---|---|
+| `bragantino` | RBB | R | `#C8102E` (vermelho) | `#FFFFFF` | 5,88:1 |
+| `corinthians` | COR | C | `#FFFFFF` (branco) | `#000000` | 21:1 |
+| `vasco` | VAS | V | `#000000` (preto) | `#FFFFFF` | 21:1 |
+
+Fio do círculo contra a página (contraste de componente, mínimo de 3:1): `#6B6F76` sobre papel
+`#F7F5EF` dá 4,63:1, e `#8D9198` sobre papel escuro `#17191C` dá 5,57:1. Sem o fio, o disco teria
+1,09:1 (branco no papel claro) e 1,19:1 (preto no escuro). O cálculo usa luminância relativa WCAG 2.x,
+sem medição em tela.
+
+**Tamanhos** (os mesmos de `crest(clubId, size)`). Fonte `var(--sans)` (Inter Tight), peso 700,
+`line-height: 1`, sem espaçamento entre letras e sem `text-transform`.
+
+| Tamanho | Uso atual | Conteúdo | Corpo da fonte |
+|---|---|---|---|
+| 16 px | chips | inicial | 10 px |
+| 18 px | seletor do comparativo, lista de times | inicial | 11 px |
+| 20 px | tabelas e listas (padrão) | inicial | 12 px |
+| 48 px | título da página do time | sigla completa | 15 px |
+
+Regra geral: abaixo de 32 px, só a inicial (primeira letra da sigla), com corpo `round(size × 0.6)`.
+A partir de 32 px, a sigla completa, com corpo `round(size × 0.32)`. Três letras em 16–20 px dariam
+corpo de 6–7 px, ilegível. O nome completo do clube está sempre ao lado, então a inicial basta.
+
+**Contrato do `apps/web/assets/crests/manifest.json`** (implementação do 05):
+
+```json
+"bragantino":  { "badge": { "label": "RBB", "bg": "#C8102E", "fg": "#FFFFFF" } },
+"corinthians": { "badge": { "label": "COR", "bg": "#FFFFFF", "fg": "#000000" } },
+"vasco":       { "badge": { "label": "VAS", "bg": "#000000", "fg": "#FFFFFF" } }
+```
+
+- Cada entrada tem `file` ou `badge`, nunca os dois. Ordem de leitura: `file`, depois `badge`,
+  depois o comportamento atual sem entrada (espaçador abaixo de 24 px, nada acima).
+- `label` com 2 a 4 letras maiúsculas, igual ao `short_name` do clube. `bg` e `fg` em
+  `#RRGGBB`, validados por expressão regular antes de entrar no `style`. Se a validação falhar, cai
+  no comportamento sem entrada. `label` passa por `escapeHtml`.
+- Marcação sugerida: `<span class="crest crest-badge" aria-hidden="true" style="width:Npx;height:Npx;font-size:Fpx;--badge-bg:…;--badge-fg:…">R</span>`.
+  Manter a classe `crest` reaproveita as margens já definidas para `.chip .crest`.
+- CSS sugerido (em `rounds.css`): `display:inline-flex; align-items:center; justify-content:center;
+  flex:none; box-sizing:border-box; border-radius:50%; border:1px solid var(--ink-faint);
+  background:var(--badge-bg); color:var(--badge-fg); font-family:var(--sans); font-weight:700;
+  line-height:1; letter-spacing:0; user-select:none;`. Em `forced-colors: active` a borda vira
+  `CanvasText` sozinha, por ser `border`. Não usar `box-shadow`, que some nesse modo.
+- **Acessibilidade**: `aria-hidden="true"` e sem `title`, porque o nome do clube já está ao lado
+  (o `<img>` dos escudos também usa `alt=""`). Nenhuma informação depende só da cor do marcador.
+- Os arquivos `bragantino.png`, `corinthians.png` e `vasco.svg` saem de `apps/web/assets/crests/`
+  e do build. A remoção dos arquivos e a atualização de `data/reference/crests_provenance.json`
+  cabem ao 01.
+
+**Atribuição dos 17 escudos do Commons** (domínio público não exige atribuição, mas a origem e o
+aviso de marca ficam visíveis):
+
+- Rodapé (`index.html`, uma frase): "Escudos: Wikimedia Commons, em domínio público (PD-textlogo).
+  São marcas registradas dos clubes, usadas aqui só para identificá-los."
+- Página "Como calculamos", seção "Escudos": "Os escudos vêm do Wikimedia Commons, onde estão em
+  domínio público por não atingirem originalidade (PD-textlogo; Mirassol e São Paulo também
+  PD-shape). Domínio público de direito autoral não muda a marca: os escudos são marcas registradas
+  dos clubes, aparecem só para identificar cada time e não indicam relação nem apoio dos clubes ao
+  AInda dá?. Red Bull Bragantino, Corinthians e Vasco da Gama aparecem com a sigla e as cores do
+  clube, porque não há escudo atual deles com licença livre."
 
 ## Modelo de registro
 
