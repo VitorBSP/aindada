@@ -1954,3 +1954,47 @@ Registrado pelo orquestrador a partir do relatório do 06, que auditou sem edita
   - 01: conferência de 2026.
   - 08 ou dono: C6.
   - Dono: secret e C5.
+
+## Agente 07: ajuste 3 e não bloqueantes do parecer do 06 (2026-10-28) — implementado na branch `deploy/ajustes-06`, nunca executado no GitHub; auditoria do 06 pendente
+
+- **O que mudou** (commit `646d1c7`, sobre `e8bd2d3`):
+  - `publish-site.yml`:
+    - **ajuste 3**: nenhuma expressão lê `github.event.repository.*`. A URL do site no ar sai de
+      `GITHUB_REPOSITORY`. "Repositório privado" vem do passo `Visibilidade do repositório`, que faz
+      `gh api repos/$GITHUB_REPOSITORY` com o `GITHUB_TOKEN` só de leitura. Erro ou valor diferente de
+      `true` contam como público, e o upload só acontece com `PUBLISH_ENABLED`;
+    - `BRASILEIRAO_SNAPSHOT_DB` em `$RUNNER_TEMP/snapshots/`, e `data/snapshots/` é apagado antes da
+      ingestão;
+    - actions fixadas por SHA, com a tag em comentário: `checkout` v4.4.0, `setup-python` v5.6.0,
+      `upload-pages-artifact` v3.0.1 e `deploy-pages` v4.0.5. Os SHAs saíram de `git ls-remote` em
+      `github.com/actions/*` e são iguais às tags major `v4`, `v5`, `v3` e `v4`. O `ci.yml` usa os mesmos;
+    - cron `17 9 * * *`;
+    - **ajuste 2**: o resumo traz commit, `reference_date`, `model_version`, `data_version` e o SHA-256 de
+      cada JSON exportado.
+  - `check_site_artifact.py`:
+    - novo `--seed`, que confere a semente de `predictions` e `rounds` e a dos pontos do histórico, se
+      algum dia vierem no export;
+    - docstring corrigida: os pontos não trazem semente.
+  - Testes: `tests/unit/test_check_site_artifact.py` (novo, 19 testes; export sintético, rede bloqueada,
+    URL ao vivo simulada) e 11 casos novos em `tests/unit/test_workflows.py`.
+  - `docs/architecture/deploy.md`: runbook atualizado, "a confirmar pelo 00" removido, item 6 da proposta
+    histórica remetido a D-033, pendência do lock de dependências registrada.
+  - `infrastructure/github-workflows/` continua idêntico a `.github/workflows/`.
+- **Evidência**:
+  - `pytest -q`: 522 passed;
+  - `ruff check` e `ruff format --check` em `src apps tests scripts infrastructure`: sem erros;
+  - `mypy`: sem erros em 50 arquivos, e também no script e nos dois testes;
+  - `actionlint` 1.7.12: 0 achados;
+  - `diff -r .github/workflows infrastructure/github-workflows`: sem diferenças;
+  - expansão da URL conferida em bash: com `VitorBSP/aindada` dá
+    `https://vitorbsp.github.io/aindada/data/api/seasons/2026/predictions.json`.
+  - Rodado com o `.venv` da pasta principal e `PYTHONPATH` na worktree; `brasileirao` importado da worktree.
+- **Premissas e limitações**:
+  - Nada disso rodou no GitHub. O passo de visibilidade e o resumo com `jq`/`sha256sum` são conferidos no
+    ensaio C5.
+  - Se o repositório se chamar `<dono>.github.io`, a URL muda; não é o caso de `aindada`.
+  - Não feito, fica pendente no 07: dependências Python travadas com hashes. Pede um lock gerado em Linux
+    e a escolha da ferramenta (`pip-compile` ou `uv`).
+- **Próximo responsável**:
+  - **06**: auditar este delta. Com isso, o bloqueio 5 do parecer (ajuste 3) pode ser encerrado.
+  - **00**: merge da branch na `main` antes do C5.
