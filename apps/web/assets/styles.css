@@ -138,6 +138,7 @@ h3 { font-size: 16px; font-weight: 650; color: var(--ink); margin: 0 0 8px; }
 .lede strong { color: var(--ink); }
 .note { font-size: 13px; color: var(--ink-faint); max-width: 75ch; }
 code { font-family: var(--mono); font-size: .9em; }
+code.data-version { overflow-wrap: anywhere; word-break: break-word; }
 
 /* Blocos: seções com fio no topo, sem caixas */
 .grid { display: grid; gap: 12px 40px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }

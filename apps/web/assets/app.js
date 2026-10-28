@@ -797,6 +797,43 @@
       <h2>Últimos resultados</h2>${recent.map(matchRow).join("")}`;
   }
 
+  const PUBLISHABLE_LICENSES = ["verified_open", "licensed_with_attribution"];
+  const LICENSE_LABELS = {
+    verified_open: "Licença aberta",
+    licensed_with_attribution: "Uso permitido com atribuição",
+    research_only_unverified: "Só para pesquisa local, licença não verificada",
+    requires_agreement: "Exige acordo com a fonte",
+    blocked: "Uso bloqueado",
+  };
+  const SOURCE_LINKS = {
+    football_data_org: { home: "https://www.football-data.org/", terms: ["termos de uso", "https://www.football-data.org/client/register"] },
+    adaoduque_kaggle: { home: "https://www.kaggle.com/datasets/adaoduque/campeonato-brasileiro-de-futebol", terms: ["texto da GPL-2.0", "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html"] },
+  };
+
+  function isPublishable(data) {
+    return data.composition_mode === "publication" && PUBLISHABLE_LICENSES.includes(data.license_status);
+  }
+
+  function dataSources(data) {
+    if (Array.isArray(data.sources)) return data.sources;
+    return data.source ? [{ source_name: data.source, license_status: data.license_status, version: data.version, retrieved_at: data.retrieved_at }] : [];
+  }
+
+  function seasonRange(seasons) {
+    if (!seasons || !seasons.length) return "temporadas não informadas";
+    const sorted = [...seasons].sort((a, b) => a - b);
+    return sorted.length === 1 ? String(sorted[0]) : `${sorted[0]}–${sorted[sorted.length - 1]}`;
+  }
+
+  function sourceItem(source) {
+    const links = SOURCE_LINKS[source.source_name] || {};
+    const credit = escapeHtml(source.attribution || source.source_name);
+    const named = links.home ? `<a href="${links.home}"${source.source_name === "football_data_org" ? ' lang="en"' : ""}>${credit}</a>` : credit;
+    const terms = links.terms ? ` (<a href="${links.terms[1]}">${links.terms[0]}</a>)` : "";
+    const license = escapeHtml(LICENSE_LABELS[source.license_status] || source.license_status);
+    return `<li>${named}. Temporadas usadas: <strong>${seasonRange(source.seasons)}</strong>. ${license}${terms}. Versão <code class="data-version">${escapeHtml(source.version)}</code>, coletada em ${escapeHtml(String(source.retrieved_at).slice(0, 10))}.</li>`;
+  }
+
   function renderMethodology() {
     const snapshot = state.snapshot;
     const metrics = state.metrics;
@@ -825,7 +862,11 @@
         ${simulation ? `<p>Na simulação de temporadas passadas (snapshots nas rodadas ${metrics.season_simulation.rounds.join(", ")}), o intervalo de 90% para os pontos finais acertou ${pct(simulation.dynamic.points_interval_90_coverage)} das vezes com ratings dinâmicos e ${pct(simulation.fixed.points_interval_90_coverage)} com ratings fixos. Erro médio da pontuação final projetada: ${num(simulation.dynamic.points_mae)} pontos.</p>` : ""}`
         : "<p class='note'>Relatório de backtesting indisponível.</p>"}
       <h2>Dados</h2>
-      <p>Fonte: ${escapeHtml(snapshot.data.source)}, versão <code>${escapeHtml(snapshot.data.version.slice(0, 12))}</code>, coletada em ${escapeHtml(snapshot.data.retrieved_at.slice(0, 10))}. Status de licença: <strong>${escapeHtml(snapshot.data.license_status)}</strong>. Uso restrito a pesquisa local até a licença ser verificada.</p>
+      <p>Cada temporada vem de uma única fonte, sem completar com outra. Jogo sem placar na fonte entra nas simulações como ainda não disputado.</p>
+      <ul class="data-sources">${dataSources(snapshot.data).map(sourceItem).join("")}</ul>
+      <p>O site mostra a tabela, os jogos e os resultados da temporada exibida e os números calculados a partir deles. Os arquivos de dados não são publicados aqui: quem quiser usá-los deve buscá-los nas fontes. Nenhuma fonte garante dados sem erro ou atraso. Se um placar estiver errado na fonte, ele aparece errado aqui até ser corrigido, sempre com evidência registrada.</p>
+      <p class="note">Versão dos dados: <code class="data-version">${escapeHtml(snapshot.data.version)}</code>.</p>
+      ${isPublishable(snapshot.data) ? "" : `<div class="warning">Atualização de pesquisa: estes dados são só para uso local e não podem ser publicados.</div>`}
       ${snapshot.data.warnings.length ? `<div class="warning">${snapshot.data.warnings.map(escapeHtml).join("<br>")}</div>` : ""}
       <h2>Escudos</h2>
       <p>Os escudos vêm do Wikimedia Commons, onde estão em domínio público por não atingirem originalidade (PD-textlogo; Mirassol e São Paulo também PD-shape). Domínio público de direito autoral não muda a marca: os escudos são marcas registradas dos clubes, aparecem só para identificar cada time e não indicam relação nem apoio dos clubes ao AInda dá?. Red Bull Bragantino, Corinthians e Vasco da Gama aparecem com a sigla e as cores do clube, porque não há escudo atual deles com licença livre.</p>
