@@ -14,6 +14,7 @@ Propostas que ainda aguardam decisão ficam em "Questões abertas".
 | Tipografia | Inter Tight: assinatura 800 (D-021) e interface 400–800 (D-024) |
 | Símbolo / logotipo | **Aprovados**: símbolo (D-017, D-018) em `docs/brand/assets/simbolo/` e assinatura (D-019, D-021) em `docs/brand/assets/assinatura/` |
 | Tom de voz | **diretrizes estratégicas decididas** (D-007, D-009, D-010); texto do guia a escrever |
+| Textos de fonte e licença (C2) | **decididos pelo 08 sob D-022** (D-033, 2026-10-27); implementação do 05 pendente; revisão posterior do dono (Q18) |
 
 ## Decisões registradas
 
@@ -51,6 +52,7 @@ Propostas que ainda aguardam decisão ficam em "Questões abertas".
 | D-030 | 2026-10-27 | Três recursos para tirar a "cara de IA" (referência analisada: skill-issue.in): **mosaico de pontos** do título na home (1.000 pontos, cada um igual a 10 das 10.000 simulações); **cabeçalho de edição** ("Edição de [dia], [data] · depois da rodada N"); **anotações** no gráfico de evolução do clube (pico e maior virada da disputa mais em aberto, só acima de 5 p.p. e de 3 erros-padrão) com rótulo direto no fim das linhas | dono do produto ("implemente as três: mosaico de pontos das simulações, cabeçalho de edição e anotações nos gráficos") | imagem própria nascida dos dados, sensação de publicação e leitura de jornalismo de dados no lugar de painel |
 | D-031 | 2026-10-27 | Revisão de interface: **fundo da interface** passa de papel `#F7F5EF` para branco-papel neutro `#FAFAF7` (superfície `#FFFFFF`, fio `#E2E1DB`); o Papel `#F7F5EF` segue como cor da marca nos arquivos de símbolo, assinatura e ícone. **Home por disputa** (Título, G4, Rebaixamento), com a disputa em destaque escolhida pela atualização e troca livre pelo usuário; mosaico generalizado para vagas (cor da disputa, grupos alternando tom cheio e 50%). **Escudos em todas as páginas.** **Tabela** com colunas fixas e um grupo variável (Título, Libertadores, Sul-Americana, Rebaixamento, Força, Dificuldade da tabela). **Escolha de clube** por grade e faixa de escudos. Jogo sem placar há mais de 7 dias aparece como "adiado, data a definir" | dono do produto (pedido no chat em 2026-10-27, pontos 1 a 7) e Agente 08 sob D-022 (escolha do tom de fundo e do desenho) | o creme amarelava as cores de dado; home e tabela tinham informação demais de uma vez |
 | D-032 | 2026-10-27 | **Bolinha por clube no mosaico**: cada ponto usa as cores do clube, no lugar da cor da disputa. Formas: cor única (Atlético-MG, Cruzeiro, Internacional, Mirassol, Palmeiras, Remo); metade de cima e de baixo (Athletico-PR, Chapecoense, Coritiba, Flamengo, Santos, Vitória; Corinthians com borda vermelha); faixas horizontais (Bahia, São Paulo) ou verticais (Fluminense, Grêmio); preto com miolo branco (Botafogo); branco com aro vermelho e miolo amarelo (Red Bull Bragantino); diagonal preta e branca com miolo vermelho (Vasco). Contorno fino em todas para as partes brancas não sumirem no fundo. Especificação em `CLUB_DOTS` (`apps/web/assets/app.js`) | dono do produto (lista de cores por clube no chat, 2026-10-27) | o mosaico passa a ser lido pelas cores dos clubes, sem depender só da legenda |
+| D-033 | 2026-10-27 | **Textos de fonte, atribuição e licença do site (condição C2 do ADR-0007; passo 14 e G4 do ADR-0008)**: rodapé estático com as duas atribuições exatas dos manifestos, aviso de projeto independente no lugar de "pesquisa local / licença em verificação", seção "Dados" de "Como calculamos" montada a partir de `data.sources` e versão composta dos dados exibida inteira. A atribuição do Adão Duque que estava provisória no manifesto passa a ser a **final, sem mudança de texto**. Textos exatos e especificação para o 05 na seção "Textos de fonte, atribuição e licença (D-033)" abaixo. **Status: decidido pelo Agente 08 sob D-022**; revisão posterior do dono (Q18) | Agente 08, sob D-022, a pedido do orquestrador (o dono quer participar o mínimo) | os textos atuais ficaram falsos com as fontes licenciadas, e o gate G4 reprova o deploy sem as atribuições no HTML estático |
 
 ## Propostas rejeitadas ou reconsideradas pelo dono do produto
 
@@ -85,6 +87,7 @@ diretamente no app. Novas questões entram aqui.
 | Q15 | Variante e papel de cada símbolo | respondida: D-017 (R5 com % é o símbolo; R4 e R8 ficam em espera, sem decisão de descarte) |
 | Q16 | Tipografia do nome no logotipo | respondida: D-021 (Inter Tight 800, sem destaque) |
 | Q17 | Siglas e cores do marcador neutro (D-029) estão boas? | aberta: proposta do Agente 08, em uso até revisão do dono do produto |
+| Q18 | Os textos de fonte e licença (D-033) estão bons? E a decisão do 08 sob D-022 cumpre a pendência 4 do ADR-0008 ("aprovar os textos de atribuição"), ou o dono quer dar o OK explícito? | aberta: em vigor como decisão do 08; o enquadramento na pendência 4 cabe ao 00 registrar. Não cobre as pendências 2 (aceite de riscos) e 6 (domínio), que são só do dono |
 
 ## Marcador neutro dos clubes sem escudo livre (D-028, D-029)
 
@@ -162,6 +165,157 @@ aviso de marca ficam visíveis):
   dos clubes, aparecem só para identificar cada time e não indicam relação nem apoio dos clubes ao
   AInda dá?. Red Bull Bragantino, Corinthians e Vasco da Gama aparecem com a sigla e as cores do
   clube, porque não há escudo atual deles com licença livre."
+
+## Textos de fonte, atribuição e licença (D-033)
+
+Decisão do Agente 08 sob D-022, em 2026-10-27. Resolve o texto da condição C2 do ADR-0007 e do
+passo 14 do ADR-0008. A implementação é do Agente 05. Nenhum texto abaixo afirma o que não foi
+verificado: as fontes, as temporadas, as licenças e a política de não redistribuir vêm do ADR-0008, de
+`docs/data-sources/c1-fonte-licenciada.md` e dos manifestos (`adaoduque.py`, `football_data_org.py`).
+
+### Regras que os textos seguem
+
+- **G4 (`publication_gate.check_g4_attribution`)**: o texto de `data.sources[].attribution` de cada
+  fonte `licensed_with_attribution` tem de aparecer no **HTML estático**. O gate troca cada tag por um
+  espaço, resolve entidades e junta espaços. Então:
+  - as duas atribuições ficam no `index.html`, e não no `app.js`;
+  - uma tag pode envolver a atribuição inteira (como os `<a>` abaixo), mas nunca cortar uma palavra
+    dela;
+  - o travessão de "2003–2025" é o U+2013 (ou `&ndash;`), as aspas são retas (`"` ou `&quot;`) e "Adão"
+    leva o til. Qualquer diferença reprova o gate;
+  - se um manifesto mudar o texto de `attribution`, o rodapé tem de mudar junto. O gate pega a
+    divergência, e isso é desejável.
+- **Atribuição do Adão Duque**: o texto que estava provisório no manifesto passa a ser o final, **sem
+  mudança**. Assim o manifesto, o `sources.json` e o hash dele não precisam ser regenerados. Fica:
+  `Dados históricos (2003–2025): "Campeonato Brasileiro de Futebol", de Adão Duque, Kaggle, versão 18, sob a licença GPL-2.0`.
+- **Atribuição do football-data.org**: exata, em inglês, cláusula 7.1: `Football data provided by the
+  Football-Data.org API`. Vai com `lang="en"`, para o leitor de tela pronunciar em inglês.
+- **Não afirmamos**: que os dados estão corretos, que há conferência com a CBF (pendência do dono no
+  ADR-0008), que o projeto é gratuito para sempre ou que tem qualquer parceria com as fontes.
+- **Afirmamos** (verdadeiro): o projeto é independente e não é site oficial; não tem relação com a CBF
+  nem com os clubes; cada temporada vem de uma única fonte, sem completar com outra; os arquivos de
+  dados não são publicados (G5, Decisão 3 do ADR-0008); jogo sem placar entra como não disputado.
+- Link da GPL-2.0: `https://www.gnu.org/licenses/old-licenses/gpl-2.0.html`, página oficial "GNU
+  General Public License, version 2" (conferida por busca em 2026-10-27).
+
+### 1. Rodapé estático (`apps/web/index.html`)
+
+Troca a linha 44. Ordem final dos parágrafos: aviso de chance (sem mudança), **fontes**, escudos (sem
+mudança, D-029), **projeto independente**.
+
+Antes:
+
+```html
+      <p>Dados para pesquisa local, com licença em verificação. Fontes, método e limitações em <a href="#/metodologia">Como calculamos</a>.</p>
+      <p>Escudos: Wikimedia Commons, em domínio público (PD-textlogo). São marcas registradas dos clubes, usadas aqui só para identificá-los.</p>
+```
+
+Depois:
+
+```html
+      <p>Jogos de 2026 em diante: <a href="https://www.football-data.org/" lang="en">Football data provided by the Football-Data.org API</a>. <a href="https://www.kaggle.com/datasets/adaoduque/campeonato-brasileiro-de-futebol">Dados históricos (2003–2025): "Campeonato Brasileiro de Futebol", de Adão Duque, Kaggle, versão 18, sob a licença GPL-2.0</a> (<a href="https://www.gnu.org/licenses/old-licenses/gpl-2.0.html" hreflang="en">texto da licença</a>).</p>
+      <p>Escudos: Wikimedia Commons, em domínio público (PD-textlogo). São marcas registradas dos clubes, usadas aqui só para identificá-los.</p>
+      <p>O AInda dá? é um projeto independente. Não é um site oficial e não tem relação com a CBF nem com os clubes. Fontes, método e limitações em <a href="#/metodologia">Como calculamos</a>.</p>
+```
+
+Texto visível resultante (o que o G4 lê, depois de tirar as tags):
+
+> Jogos de 2026 em diante: Football data provided by the Football-Data.org API. Dados históricos
+> (2003–2025): "Campeonato Brasileiro de Futebol", de Adão Duque, Kaggle, versão 18, sob a licença
+> GPL-2.0 (texto da licença).
+>
+> Escudos: Wikimedia Commons, em domínio público (PD-textlogo). São marcas registradas dos clubes,
+> usadas aqui só para identificá-los.
+>
+> O AInda dá? é um projeto independente. Não é um site oficial e não tem relação com a CBF nem com os
+> clubes. Fontes, método e limitações em Como calculamos.
+
+### 2. Seção "Dados" de "Como calculamos" (`apps/web/assets/app.js`, `renderMethodology`)
+
+Antes (uma linha, hoje por volta da linha 828):
+
+```js
+      <p>Fonte: ${escapeHtml(snapshot.data.source)}, versão <code>${escapeHtml(snapshot.data.version.slice(0, 12))}</code>, coletada em ${escapeHtml(snapshot.data.retrieved_at.slice(0, 10))}. Status de licença: <strong>${escapeHtml(snapshot.data.license_status)}</strong>. Uso restrito a pesquisa local até a licença ser verificada.</p>
+```
+
+Depois:
+
+```js
+      <p>Cada temporada vem de uma única fonte, sem completar com outra. Jogo sem placar na fonte entra nas simulações como ainda não disputado.</p>
+      <ul class="data-sources">${(snapshot.data.sources || []).map(sourceItem).join("")}</ul>
+      <p>O site mostra a tabela, os jogos e os resultados da temporada exibida e os números calculados a partir deles. Os arquivos de dados não são publicados aqui: quem quiser usá-los deve buscá-los nas fontes. Nenhuma fonte garante dados sem erro ou atraso. Se um placar estiver errado na fonte, ele aparece errado aqui até ser corrigido, sempre com evidência registrada.</p>
+      <p class="note">Versão dos dados: <code class="data-version">${escapeHtml(snapshot.data.version)}</code>.</p>
+      ${isPublishable(snapshot.data) ? "" : `<div class="warning">Atualização de pesquisa: estes dados são só para uso local e não podem ser publicados.</div>`}
+```
+
+A linha seguinte (`snapshot.data.warnings`) fica como está.
+
+Funções e constantes novas, no mesmo escopo de `renderMethodology` (lógica de apresentação, do 05):
+
+```js
+  const PUBLISHABLE_LICENSES = ["verified_open", "licensed_with_attribution"];
+  const LICENSE_LABELS = {
+    verified_open: "Licença aberta",
+    licensed_with_attribution: "Uso permitido com atribuição",
+    research_only_unverified: "Só para pesquisa local, licença não verificada",
+    requires_agreement: "Exige acordo com a fonte",
+    blocked: "Uso bloqueado",
+  };
+  const SOURCE_LINKS = {
+    football_data_org: { home: "https://www.football-data.org/", terms: ["termos de uso", "https://www.football-data.org/client/register"] },
+    adaoduque_kaggle: { home: "https://www.kaggle.com/datasets/adaoduque/campeonato-brasileiro-de-futebol", terms: ["texto da GPL-2.0", "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html"] },
+  };
+
+  function isPublishable(data) {
+    return data.composition_mode === "publication" && PUBLISHABLE_LICENSES.includes(data.license_status);
+  }
+
+  function seasonRange(seasons) {
+    if (!seasons || !seasons.length) return "temporadas não informadas";
+    const sorted = [...seasons].sort((a, b) => a - b);
+    return sorted.length === 1 ? String(sorted[0]) : `${sorted[0]}–${sorted[sorted.length - 1]}`;
+  }
+
+  function sourceItem(source) {
+    const links = SOURCE_LINKS[source.source_name] || {};
+    const credit = escapeHtml(source.attribution || source.source_name);
+    const named = links.home ? `<a href="${links.home}"${source.source_name === "football_data_org" ? ' lang="en"' : ""}>${credit}</a>` : credit;
+    const terms = links.terms ? ` (<a href="${links.terms[1]}">${links.terms[0]}</a>)` : "";
+    const license = escapeHtml(LICENSE_LABELS[source.license_status] || source.license_status);
+    return `<li>${named}. Temporadas usadas: <strong>${seasonRange(source.seasons)}</strong>. ${license}${terms}. Versão <code class="data-version">${escapeHtml(source.version)}</code>, coletada em ${escapeHtml(String(source.retrieved_at).slice(0, 10))}.</li>`;
+  }
+```
+
+Leitura esperada com o snapshot de publicação atual (versões da fumaça do 00, só ilustração):
+
+> Cada temporada vem de uma única fonte, sem completar com outra. Jogo sem placar na fonte entra nas
+> simulações como ainda não disputado.
+> - Dados históricos (2003–2025): "Campeonato Brasileiro de Futebol", de Adão Duque, Kaggle, versão
+>   18, sob a licença GPL-2.0. Temporadas usadas: **2003–2025**. Uso permitido com atribuição (texto da
+>   GPL-2.0). Versão `kaggle-v18`, coletada em AAAA-MM-DD.
+> - Football data provided by the Football-Data.org API. Temporadas usadas: **2026**. Uso permitido com
+>   atribuição (termos de uso). Versão `v4-20261027T205022Z`, coletada em 2026-10-27.
+
+"Temporadas usadas" vem de `data.sources[].seasons`, e não do texto da atribuição, porque é o que o
+snapshot de fato usou.
+
+### 3. Versão composta dos dados
+
+- **Sem corte.** `slice(0, 12)` sai. A versão composta (`adaoduque_kaggle@kaggle-v18+football_data_org@v4-…`)
+  aparece inteira na nota "Versão dos dados", e a versão de cada fonte aparece inteira no item dela.
+  Cortar escondia justamente a fonte da temporada corrente.
+- **Quebra de linha** sem rolagem horizontal em 375 px: CSS no `styles.css`:
+  `code.data-version { overflow-wrap: anywhere; word-break: break-word; }`. A string não tem espaços,
+  então sem isso ela estoura a coluna.
+- A versão continua em `<code>`: é identificador técnico, para quem quer reproduzir, e não texto de
+  leitura.
+
+### 4. O que não muda
+
+- Linha do aviso de chance e linha dos escudos no rodapé (D-029).
+- Seções "Escudos" e "Limitações" de "Como calculamos". Ressalva para o 03 e o 05: a frase "os critérios
+  de cartões usam apenas jogos já disputados" pode ficar imprecisa com cobertura de cartões zero em
+  2026 (ADR-0008, "Cartões 2026"). Quando o 03 confirmar o comportamento, o 08 ajusta o texto.
 
 ## Modelo de registro
 

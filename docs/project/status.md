@@ -1678,3 +1678,43 @@ commit `bbf2a92`), sem push e sem tocar `data/` da pasta principal.
   ficam ocultas até o 02 regerar com `review-rounds`.
 - **Próximos responsáveis**: **02** (passo 11) regera snapshots e revisão no modo publicação; **06** audita a
   migração e o filtro; **05** pode ler `composition_mode` e `license_status` em `rounds.json`.
+
+## Agente 08: textos de fonte, atribuição e licença, condição C2 (2026-10-27) — texto decidido (D-033), implementação do 05 pendente
+
+- **O que mudou**: só documentação. `docs/brand/BRAND_DECISIONS.md` ganhou D-033, a questão Q18, uma linha no
+  "Estado atual" e a seção "Textos de fonte, atribuição e licença (D-033)", com os trechos exatos (antes → depois)
+  para `apps/web/index.html` (rodapé) e `apps/web/assets/app.js` (seção "Dados" de "Como calculamos" e versão dos
+  dados). O 08 não editou `apps/web`, código nem manifestos. Nada foi commitado.
+- **Decisão**: D-033, do Agente 08 sob D-022. A atribuição do Adão Duque que estava provisória em `adaoduque.py`
+  passa a ser a final, **sem mudar o texto**, para não mexer no manifesto nem no `sources.json`.
+- **Evidência e critérios**:
+  - As duas atribuições do rodapé são cópias literais de `AdaoDuqueSource.attribution` e
+    `FootballDataOrgSource.attribution`, dentro de `<a>` que envolvem o texto inteiro. Pela regra de
+    `publication_gate._visible_text` (tag vira espaço, entidades resolvidas, espaços juntados), o texto visível
+    contém as duas strings exatas. É o mesmo caso de `test_g4_accepts_attribution_split_by_markup`. **Não
+    rodei o gate**: o 08 não tem execução neste ambiente. Quem confere é o 05/06 (abaixo).
+  - Afirmações conferidas contra o ADR-0008 (temporadas por fonte, sem fallback, sem redistribuição, G5) e
+    contra `c1-fonte-licenciada.md` (cláusula 7.1, GPL-2 no Kaggle v18). URL da GPL-2.0 conferida por busca em
+    2026-10-27 (página oficial da GNU). Nada sobre conferência com a CBF nem sobre exatidão dos dados.
+  - Tom: `docs/storytelling/CONTENT_GUIDELINES.md` (frases curtas, sem "IA" na vitrine, sem promessa).
+- **Premissas e limitações**:
+  - O rodapé é estático. Se um manifesto mudar o texto de `attribution`, o `index.html` tem de mudar junto, e o
+    G4 reprova até isso acontecer (comportamento desejado).
+  - "Jogos de 2026 em diante" segue verdadeiro enquanto a precedência da Decisão 1 do ADR-0008 valer.
+  - O `license_notes` do Adão Duque ainda diz "Texto de atribuição provisório até a aprovação do C2". Não
+    afeta o gate. Mudá-lo altera o manifesto e o SHA-256 da composição, então fica para a próxima ingestão.
+- **Próximos responsáveis**:
+  - **05**: aplicar os trechos da seção D-033 em `index.html`, `app.js` (troca da linha da seção "Dados",
+    funções `isPublishable`, `seasonRange`, `sourceItem` e constantes) e `styles.css`
+    (`code.data-version { overflow-wrap: anywhere; word-break: break-word; }`). Conferir em 375 px e 1280 px,
+    claro e escuro, sem rolagem horizontal. Rodar `check_g4_attribution` contra o `index.html` novo com um
+    `predictions.json` de publicação (ou o `publication-gate` completo na fumaça do 00) e registrar o resultado.
+  - **06**: auditar o G4 com o HTML novo, o contraste dos links do rodapé e a ausência de afirmações sem
+    evidência.
+  - **01**: na próxima ingestão, tirar "provisório até a aprovação do C2" do `license_notes` de `adaoduque.py`.
+  - **03**: confirmar o desempate por cartões com cobertura zero em 2026. Depois disso, o 08 revisa a frase
+    "os critérios de cartões usam apenas jogos já disputados" em "Limitações".
+  - **00**: registrar se D-033 (sob D-022) cumpre a pendência 4 do ADR-0008 ou se o dono dá o OK explícito (Q18).
+    Atualizar o item 6 de `docs/architecture/deploy.md` quando o 05 implementar.
+- **Decisões pendentes do dono do produto**: só revisar D-033 depois, como em D-022 (Q18). As pendências 2
+  (aceitar os riscos) e 6 (domínio) do ADR-0008 continuam só dele e não são cobertas por este texto.
