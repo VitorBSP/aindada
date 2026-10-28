@@ -1809,3 +1809,103 @@ Branch `deploy/publish-site` (a partir de `origin/main` `e2eefae`), enviada ao r
 6. Actions → publish-site → Run workflow (primeira publicação, sem esperar as 09:00 UTC).
 
 Rollback: Settings → Pages → Unpublish site (tira do ar) e `PUBLISH_ENABLED` = `false` (para o agendamento).
+
+## Agente 00: adendo da Decisão 3, revisão do `publish-site.yml`, Q18 e parecer de publicação (2026-10-28) — publicação **não aprovada**; ensaio C5 liberado
+
+Feito na branch `deploy/publish-site`, sobre `f4c3837` do 07. Só documentação: o 00 não mudou código, workflow,
+scripts nem testes, para não alterar o que o 06 está auditando em paralelo. Sem merge no `main` e sem mudar
+configurações do repositório.
+
+- **O que mudou**:
+  - `docs/decisions/ADR-0008-fontes-licenciadas-c1.md`:
+    - adendo do 07 **confirmado com ajustes** ("Decisão do 00 sobre o adendo"); aviso de substituição na Decisão 3;
+      passo 13 atualizado;
+    - pendência 3 reduzida a um segredo; pendências 4 e 5 registradas como resolvidas ("Registro do 00 sobre as
+      pendências 4 e 5").
+  - `docs/decisions/ADR-0007-deploy-estatico-github-pages.md`: adendo de 2026-10-28 que muda os itens 2, 4, 8 e 9, o
+    sentido de "conferência com a CBF" no C1 e a consequência dos 60 dias.
+  - `docs/project/risks.md`: R11 vira risco aceito, sem keepalive; R12 encerrado; R17 (endpoint do Kaggle) e R18
+    (história reconstruída) novos.
+  - `docs/brand/BRAND_DECISIONS.md`: Q18 com o enquadramento do 00.
+- **Decisões**:
+  1. **Adendo da Decisão 3: confirmado.** Não há repositório de estado nem `STATE_REPO_TOKEN`. Três ajustes:
+     - **ajuste 1, bloqueia:** a reconstrução é identificada nos dados e na interface. Cada ponto de
+       `probability-history` ganha `generated_at`, `model_version` e `reconstructed`, e `seasons.json` ganha
+       `history_mode` (`reconstructed`/`recorded`). É aditivo, e o schema do snapshot não muda. O 00 implementa
+       depois da auditoria do 06; o 08 escreve o texto e o 05 o implementa;
+     - **ajuste 2, não bloqueia:** o resumo de cada execução registra as versões e o SHA-256 dos JSON do export;
+     - **ajuste 3, bloqueia ligar `PUBLISH_ENABLED`:** `LIVE_URL` deixa de depender de
+       `github.event.repository.name`, que pode vir vazio no `schedule` (a verificar). Hoje isso faria a checagem de
+       não regressão ser pulada em silêncio em toda execução agendada.
+     Um `MODEL_VERSION` novo passa a ser registrado em `validation.md` como recálculo da história publicada.
+  2. **Revisão do `publish-site.yml`: aprovado do ponto de vista de arquitetura, com o ajuste 3.**
+     - Diário às 09:00 UTC (06:00 em Brasília): ok, porque os jogos noturnos terminam por volta das 02:30 UTC e o
+       Brasil está sem horário de verão.
+     - `SEASON` fixa em 2026: ok. Trocar de temporada exige o TOML do 03 e a releitura dos termos (R14), e esse
+       commit também renova o prazo de 60 dias.
+     - Insights fora do site: ok (D-026). A home fica sem manchete.
+     - Permissões, `concurrency`, interruptor, segredo num passo só e `persist-credentials: false`: ok.
+     - 60 dias sem atividade: **risco aceito, sem keepalive**. Um keepalive exigiria `contents: write` ou
+       `actions: write` no workflow que usa o segredo.
+     - Sugestão ao 07, não bloqueia: tirar o cron do minuto 0 (por exemplo, `17 9 * * *`), porque o GitHub atrasa ou
+       pula execuções agendadas na virada da hora (a verificar).
+  3. **Q18: D-033 cumpre a pendência 4 do ADR-0008.** A Q18 fica aberta só como revisão posterior do dono.
+  4. **Pendência 5 (CBF): decidida pelo 00.** Nenhum programa lê o site da CBF; quem confere é o 01, com evidência
+     pontual nas divergências; ler os termos deixa de ser pré-requisito.
+- **Evidência**:
+  - `pytest -q`: 492 passed;
+  - `ruff check src apps tests scripts infrastructure` e `ruff format --check`: sem erros;
+  - `mypy src apps`: sem erros em 52 arquivos.
+  - Rodados com o `.venv` da pasta principal e `PYTHONPATH` na worktree; `brasileirao` importado da worktree.
+  - A conclusão sobre `LIVE_URL` vem da leitura de `publish-site.yml` e de `check_site_artifact.py`, que imprime
+    "checagem de regressão pulada" quando a URL não responde. Não foi executado no GitHub.
+- **Parecer final do 00 sobre a publicação: NÃO aprovada ainda.** O que falta, por responsável:
+  1. **C1, passos 11 e 12 do ADR-0008:**
+     - **02**: refazer o backtest e as escolhas de temporada sobre o gold de publicação, com simulações suficientes
+       para que a decisão não dependa da ordem dos IDs (`validation.md`, "Achado lateral"). Hoje
+       `data/gold/backtest_report.json` (que vira o `metrics.json` do site) ainda é o relatório sobre os dados do
+       Sofascore;
+     - **06**: revalidar e registrar as métricas em `validation.md`.
+  2. **C1, conferência:** o **01** roda a conferência de 2026 da pendência 5 e registra as contagens no catálogo.
+  3. **Ajuste 1:**
+     - **00**: campos no export;
+     - **08**: texto;
+     - **05**: implementação;
+     - **07**: checagem no `check_site_artifact.py`;
+     - **06**: auditoria.
+  4. **Ajuste 3:** o **07** corrige `LIVE_URL` e cobre com teste. Precisa estar pronto antes de `PUBLISH_ENABLED`.
+  5. **Auditorias do 06:**
+     - passo 10 e revisão do 04;
+     - D-033 (G4 e contraste dos links do rodapé);
+     - `publish-site.yml`, scripts e testes (em curso);
+     - C4 de novo: `git ls-files` e histórico do `main` final, com o repositório ainda privado.
+  6. **C5:** primeira execução real (`workflow_dispatch`, ensaio) depois do merge desta branch, com o 06
+     acompanhando: tempo no runner, gate aprovado e artefato conferido. **Depende do dono cadastrar o segredo.**
+  7. **C6:** busca gratuita no INPI e kit M4 registrados pelo 08 sob D-022, **ou** uma frase do dono aceitando
+     publicar sem isso.
+  8. **Pareceres finais** do 00 e do 06 registrados aqui. Depois disso, o ADR-0007 passa a "aceito".
+  - Não bloqueiam: ajuste 2; cron fora do minuto 0; modo estático explícito em `fetchJson`; `license_notes`
+    "provisório" no `adaoduque.py` (01, próxima ingestão); cartões com cobertura zero (03); Q18; pendência 8.
+- **Premissas e limitações**:
+  - O comportamento do `github.event` no `schedule` e o aviso por e-mail antes de desativar o cron estão "a
+    verificar". O ajuste 3 elimina a dependência do primeiro.
+  - O 00 não editou `docs/architecture/deploy.md` (do 07, em auditoria). O 07 atualiza o "a confirmar pelo 00" e o
+    item 6 da proposta histórica.
+- **Próximos responsáveis**:
+  - **06**: terminar a auditoria; o delta desta entrega é só documentação;
+  - **07**: ajuste 3 (bloqueia), ajuste 2, minuto do cron e `deploy.md`;
+  - **00**: ajuste 1 no export, depois do 06; parecer final quando os itens 1 a 7 tiverem evidência;
+  - **02 e 06**: passos 11 e 12;
+  - **01**: conferência de 2026;
+  - **08 e 05**: texto da reconstrução;
+  - **08**: C6, ou levar a frase ao dono.
+- **Ações do dono do produto (lista mínima e exata, repositório `VitorBSP/aindada`)**:
+  1. **Agora:** Settings → Secrets and variables → Actions → Secrets → New repository secret → nome
+     `FOOTBALL_DATA_ORG_TOKEN`, valor da chave do football-data.org. É o único segredo: não há `STATE_REPO_TOKEN`.
+  2. **Só se o 08 não registrar a busca no INPI e o kit M4:** escrever no chat "aceito publicar sem a busca no INPI
+     e sem o kit M4" (C6).
+  3. **Depois do merge desta branch:** Actions → publish-site → Run workflow, que é o ensaio C5 (~40 min, sem
+     publicar). Um agente pode disparar com `gh workflow run` se o dono autorizar.
+  4. **Só depois do parecer final 00 + 06:** Settings → General → Change visibility → Public; Settings → Pages →
+     Source → GitHub Actions; Settings → Secrets and variables → Actions → Variables → `PUBLISH_ENABLED` = `true`;
+     Actions → publish-site → Run workflow.

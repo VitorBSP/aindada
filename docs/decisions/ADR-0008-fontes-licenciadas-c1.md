@@ -155,6 +155,12 @@ Se qualquer item falhar, nada é publicado e o site anterior fica no ar (ADR-000
 
 ## Decisão 3 — Persistência do SQLite: repositório privado separado
 
+> **Substituída em 2026-10-28** pelo adendo do Agente 07, confirmado pelo 00 com ajustes (fim deste
+> arquivo): não há repositório de estado nem `STATE_REPO_TOKEN`; o site é reconstruído do zero a cada
+> execução. Continuam valendo desta seção: a revogação do asset público, a proibição de SQLite, raw e
+> silver em artefatos públicos e a identificação da história como reconstrução. O texto abaixo fica
+> como registro.
+
 - **Revogado:** o asset público `snapshots-db` (item 4 do ADR-0007). Ele nunca é criado no
   repositório público.
 - **Decidido:** repositório **privado** e gratuito na conta do dono (nome sugerido:
@@ -272,7 +278,8 @@ Alternativas descartadas:
     - **dependência em aberto:** a avaliação do impacto do deslocamento de data de 2024–2026, já em
       andamento no 06. Ela não bloqueia os passos 1 a 9, mas é entrada obrigatória do passo 12, e o
       `model_version` novo só é aceito depois dela.
-13. **07:** repositório privado de estado, segredos, gate G1 a G5, remoção do SQLite dos artefatos
+13. **07:** ~~repositório privado de estado~~ (substituído pela reconstrução a cada execução, adendo
+    de 2026-10-28), segredo, gate G1 a G5, remoção do SQLite dos artefatos
     públicos e adendo em `docs/architecture/deploy.md`.
 14. **08 e 05:** texto de atribuição (C2), com aprovação do dono.
 
@@ -283,7 +290,8 @@ Alternativas descartadas:
 2. **Aceitar por escrito os riscos residuais:** cláusulas 9.1 e 11.1, GPL-2 em dados com coleta "de
    páginas do Google", ausência de garantia de exatidão e a leitura do 00 sobre as cláusulas 6.1 e
    2.3.
-3. **Criar o repositório privado de estado** e a credencial restrita a ele. Cadastrar os segredos
+3. *(Reduzido em 2026-10-28: sem repositório de estado, resta só cadastrar o segredo
+   `FOOTBALL_DATA_ORG_TOKEN`.)* **Criar o repositório privado de estado** e a credencial restrita a ele. Cadastrar os segredos
    `FOOTBALL_DATA_ORG_TOKEN` e `STATE_REPO_TOKEN`. Nenhum agente manipula o valor dos tokens.
 4. **Aprovar os textos de atribuição** (C2), com o 08.
 5. **Termos da CBF:** ler no navegador e definir quem faz a conferência manual dos jogos publicados
@@ -304,8 +312,36 @@ exatidão, história publicada reconstruída) e a licença MIT para o código."
 - Item 1: **feito** pelo orquestrador, a pedido do dono. A v18 foi baixada do endpoint público do
   Kaggle, sem login, e os hashes foram fixados em `data/reference/source_pins.json`. Ver
   `docs/data-sources/catalog.md`.
-- Item 3: em revisão pelo 07, que avalia reconstruir a história no CI sem repositório de estado.
-- Itens 4, 5 e 8: em aberto.
+- Item 3: **reduzido** (00, 2026-10-28). Sem repositório de estado nem `STATE_REPO_TOKEN` (adendo
+  confirmado no fim deste arquivo). Resta ao dono **só** cadastrar o segredo `FOOTBALL_DATA_ORG_TOKEN`.
+- Item 4: **cumprido por D-033** (00, 2026-10-28). Ver "Registro do 00 sobre as pendências 4 e 5".
+- Item 5: **decidido pelo 00** (2026-10-28), sem ação do dono. Ver o mesmo registro.
+- Item 8: em aberto (opcional; não bloqueia).
+
+### Registro do 00 sobre as pendências 4 e 5 (2026-10-28)
+
+- **Pendência 4 (textos de atribuição, C2): cumprida por D-033**, decisão do Agente 08 sob a delegação
+  D-022 (`docs/brand/BRAND_DECISIONS.md`). Motivos:
+  - D-022 delega ao 08 os textos da interface sem aprovação prévia, e o dono pediu para participar o
+    mínimo;
+  - o conteúdo jurídico dos textos não é discricionário. A atribuição do football-data.org é a frase
+    exata da cláusula 7.1. A do Adão Duque é o crédito ao autor, ao Kaggle v18 e à GPL-2.0 que a
+    Decisão 1 já exigia, e o dono aceitou por escrito os riscos da GPL-2 em 2026-10-27;
+  - o G4 confere as duas atribuições, literalmente, no export e no HTML do artefato.
+  A Q18 continua aberta só como revisão posterior do dono (D-022), sem bloquear. Se ele mudar o texto
+  do Adão Duque, o manifesto, o `index.html` e o G4 mudam juntos.
+- **Pendência 5 (CBF): decidida pelo 00, sem ação do dono.**
+  - Nenhum programa lê o site da CBF: não há coleta, cópia nem redistribuição. Ela é só consultada
+    por uma pessoa, como qualquer leitor, para conferir um fato pontual. Por isso a leitura dos termos
+    de uso deixa de ser pré-requisito. Uma coleta automatizada exigiria ler os termos e um ADR.
+  - **Quem confere: o Agente 01.** Antes da primeira publicação, e depois a cada mudança de fonte ou
+    de temporada, ele roda a conferência local dos jogos encerrados da temporada exibida
+    (football-data.org contra o `brasileirao-dataset`, só local, tolerância de ±1 dia na data). Toda
+    divergência de placar é resolvida com evidência pontual (página da partida na CBF ou no ge.globo,
+    com URL e data) ou registrada como exceção. O catálogo recebe só as contagens.
+  - Não se exige conferir cada placar contra a súmula da CBF. O controle adotado é o G1 a G5, mais a
+    conferência cruzada e as 0 divergências em 1.079 jogos (seção 8 da proposta do 01). É isso que
+    "conferência com a CBF" passa a significar no C1 do ADR-0007.
 - Licença do código: MIT (`LICENSE` na raiz). Ela não cobre dados de terceiros nem marcas.
 
 ## Alternativas
@@ -333,7 +369,7 @@ exatidão, história publicada reconstruída) e a licença MIT para o código."
 - `contracts.py` (01), `schema.py` (00) e o gate (07) passam a carregar a licença de ponta a ponta,
   do manifesto ao deploy.
 
-## Adendo proposto pelo Agente 07 (2026-10-27): Decisão 3 sem repositório de estado — **aguarda confirmação do 00**
+## Adendo proposto pelo Agente 07 (2026-10-27): Decisão 3 sem repositório de estado — **confirmado pelo 00 com ajustes (2026-10-28)**
 
 - **Proposta:** substituir o repositório privado de estado e o `STATE_REPO_TOKEN` por
   **reconstrução completa a cada execução** do `publish-site.yml`. O runner começa vazio e termina
@@ -364,3 +400,67 @@ exatidão, história publicada reconstruída) e a licença MIT para o código."
 - **Alternativa, se o 00 recusar:** a Decisão 3 original (repositório privado com `STATE_REPO_TOKEN`)
   continua implementável sem mudar o resto do workflow: bastaria restaurar o SQLite antes do
   `simulate`, trocar `--history-from-round 1` pelo snapshot do dia e salvar o banco no fim.
+
+### Decisão do 00 sobre o adendo (2026-10-28): **confirmado, com ajustes**
+
+O 00 confirma a reconstrução completa a cada execução. A Decisão 3 original deixa de valer na parte do
+repositório privado e do `STATE_REPO_TOKEN`.
+
+- **Por que confirmar.** São menos peças para o dono: um segredo só, nenhum repositório extra, nenhuma
+  credencial com validade a renovar. Também há menos superfície de vazamento: nenhum SQLite com placares
+  sobrevive à execução. Os riscos que a Decisão 3 tratava somem (R12) ou diminuem:
+  - a v18 é baixada do endpoint público e conferida pelo SHA-256 fixado, então não há cópia nossa a
+    proteger;
+  - o custo é tempo de runner, gratuito em repositório público: ~27 min medidos localmente, 30–45 min
+    estimados no runner;
+  - a reprodutibilidade foi medida: ao reexecutar um ponto, as probabilidades de título e rebaixamento
+    saíram idênticas, e o resto diferiu no máximo 5e-13. Com o mesmo código e os mesmos dados, a
+    história publicada não muda de um dia para o outro. Ela só muda quando mudam o modelo, um placar
+    passado ou o calendário.
+- **Validação temporal.** Cada ponto usa só partidas até a sua `reference_date` (`build_snapshot`). Os
+  hiperparâmetros de `model_config.json` foram escolhidos com validação em 2013–2018 e teste em
+  2019–2025, sem 2026. Já as escolhas de desenho do modelo (por exemplo, `goal_dispersion`) foram feitas
+  em outubro de 2026. Por isso cada ponto é uma reconstrução, e não uma previsão da época.
+- **Ajuste 1: a reconstrução é identificada nos dados e na interface (bloqueia a publicação).**
+  A Decisão 3 já exigia isso para cada snapshot reconstruído. No CI, a história inteira é sempre
+  reconstruída com o modelo do dia e muda inteira quando o modelo muda. Quem lê o JSON público e quem lê
+  o site precisa saber disso. Contrato (aditivo; o formato de lista não muda):
+  - `probability-history.json` e `GET /api/seasons/{s}/probability-history`: cada ponto ganha
+    `generated_at` (do snapshot), `model_version` e `reconstructed: bool`. `reconstructed` é `true`
+    quando a data do `generated_at`, em `America/Sao_Paulo`, é posterior à `reference_date` do ponto
+    seguinte, ou seja, quando o ponto foi calculado depois que já havia resultados mais novos. O último
+    ponto é sempre `false`.
+  - `seasons.json`: cada temporada ganha `history_mode`: `"reconstructed"` se algum ponto for
+    reconstruído, `"recorded"` se nenhum for.
+  - Responsáveis:
+    - **00**: implementa em `pipeline.probability_history` e `export_static_api` (interfaces do 00),
+      com testes, **depois que o 06 fechar a auditoria em curso**, para não mudar o que ele está
+      auditando. O `PredictionSnapshot` não muda e o `schema_version` não sobe, porque `generated_at`
+      e `model_version` já estão nele;
+    - **07**: faz o `check_site_artifact.py` exigir `history_mode` e `reconstructed` em todos os pontos.
+  - Interface: o **08** escreve e o **05** implementa um texto curto, perto do gráfico de evolução e em
+    "Como calculamos", com este sentido: "a evolução é recalculada a cada atualização com o modelo atual
+    (`model_version`) e os dados até cada data; não são as previsões publicadas na época". A data do
+    recálculo vem do `generated_at` do snapshot. O 05 só consome o export, e o 06 audita o texto contra
+    os dados.
+- **Ajuste 2: registro do que foi publicado.** Os snapshots do deploy deixam de ser um registro
+  imutável; o ADR-0004 continua valendo para o SQLite local. Para manter a rastreabilidade sem guardar
+  placares fora do site, o **07** acrescenta ao resumo da execução (`GITHUB_STEP_SUMMARY`) a
+  `reference_date`, o `model_version`, o `data_version` e o SHA-256 de cada JSON do export. Não
+  bloqueia. Guardar versões antigas do site não é objetivo: em repositório público, cada artefato
+  retido seria mais uma cópia sujeita à cláusula 9.1.
+- **Ajuste 3: URL do site no ar na checagem de não regressão (bloqueia ligar `PUBLISH_ENABLED`; não
+  bloqueia o C5).** Em `publish-site.yml`, `LIVE_URL` é montada com `github.event.repository.name`. O
+  campo vem no evento `workflow_dispatch`, mas nada garante que venha no `schedule`, cujo payload é
+  mínimo (**a verificar**). Se vier vazio, a URL fica errada e o script **pula a checagem em silêncio**
+  em todas as execuções agendadas. O **07** passa a derivar o nome de `github.repository` (por exemplo,
+  `${GITHUB_REPOSITORY#*/}` no shell) e cobre o caso num teste de `test_workflows.py`.
+- **Consequências aceitas pelo 00:**
+  - a não regressão compara com o `predictions.json` no ar;
+  - um modelo novo reescreve a história publicada, o que conta como mudança de produto: o commit que
+    muda `MODEL_VERSION` registra em `docs/methodology/validation.md` que a história do site será
+    recalculada;
+  - o endpoint do Kaggle vira dependência operacional (R17). Se falhar, o workflow falha e o site
+    anterior fica no ar. O plano B é um ADR novo, e não a volta automática ao repositório de estado.
+- **Nenhuma pendência nova para o dono.** A única mudança para ele é que a pendência 3 se reduz a um
+  segredo.

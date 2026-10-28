@@ -139,3 +139,30 @@ sigla e cores, e `crests_provenance.json` passou a registrá-los como `nao_livre
   arquivo de dados no artefato).
 - **Item 3 (versionamento):** sem mudança. Os dados do Adão Duque, mesmo sob GPL-2, não são
   versionados no repositório público.
+
+## Adendo (2026-10-28, Agente 00): sem persistência entre execuções, agendamento diário
+
+- **Item 4 (persistência), substituído de novo.** Não há repositório privado de estado nem
+  `STATE_REPO_TOKEN`. O `publish-site.yml` reconstrói do zero, a cada execução, toda a história de
+  2026 (um snapshot por rodada com 10 mil simulações, o atual com 100 mil e a revisão por rodada com 20
+  mil, semente 2026). A v18 do Adão Duque é baixada do endpoint público do Kaggle e conferida pelo
+  SHA-256. Nada sobrevive à execução. O único segredo é `FOOTBALL_DATA_ORG_TOKEN`. Decisão e ajustes
+  no fim do ADR-0008 (adendo da Decisão 3): a história é identificada como reconstrução nos dados e
+  na interface.
+- **Item 2 (fluxo):** passa a ser `baixa v18 (SHA-256) → ingest --fetch → validate → simulate
+  --history-from-round 1 → review-rounds → export-web → publication-gate → check_site_artifact →
+  deploy`, sem os passos de restaurar e salvar o SQLite.
+- **Item 8 (não regressão):** compara a `reference_date` do artefato com a do `predictions.json` no
+  ar (ajuste 3 do adendo do ADR-0008).
+- **Item 9 (agendamento): diário às 09:00 UTC (06:00 em Brasília)**, decidido pelo 00 com a
+  delegação do dono. Os jogos noturnos da Série A terminam até ~23h30 em Brasília (02:30 UTC), o que
+  deixa cerca de 6 h para a fonte atualizar. O Brasil não tem horário de verão desde 2019. Em
+  repositório público o custo é zero. O agendamento só roda com `PUBLISH_ENABLED = true`. O dono pode
+  pedir outra frequência a qualquer momento: é uma linha do workflow.
+- **C1, "conferência com a CBF":** passa a ser a conferência local feita pelo 01, com evidência
+  pontual para as divergências (registro do 00 sobre a pendência 5 no ADR-0008).
+- **Consequência (60 dias sem atividade):** **risco aceito, sem keepalive** (R11). Um keepalive teria
+  de fazer commit (`contents: write`) ou reativar o workflow pela API (`actions: write`). Seria uma
+  permissão de escrita a mais, num repositório público, dentro do workflow que usa o segredo, só para
+  evitar algo que tem aviso por e-mail (a verificar) e se resolve com um clique. O site anterior continua no ar
+  enquanto isso. Na temporada, os commits do projeto renovam o prazo.

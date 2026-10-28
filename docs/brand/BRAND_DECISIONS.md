@@ -87,7 +87,7 @@ diretamente no app. Novas questões entram aqui.
 | Q15 | Variante e papel de cada símbolo | respondida: D-017 (R5 com % é o símbolo; R4 e R8 ficam em espera, sem decisão de descarte) |
 | Q16 | Tipografia do nome no logotipo | respondida: D-021 (Inter Tight 800, sem destaque) |
 | Q17 | Siglas e cores do marcador neutro (D-029) estão boas? | aberta: proposta do Agente 08, em uso até revisão do dono do produto |
-| Q18 | Os textos de fonte e licença (D-033) estão bons? E a decisão do 08 sob D-022 cumpre a pendência 4 do ADR-0008 ("aprovar os textos de atribuição"), ou o dono quer dar o OK explícito? | aberta: em vigor como decisão do 08; o enquadramento na pendência 4 cabe ao 00 registrar. Não cobre as pendências 2 (aceite de riscos) e 6 (domínio), que são só do dono |
+| Q18 | Os textos de fonte e licença (D-033) estão bons? E a decisão do 08 sob D-022 cumpre a pendência 4 do ADR-0008 ("aprovar os textos de atribuição"), ou o dono quer dar o OK explícito? | aberta só como revisão posterior do dono (D-022), sem bloquear. **Enquadramento registrado pelo 00 em 2026-10-28: D-033 cumpre a pendência 4 do ADR-0008** (ver "Registro do 00 sobre as pendências 4 e 5" no ADR-0008). Não cobre as pendências 2 (aceite de riscos) e 6 (domínio), que são só do dono |
 
 ## Marcador neutro dos clubes sem escudo livre (D-028, D-029)
 
