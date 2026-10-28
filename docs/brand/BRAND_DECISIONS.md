@@ -53,6 +53,7 @@ Propostas que ainda aguardam decisão ficam em "Questões abertas".
 | D-031 | 2026-10-27 | Revisão de interface: **fundo da interface** passa de papel `#F7F5EF` para branco-papel neutro `#FAFAF7` (superfície `#FFFFFF`, fio `#E2E1DB`); o Papel `#F7F5EF` segue como cor da marca nos arquivos de símbolo, assinatura e ícone. **Home por disputa** (Título, G4, Rebaixamento), com a disputa em destaque escolhida pela atualização e troca livre pelo usuário; mosaico generalizado para vagas (cor da disputa, grupos alternando tom cheio e 50%). **Escudos em todas as páginas.** **Tabela** com colunas fixas e um grupo variável (Título, Libertadores, Sul-Americana, Rebaixamento, Força, Dificuldade da tabela). **Escolha de clube** por grade e faixa de escudos. Jogo sem placar há mais de 7 dias aparece como "adiado, data a definir" | dono do produto (pedido no chat em 2026-10-27, pontos 1 a 7) e Agente 08 sob D-022 (escolha do tom de fundo e do desenho) | o creme amarelava as cores de dado; home e tabela tinham informação demais de uma vez |
 | D-032 | 2026-10-27 | **Bolinha por clube no mosaico**: cada ponto usa as cores do clube, no lugar da cor da disputa. Formas: cor única (Atlético-MG, Cruzeiro, Internacional, Mirassol, Palmeiras, Remo); metade de cima e de baixo (Athletico-PR, Chapecoense, Coritiba, Flamengo, Santos, Vitória; Corinthians com borda vermelha); faixas horizontais (Bahia, São Paulo) ou verticais (Fluminense, Grêmio); preto com miolo branco (Botafogo); branco com aro vermelho e miolo amarelo (Red Bull Bragantino); diagonal preta e branca com miolo vermelho (Vasco). Contorno fino em todas para as partes brancas não sumirem no fundo. Especificação em `CLUB_DOTS` (`apps/web/assets/app.js`) | dono do produto (lista de cores por clube no chat, 2026-10-27) | o mosaico passa a ser lido pelas cores dos clubes, sem depender só da legenda |
 | D-033 | 2026-10-27 | **Textos de fonte, atribuição e licença do site (condição C2 do ADR-0007; passo 14 e G4 do ADR-0008)**: rodapé estático com as duas atribuições exatas dos manifestos, aviso de projeto independente no lugar de "pesquisa local / licença em verificação", seção "Dados" de "Como calculamos" montada a partir de `data.sources` e versão composta dos dados exibida inteira. A atribuição do Adão Duque que estava provisória no manifesto passa a ser a **final, sem mudança de texto**. Textos exatos e especificação para o 05 na seção "Textos de fonte, atribuição e licença (D-033)" abaixo. **Status: decidido pelo Agente 08 sob D-022**; revisão posterior do dono (Q18) | Agente 08, sob D-022, a pedido do orquestrador (o dono quer participar o mínimo) | os textos atuais ficaram falsos com as fontes licenciadas, e o gate G4 reprova o deploy sem as atribuições no HTML estático |
+| D-034 | 2026-10-28 | **C6 do ADR-0007 e texto da reconstrução.** Busca de marca: no INPI (pePI, por radical, termos "ainda da" e "aindada", 28/10/2026) aparecem "Ainda dá Tempo" com registro em vigor nas classes 16 e 41 e um pedido em exame na classe 41; não há "Ainda dá" isolado nem "AInda dá?". Na web aberta não há uso por terceiros em esportes ou apps; WIPO não verificado (CAPTCHA). Kit M4 mínimo = favicon SVG, ícones 180/192/512, manifest e assinaturas que já estão no site; og:image, .ico e o guia ficam para depois. Textos e especificação para o 05 do histórico reconstruído na seção "Busca de marca e reconstrução (D-034)" abaixo | Agente 08 sob D-022 (textos, kit) e **dono do produto** (aceite: "Aceito publicar o AInda dá? sem a busca no INPI concluída e com o kit de marca mínimo que já está no site, ciente das marcas \"Ainda dá Tempo\" na classe 41.", 2026-10-28) | C6 exige busca registrada ou aceite; o histórico reconstruído não pode parecer previsão da época |
 
 ## Propostas rejeitadas ou reconsideradas pelo dono do produto
 
@@ -88,6 +89,7 @@ diretamente no app. Novas questões entram aqui.
 | Q16 | Tipografia do nome no logotipo | respondida: D-021 (Inter Tight 800, sem destaque) |
 | Q17 | Siglas e cores do marcador neutro (D-029) estão boas? | aberta: proposta do Agente 08, em uso até revisão do dono do produto |
 | Q18 | Os textos de fonte e licença (D-033) estão bons? E a decisão do 08 sob D-022 cumpre a pendência 4 do ADR-0008 ("aprovar os textos de atribuição"), ou o dono quer dar o OK explícito? | aberta só como revisão posterior do dono (D-022), sem bloquear. **Enquadramento registrado pelo 00 em 2026-10-28: D-033 cumpre a pendência 4 do ADR-0008** (ver "Registro do 00 sobre as pendências 4 e 5" no ADR-0008). Não cobre as pendências 2 (aceite de riscos) e 6 (domínio), que são só do dono |
+| Q19 | Publicar sem a busca no INPI concluída e com o kit mínimo? | **fechada em 2026-10-28**: o dono aceitou publicar, ciente das marcas "Ainda dá Tempo" na classe 41 (D-034) |
 
 ## Marcador neutro dos clubes sem escudo livre (D-028, D-029)
 
@@ -316,6 +318,58 @@ snapshot de fato usou.
 - Seções "Escudos" e "Limitações" de "Como calculamos". Ressalva para o 03 e o 05: a frase "os critérios
   de cartões usam apenas jogos já disputados" pode ficar imprecisa com cobertura de cartões zero em
   2026 (ADR-0008, "Cartões 2026"). Quando o 03 confirmar o comportamento, o 08 ajusta o texto.
+
+## Busca de marca e reconstrução (D-034)
+
+### Busca de marca (C6)
+
+- INPI pePI, 28/10/2026, pesquisa básica por radical ("ainda da" e "aindada"), feita pelo orquestrador
+  no navegador embutido: 931297427 "Ainda dá Tempo" (em vigor, classe 16), 931297460 "Ainda dá Tempo"
+  (em vigor, classe 41) e 941919234 "Projeto: AINDA DÁ TEMPO" (em exame, classe 41). Detalhe em
+  `docs/project/status.md`, "Busca de marca no INPI, C6".
+- Web aberta (Agente 08, 28/10/2026): nenhum uso de "Ainda dá"/"aindada" em esportes ou apps.
+- WIPO Global Brand Database: não verificado (CAPTCHA).
+- O nome **não é declarado disponível**. Risco aceito pelo dono (D-034, Q19).
+
+### Texto do histórico reconstruído (Ajuste 1 da Decisão 3 do ADR-0008)
+
+Só aparece com `history_mode == "reconstructed"` em `seasons.json`. Campos por ponto do histórico:
+`generated_at`, `model_version` e `reconstructed` (contrato do Agente 00).
+
+- **A. Sob "Evolução ao longo da temporada"**, quando todos os pontos têm `reconstructed === true` e o
+  mesmo `model_version` do snapshot: "Curva recalculada do zero em {data de generated_at mais
+  recente}, com o modelo atual (versão {model_version}). Cada ponto usa só os resultados conhecidos
+  até aquela data, mas não é uma previsão feita na época. Quando o modelo muda, ou quando um
+  resultado é corrigido na fonte, a curva inteira é refeita."
+- **B. Variante** (algum ponto com `reconstructed !== true` ou `model_version` diferente): "Atenção:
+  parte desta curva foi calculada com outra versão do modelo, então as variações entre pontos podem
+  vir da troca de modelo, e não dos jogos."
+- **C. Comparações na home** (`changesSinceLast`, `raceSwitch`), no modo reconstruído: "Comparado à
+  atualização de {data}" passa a ser "Comparado a {data}, na curva recalculada com o mesmo modelo."
+- **D. "Como calculamos"**, nova seção `<h2>Histórico das chances</h2>` depois de "Validação": "O
+  gráfico de evolução de cada clube não guarda as previsões antigas. A cada atualização, refazemos a
+  temporada inteira: para cada data de referência, o modelo atual roda as simulações usando só os
+  resultados conhecidos até aquela data. Por isso a curva inteira muda quando o modelo muda ou quando
+  um placar é corrigido na fonte, e um ponto antigo pode não bater com o que este site mostrou naquele
+  dia. Versão do modelo da curva atual: {model_version}, recalculada em {data}."
+- **E. Aba Rodada a rodada** (achado do 06): as frases "as chances que o modelo dava naquele dia"
+  (`rounds.js:617`), "medida nas simulações feitas antes da bola rolar" (`rounds.js:294`) e "Como o
+  modelo via o campeonato na véspera de cada rodada" (`rounds.js:299`) apresentam a reconstrução como
+  previsão da época. No modo reconstruído passam a: "as chances recalculadas com o modelo atual para
+  aquele dia", "medida em simulações recalculadas com os resultados até a véspera" e "Como o modelo
+  atual vê o campeonato na véspera de cada rodada".
+
+### Especificação para o 05 (`apps/web/assets/app.js` e `rounds.js`)
+
+1. Em `start()`, ler `history_mode` da temporada em `/seasons` e guardar em `state.historyMode`.
+2. Ajudante `reconstructionInfo()`, que devolve `null` fora do modo reconstruído (comportamento atual
+   inalterado) ou `{consistent, modelVersion, generatedAt}`. A data sai de `generated_at` em pt-BR,
+   com `timeZone: "America/Sao_Paulo"`. Todos os valores passam por `escapeHtml`.
+3. `renderClub`: texto A ou B em `<p class="note">` logo depois do gráfico de evolução.
+4. `changesSinceLast` e `raceSwitch`: texto C.
+5. `renderMethodology`: seção D depois de "Validação".
+6. `rounds.js`: textos E.
+7. `aria-label` do SVG em `lineChart`: acrescentar " (curva recalculada com o modelo atual)".
 
 ## Modelo de registro
 

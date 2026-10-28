@@ -1974,3 +1974,13 @@ navegador embutido, em modo anônimo.
 - **Leitura (não é parecer jurídico)**: há uma marca em vigor parecida na classe 41, a mesma de um site
   de informação esportiva. "Ainda dá" é expressão comum, e as marcas encontradas têm o elemento
   distintivo "Tempo". Publicar com o nome atual é decisão de risco do dono do produto (C6, Q19).
+
+## C6 resolvido: aceite do dono para publicar com o nome atual (2026-10-28)
+
+- **Aceite do dono**, literal: "Aceito publicar o AInda dá? sem a busca no INPI concluída e com o kit de
+  marca mínimo que já está no site, ciente das marcas "Ainda dá Tempo" na classe 41."
+- **Registro**: D-034 e Q19 (fechada) em `docs/brand/BRAND_DECISIONS.md`, com os textos e a
+  especificação do 08 para o histórico reconstruído (ajuste 1). A gravação foi feita pelo
+  orquestrador, porque a worktree do 08 tinha sido removida.
+- **Próximos**: o 00 implementa `history_mode` e os campos por ponto; o 05 implementa os textos de
+  D-034, inclusive os da aba Rodada a rodada; o 06 audita.
