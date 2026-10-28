@@ -11,8 +11,6 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-from apps.api.main import create_app
-from fastapi.testclient import TestClient
 
 from brasileirao import pipeline
 from brasileirao.competition_rules.season_rules import SeasonRules
@@ -113,6 +111,11 @@ def test_export_carries_exact_attribution(stored_snapshot: SnapshotStore, tmp_pa
 
 
 def test_api_predictions_expose_sources(stored_snapshot: SnapshotStore, tmp_path: Path) -> None:
+    pytest.importorskip("fastapi")
+    pytest.importorskip("httpx")
+    from apps.api.main import create_app  # noqa: PLC0415
+    from fastapi.testclient import TestClient  # noqa: PLC0415
+
     client = TestClient(create_app(stored_snapshot, tmp_path / "none.json", tmp_path / "editorial"))
     body = client.get("/api/seasons/2032/predictions").json()
     assert body["data"]["license_status"] == "licensed_with_attribution"

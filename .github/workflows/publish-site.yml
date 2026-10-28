@@ -56,7 +56,7 @@ jobs:
           cache: pip
 
       - name: Instalar
-        run: pip install -e ".[sources,dev]"
+        run: pip install -e ".[api,sources,dev]"
 
       - name: Testes (antes de qualquer dado real no runner)
         run: pytest -q
