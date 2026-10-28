@@ -2390,3 +2390,35 @@ ADR-0007 e ADR-0008 e o roadmap. Nenhum código, workflow ou dado mudou.
   4. Actions → publish-site → Run workflow → branch `main` (temporada em branco) → Run. Quando terminar, passar o
      link da execução ao 06. Se `build` ou `deploy` falhar, ou se o 06 reprovar o site, mudar `PUBLISH_ENABLED`
      para `false`.
+
+## Agente 08: aba da rodada na home (D-037, 2026-10-28) — especificação decidida, contrato do 00 e implementação do 05 pendentes
+
+- **O que mudou**: só `docs/brand/BRAND_DECISIONS.md` (linha D-037 e seção "Aba da rodada (D-037)"). Nenhum
+  código, dado ou número da modelagem. Sem commit.
+- **Decisão**: home com "Rodada atual · Título · G4 · Rebaixamento" durante a rodada e "Última rodada · …" depois
+  (rota única `#/inicio/rodada`); padrão = rodada em andamento, ou encerrada até o fim do dia seguinte ao último
+  jogo, senão `featuredRace`; grade de duas linhas até 560 px. Status em texto ("a jogar", "aguardando placar",
+  "encerrado", "adiado"), sem placar parcial, sem "ao vivo" e sem chance de jogo iniciado; "Atualizado às" com
+  o aviso do atraso; início da rodada contra agora com regra de ruído; continentais só em faixa.
+- **Evidência**: leitura de `app.js` (`renderHome`, `raceSwitch`, `changesSinceLast`, `featuredRace`, mosaico),
+  `rounds.js` (`matchCard`, `noiseFloor`), `styles.css` (`.segmented`, cores) e D-029 a D-036. Largura da
+  escolha em uma linha estimada em ~356 px contra 343 px úteis em 375 px (estimativa, não medida em tela).
+- **Critérios**: CONTENT_GUIDELINES, D-022, D-029, D-031, D-034/D-035 (comparação só entre pontos do mesmo
+  modelo), regra de integridade das vagas continentais em faixa.
+- **Pendências**: (00) contrato da rodada — todos os campos estão marcados ‹prov.›; pedido do 08: rodada
+  encerrada quando todos os jogos estão encerrados, adiados, suspensos ou cancelados, e ponto de partida
+  recalculado com o mesmo `model_version`. (05) implementar a seção 6 de D-037 depois do contrato. (06) conferir
+  375/1280, claro/escuro, AA e os estados listados. (08) copiar a jornada J8 para `docs/ux/USER_JOURNEYS.md`.
+  Revisão posterior do dono (D-022).
+- **Próximo responsável**: Agente 00 (contrato), depois 05.
+
+## Aba da rodada: versão enxuta escolhida pelo dono (2026-10-28)
+
+- **Decisão do dono**: "Versão enxuta". Da D-037 entram na v1 as abas Rodada atual / Última rodada, os
+  jogos da rodada com horário, situação e placar, a tabela do que mudou desde o início da rodada e o
+  aviso de atraso.
+- **Fica para depois**: o efeito por jogo (`match.impact`), a chance antes do jogo exibida como
+  "aparecia com X%", as faixas de Libertadores e Sul-Americana do início contra as de agora, e o bloco da
+  próxima rodada.
+- **Workflow**: também por pedido do dono, o desenho foi simplificado. São 2 disparos por dia que
+  esperam até 2h10 depois do início de cada jogo, sem vigia frequente (ADR-0009).

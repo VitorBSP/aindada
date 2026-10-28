@@ -56,6 +56,7 @@ Propostas que ainda aguardam decisão ficam em "Questões abertas".
 | D-034 | 2026-10-28 | **C6 do ADR-0007 e texto da reconstrução.** Busca de marca: no INPI (pePI, por radical, termos "ainda da" e "aindada", 28/10/2026) aparecem "Ainda dá Tempo" com registro em vigor nas classes 16 e 41 e um pedido em exame na classe 41; não há "Ainda dá" isolado nem "AInda dá?". Na web aberta não há uso por terceiros em esportes ou apps; WIPO não verificado (CAPTCHA). Kit M4 mínimo = favicon SVG, ícones 180/192/512, manifest e assinaturas que já estão no site; og:image, .ico e o guia ficam para depois. Textos e especificação para o 05 do histórico reconstruído na seção "Busca de marca e reconstrução (D-034)" abaixo | Agente 08 sob D-022 (textos, kit) e **dono do produto** (aceite: "Aceito publicar o AInda dá? sem a busca no INPI concluída e com o kit de marca mínimo que já está no site, ciente das marcas \"Ainda dá Tempo\" na classe 41.", 2026-10-28) | C6 exige busca registrada ou aceite; o histórico reconstruído não pode parecer previsão da época |
 | D-035 | 2026-10-28 | **Intervalo de pontos e modo de simulação do `cmp-elo-ad-0.3.0`.** (1) "Como calculamos" diz o modo em uso (de `snapshot.dynamic_ratings`) e dá o erro médio e a cobertura **da configuração em produção**, lidos de `season_simulation.uncertainty.{test,validation}[season_simulation.uncertainty.selected]` no `metrics.json`, e não de `overall.fixed` (que é fixo **sem** dispersão de gols: 83,3%/87,5%). Também corrige as frases que descrevem ratings dinâmicos (`app.js:881`, `:882`, `:911`). (2) Na interface, o rótulo "90%" sai e vira **"faixa provável"**; o 90% fica só em "Como calculamos", junto com o acerto medido. (3) Os textos E de D-034 valem **sempre** na aba Rodada a rodada. (4) Pendências do 05 sobre D-034: variante do texto C e título da home confirmados; a seção D sob o texto B passa a avisar que a curva mistura versões. Textos exatos na seção "Intervalo de pontos e modo de simulação (D-035)" abaixo. **Status: decidido pelo Agente 08 sob D-022**; revisão posterior do dono | Agente 08, sob D-022, a pedido do orquestrador (ressalva de integridade do 06, passo 12, e N1) | o intervalo rotulado "90%" acertou 83,1% no teste; a metodologia descrevia o modo que não está em produção; a aba Rodada a rodada é sempre reconstrução (`build_round_review`) |
 | D-036 | 2026-10-28 | Ajustes de interface pedidos pelo dono do produto: legenda do mosaico sem escudo (só a bolinha do clube) e aro do Corinthians mais fino (0,8 em vez de 1,6); tabela ordenável clicando no nome de qualquer coluna (clicar de novo inverte; "Voltar à ordem padrão" restaura); comparativo rodada a rodada com até **5 times**, com duas séries novas: magenta `#A3307C` (escuro `#E48CC4`) com traço e ponto e losango, e verde `#3F7F3A` (escuro `#8FD18A`) com tracejado curto e cruz. Validação da paleta de 5 séries: contraste de 4,7:1 a 16,8:1, distância mínima de cor de 42 em visão normal e de 12,8 a 21 nas simulações de protanopia, deuteranopia e tritanopia; cada série mantém traço e marcador próprios. Dica do gráfico rodada a rodada (mouse ou dedo arrastando) com o jogo e o placar de cada time naquela rodada; jogo sem placar aparece como "a jogar" | dono do produto (pedido no chat em 2026-10-28) e Agente 08 sob D-022 (cores, traços e desenho da dica) | menos ruído na legenda e leitura dos jogos que explicam cada mudança |
+| D-037 | 2026-10-28 | **Aba da rodada na home.** A escolha da home passa a ter quatro opções: **"Rodada atual · Título · G4 · Rebaixamento"** enquanto a rodada está em andamento e **"Última rodada · Título · G4 · Rebaixamento"** depois que ela termina. Mesma rota nos dois estados (`#/inicio/rodada`). Abre por padrão: a rodada, enquanto ela está em andamento e até o fim do dia seguinte ao último jogo (horário de Brasília); fora disso, a disputa em destaque de hoje (`featuredRace`). No celular (até 560 px) a escolha vira duas linhas: a rodada sozinha em cima, as três disputas embaixo. A aba mostra os jogos com horário de Brasília, o status em texto ("a jogar", "aguardando placar", "encerrado", "adiado"), o placar só dos encerrados, o efeito de cada jogo encerrado e as chances do início da rodada contra as de agora, com Libertadores e Sul-Americana em faixa. **Nunca** mostra placar parcial, "ao vivo", minuto de jogo nem chance de jogo já iniciado. "Atualizado às HH:MM" com o aviso do atraso. Textos, estados vazios, acessibilidade e especificação para o 05 na seção "Aba da rodada (D-037)" abaixo. **Status: decidido pelo Agente 08 sob D-022**, com nomes de campos provisórios até o contrato do 00; revisão posterior do dono | dono do produto (pedido de 2026-10-28: página para acompanhar a rodada, opções "Rodada atual \| Título \| G4 \| Rebaixamento" e "Última rodada \| …") e Agente 08 sob D-022 (padrão, layout, textos) | acompanhar a rodada sem fingir tempo real: o site só atualiza cerca de 2h10 depois do início de cada jogo |
 
 ## Propostas rejeitadas ou reconsideradas pelo dono do produto
 
@@ -527,6 +528,269 @@ execução; `rounds.json` nunca guarda previsões da época. Os textos E de D-03
 - 06: `check_site_artifact.py` ou teste equivalente que reprove a página se "Como calculamos" ler
   `season_simulation.overall` para a cobertura ou o MAE em produção, ou se "90%" aparecer fora de
   "Como calculamos".
+
+## Aba da rodada (D-037)
+
+Pedido do dono do produto em 2026-10-28. Decidido pelo Agente 08 sob D-022. O contrato de dados (horários
+em `schedule.json`, definição de "rodada atual", ponto de partida da comparação, efeito por jogo) é do
+Agente 00 e ainda não está fixado: todo nome de campo abaixo marcado **‹prov.›** é provisório e o 05 troca
+pelo nome do contrato, sem mudar textos nem comportamento. Nenhum número da modelagem muda aqui: a aba
+só mostra o que vier no export.
+
+### 0. Jornada (J8, a copiar em `docs/ux/USER_JOURNEYS.md` pelo 08)
+
+"Como está a rodada?" Torcedor engajado, no celular, durante ou logo depois dos jogos. Abre o site e cai
+na rodada; vê quais jogos já terminaram e com que placar, quais faltam e quando; vê quanto a chance do
+seu time mudou desde o início da rodada e qual jogo mexeu nisso. Sabe, sem precisar perguntar, que o site
+não é ao vivo e quando foi a última atualização. Depois que a rodada acaba, encontra o mesmo endereço com
+o resumo e a data da próxima rodada.
+
+### 1. Rótulos, rota, padrão e celular
+
+**Rótulos exatos** (ordem fixa, a rodada sempre primeiro):
+
+| Estado da rodada ‹prov.: `round.state`› | Opções |
+|---|---|
+| em andamento (`in_progress`) | **Rodada atual** · Título · G4 · Rebaixamento |
+| encerrada (`finished`) | **Última rodada** · Título · G4 · Rebaixamento |
+| sem dado de rodada no export (export antigo, pré-temporada) | Título · G4 · Rebaixamento (como hoje; a aba não aparece) |
+
+- Sem número no rótulo da aba ("Rodada 33" fica no título da página): o rótulo cabe no celular e o
+  significado não muda de rodada para rodada.
+- **Rota única** `#/inicio/rodada` nos dois estados, para o link compartilhado continuar valendo.
+- "Em andamento" e "encerrada" seguem a definição do 00. Regra de apresentação que o 08 pede ao 00: a
+  rodada está encerrada quando todos os jogos dela estão encerrados, adiados, suspensos ou cancelados.
+  Jogo atrasado de outra rodada disputado nesse intervalo entra na lista, marcado (item 2), mas não segura
+  a rodada aberta.
+
+**Aba aberta por padrão** (em `#/` e `#/inicio`):
+
+1. Rodada em andamento → **Rodada atual**.
+2. Rodada encerrada → **Última rodada** até 23:59 (horário de Brasília) do dia seguinte ao dia do último
+   jogo encerrado da rodada. Quem volta na manhã seguinte quer o resumo.
+3. Fora disso → a disputa em destaque de hoje, pela regra atual (`featuredRace`: a que mais mudou,
+   senão a mais aberta).
+
+O relógio do visitante só decide duas coisas: a aba padrão (regra 2) e a troca de "a jogar" para
+"aguardando placar" (item 2). Ele **nunca** marca jogo como encerrado nem muda número.
+
+**Dica abaixo da escolha** (`p.note` de `raceSwitch`): na aba da rodada, nenhuma dica (o título da página
+basta). Nas abas de disputa, a dica atual fica como está.
+
+**Celular (até 560 px, o mesmo ponto de quebra de `styles.css`)**: a escolha vira grade de duas linhas,
+com a rodada ocupando a primeira linha inteira e as três disputas dividindo a segunda em partes iguais.
+Motivo: em uma linha, "Última rodada · Título · G4 · Rebaixamento" mede cerca de 356 px com o
+espaçamento atual, mais que a coluna útil de 343 px em 375 px; rolagem lateral esconderia opções, e
+abreviar "Rebaixamento" pioraria a leitura. Alvo de toque com 44 px de altura.
+
+```css
+/* styles.css — escolha da home com a aba da rodada */
+.segmented a { display: inline-flex; align-items: center; justify-content: center; }
+@media (max-width: 560px) {
+  .segmented.has-round { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; }
+  .segmented.has-round a { min-height: 44px; padding: 7px 8px; }
+  .segmented.has-round a:first-child { grid-column: 1 / -1; border-bottom: 1px solid var(--ink); }
+  .segmented.has-round a:nth-child(2) { border-left: 0; }
+}
+```
+
+```js
+// app.js — sugestão de estrutura (lógica de apresentação, do 05)
+const ROUND_TAB = "rodada";
+function roundTab() {               // null quando o export não traz a rodada
+  const round = state.round;        // ‹prov.›: objeto da rodada no export do 00
+  if (!round || !Array.isArray(round.matches) || !round.matches.length) return null;
+  const inProgress = round.state === "in_progress";   // ‹prov.›
+  return { inProgress, label: inProgress ? "Rodada atual" : "Última rodada" };
+}
+function defaultHomeTab(featured) {
+  const tab = roundTab();
+  if (!tab) return featured.id;
+  if (tab.inProgress) return ROUND_TAB;
+  const lastDay = lastFinishedDayInBrasilia(state.round.matches); // "AAAA-MM-DD" do último jogo encerrado
+  return todayInBrasilia() <= addDays(lastDay, 1) ? ROUND_TAB : featured.id;
+}
+// raceSwitch: se roundTab(), primeiro link `<a href="#/inicio/rodada">${tab.label}</a>`,
+// classe `has-round` no <nav>, aria-label "Escolha o que ver"; sem roundTab(), tudo como hoje.
+```
+
+### 2. Layout da aba
+
+Ordem dos blocos, de cima para baixo (o destaque editorial do 08A, quando existir, continua acima da
+escolha, como hoje):
+
+1. Escolha (item 1).
+2. Título `h1` e linha fina (`p.lede`), item 3.
+3. **Atualização**: "Atualizado às…" e o aviso do atraso (`p.note`), mais o aviso de placar atrasado
+   quando houver (`details.warning`, como `overdueWarning`).
+4. **Jogos** (`h2`), agrupados por dia (`h3`), em ordem de horário.
+5. **O que mudou desde o início da rodada** (`h2`): lista curta dos maiores movimentos e, embaixo, a
+   tabela de todos os clubes.
+6. **Vagas na Libertadores e na Sul-Americana** (`h2`): faixas do início e de agora.
+7. Só em "Última rodada": **Próxima rodada** (`h2`), ou o fecho de fim de campeonato.
+8. Só em "Última rodada": link "Análise completa da rodada {n} em Rodada a rodada" (`#/rodadas/{n}`).
+
+**Linha do jogo** (uma por jogo; `ol.round-matches > li.round-match`):
+
+| Status (texto visível) | Condição | Centro | Linha de apoio (`p.rm-meta`) |
+|---|---|---|---|
+| **a jogar** | sem placar, relógio antes do início ‹prov.: `kickoff_utc`› | "×" | "Chances antes do jogo: mandante 48%, empate 27%, visitante 25%." (só se ‹prov.: `pre_match`› existir) |
+| **aguardando placar** | sem placar, relógio depois do início; também quando a fonte disser que está em jogo (`IN_PLAY`, `PAUSED` ou o que o 00 mapear) | "×" | "Começou às 16:00. O placar entra aqui depois do fim do jogo, com atraso." Sem chance nenhuma |
+| **aguardando placar** + aviso | sem placar 4 horas depois do início | "×" | "O placar ainda não chegou da fonte de dados. Até chegar, as chances tratam este jogo como não disputado." |
+| **encerrado** | ‹prov.: `status == "finished"`› com placar | "2 × 1" | efeito do resultado (abaixo) e "Antes do jogo, este resultado aparecia com 22% de chance." (de `pre_match[outcome]`, se existir) |
+| **adiado** | ‹prov.: `postponed`› ou regra dos 7 dias (D-031) | "adiado" | "Data a definir." ou "Remarcado para sábado, 7 de novembro, às 18:30." |
+| **suspenso** / **cancelado** | ‹prov.: `suspended` / `cancelled`› | o status | "Sem placar oficial. Entra nas simulações como não disputado." |
+
+- **Horário** à esquerda, sempre de Brasília, em 24 h ("16:00"), com
+  `timeZone: "America/Sao_Paulo"`; nunca no fuso do aparelho. Uma vez, abaixo do `h2` Jogos: "Horários
+  de Brasília." Dia: "Sábado, 31 de outubro" (`weekday: "long", day: "numeric", month: "long"`, inicial
+  maiúscula). Jogo sem horário definido: "a definir" no lugar da hora.
+- **Jogo atrasado de outra rodada** no mesmo intervalo: na linha de apoio, antes do resto, "Jogo
+  atrasado da rodada 29." (mesma ideia de "jogo da rodada N" em `rounds.js`).
+- **Efeito do resultado** (só encerrado): até 4 chips, ordenados pelo tamanho, juntando as três disputas:
+  "Efeito do resultado: [escudo] PAL título +4 p.p. · [escudo] FLA título −4 p.p." Entra só efeito de
+  1 p.p. ou mais **e** acima do ruído, com o mesmo critério de `noiseFloor` de `rounds.js` (2 erros-padrão).
+  Sem nenhum: "Sem efeito nas chances que se distinga do ruído das simulações." Fonte: ‹prov.:
+  `match.impact[club_id][metric]`›, calculado pelo 02/00; o 05 não calcula efeito.
+- **Mobile**: hora e status na primeira linha; mandante, centro e visitante na segunda (nome completo,
+  pode quebrar em duas linhas, sem reticências); linha de apoio embaixo. Desktop: uma linha com hora,
+  mandante, centro e visitante, apoio embaixo.
+
+```html
+<section class="round-day" aria-labelledby="dia-2026-10-31">
+  <h3 id="dia-2026-10-31">Sábado, 31 de outubro</h3>
+  <ol class="round-matches">
+    <li class="round-match is-finished">
+      <span class="rm-time">16:00</span><span class="rm-status">encerrado</span>
+      <span class="rm-home">{clubLink(home, 20)}</span>
+      <span class="rm-center" aria-hidden="true">2 × 1</span>
+      <span class="visually-hidden">Placar final: Palmeiras 2, Flamengo 1.</span>
+      <span class="rm-away">{clubLink(away, 20, true)}</span>
+      <p class="rm-meta">Efeito do resultado: <span class="chip">…</span></p>
+    </li>
+  </ol>
+</section>
+```
+
+**Atualização** (bloco 3), sempre visível nos dois estados:
+
+> Atualizado às 21:42 de quarta, 28 de outubro (horário de Brasília).
+>
+> O site não acompanha os jogos ao vivo. Cada placar entra aqui depois do apito final, em geral de 30
+> minutos a 1 hora depois, quando a fonte de dados registra o resultado e as simulações são refeitas.
+> Recarregue a página para ver a atualização mais recente.
+
+Hora de ‹prov.: `updated_at`›; sem ele, `snapshot.generated_at`. Em "Última rodada", só a primeira frase
+e: "Esta rodada não muda mais, a não ser que a fonte corrija um placar."
+
+**Bloco 5, O que mudou desde o início da rodada.** Nota de comparação, logo abaixo do `h2`:
+
+- ponto de partida recalculado (‹prov.: `baseline.recomputed == true`›; o caso esperado pela D-034):
+  "Início da rodada = chances com os resultados conhecidos antes do primeiro jogo, recalculadas com o
+  mesmo modelo de agora (versão {model_version}). Não é necessariamente o que o site mostrava naquela
+  hora. A diferença vem dos jogos encerrados desde então."
+- ponto de partida guardado da época, com o mesmo `model_version`: "Início da rodada = chances
+  publicadas em {data e hora}, antes do primeiro jogo, com o mesmo modelo de agora."
+- `model_version` diferente entre o início e agora: **não mostrar variação nenhuma**, só as chances de
+  agora, com: "O modelo mudou durante a rodada (versão {antiga} para {nova}). Comparar as duas daria
+  diferenças que não vêm dos jogos, então mostramos só as chances de agora."
+
+Depois da nota:
+
+- **Maiores movimentos** (`ul.changes`, o formato de `changesSinceLast`): até 6 itens, de título, G4 e
+  rebaixamento, com variação de 2 p.p. ou mais e acima do ruído. Item: "[escudo] Palmeiras: título de 31%
+  para 38% (+7 p.p.)". Na primeira menção da página, "pontos percentuais" por extenso
+  (`<abbr title="pontos percentuais">p.p.</abbr>` nas outras).
+- **Todos os clubes**: tabela com `caption` "Chances no início da rodada e agora", colunas Clube · Título ·
+  G4 · Queda, ordem da classificação atual. Célula: valor de agora em cima e, embaixo, em `.range`, a
+  variação ("+7") ou "=" quando abaixo do limite. "–" quando o valor é 0% no início e agora. Cabe em 375
+  px com escudo 20 px e `short_name`; o nome completo vai no `title` do link.
+- **Ruído** (lógica de apresentação, os números não mudam): variação mostrada só se
+  `|agora − início| ≥ max(0,01; 2·√(p0(1−p0)/n0 + p1(1−p1)/n1))`, com `n` = número de simulações de cada
+  ponta.
+
+**Bloco 6, vagas continentais.** Sempre como faixa entre cenários, nunca um número só e nunca uma
+variação calculada entre faixas. Clubes como em `libertadoresRanges` (máximo acima de 2% e mínimo abaixo
+de 98%), até 8. Linha: "[escudo] Fluminense — Libertadores: 25% a 52% agora; 20% a 45% no início da
+rodada." e, abaixo, o mesmo para Sul-Americana quando o clube estiver nessa disputa. Nota: "Depende de
+quem vence Libertadores, Sul-Americana e Copa do Brasil. Por isso mostramos o menor e o maior valor entre
+os {n} cenários possíveis."
+
+**Entre rodadas ("Última rodada", bloco 7)**:
+
+- "Próxima rodada": "A rodada {n+1} começa {sábado, 31 de outubro}, às {16:00}." e a lista de jogos com
+  horário, no formato "a jogar" acima. Sem horário ainda: "A rodada {n+1} ainda não tem horários
+  definidos." Link: "Chances de cada jogo em Partidas" (`#/partidas`).
+- Fim do campeonato (rodada 38 encerrada, sem próxima): "Fim do campeonato. As chances finais estão em
+  Título, G4 e Rebaixamento."
+- Link do bloco 8 com a ressalva: "Análise completa da rodada {n} em Rodada a rodada (recalculada com os
+  resultados até a véspera de cada rodada; os números podem diferir um pouco dos daqui)."
+
+### 3. Títulos, microtextos e estados vazios
+
+| Situação | `h1` | Linha fina |
+|---|---|---|
+| em andamento, nenhum jogo encerrado | "Rodada {n}: nenhum jogo encerrado ainda" | "As chances abaixo são as do início da rodada. Cada placar entra depois do apito final, com atraso." |
+| em andamento, k de m encerrados | "Rodada {n}: {k} de {m} jogos encerrados" | "Até agora, a maior mudança é do {Clube}: chance de {disputa} de {a} para {b}." ou "Até agora, nenhuma chance mudou além do ruído das simulações." |
+| encerrada | "Rodada {n} encerrada" (com adiado: "Rodada {n} encerrada, com {j} {jogo adiado \| jogos adiados}") | "A maior mudança foi do {Clube}: chance de {disputa} de {a} para {b}." ou "Nenhuma chance mudou além do ruído das simulações nesta rodada." |
+| variação escondida (modelo mudou) | igual às linhas acima | sem a frase de maior mudança |
+
+- {disputa}: "título", "G4", "rebaixamento". "m" conta só os jogos da rodada que não foram adiados,
+  suspensos nem cancelados.
+- Frase de maior mudança: a maior variação acima do ruído entre as três disputas. Causa só como fato
+  ("depois do 2 × 1 sobre o Flamengo"), e só quando o efeito daquele jogo, no chip, for o maior do clube.
+- Bloco 5 sem nenhum jogo encerrado: "Nenhum jogo da rodada terminou ainda, então as chances não
+  mudaram." (a tabela aparece só com os valores do início).
+- Bloco 6 sem clube na briga: o bloco some.
+- Erro ao carregar os dados da rodada: a aba some e a home volta ao comportamento atual. Não mostrar aba
+  vazia.
+
+### 4. Acessibilidade, escudos e cores
+
+- Status sempre em texto; nenhuma informação só por cor, posição ou ícone.
+- Placar para leitor de tela: o "2 × 1" visual fica `aria-hidden` e uma frase `visually-hidden` diz
+  "Placar final: Palmeiras 2, Flamengo 1." (sem "vezes"). "Antes e agora" com seta: seta `aria-hidden` e
+  " para " em `visually-hidden`. Sinal de menos é o U+2212, lido como "menos".
+- Classe nova no `styles.css`: `.visually-hidden { position:absolute; width:1px; height:1px; margin:-1px;
+  padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }`.
+- Nada de `aria-live` nem atualização automática: a página só muda quando o visitante recarrega.
+- Dias em `h3`, jogos em `ol`, tabela com `caption` e `th scope`. Foco visível nos links da escolha; alvo
+  de 44 px no celular.
+- **Escudos e marcadores**: `crest(clubId, 20)` nas linhas dos jogos e na tabela; 16 px nos chips. Os três
+  clubes sem escudo livre usam o marcador neutro de D-029, nunca imitação de escudo. As bolinhas por clube
+  (D-032) ficam no mosaico; não entram nesta aba.
+- **Cores**: só as que já existem. Título `var(--title)`, G4 e Libertadores `var(--libertadores)`,
+  Sul-Americana `var(--sudamericana)`, rebaixamento `var(--danger)`; variação boa para o clube em
+  `.change-up`, ruim em `.change-down` (subir no rebaixamento é ruim), sempre com sinal e número. A aba
+  selecionada usa o invertido atual (tinta), **não** o vermelho-sinal. Status em `var(--ink-soft)`;
+  "adiado" e o aviso de placar atrasado em `var(--sudamericana)`, como `.postponed` e `.warning`.
+- 06: conferir 375 px e 1280 px, claro e escuro, sem rolagem horizontal, contraste AA.
+
+### 5. O que não fazer
+
+- Não escrever "ao vivo", "agora" como tempo real, "minuto a minuto", "acompanhe em tempo real", nem usar
+  ponto pulsante, vermelho piscando, contagem regressiva ou relógio correndo.
+- Não mostrar placar parcial, minuto de jogo, gols de jogo em andamento nem nada que a fonte traga durante
+  o jogo, mesmo que o export traga.
+- Não mostrar chance de jogo já iniciado (nem a de antes do jogo, para não ser lida como chance ao vivo),
+  nem "chance de virar".
+- Não recarregar a página sozinho nem prometer quando sai a próxima atualização ("em geral" é o limite).
+- Não usar o relógio do aparelho para dizer que um jogo terminou nem para mudar número.
+- Não comparar pontos de versões diferentes do modelo; não calcular variação entre faixas continentais.
+- Não atribuir causa além do efeito medido do jogo; não usar "decidiu", "acabou", "já era", ponto de
+  exclamação nem palavras de aposta (CONTENT_GUIDELINES).
+- Não usar notificação nem chamada para "voltar daqui a pouco".
+
+### 6. Para o 05 implementar (quando o contrato do 00 sair)
+
+1. Ler o objeto da rodada do export (‹prov.› `state.round`) em `start()`; sem ele, nada muda.
+2. `raceSwitch` com a aba da rodada (item 1) e `renderHome` com `defaultHomeTab`; `renderRoundTab()` novo
+   com os blocos do item 2.
+3. CSS do item 1 e `.visually-hidden`; layout da linha do jogo em `styles.css`.
+4. Trocar os nomes ‹prov.› pelos do contrato e avisar o 08 se algum texto depender de campo que não
+   existir (o 08 ajusta o texto, não o 05).
+5. Conferência em 375 px e 1280 px, claro e escuro, nos estados: nenhum jogo encerrado, rodada no meio,
+   jogo aguardando placar, jogo adiado, rodada encerrada, fim do campeonato e export sem rodada.
 
 ## Modelo de registro
 
