@@ -291,12 +291,12 @@
         <p class="note">Tabela real em ${formatDate(view.reference_date)} e variação desde ${formatDate(previous.reference_date)}. <strong>Resultados</strong>: efeito dos jogos, com a força dos times congelada. <strong>Força</strong>: efeito da reavaliação dos times depois desses jogos. As duas colunas somam a variação.</p>
         ${roundTable(view, metric)}
         <h2>Jogos do intervalo e quem eles afetaram</h2>
-        <p class="note">Efeito = chance de ${METRIC_LABELS[metric]} com o resultado real menos a chance antes do jogo, medida nas simulações feitas antes da bola rolar. Inclui jogos adiados de outras rodadas. Só aparecem efeitos acima de 2 erros-padrão do ruído da simulação.</p>
+        <p class="note">Efeito = chance de ${METRIC_LABELS[metric]} com o resultado real menos a chance antes do jogo, ${helpers.reconstructed ? "medida em simulações recalculadas com os resultados até a véspera" : "medida nas simulações feitas antes da bola rolar"}. Inclui jogos adiados de outras rodadas. Só aparecem efeitos acima de 2 erros-padrão do ruído da simulação.</p>
         ${[...view.matches].sort((left, right) => relevantImpacts(right, metric, "impacts", 0, previous).reduce((t, e) => t + Math.abs(e.value), 0) - relevantImpacts(left, metric, "impacts", 0, previous).reduce((t, e) => t + Math.abs(e.value), 0)).map((match) => matchCard(match, metric, previous, view)).join("")}`
       : `<h2>Pré-temporada</h2><p>Antes do primeiro jogo, só com a força herdada da temporada anterior (com regressão à média; promovidos recebem a média dos rebaixados).</p>
         ${roundTable(view, metric)}`;
     main.innerHTML = `
-      ${header("rodada", `Como o modelo via o campeonato na véspera de cada rodada, desde a pré-temporada, e o que fez as chances mudarem. ${views.length} visões com ${review.n_simulations.toLocaleString("pt-BR")} simulações cada; dados até ${formatDate(review.data_until)}.`)}
+      ${header("rodada", `${helpers.reconstructed ? "Como o modelo atual vê o campeonato na véspera de cada rodada" : "Como o modelo via o campeonato na véspera de cada rodada"}, desde a pré-temporada, e o que fez as chances mudarem. ${views.length} visões com ${review.n_simulations.toLocaleString("pt-BR")} simulações cada; dados até ${formatDate(review.data_until)}.`)}
       ${helpers.highlights ? helpers.highlights(view) : ""}
       ${metricPicker(metric, METRIC_TITLES, "metric")}
       <h2>Onde o campeonato mudou</h2>
@@ -614,7 +614,7 @@
         <label>Rodada <select id="compare-round">${views.map((view) => `<option value="${view.round_number}" ${view === roundView ? "selected" : ""}>${roundLabel(view)} · ${formatDate(view.reference_date)}</option>`).join("")}</select></label>
         ${views[views.indexOf(roundView) + 1] ? `<button type="button" class="button" data-compare-step="1">próxima →</button>` : "<span></span>"}
       </div>
-      <p class="note">${roundView.round_number === 0 ? "Antes do primeiro jogo: sem tabela, ordenado pelos pontos projetados." : `Tabela real em ${formatDate(roundView.reference_date)} e as chances que o modelo dava naquele dia.`} Os times escolhidos aparecem destacados, com o mesmo marcador do gráfico.</p>
+      <p class="note">${roundView.round_number === 0 ? "Antes do primeiro jogo: sem tabela, ordenado pelos pontos projetados." : `Tabela real em ${formatDate(roundView.reference_date)} e ${helpers.reconstructed ? "as chances recalculadas com o modelo atual para aquele dia" : "as chances que o modelo dava naquele dia"}.`} Os times escolhidos aparecem destacados, com o mesmo marcador do gráfico.</p>
       ${compareSnapshotTable(roundView, selected)}`;
     main.querySelectorAll("[data-club]").forEach((button) => button.addEventListener("click", () => {
       const club = button.dataset.club;

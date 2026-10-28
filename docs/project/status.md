@@ -2131,3 +2131,31 @@ Branch `feat/historico-reconstruido`, a partir de `origin/main` em `b97caad`. Se
   - **06**: auditar a conferência de 2026 e as correções N3–N6.
   - **00**: considerar cumprido o item 2 do parecer final ("C1, conferência").
   - **05**: avaliar a nota de `frontend.md`.
+
+### Handoff 05 → 08, 06 e 00: D-034 implementado na interface (2026-10-28, branch `web/d034-reconstrucao`)
+
+- **O que mudou** (`apps/web/assets/app.js`, `apps/web/assets/rounds.js`):
+  - `start()` lê `history_mode` da temporada em `/seasons` e guarda em `state.historyMode`;
+    `reconstructionInfo()` devolve `null` fora do modo reconstruído ou `{consistent, modelVersion,
+    generatedAt}` (data do `generated_at` mais recente, pt-BR, `America/Sao_Paulo`, tudo por `escapeHtml`);
+  - clube: texto A (todos os pontos com o `model_version` do snapshot) ou B em `<p class="note">` depois
+    do gráfico; `aria-label` do gráfico com " (curva recalculada com o modelo atual)";
+  - home: texto C em `changesSinceLast` e no `raceSwitch`; "Como calculamos": seção D depois de
+    "Validação"; Rodada a rodada: as três frases E, via `reconstructed` no contexto passado a `rounds.js`.
+- **Evidência**:
+  - export com os campos novos gerado por `export-web` numa cópia do ensaio do 00 (`seasons.json` com
+    `history_mode: "reconstructed"`, 5 pontos em `cmp-elo-ad-0.2.0`, o último com `reconstructed: false`);
+  - Chrome headless em clube, home, Como calculamos, rodada 32 e comparar, a 375 e 1280 px, claro e
+    escuro: textos A, C, D e E presentes, sem rolagem horizontal e sem erros no console (40 combinações);
+    export antigo (sem `history_mode` e sem os campos por ponto): textos atuais, nenhum texto novo, sem
+    erros; variante B (um ponto com outra versão e um `model_version` com HTML): texto B, sem HTML injetado;
+  - `publication-gate` e `check_site_artifact.py` sobre o artefato: aprovados (0 achados);
+  - `pytest -q`: 541 passed; `ruff check` e `mypy src apps/api` sem erros.
+- **Premissas e limitações**:
+  - **para o 08 confirmar**: D-034 não traz texto para C quando os dois pontos comparados têm modelos
+    diferentes. A interface usa "Comparado a {data}, na curva recalculada." seguido do texto B, e no
+    `raceSwitch` só ", na curva recalculada". O título "O que mudou em … desde a última atualização"
+    ficou igual;
+  - no texto B a seção D continua citando a versão do snapshot como "versão do modelo da curva atual".
+- **Próximos responsáveis**: **08** confirma as variantes acima; **06** audita os textos e a condição
+  A/B; **00** faz o merge.

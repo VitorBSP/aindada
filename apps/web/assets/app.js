@@ -2,7 +2,7 @@
   "use strict";
 
   const SEASON = 2026;
-  const state = { snapshot: null, history: [], metrics: null, rounds: null, insights: [], crests: {}, apiMode: false, scenarioChoice: {} };
+  const state = { snapshot: null, history: [], metrics: null, rounds: null, insights: [], crests: {}, apiMode: false, scenarioChoice: {}, historyMode: null };
   const main = document.getElementById("main");
 
   const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (char) => (
@@ -19,6 +19,7 @@
   }
   const num = (value, digits = 1) => Number(value).toFixed(digits).replace(".", ",");
   const formatDate = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+  const formatTimestampDate = (timestamp) => new Date(timestamp).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric", timeZone: "America/Sao_Paulo" });
   const formatShortDate = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" });
 
   async function fetchJson(path) {
@@ -37,6 +38,28 @@
   }
 
   const teamById = (clubId) => state.snapshot.teams.find((team) => team.club_id === clubId);
+
+  function reconstructionInfo() {
+    if (state.historyMode !== "reconstructed" || !state.history.length) return null;
+    const modelVersion = state.snapshot.model.model_version;
+    const stamps = state.history.map((point) => point.generated_at).filter((stamp) => stamp && !Number.isNaN(Date.parse(stamp)));
+    const latestStamp = stamps.length ? stamps.reduce((left, right) => (Date.parse(right) > Date.parse(left) ? right : left)) : state.snapshot.generated_at;
+    return {
+      consistent: state.history.every((point) => point.model_version === modelVersion),
+      modelVersion: escapeHtml(modelVersion),
+      generatedAt: escapeHtml(formatTimestampDate(latestStamp)),
+    };
+  }
+
+  function sameModel(left, right) {
+    return Boolean(left && right && left.model_version && left.model_version === right.model_version);
+  }
+
+  function reconstructionNote(info) {
+    if (!info) return "";
+    if (!info.consistent) return `<p class="note">Atenção: parte desta curva foi calculada com outra versão do modelo, então as variações entre pontos podem vir da troca de modelo, e não dos jogos.</p>`;
+    return `<p class="note">Curva recalculada do zero em ${info.generatedAt}, com o modelo atual (versão ${info.modelVersion}). Cada ponto usa só os resultados conhecidos até aquela data, mas não é uma previsão feita na época. Quando o modelo muda, ou quando um resultado é corrigido na fonte, a curva inteira é refeita.</p>`;
+  }
   const nameOf = (clubId) => (teamById(clubId) || { name: clubId }).name;
 
   const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
@@ -140,7 +163,12 @@
     }
     changes.sort((left, right) => Math.abs(right.delta) - Math.abs(left.delta));
     if (!changes.length) return `<p class="note">Nenhuma chance andou mais de 5 pontos percentuais desde ${formatDate(previous.reference_date)}.</p>`;
-    return `<p class="note">Comparado à atualização de ${formatDate(previous.reference_date)}. Só entram variações de 5 pontos percentuais ou mais.</p><ul class="changes">` + changes.slice(0, 8).map((change) => {
+    const comparedTo = !reconstructionInfo()
+      ? `Comparado à atualização de ${formatDate(previous.reference_date)}.`
+      : sameModel(previous, latest)
+        ? `Comparado a ${formatDate(previous.reference_date)}, na curva recalculada com o mesmo modelo.`
+        : `Comparado a ${formatDate(previous.reference_date)}, na curva recalculada. Atenção: parte desta curva foi calculada com outra versão do modelo, então as variações entre pontos podem vir da troca de modelo, e não dos jogos.`;
+    return `<p class="note">${comparedTo} Só entram variações de 5 pontos percentuais ou mais.</p><ul class="changes">` + changes.slice(0, 8).map((change) => {
       const sign = change.delta > 0 ? "+" : "−";
       const css = (change.label === "rebaixamento") === (change.delta > 0) ? "change-down" : "change-up";
       return `<li>${clubLink(change.clubId)}: chance de ${change.label} <span class="${css}">${sign}${Math.round(Math.abs(change.delta) * 100)} p.p.</span> (agora ${pct(change.now)})</li>`;
@@ -367,8 +395,10 @@
   function raceSwitch(selected, featured) {
     const links = Object.entries(RACES).map(([id, race]) => `<a href="#/inicio/${id}" ${id === selected ? 'aria-current="page"' : ""}>${race.label}</a>`).join("");
     const previous = state.history[state.history.length - 2];
+    const latest = state.history[state.history.length - 1];
+    const curve = !reconstructionInfo() ? "" : sameModel(previous, latest) ? ", na curva recalculada com o mesmo modelo" : ", na curva recalculada";
     const why = featured.reason === "movement" && previous
-      ? `a disputa que mais mudou desde ${formatDate(previous.reference_date)}`
+      ? `a disputa que mais mudou desde ${formatDate(previous.reference_date)}${curve}`
       : "a disputa mais aberta agora";
     const hint = selected === featured.id ? `Em destaque nesta edição: ${why}.` : `<a href="#/inicio/${featured.id}">Voltar ao destaque da edição</a> (${RACES[featured.id].noun}, ${why}).`;
     return `<div class="race-switch"><nav class="segmented" aria-label="Escolha a disputa">${links}</nav><p class="note">${hint}</p></div>`;
@@ -658,7 +688,7 @@
         <text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" text-anchor="${toLeft ? "end" : "start"}">${escapeHtml(note.text)}</text></g>`;
     }).join("") : "";
     const description = series.map((item) => `${item.label} ${pct(item.values[item.values.length - 1])}`).join(", ");
-    return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Evolução das chances de ${formatDate(first)} a ${formatDate(last)}: ${escapeHtml(description)}">${grid}${lines}${notes}${labels}
+    return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Evolução das chances de ${formatDate(first)} a ${formatDate(last)}: ${escapeHtml(description)}${reconstructionInfo() ? " (curva recalculada com o modelo atual)" : ""}">${grid}${lines}${notes}${labels}
       <text x="${left}" y="${height - 6}">${formatDate(first)}</text><text x="${width - right}" y="${height - 6}" text-anchor="end">${formatDate(last)}</text></svg>
       ${annotated ? `<p class="note">Anotações marcam o pico e a maior virada em ${escapeHtml(annotated.label.toLowerCase())}; só aparecem variações acima de ${Math.round(MIN_ANNOTATED_JUMP * 100)} pontos percentuais e de ${NOISE_Z} vezes o erro da simulação.</p>` : ""}`;
   }
@@ -746,6 +776,7 @@
         const focus = openMetric(history);
         return lineChart(series, 240, series.find((item) => item.key === focus));
       })()}
+      ${reconstructionNote(reconstructionInfo())}
       <h2>Força estimada</h2>
       <div class="stat-row">
         <div class="stat"><span class="label">Elo</span><span class="big">${Math.round(team.ratings.elo)}</span><span class="sub">média da liga = 1500</span></div>
@@ -840,6 +871,7 @@
     const labels = { base_rate: "Taxa-base (frequências históricas)", intercept_only: "Poisson sem variáveis", elo_only: "Elo", attack_defense_only: "Ataque/defesa", elo_attack_defense: "Elo + ataque/defesa (escolhido)", full: "Elo + ataque/defesa + forma", elo_attack_defense_sem_dixon_coles: "Escolhido sem Dixon-Coles" };
     const metricRows = metrics ? Object.entries(metrics.test_metrics).map(([name, values]) => `<tr><td class="left">${labels[name] || escapeHtml(name)}</td><td>${num(values.log_loss, 4)}</td><td>${num(values.brier, 4)}</td><td>${num(values.rps, 4)}</td></tr>`).join("") : "";
     const simulation = metrics && metrics.season_simulation ? metrics.season_simulation.overall : null;
+    const reconstruction = reconstructionInfo();
     main.innerHTML = `
       <span class="kicker">Como calculamos</span>
       <h1>De onde saem as porcentagens</h1>
@@ -861,6 +893,8 @@
         <p class="note">Empates previstos: ${pct(metrics.draw_rate.predicted)} · observados: ${pct(metrics.draw_rate.observed)}.</p>
         ${simulation ? `<p>Na simulação de temporadas passadas (snapshots nas rodadas ${metrics.season_simulation.rounds.join(", ")}), o intervalo de 90% para os pontos finais acertou ${pct(simulation.dynamic.points_interval_90_coverage)} das vezes com ratings dinâmicos e ${pct(simulation.fixed.points_interval_90_coverage)} com ratings fixos. Erro médio da pontuação final projetada: ${num(simulation.dynamic.points_mae)} pontos.</p>` : ""}`
         : "<p class='note'>Relatório de backtesting indisponível.</p>"}
+      ${reconstruction ? `<h2>Histórico das chances</h2>
+      <p>O gráfico de evolução de cada clube não guarda as previsões antigas. A cada atualização, refazemos a temporada inteira: para cada data de referência, o modelo atual roda as simulações usando só os resultados conhecidos até aquela data. Por isso a curva inteira muda quando o modelo muda ou quando um placar é corrigido na fonte, e um ponto antigo pode não bater com o que este site mostrou naquele dia. Versão do modelo da curva atual: ${reconstruction.modelVersion}, recalculada em ${reconstruction.generatedAt}.</p>` : ""}
       <h2>Dados</h2>
       <p>Cada temporada vem de uma única fonte, sem completar com outra. Jogo sem placar na fonte entra nas simulações como ainda não disputado.</p>
       <ul class="data-sources">${dataSources(snapshot.data).map(sourceItem).join("")}</ul>
@@ -893,7 +927,7 @@
     else if (section === "clubes") renderClub(decodeURIComponent(parameter));
     else if (section === "partidas") renderMatches();
     else if (section === "rodadas") {
-      window.Rounds.render(main, [parameter, ...rest], { review: state.rounds, escapeHtml, pct, num, formatDate, formatShortDate, highlights: roundHighlights });
+      window.Rounds.render(main, [parameter, ...rest], { review: state.rounds, escapeHtml, pct, num, formatDate, formatShortDate, highlights: roundHighlights, reconstructed: Boolean(reconstructionInfo()) });
     }
     else if (section === "metodologia") renderMethodology();
     else renderHome(parameter);
@@ -918,6 +952,9 @@
       return;
     }
     state.history = (await fetchJson(`/seasons/${SEASON}/probability-history`)) || [];
+    const seasons = await fetchJson("/seasons");
+    const season = Array.isArray(seasons) ? seasons.find((item) => item && item.season === SEASON) : null;
+    state.historyMode = season && typeof season.history_mode === "string" ? season.history_mode : null;
     state.metrics = await fetchJson("/models/metrics");
     state.rounds = await fetchJson(`/seasons/${SEASON}/rounds`);
     state.insights = (await fetchJson(`/seasons/${SEASON}/insights`)) || [];
