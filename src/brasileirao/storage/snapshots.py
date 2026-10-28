@@ -4,6 +4,10 @@ Cada linha guarda `composition_mode` e `license_status` do `DataInfo` (ADR-0008,
 loja só lê o que é publicável: composição de publicação e licença verificada ou com atribuição. Snapshots de
 pesquisa, os anteriores ao schema 1.2 (sem modo) e as revisões por rodada sem modo ficam gravados, mas só
 aparecem com `include_research=True` (uso local, nunca na API pública nem no export estático).
+
+A coluna `reconstructed` (ajuste 1 da Decisão 3 do ADR-0008) marca o snapshot calculado depois que a base já
+tinha resultados posteriores à sua `reference_date`. Fica fora do payload, então o `PredictionSnapshot` e o
+`schema_version` não mudam. Linhas antigas ficam com `NULL` (desconhecido) e o export aplica a regra de datas.
 """
 
 from __future__ import annotations
@@ -13,6 +17,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from brasileirao.contracts import PUBLISHABLE_LICENSE_STATUSES
 from brasileirao.storage.schema import PredictionSnapshot, RoundReview
@@ -32,7 +37,8 @@ CREATE TABLE IF NOT EXISTS snapshots (
     is_synthetic INTEGER NOT NULL,
     payload TEXT NOT NULL,
     composition_mode TEXT,
-    license_status TEXT
+    license_status TEXT,
+    reconstructed INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_snapshots_season_date ON snapshots (season, reference_date);
 CREATE TABLE IF NOT EXISTS round_reviews (
@@ -69,7 +75,7 @@ _PUBLICATION_FILTER = (
 
 
 def _migrate(connection: sqlite3.Connection) -> None:
-    """Acrescenta as colunas de publicação a bancos antigos e as preenche a partir do payload (idempotente)."""
+    """Acrescenta as colunas novas a bancos antigos e preenche as de publicação pelo payload (idempotente)."""
     for table, (mode_path, license_path) in _BACKFILL.items():
         existing = {row[1] for row in connection.execute(f"PRAGMA table_info({table})")}
         for column in _PUBLICATION_COLUMNS:
@@ -81,6 +87,9 @@ def _migrate(connection: sqlite3.Connection) -> None:
             "WHERE license_status IS NULL AND json_extract(payload, ?) IS NOT NULL",
             (mode_path, license_path, license_path),
         )
+    snapshot_columns = {row[1] for row in connection.execute("PRAGMA table_info(snapshots)")}
+    if "reconstructed" not in snapshot_columns:
+        connection.execute("ALTER TABLE snapshots ADD COLUMN reconstructed INTEGER")
     connection.executescript(_INDEXES)
 
 
@@ -93,6 +102,21 @@ class SnapshotRecord:
     model_version: str
     data_version: str
     n_simulations: int
+    reconstructed: bool | None = None
+
+
+def _record_from_row(row: tuple[Any, ...]) -> SnapshotRecord:
+    snapshot_id, season, reference_date, generated_at, model_version, data_version, n_simulations, flag = row
+    return SnapshotRecord(
+        snapshot_id,
+        season,
+        reference_date,
+        generated_at,
+        model_version,
+        data_version,
+        n_simulations,
+        None if flag is None else bool(flag),
+    )
 
 
 class SnapshotStore:
@@ -117,12 +141,12 @@ class SnapshotStore:
         finally:
             connection.close()
 
-    def save(self, snapshot: PredictionSnapshot) -> int:
+    def save(self, snapshot: PredictionSnapshot, reconstructed: bool = False) -> int:
         with self._connect() as connection:
             cursor = connection.execute(
                 "INSERT INTO snapshots (season, reference_date, generated_at, model_version, data_version, "
-                "n_simulations, seed, is_synthetic, payload, composition_mode, license_status) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "n_simulations, seed, is_synthetic, payload, composition_mode, license_status, reconstructed) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     snapshot.season,
                     snapshot.reference_date,
@@ -135,6 +159,7 @@ class SnapshotStore:
                     snapshot.model_dump_json(),
                     snapshot.data.composition_mode,
                     snapshot.data.license_status,
+                    int(reconstructed),
                 ),
             )
             return int(cursor.lastrowid or 0)
@@ -142,7 +167,7 @@ class SnapshotStore:
     def list_records(self, season: int | None = None) -> list[SnapshotRecord]:
         query = (
             "SELECT snapshot_id, season, reference_date, generated_at, model_version, data_version, "
-            "n_simulations FROM snapshots WHERE is_synthetic = 0" + self._visibility_filter
+            "n_simulations, reconstructed FROM snapshots WHERE is_synthetic = 0" + self._visibility_filter
         )
         parameters: tuple[int, ...] = ()
         if season is not None:
@@ -151,7 +176,7 @@ class SnapshotStore:
         query += " ORDER BY season, reference_date, generated_at"
         with self._connect() as connection:
             rows = connection.execute(query, parameters).fetchall()
-        return [SnapshotRecord(*row) for row in rows]
+        return [_record_from_row(row) for row in rows]
 
     def load(self, snapshot_id: int) -> PredictionSnapshot:
         with self._connect() as connection:

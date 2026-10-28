@@ -2028,3 +2028,46 @@ navegador embutido, em modo anônimo.
 - **Próximo responsável**:
   - **06**: auditar este delta. Com isso, o bloqueio 5 do parecer (ajuste 3) pode ser encerrado.
   - **00**: merge da branch na `main` antes do C5.
+
+## Ajuste 1 no export: histórico reconstruído (Agente 00, 2026-10-28)
+
+Branch `feat/historico-reconstruido`, a partir de `origin/main` em `b97caad`. Sem merge no `main`.
+
+- **O que mudou**:
+  - `src/brasileirao/storage/snapshots.py` (04, aditivo): coluna `reconstructed` na migração
+    idempotente, `save(snapshot, reconstructed=False)` e `SnapshotRecord.reconstructed`;
+  - `src/brasileirao/pipeline.py`: `is_reconstruction`, `reconstruction_flags`, `history_mode` e
+    `aware_timestamp`; os pontos do histórico ganham `generated_at`, `model_version` e `reconstructed`;
+    `seasons.json` ganha `history_mode`;
+  - `apps/api/main.py` (04, aditivo): `SeasonInfo.history_mode` em `GET /api/seasons`, espelhando o
+    `seasons.json`;
+  - testes em `tests/integration/test_history_reconstruction.py` (18) e `tests/integration/test_api.py` (1);
+  - regra e contrato registrados no ADR-0008 ("Implementação do ajuste 1"); a relação entre
+    `MODEL_VERSION` e o recálculo da história está em `validation.md`.
+- **Evidência**:
+  - `pytest -q`: 511 passed;
+  - `ruff check` e `ruff format --check` sem erros; `mypy src apps` sem erros em 52 arquivos;
+  - os comandos usaram o `.venv` da pasta principal, com `PYTHONPATH` na worktree e `brasileirao`
+    importado dela;
+  - fumaça com dados reais numa cópia do ensaio do 07 (`simulate --season 2026 --history-from-round 28`,
+    com 200 e 300 simulações): 5 pontos, os 4 de histórico com `reconstructed: true` e o de 26/10 com
+    `false`, todos em `cmp-elo-ad-0.2.0`; `seasons.json` com `history_mode: "reconstructed"`;
+  - num banco antigo, sem a coluna, a migração rodou duas vezes sem erro e a regra de datas marcou 31 de
+    32 pontos.
+- **Premissas e limitações**:
+  - `rounds.json` não ganhou campo novo: os textos E de D-034 se guiam pelo `history_mode` da temporada;
+  - **ajuste para o 08 e o 05 sobre a condição do texto A de D-034.** No CI, o último ponto é sempre
+    `reconstructed: false`, porque é o snapshot atual. Por isso a condição "todos os pontos com
+    `reconstructed === true`" nunca seria cumprida. Recomendação do 00: texto A quando
+    `history_mode === "reconstructed"` e todos os pontos têm o `model_version` do snapshot; texto B
+    quando algum `model_version` difere. O 08 confirma.
+- **Próximos responsáveis**:
+  - **05**: implementar D-034 (`app.js` e `rounds.js`) lendo `history_mode` em `/seasons` e os três
+    campos por ponto, com a condição acima;
+  - **07**: fazer o `check_site_artifact.py` exigir `history_mode` em `seasons.json` e `generated_at`
+    (com fuso), `model_version` e `reconstructed` (booleano) em todo ponto de `probability-history.json`.
+    Depois do merge, conferir no ensaio C5;
+  - **04**: revisar as duas mudanças aditivas nos seus arquivos e acrescentar `history_mode` e os campos
+    por ponto a `docs/architecture/api.md`;
+  - **06**: auditar a regra e os testes;
+  - **08**: confirmar a condição do texto A.

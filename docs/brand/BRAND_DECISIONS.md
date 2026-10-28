@@ -336,12 +336,13 @@ snapshot de fato usou.
 Só aparece com `history_mode == "reconstructed"` em `seasons.json`. Campos por ponto do histórico:
 `generated_at`, `model_version` e `reconstructed` (contrato do Agente 00).
 
-- **A. Sob "Evolução ao longo da temporada"**, quando todos os pontos têm `reconstructed === true` e o
-  mesmo `model_version` do snapshot: "Curva recalculada do zero em {data de generated_at mais
+- **A. Sob "Evolução ao longo da temporada"**, quando `history_mode === "reconstructed"` e todos os
+  pontos têm o mesmo `model_version` do snapshot (o último ponto, o snapshot atual, vem com
+  `reconstructed: false`; ajuste de 2026-10-28, recomendação do 00): "Curva recalculada do zero em {data de generated_at mais
   recente}, com o modelo atual (versão {model_version}). Cada ponto usa só os resultados conhecidos
   até aquela data, mas não é uma previsão feita na época. Quando o modelo muda, ou quando um
   resultado é corrigido na fonte, a curva inteira é refeita."
-- **B. Variante** (algum ponto com `reconstructed !== true` ou `model_version` diferente): "Atenção:
+- **B. Variante** (algum ponto com `model_version` diferente do snapshot): "Atenção:
   parte desta curva foi calculada com outra versão do modelo, então as variações entre pontos podem
   vir da troca de modelo, e não dos jogos."
 - **C. Comparações na home** (`changesSinceLast`, `raceSwitch`), no modo reconstruído: "Comparado à

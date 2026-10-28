@@ -9,7 +9,8 @@ import json
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, date, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 
@@ -64,7 +65,7 @@ from brasileirao.storage.schema import (
     SudamericanaRace,
     TeamPrediction,
 )
-from brasileirao.storage.snapshots import SnapshotStore
+from brasileirao.storage.snapshots import SnapshotRecord, SnapshotStore
 from brasileirao.validation.backtest import training_window
 from brasileirao.validation.report import rating_params_from_dict
 
@@ -420,6 +421,16 @@ def round_reference_dates(matches_data: pd.DataFrame, season: int, up_to: date, 
     return sorted(set(dates))
 
 
+def is_reconstruction(matches_data: pd.DataFrame, season: int, reference_date: date) -> bool:
+    """Verdadeiro quando a base já tem resultado da temporada posterior à data de referência.
+
+    É o caso de todo ponto de `simulate --history-from-round` e de `--reference-date` no passado: o
+    snapshot é calculado agora, com o modelo atual, e não é a previsão feita naquele dia.
+    """
+    finished = matches_data[(matches_data["season"] == season) & (matches_data["status"] == MatchStatus.FINISHED.value)]
+    return bool((finished["match_date"].dt.date > reference_date).any())
+
+
 def run_season_snapshots(
     season: int,
     n_simulations: int,
@@ -457,7 +468,9 @@ def run_season_snapshots(
             data_info,
             cards_by_match,
         )
-        saved_ids.append(snapshot_store.save(snapshot))
+        saved_ids.append(
+            snapshot_store.save(snapshot, reconstructed=is_reconstruction(matches_data, season, snapshot_date))
+        )
         LOGGER.info(
             "snapshot_saved",
             extra={"season": season, "reference_date": snapshot_date.isoformat(), "n_simulations": simulations},
@@ -465,13 +478,48 @@ def run_season_snapshots(
     return saved_ids
 
 
+BRASILIA = ZoneInfo("America/Sao_Paulo")
+HistoryMode = Literal["reconstructed", "recorded"]
+
+
+def aware_timestamp(value: str) -> datetime:
+    """`generated_at` com fuso; snapshots antigos sem fuso foram gravados em UTC."""
+    moment = datetime.fromisoformat(value)
+    return moment if moment.tzinfo is not None else moment.replace(tzinfo=UTC)
+
+
+def reconstruction_flags(records: list[SnapshotRecord]) -> list[bool]:
+    """Um ponto é reconstruído se foi gravado assim ou se foi gerado depois da data do ponto seguinte.
+
+    A regra de datas (ADR-0008, ajuste 1) usa o dia de `generated_at` em America/Sao_Paulo e cobre os
+    snapshots anteriores à coluna `reconstructed`. O último ponto só é reconstruído se tiver sido gravado
+    assim (por exemplo, `--reference-date` no passado).
+    """
+    flags: list[bool] = []
+    for position, record in enumerate(records):
+        following = records[position + 1] if position + 1 < len(records) else None
+        generated_day = aware_timestamp(record.generated_at).astimezone(BRASILIA).date()
+        late = following is not None and generated_day > date.fromisoformat(following.reference_date)
+        flags.append(bool(record.reconstructed) or late)
+    return flags
+
+
+def history_mode(records: list[SnapshotRecord]) -> HistoryMode:
+    return "reconstructed" if any(reconstruction_flags(records)) else "recorded"
+
+
 def probability_history(store: SnapshotStore, season: int) -> list[dict[str, Any]]:
+    """Um ponto por data de referência, com a origem do cálculo (`generated_at`, `model_version`, `reconstructed`)."""
     history: list[dict[str, Any]] = []
-    for record in store.latest_per_reference_date(season):
+    records = store.latest_per_reference_date(season)
+    for record, reconstructed in zip(records, reconstruction_flags(records), strict=True):
         snapshot = store.load(record.snapshot_id)
         history.append(
             {
                 "reference_date": snapshot.reference_date,
+                "generated_at": aware_timestamp(snapshot.generated_at).isoformat(),
+                "model_version": snapshot.model.model_version,
+                "reconstructed": reconstructed,
                 "observed_matches": snapshot.observed_matches,
                 "n_simulations": snapshot.n_simulations,
                 "teams": {
@@ -496,7 +544,13 @@ def export_static_api(store: SnapshotStore, season: int, output_dir: Path = PATH
     if snapshot is None:
         raise RuntimeError(f"nenhum snapshot para {season}")
     documents: dict[str, Any] = {
-        "api/seasons.json": [{"season": season, "latest_reference_date": snapshot.reference_date}],
+        "api/seasons.json": [
+            {
+                "season": season,
+                "latest_reference_date": snapshot.reference_date,
+                "history_mode": history_mode(store.latest_per_reference_date(season)),
+            }
+        ],
         f"api/seasons/{season}/predictions.json": snapshot.model_dump(mode="json"),
         f"api/seasons/{season}/probability-history.json": probability_history(store, season),
     }

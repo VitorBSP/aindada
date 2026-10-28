@@ -16,7 +16,7 @@ from pydantic import BaseModel
 from brasileirao.config import PATHS
 from brasileirao.insights.contracts import PublishedInsight
 from brasileirao.insights.editorial import EditorialStore, active_insights
-from brasileirao.pipeline import probability_history
+from brasileirao.pipeline import HistoryMode, history_mode, probability_history
 from brasileirao.storage.schema import (
     MatchPrediction,
     PredictionSnapshot,
@@ -33,6 +33,7 @@ class SeasonInfo(BaseModel):
     season: int
     latest_reference_date: str
     n_snapshots: int
+    history_mode: HistoryMode
 
 
 class StandingsResponse(BaseModel):
@@ -81,7 +82,12 @@ def create_app(
         for record in snapshot_store.list_records():
             by_season.setdefault(record.season, []).append(record.reference_date)
         return [
-            SeasonInfo(season=season, latest_reference_date=max(dates), n_snapshots=len(dates))
+            SeasonInfo(
+                season=season,
+                latest_reference_date=max(dates),
+                n_snapshots=len(dates),
+                history_mode=history_mode(snapshot_store.latest_per_reference_date(season)),
+            )
             for season, dates in sorted(by_season.items())
         ]
 

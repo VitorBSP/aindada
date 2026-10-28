@@ -418,3 +418,24 @@ dados. Esse relatório **não** foi adotado: `data/gold/` ficou com o relatório
 publicado, que reproduz exatamente as decisões anteriores. A cópia do rerun ficou fora do
 repositório. Antes do passo 11 do ADR-0008, as escolhas de temporada precisam de mais simulações (ou
 mais checkpoints) para que a decisão não dependa da ordem dos IDs (ver `status.md`).
+
+## Histórico publicado e `MODEL_VERSION` (Agente 00, 2026-10-28)
+
+Registro pedido pela Decisão 3 do ADR-0008 (adendo confirmado, ajuste 1). O site é reconstruído do zero a
+cada execução do `publish-site.yml`, com `simulate --history-from-round 1`. Por isso:
+
+- **Um `MODEL_VERSION` novo implica recálculo da história publicada.** Na execução seguinte, todos os
+  pontos de `probability-history.json` são refeitos com o modelo novo. O commit que muda
+  `MODEL_VERSION` (`src/brasileirao/config.py`) registra nesta seção a versão antiga, a nova e o motivo,
+  e avisa que a curva do site vai mudar inteira.
+- **Cada ponto declara a origem**: `generated_at` (ISO com fuso), `model_version` e `reconstructed`. O
+  `seasons.json` traz `history_mode` (`reconstructed` ou `recorded`). Regra e contrato: ADR-0008,
+  "Implementação do ajuste 1".
+- **O que o 06 audita**: no modo `reconstructed`, nenhum ponto pode usar partida posterior à sua
+  `reference_date` (já coberto pelos testes de validação temporal), e todos os pontos de uma mesma
+  execução têm o mesmo `model_version`. Um ponto com `model_version` diferente indica mistura de
+  execuções, e a interface mostra o aviso B de D-034.
+
+| Data | `MODEL_VERSION` anterior | Novo | Motivo | História recalculada |
+|---|---|---|---|---|
+| — | — | `cmp-elo-ad-0.2.0` (vigente em 2026-10-28) | linha de base do registro | sim, a cada execução |
