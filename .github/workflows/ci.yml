@@ -1,3 +1,4 @@
+# Qualidade do código: sem segredos e sem dados reais (só arquivos versionados e fixtures sintéticas).
 name: ci
 
 on:
@@ -5,17 +6,27 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
       - run: pip install -e ".[api,sources,dev]"
-      - run: ruff check src apps tests scripts
-      - run: ruff format --check src apps tests scripts
+      - run: ruff check src apps tests scripts infrastructure
+      - run: ruff format --check src apps tests scripts infrastructure
       - run: mypy
       - run: pytest -q

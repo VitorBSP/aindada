@@ -332,3 +332,35 @@ exatidão, história publicada reconstruída) e a licença MIT para o código."
   `docs/project/risks.md`).
 - `contracts.py` (01), `schema.py` (00) e o gate (07) passam a carregar a licença de ponta a ponta,
   do manifesto ao deploy.
+
+## Adendo proposto pelo Agente 07 (2026-10-27): Decisão 3 sem repositório de estado — **aguarda confirmação do 00**
+
+- **Proposta:** substituir o repositório privado de estado e o `STATE_REPO_TOKEN` por
+  **reconstrução completa a cada execução** do `publish-site.yml`. O runner começa vazio e termina
+  sem guardar nada: sem SQLite em release, artefato, cache ou outro repositório.
+  - A história de probabilidades de 2026 vira um snapshot por rodada (`simulate
+    --history-from-round 1`, 10 mil simulações por ponto) e o snapshot atual (100 mil), com semente
+    2026. A revisão rodada a rodada é refeita do zero (`review-rounds`, 20 mil). A validação temporal
+    continua a do `build_snapshot`: cada ponto só usa partidas até a sua data de referência.
+  - A v18 do Adão Duque é baixada do endpoint público do Kaggle (sem login) e conferida pelo SHA-256
+    de `data/reference/source_pins.json`; divergência faz o workflow falhar. Os arquivos não são
+    versionados nem publicados (GPL-2, Decisão 1). Isso substitui "os arquivos da versão 18 ... no
+    repositório de estado".
+- **Por quê:** é o desenho com menos peças para o dono (um segredo só, `FOOTBALL_DATA_ORG_TOKEN`; nenhum
+  repositório extra, nenhuma credencial com validade a renovar) e com menos superfície para vazar
+  placares em lote. Em repositório público os minutos do Actions são gratuitos. Tempo medido: ver
+  `docs/architecture/deploy.md`, "Tempos medidos".
+- **Consequências que o 00 precisa aceitar:**
+  1. Todo ponto da história publicada é uma **reconstrução**, feita com o modelo e os dados do dia da
+     execução, não uma previsão registrada na época (já exigido por esta Decisão 3). Quando o modelo
+     ou um placar muda, a história inteira muda junto. O `generated_at` de cada ponto é o da execução.
+     O schema não tem um campo "reconstrução"; o texto da interface precisa dizer isso (08/05).
+  2. A checagem de não regressão (número de snapshots e `reference_date`) passa a comparar a
+     `reference_date` do artefato novo com a do `predictions.json` no ar.
+  3. Snapshots por rodada perdem o papel de registro histórico imutável no deploy (ADR-0004 continua
+     valendo para o SQLite local). O registro do que foi publicado fica no histórico do Actions.
+  4. O risco R12 (`docs/project/risks.md`) deixa de existir na forma atual: não há estado a perder.
+     Novo risco: o endpoint do Kaggle mudar ou exigir login (o workflow falha e o site anterior fica no ar).
+- **Alternativa, se o 00 recusar:** a Decisão 3 original (repositório privado com `STATE_REPO_TOKEN`)
+  continua implementável sem mudar o resto do workflow: bastaria restaurar o SQLite antes do
+  `simulate`, trocar `--history-from-round 1` pelo snapshot do dia e salvar o banco no fim.

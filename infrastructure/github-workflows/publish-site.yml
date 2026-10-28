@@ -1,0 +1,143 @@
+# Publica o site estático no GitHub Pages (ADR-0007; ADR-0008, passo 13 e adendo da Decisão 3).
+#
+# Cada execução reconstrói do zero, num runner efêmero, toda a história da temporada: ingestão das
+# fontes licenciadas, um snapshot por rodada e a revisão rodada a rodada, com semente fixa. Nada é
+# guardado entre execuções: sem repositório de estado, sem SQLite em artefato, sem cache de dados.
+#
+# Interruptores (configurados pelo dono do produto; ver docs/architecture/deploy.md):
+# - secret  FOOTBALL_DATA_ORG_TOKEN: chave do football-data.org (cláusula 6.1 do ADR-0008);
+# - variável PUBLISH_ENABLED = 'true': liga o agendamento, o upload e o deploy. Sem ela, só roda
+#   manualmente (workflow_dispatch) como ensaio: reconstrói, passa no gate e não publica nada.
+name: publish-site
+
+on:
+  schedule:
+    - cron: "0 9 * * *"   # todo dia, 06:00 em Brasília: cobre os jogos da noite anterior
+  workflow_dispatch:
+    inputs:
+      season:
+        description: "Temporada (vazio = a do arquivo)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-site
+  cancel-in-progress: false
+
+env:
+  SEASON: ${{ inputs.season || '2026' }}
+  SIMULATIONS: "100000"
+  HISTORY_SIMULATIONS: "10000"
+  ROUND_REVIEW_SIMULATIONS: "20000"
+  SEED: "2026"
+  PYTHONUTF8: "1"
+
+jobs:
+  build:
+    # Só na main. O agendamento só trabalha com a publicação ligada (evita gastar minutos em repo privado).
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' || vars.PUBLISH_ENABLED == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar
+        run: pip install -e ".[sources,dev]"
+
+      - name: Testes (antes de qualquer dado real no runner)
+        run: pytest -q
+
+      - name: Baixar Adão Duque v18 do Kaggle e conferir SHA-256
+        run: >-
+          python -I infrastructure/scripts/fetch_adaoduque_v18.py
+          --pins data/reference/source_pins.json
+          --target data/raw/adaoduque/v18
+
+      - name: Ingestão de publicação
+        env:
+          FOOTBALL_DATA_ORG_TOKEN: ${{ secrets.FOOTBALL_DATA_ORG_TOKEN }}
+        run: python -m brasileirao.cli ingest --fetch --season "$SEASON"
+
+      - name: Validar
+        run: python -m brasileirao.cli validate
+
+      - name: Reconstruir a história (um snapshot por rodada) e o snapshot atual
+        run: >-
+          python -m brasileirao.cli simulate --season "$SEASON"
+          --simulations "$SIMULATIONS" --seed "$SEED"
+          --history-from-round 1 --history-simulations "$HISTORY_SIMULATIONS"
+
+      - name: Revisão rodada a rodada
+        run: >-
+          python -m brasileirao.cli review-rounds --season "$SEASON"
+          --simulations "$ROUND_REVIEW_SIMULATIONS" --seed "$SEED"
+
+      - name: Exportar
+        run: python -m brasileirao.cli export-web --season "$SEASON"
+
+      - name: Montar o artefato (só o site estático e o export)
+        run: |
+          rm -rf _site
+          cp -r apps/web _site
+          find _site -type f | sort > "$RUNNER_TEMP/site-files.txt"
+          echo "arquivos no artefato: $(wc -l < "$RUNNER_TEMP/site-files.txt"), $(du -sh _site | cut -f1)"
+
+      - name: Gate de publicação G1 a G5 (ADR-0008)
+        run: >-
+          python -m brasileirao.cli publication-gate --season "$SEASON"
+          --gold data/gold/matches_model.csv
+          --composition data/silver/sources.json
+          --predictions "_site/data/api/seasons/$SEASON/predictions.json"
+          --artifact-dir _site
+
+      - name: Checagens do artefato (ADR-0007, itens 5, 6 e 8)
+        env:
+          LIVE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/data/api/seasons/${{ env.SEASON }}/predictions.json
+        run: >-
+          python -I infrastructure/scripts/check_site_artifact.py
+          --site-dir _site --season "$SEASON" --live-url "${LIVE_URL,,}"
+
+      - name: Resumo
+        run: |
+          {
+            echo "### publish-site"
+            echo "- temporada: $SEASON; semente: $SEED"
+            echo "- simulações: atual $SIMULATIONS, histórico $HISTORY_SIMULATIONS, revisão $ROUND_REVIEW_SIMULATIONS"
+            echo "- publicação ligada: ${{ vars.PUBLISH_ENABLED == 'true' }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Em repositório público, artefatos podem ser baixados por terceiros: só sobe o site se ele for
+      # ao ar nesta execução, ou se o repositório ainda for privado (ensaio C5).
+      - name: Enviar o artefato do Pages
+        if: vars.PUBLISH_ENABLED == 'true' || github.event.repository.private
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+          retention-days: 1
+
+  deploy:
+    needs: build
+    if: vars.PUBLISH_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

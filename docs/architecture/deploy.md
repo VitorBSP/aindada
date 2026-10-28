@@ -18,15 +18,97 @@ docker compose run --rm pipeline   # atualiza dados e gera novo snapshot
 
 ## Operação
 
-- Agendamento sugerido: após cada rodada (por exemplo, terças e quintas às 06:00), rodando o serviço
-  `pipeline`. O workflow agendado está desativado até a revisão de licença dos dados.
-- Rollback: os snapshots são imutáveis. Para voltar, basta apagar o snapshot mais recente ou servir
-  um banco anterior (`BRASILEIRAO_SNAPSHOT_DB`).
+- Agendamento: `publish-site.yml` (seção seguinte), todo dia às 09:00 UTC, só com a publicação ligada.
+- Rollback local: os snapshots são imutáveis. Para voltar, basta apagar o snapshot mais recente ou
+  servir um banco anterior (`BRASILEIRAO_SNAPSHOT_DB`).
 - Logs: JSON em stderr (`brasileirao.logging_utils`).
-- Custo: o pipeline completo roda em ~1 min de CPU e o backtest em ~4 min. Não há serviços pagos.
-- **Publicação pública: bloqueada** até a licença dos dados de 2024+ e a revisão dos Agentes 00 e 06.
+- Não há serviços pagos.
+- **Publicação pública: bloqueada** até o parecer final dos Agentes 00 e 06 (C1–C6 do ADR-0007).
 
-## Proposta: deploy gratuito
+## Publicação no GitHub Pages (ADR-0008, passo 13) — runbook
+
+Estado em 2026-10-27: workflow pronto na branch `deploy/publish-site`, **não mergeado, nunca
+executado no GitHub, nada publicado**. Repositório `VitorBSP/aindada`, privado.
+
+### Como funciona
+
+`.github/workflows/publish-site.yml` reconstrói tudo do zero a cada execução, num runner efêmero.
+**Não há estado entre execuções**: nem repositório privado de estado, nem `STATE_REPO_TOKEN`, nem
+SQLite em artefato ou cache (adendo à Decisão 3 do ADR-0008, a confirmar pelo 00).
+
+```text
+checkout -> pip install -> pytest (sem dados) -> baixa Adão Duque v18 do Kaggle e confere SHA-256
+  -> ingest --fetch --season (FOOTBALL_DATA_ORG_TOKEN) -> validate
+  -> simulate (1 snapshot por rodada, 10 mil; atual com 100 mil; semente 2026)
+  -> review-rounds (20 mil, semente 2026) -> export-web -> _site/ = apps/web + export
+  -> publication-gate G1–G5 -> check_site_artifact.py -> upload-pages-artifact -> deploy-pages
+```
+
+- Gatilhos: `schedule` diário às 09:00 UTC (06:00 em Brasília, depois dos jogos da noite) e
+  `workflow_dispatch` (entrada opcional `season`). Só na `main`. Nunca em `pull_request` nem
+  `pull_request_target`.
+- **Interruptor `PUBLISH_ENABLED`** (variável do repositório):
+  - ausente ou diferente de `true`: o agendamento não roda; o `workflow_dispatch` é um **ensaio**
+    (reconstrói, passa no gate, não publica). Com o repositório privado, o ensaio envia o artefato do
+    site (retenção de 1 dia) para conferência; com o repositório público, não envia nada, porque
+    artefato de repositório público pode ser baixado por qualquer pessoa;
+  - `true`: o agendamento roda, o artefato sobe e o job `deploy` publica.
+- Permissões: `contents: read` no workflow; `pages: write` e `id-token: write` só no job `deploy`.
+  `persist-credentials: false` no checkout. `concurrency: publish-site` sem cancelar execução em
+  andamento.
+- O token só existe no passo de ingestão, como variável de ambiente; nunca é impresso (o GitHub
+  mascara o valor e o `FootballDataOrgSource` só o usa no header).
+- Adão Duque v18 (GPL-2): `infrastructure/scripts/fetch_adaoduque_v18.py` baixa o zip público do
+  Kaggle (sem login), extrai só os 2 arquivos fixados em `data/reference/source_pins.json` e falha se
+  o SHA-256 divergir. A ingestão confere os hashes de novo. Os arquivos ficam só no runner.
+- Artefato (G5): só `apps/web` versionado mais o export (`data/api/*.json`). O gate e
+  `infrastructure/scripts/check_site_artifact.py` reprovam SQLite, CSV, `raw/`, `silver/`, `gold/`,
+  escudos não livres, `model_version`/`data_version` divergentes entre `predictions`, `rounds` e
+  `metrics`, `rounds.data_until` diferente do snapshot, histórico com data posterior ao snapshot e
+  `reference_date` menor que a do site no ar. Se qualquer checagem falhar, nada é publicado e o site
+  anterior continua no ar.
+- Insights: nenhum job aprova insight (D-026). O export publicado não tem `insights.json`, e a home
+  aparece sem manchete. Publicar insights exige um fluxo editorial próprio (pendência do 08/04).
+
+### Tempos medidos (2026-10-27, código do `main` `e44ea6a`, máquina local, 8 núcleos)
+
+TEMPOS_MEDIDOS
+
+### O que o dono do produto faz (uma vez)
+
+Ver a lista no handoff do 07 em `docs/project/status.md` (2026-10-27). Resumo: cadastrar o secret
+`FOOTBALL_DATA_ORG_TOKEN`; depois do merge, rodar o ensaio manual; depois do parecer final 00/06,
+tornar o repositório público, escolher "GitHub Actions" como fonte do Pages e criar a variável
+`PUBLISH_ENABLED = true`.
+
+### Rollback
+
+- **Tirar o site do ar já** (por exemplo, cláusula 9.1 do football-data.org): Settings → Pages →
+  "Unpublish site". Depois, apagar a variável `PUBLISH_ENABLED` (ou mudar para `false`) para o
+  agendamento parar.
+- **Parar as atualizações e manter o site como está**: mudar `PUBLISH_ENABLED` para `false`.
+- **Voltar a uma versão anterior do código ou do modelo**: reverter o commit na `main` e rodar o
+  workflow (Actions → publish-site → Run workflow). Como a história é reconstruída, o site inteiro
+  volta a ser o que aquele código gera com os dados de hoje. A checagem de não regressão impede só
+  que a `reference_date` publicada diminua.
+- **Execução que falhou**: nada foi publicado; o site anterior fica no ar. Os logs mostram o passo e a
+  regra (só contagens, nomes de fonte e até 5 `match_id`, sem placar).
+
+### Riscos operacionais
+
+- Em repositório público, o GitHub desativa workflows agendados após 60 dias sem atividade no
+  repositório (a verificar). Execuções agendadas não contam como atividade; um commit conta. Se o
+  agendamento parar, o GitHub avisa por e-mail e basta reativar em Actions.
+- O endpoint de download do Kaggle não é documentado como API estável para anônimos (funcionou sem
+  login em 2026-10-27). Se mudar ou exigir login, o passo falha e o site anterior fica no ar.
+- Execuções agendadas do GitHub podem atrasar ou ser puladas em horários de pico.
+- Limites do Pages (~1 GB por site, ~100 GB/mês de banda, cache de ~10 min) e do Actions (6 h por
+  job) estão "a verificar" na data da implantação.
+
+## Proposta: deploy gratuito (histórico, 2026-10-26)
+
+> Registro da proposta original. A persistência do SQLite (release `snapshots-db`, depois
+> repositório privado de estado) foi substituída pela reconstrução a cada execução (seção anterior).
 
 - **Status: arquitetura aprovada com condições pelo Agente 00 e pelo Agente 06; decisão em
   `docs/decisions/ADR-0007-deploy-estatico-github-pages.md` (proposto).** O dono do produto escolheu
