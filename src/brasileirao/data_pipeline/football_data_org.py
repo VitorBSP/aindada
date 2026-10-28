@@ -1,7 +1,9 @@
 """Adaptador da API football-data.org v4, competição BSA (Série A). Fonte de publicação de 2026+.
 
 Regras do ADR-0008:
-- `match_date` é o `utcDate` convertido para America/Sao_Paulo antes de `.date()`;
+- `match_date` é o `utcDate` convertido para America/Sao_Paulo antes de `.date()`, exceto quando a
+  fonte só tem a data (`kickoff_of`, ADR-0009);
+- `kickoff_utc` e `kickoff_time_confirmed` vêm do `utcDate` e do status (`kickoff_of`, ADR-0009);
 - o token vem só de `FOOTBALL_DATA_ORG_TOKEN` e nunca aparece em log, `repr` ou mensagem de erro;
 - intervalo mínimo de 6 s entre chamadas e espera de `X-RequestCounter-Reset` em HTTP 429;
 - `IN_PLAY`, `PAUSED` e `LIVE` viram `scheduled` (placar parcial nunca entra);
@@ -46,6 +48,46 @@ _STATUS_MAP = {
     "CANCELLED": MatchStatus.CANCELLED,
 }
 AWARDED_STATUS = "AWARDED"
+CONFIRMED_KICKOFF_STATUSES = frozenset({"TIMED", "IN_PLAY", "PAUSED", "LIVE", "FINISHED"})
+DATE_ONLY_STATUSES = frozenset({"SCHEDULED", "POSTPONED", "SUSPENDED", "CANCELLED"})
+
+
+@dataclass(frozen=True)
+class Kickoff:
+    """Data em Brasília e horário de início de uma partida da football-data.org (ADR-0009, Decisão 2)."""
+
+    match_date: date
+    kickoff_utc: datetime | None
+    kickoff_time_confirmed: bool
+
+
+def parse_utc_instant(utc_text: str) -> datetime:
+    instant = datetime.fromisoformat(utc_text.replace("Z", "+00:00"))
+    if instant.tzinfo is None:
+        raise ValueError(f"utcDate sem fuso: {utc_text}")
+    return instant.astimezone(UTC)
+
+
+def _is_midnight_utc(instant: datetime) -> bool:
+    return (instant.hour, instant.minute, instant.second, instant.microsecond) == (0, 0, 0, 0)
+
+
+def kickoff_of(utc_text: str, raw_status: str) -> Kickoff:
+    """Horário do `utcDate` conforme o status da fonte.
+
+    - `TIMED` e status de jogo iniciado ou encerrado: horário confirmado; a data é a de Brasília.
+    - `SCHEDULED`, `POSTPONED`, `SUSPENDED` e `CANCELLED` com `utcDate` às 00:00:00Z: a fonte só tem a
+      data (marcador sem horário, conferido na tabela básica da CBF de 2026). A data é a do próprio
+      `utcDate`, sem conversão, e não há `kickoff_utc`.
+    - Esses status com outro horário, e `AWARDED`: horário provisório ou que não vale mais
+      (`kickoff_time_confirmed = False`); a data é a de Brasília.
+    """
+    instant = parse_utc_instant(utc_text)
+    if raw_status in CONFIRMED_KICKOFF_STATUSES:
+        return Kickoff(instant.astimezone(BRASILIA).date(), instant, kickoff_time_confirmed=True)
+    if raw_status in DATE_ONLY_STATUSES and _is_midnight_utc(instant):
+        return Kickoff(instant.date(), None, kickoff_time_confirmed=False)
+    return Kickoff(instant.astimezone(BRASILIA).date(), instant, kickoff_time_confirmed=False)
 
 
 class MissingTokenError(RuntimeError):
@@ -87,10 +129,7 @@ def _httpx_get(url: str, params: Mapping[str, Any], headers: Mapping[str, str]) 
 
 def brasilia_date(utc_text: str) -> date:
     """Dia de Brasília de um instante ISO 8601 em UTC (`2026-10-27T00:30:00Z` → 2026-10-26)."""
-    instant = datetime.fromisoformat(utc_text.replace("Z", "+00:00"))
-    if instant.tzinfo is None:
-        raise ValueError(f"utcDate sem fuso: {utc_text}")
-    return instant.astimezone(BRASILIA).date()
+    return parse_utc_instant(utc_text).astimezone(BRASILIA).date()
 
 
 def _optional_goals(value: Any) -> int | None:
@@ -279,17 +318,20 @@ class FootballDataOrgSource:
                 away_goals = _optional_goals(full_time.get("away"))
                 if home_goals is None or away_goals is None:
                     home_goals, away_goals, status = None, None, MatchStatus.SCHEDULED
+            kickoff = kickoff_of(str(match["utcDate"]), raw_status)
             parsed_matches.append(
                 RawMatch(
                     source_match_id=source_match_id,
                     season=season,
                     round=None if match.get("matchday") is None else int(match["matchday"]),
-                    match_date=brasilia_date(str(match["utcDate"])),
+                    match_date=kickoff.match_date,
                     home_name=home_name,
                     away_name=away_name,
                     home_goals=home_goals,
                     away_goals=away_goals,
                     status=status,
+                    kickoff_utc=kickoff.kickoff_utc,
+                    kickoff_time_confirmed=kickoff.kickoff_time_confirmed,
                 )
             )
         return parsed_matches

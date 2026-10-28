@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from enum import StrEnum
+from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class MatchStatus(StrEnum):
@@ -65,8 +66,17 @@ class Club(BaseModel):
     aliases: tuple[str, ...]
 
 
+BRASILIA_TIMEZONE = ZoneInfo("America/Sao_Paulo")
+
+
 class MatchRecord(BaseModel):
-    """Partida normalizada (camada silver). Placar ausente nunca é preenchido."""
+    """Partida normalizada (camada silver). Placar ausente nunca é preenchido.
+
+    `kickoff_utc` e `kickoff_time_confirmed` são opcionais (ADR-0009, Decisão 2): só a fonte com
+    horário os preenche. Com `kickoff_utc`, `match_date` é a data dele em America/Sao_Paulo.
+    `kickoff_time_confirmed` é `None` sem horário na fonte e `False` quando a fonte tem o jogo, mas
+    o horário ainda é provisório ou inexistente (só a data).
+    """
 
     model_config = ConfigDict(frozen=True)
 
@@ -81,11 +91,30 @@ class MatchRecord(BaseModel):
     status: MatchStatus
     source: str
     source_match_id: str
+    kickoff_utc: datetime | None = None
+    kickoff_time_confirmed: bool | None = None
+
+    @field_validator("kickoff_utc")
+    @classmethod
+    def _kickoff_in_utc(cls, value: datetime | None) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("kickoff_utc sem fuso horário")
+        return value.astimezone(UTC)
 
     @model_validator(mode="after")
     def _check_consistency(self) -> MatchRecord:
         if self.home_id == self.away_id:
             raise ValueError("mandante e visitante iguais")
+        if self.kickoff_utc is not None:
+            kickoff_day = self.kickoff_utc.astimezone(BRASILIA_TIMEZONE).date()
+            if kickoff_day != self.match_date:
+                raise ValueError(f"kickoff_utc em Brasília cai em {kickoff_day}, mas match_date é {self.match_date}")
+            if self.kickoff_time_confirmed is None:
+                raise ValueError("kickoff_utc sem kickoff_time_confirmed")
+        if self.kickoff_time_confirmed is True and self.kickoff_utc is None:
+            raise ValueError("horário confirmado sem kickoff_utc")
         has_score = self.home_goals is not None and self.away_goals is not None
         if self.status == MatchStatus.FINISHED and not has_score:
             raise ValueError("partida encerrada sem placar")
