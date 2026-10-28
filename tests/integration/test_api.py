@@ -70,6 +70,10 @@ def test_seasons_lists_snapshot_season(client: TestClient) -> None:
     assert client.get("/api/seasons").json()[0]["season"] == 2032
 
 
+def test_seasons_reports_history_mode(client: TestClient) -> None:
+    assert client.get("/api/seasons").json()[0]["history_mode"] == "recorded"
+
+
 def test_predictions_returns_twenty_teams(client: TestClient) -> None:
     assert len(client.get("/api/seasons/2032/predictions").json()["teams"]) == 20
 
