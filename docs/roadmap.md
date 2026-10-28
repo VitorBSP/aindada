@@ -6,10 +6,10 @@
 | 1 | Catálogo de fontes, contratos, ingestão raw/silver/gold, validação, regras 2026 versionadas | ✅ concluída (fonte com licença restrita) |
 | 2 | Elo, ataque/defesa, Poisson, Monte Carlo, vagas e cenários, backtesting | ✅ concluída |
 | 3 | Snapshots, API, interface, execução local ponta a ponta | ✅ MVP (API não executada neste ambiente; ver status) |
-| 4 | Fontes licenciadas (football-data.org com token; conferência com a CBF); atualização agendada | ⏳ próxima |
+| 4 | Fontes licenciadas (football-data.org com token; conferência com a CBF); atualização agendada | ✅ concluída (ADR-0008 implementado, 2026-10-28); agendamento diário ativo quando `PUBLISH_ENABLED=true` |
 | 5 | Etapa 2 do modelo: modelagem de empates, ρ por temporada, incerteza de parâmetros, cobertura de 90% | ⏳ |
 | 6 | Etapa 3: classificador multiclasse calibrado, benchmark de odds (Football-Data.co.uk), blending só com ganho validado | ⏳ |
-| 7 | Frontend Next.js/TypeScript, PostgreSQL, deploy público após revisão | ⏳ deploy: ADR-0007 proposto (GitHub Pages estático); preparação liberada, publicação bloqueada por C1–C6 |
+| 7 | Frontend Next.js/TypeScript, PostgreSQL, deploy público após revisão | ⏳ deploy: ADR-0007 aceito (2026-10-28, GitHub Pages estático); publicação aprovada com condições pelo 00 e pelo 06; primeira publicação pendente das ações do dono e da conferência do 06 no site no ar. Next.js e PostgreSQL ⏳ |
 
 ## Trilha de marca (Agente 08, paralela às fases técnicas)
 

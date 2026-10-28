@@ -1,8 +1,15 @@
 # ADR-0007 — Deploy estático gratuito no GitHub Pages, com repositório público
 
-- Status: **proposto** (2026-10-26). Arquitetura e preparação aprovadas com condições pelo Agente 00.
-  **A publicação pública continua bloqueada** (ADR-0002) até as condições C1–C6 abaixo serem
-  cumpridas e os Agentes 00 e 06 registrarem o parecer final.
+- Status: **aceito** (2026-10-28), sobre `main` em `94a1a10`. C1–C6 cumpridas e pareceres finais
+  do 06 e do 00 registrados em `docs/project/status.md` (ambos "aprovado com condições").
+  Condições da publicação: ordem dos passos (público → Pages com Source = GitHub Actions →
+  `PUBLISH_ENABLED=true` → `workflow_dispatch`); nenhuma ref nem commit novo na `main` sem o C4 do
+  delta pelo 06. Condições pós-publicação: o 06 confere o site no ar depois do primeiro `deploy`
+  (SHA-256 do `predictions.json` igual ao do resumo da própria execução, rotas sem erro de JS) e, se
+  reprovar, `PUBLISH_ENABLED` volta a `false` e o 07 corrige; backlog R1–R3 do parecer do 06 e o
+  registro dos tempos do C5 (07).
+- Histórico: **proposto** (2026-10-26), arquitetura e preparação aprovadas com condições pelo
+  Agente 00, com a publicação bloqueada até C1–C6 e os pareceres finais.
 - Responsáveis: Agente 00 (decisão), Agente 07 (implementação), Agente 06 (gate)
 - Origem: proposta do Agente 07 em `docs/architecture/deploy.md` ("Proposta: deploy gratuito")
 
