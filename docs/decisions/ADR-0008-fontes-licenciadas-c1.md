@@ -464,3 +464,26 @@ repositório privado e do `STATE_REPO_TOKEN`.
     anterior fica no ar. O plano B é um ADR novo, e não a volta automática ao repositório de estado.
 - **Nenhuma pendência nova para o dono.** A única mudança para ele é que a pendência 3 se reduz a um
   segredo.
+
+### Implementação do ajuste 1 (Agente 00, 2026-10-28)
+
+Branch `feat/historico-reconstruido`. Aditivo: o `PredictionSnapshot` e o `schema_version` não mudam.
+
+- **Como o pipeline sabe que é reconstrução.** `run_season_snapshots` grava cada snapshot com
+  `reconstructed = is_reconstruction(...)`: verdadeiro quando a base já tem partida `finished` da
+  temporada com data posterior à `reference_date` do snapshot. Todo ponto de
+  `simulate --history-from-round` cai nesse caso, e também `--reference-date` no passado. O snapshot da
+  data mais recente com resultado, gravado "ao vivo", é `false`.
+- **Persistência.** Coluna nova `snapshots.reconstructed INTEGER` no SQLite, fora do payload,
+  acrescentada pela mesma migração idempotente do 04 (`_migrate` em `storage/snapshots.py`). Linhas
+  antigas ficam com `NULL` (desconhecido). `SnapshotStore.save(snapshot, reconstructed=False)` e
+  `SnapshotRecord.reconstructed: bool | None`.
+- **Export e API** (`pipeline.probability_history`, `pipeline.history_mode`, `GET /api/seasons`):
+  `reconstructed` do ponto = flag gravada **ou** a regra de datas deste ajuste (dia de `generated_at` em
+  America/Sao_Paulo posterior à `reference_date` do ponto seguinte). A regra de datas cobre as linhas
+  `NULL`; o "ou" garante que nenhuma reconstrução deixe de ser declarada. Refinamento do texto acima: o
+  último ponto é `false`, **a não ser** que tenha sido gravado como reconstrução. `generated_at` sai
+  sempre com fuso; valor antigo sem fuso é lido como UTC, que é como foi gravado.
+- **Conferência**: num banco antigo do ensaio do 07 (32 pontos de 2026, sem a coluna), a migração
+  deixou a flag `NULL` e a regra de datas marcou 31 pontos como reconstruídos e o último como
+  `false`, com `history_mode = "reconstructed"`.
