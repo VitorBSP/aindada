@@ -20,7 +20,8 @@ from brasileirao.storage.schema import DataInfo, DataSourceInfo
 
 SOURCES_FILE = "sources.json"
 RESEARCH_WARNING = (
-    "Composição de PESQUISA (fonte sem licença de publicação): snapshot só para uso local, nunca publicável."
+    "Snapshot de PESQUISA (composição de pesquisa ou modo pesquisa, sem o gate G1): só para uso local, "
+    "nunca publicável."
 )
 
 
@@ -112,6 +113,12 @@ def build_data_info(sources: list[DataSourceInfo], composition_mode: Composition
 
 
 def load_data_info(silver_dir: Path, raw_root: Path, mode: CompositionMode, warnings: list[str]) -> DataInfo:
+    """O modo pesquisa marca o snapshot como pesquisa mesmo sobre composição de publicação.
+
+    Em modo pesquisa o `load_inputs` não roda o G1 sobre o gold; o snapshot não pode sair rotulado como
+    publicação, senão a loja (`SnapshotStore`) o serviria na API e no export.
+    """
     sources = load_data_sources(silver_dir, raw_root, mode)
     found_mode = composition_mode_of(read_composition(silver_dir))
-    return build_data_info(sources, found_mode, warnings)
+    snapshot_mode = CompositionMode.RESEARCH if mode == CompositionMode.RESEARCH else found_mode
+    return build_data_info(sources, snapshot_mode, warnings)

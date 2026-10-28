@@ -8,7 +8,7 @@ from pathlib import Path
 
 MODEL_VERSION = "poisson-elo-ad-0.1.0"
 SNAPSHOT_SCHEMA_VERSION = "1.2"
-ROUND_REVIEW_SCHEMA_VERSION = "1.0"
+ROUND_REVIEW_SCHEMA_VERSION = "1.1"
 INSIGHT_RULES_VERSION = "rules-2026.10.1"
 
 # Fonte de publicação por temporada (primeira, última ou None = em aberto, source_name). ADR-0008, Decisão 1.

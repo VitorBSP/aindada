@@ -197,7 +197,7 @@ def command_simulate(arguments: argparse.Namespace) -> None:
     except ProvenanceError as error:
         raise SystemExit(f"simulação interrompida, nenhum snapshot salvo: {error}") from error
     print(f"snapshots salvos: {saved}")
-    export_static_api(store, arguments.season)
+    _export_publication(store, arguments)
 
 
 def command_review_rounds(arguments: argparse.Namespace) -> None:
@@ -209,6 +209,14 @@ def command_review_rounds(arguments: argparse.Namespace) -> None:
     except ProvenanceError as error:
         raise SystemExit(f"revisão interrompida, nada foi salvo: {error}") from error
     print(f"revisão salva: {len(review.rounds)} visões (rodadas 0 a {review.rounds[-1].round_number})")
+    _export_publication(store, arguments)
+
+
+def _export_publication(store: SnapshotStore, arguments: argparse.Namespace) -> None:
+    """O export estático é artefato publicável: em modo pesquisa ele não é regenerado."""
+    if _composition_mode(arguments) == CompositionMode.RESEARCH:
+        print("modo pesquisa: export estático não atualizado (snapshots de pesquisa nunca vão para apps/web/data)")
+        return
     export_static_api(store, arguments.season)
 
 

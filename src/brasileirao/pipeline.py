@@ -556,6 +556,8 @@ def build_round_review(
         data_until=data_until.isoformat(),
         n_simulations=n_simulations,
         seed=seed,
+        composition_mode=data_info.composition_mode,
+        license_status=data_info.license_status,
         metrics=list(METRICS),
         clubs={
             club: ClubLabel(name=registry.display_name(club), short_name=registry.clubs[club].short_name)

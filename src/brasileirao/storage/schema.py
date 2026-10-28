@@ -326,6 +326,8 @@ class RoundReview(BaseModel):
     data_until: str
     n_simulations: int
     seed: int
+    composition_mode: str | None = None
+    license_status: str | None = None
     metrics: list[str]
     clubs: dict[str, ClubLabel]
     rounds: list[RoundViewInfo]

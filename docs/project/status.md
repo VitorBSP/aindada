@@ -1475,3 +1475,35 @@ commit `bbf2a92`), sem push e sem tocar `data/` da pasta principal.
     --artifact-dir <pasta do artefato>` depois do `export-web` e antes do upload. Se sair com código ≠ 0,
     não publica. Passar `--season` explícito (N10).
   - **06**: auditar o contrato 1.2, a leitura tolerante, as regras do gate e os testes novos.
+
+## Agente 04: revisão do passo 10 do ADR-0008, storage e API (2026-10-27) — aprovado com ajustes, auditoria do 06 pendente
+
+- **O que mudou** (na mesma branch da worktree):
+  - `storage/snapshots.py`: colunas `composition_mode` e `license_status` em `snapshots` e `round_reviews`,
+    com migração idempotente (`ALTER TABLE` só se faltar a coluna; preenchimento por `json_extract` do
+    payload só onde `license_status` é nulo) e índices `idx_snapshots_publication` e
+    `idx_round_reviews_publication`. `SnapshotStore(path, include_research=False)`: por padrão
+    `list_records`, `latest`, `latest_per_reference_date` e `latest_round_review` só veem
+    `composition_mode = 'publication'` com licença publicável. Com isso a API, o `probability-history`,
+    o `export_static_api` e o gerador de insights ignoram snapshots de pesquisa e os legados (≤ 1.1).
+    `load(snapshot_id)` continua sem filtro.
+  - `RoundReview` ganha `composition_mode` e `license_status` (opcionais); `ROUND_REVIEW_SCHEMA_VERSION`
+    1.0 → 1.1 (aditivo; o 05 não precisa mudar).
+  - `provenance.load_data_info`: em modo pesquisa o snapshot sai `composition_mode = research` mesmo sobre
+    composição de publicação. Antes, `simulate --research` pulava o G1 e gravava o snapshot como `publication`
+    (reproduzido na fumaça: snapshot 32). `RESEARCH_WARNING` reescrito para cobrir os dois casos.
+  - CLI: `simulate --research` e `review-rounds --research` não regeneram `apps/web/data`.
+  - Testes: `tests/integration/test_snapshot_visibility.py` (16). Os testes antigos com `DataInfo` sintético
+    sem modo usam `include_research=True`.
+- **Evidência**: `pytest -q` 447 passed; `ruff check`, `ruff format --check` e `mypy` (pacote, mais
+  `apps/api/main.py`) sem erros. Fumaça numa cópia do `snapshots.sqlite` real (30 snapshots 1.0/1.1, 5 revisões),
+  `BRASILEIRAO_ROOT` no scratchpad: todos os 30 payloads validam no schema 1.2 (uma fonte, sem temporadas); a migração
+  preencheu `research_only_unverified` nos 30 e deixou as 5 revisões sem modo; a API respondeu `[]` em `/api/seasons`
+  e 404 em `/predictions`. Depois de `simulate --simulations 300` (fumaça, números não usados): 1 snapshot de
+  publicação, `data.sources` com as duas atribuições, `probability-history` com 1 data, export sem caminho local.
+- **Premissas e limitações**: até o passo 11, a API e o export da pasta principal ficam vazios (os 30 snapshots
+  são `research_only_unverified`); é o comportamento pedido pelo ADR-0008. Não criei `/api/sources`: `data.sources`
+  já sai em `/predictions` e no `predictions.json`, e o G4 exige o texto no HTML. As revisões por rodada antigas
+  ficam ocultas até o 02 regerar com `review-rounds`.
+- **Próximos responsáveis**: **02** (passo 11) regera snapshots e revisão no modo publicação; **06** audita a
+  migração e o filtro; **05** pode ler `composition_mode` e `license_status` em `rounds.json`.
