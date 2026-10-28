@@ -1,6 +1,7 @@
 # Catálogo de fontes de dados (Agente 01)
 
-Última revisão: 2026-10-27 (ADR-0008, passos 1 a 9, e primeira ingestão real de publicação). Toda ingestão grava
+Última revisão: 2026-10-28 (conferência local de 2026, pendência 5 do ADR-0008). Antes: 2026-10-27
+(ADR-0008, passos 1 a 9, e primeira ingestão real de publicação). Toda ingestão grava
 `data/raw/<fonte>/<versão>/manifest.json` (`contracts.SourceManifest`), com origem, versão/commit,
 data de coleta, SHA-256 dos arquivos, status de licença, usos permitidos (`AllowedUse`) e, para
 fontes publicáveis, nome da licença, URL e data de leitura dos termos e texto exato da atribuição.
@@ -12,9 +13,10 @@ fontes publicáveis, nome da licença, URL e data de leitura dos termos e texto 
 | [Adão Duque, "Campeonato Brasileiro de Futebol"](https://www.kaggle.com/datasets/adaoduque/campeonato-brasileiro-de-futebol) (`adaoduque_kaggle`) | Partidas (data dd/mm/aaaa, hora, rodada, mandante, visitante, placar), cartões, gols, estatísticas | 2003–2025: 9.165 partidas; cartões 2014–2024 (20.953 cartões; sem 2025) | Kaggle **versão 18**, baixada pelo dono do produto para `data/raw/adaoduque/v18/` (adaptador `AdaoDuqueSource`, que não baixa nada). SHA-256 fixado em `data/reference/source_pins.json` (`brasileirao pin-adaoduque`). O espelho do GitHub serve só para comparar hashes | `licensed_with_attribution`: GPL-2 declarada no Kaggle (v18; "only" ou "or later" não especificado), termos lidos em 2026-10-27. Coleta do autor "de páginas do Google" (proveniência de segunda mão, risco aceito no ADR). Usos: `research_local`, `prototype_local`, `public_display_derived`, `redistribution` (a licença permitiria; o projeto **não** redistribui sem ADR próprio) | **Publicação 2003–2025.** v18 baixada e fixada em 2026-10-27 (proveniência abaixo); ingestão real executada |
 | [football-data.org](https://www.football-data.org) (`football_data_org`) | API v4, competição BSA: partidas, rodada, status, placar de tempo normal | 2024, 2025 e 2026 confirmadas no plano gratuito (consulta de 2026-10-27) | token gratuito só por `FOOTBALL_DATA_ORG_TOKEN` (`.env` local ou segredo do Actions), nunca em log; 1 chamada por temporada, ≥ 6 s entre chamadas, espera `X-RequestCounter-Reset` em 429 (adaptador `FootballDataOrgSource`) | `licensed_with_attribution`: Terms and Conditions em vigor desde 2018-06-01, lidos em 2026-10-27. Atribuição exata (7.1): "Football data provided by the Football-Data.org API". Cláusulas 2.3, 6.1, 9.1 e 11.1 no ADR-0008. Usos: `research_local`, `prototype_local`, `public_display_derived` (sem redistribuição) | **Publicação 2026+**; 2024–2025 só **conferência local**. Data = `utcDate` convertido para America/Sao_Paulo; `IN_PLAY`/`PAUSED`/`LIVE` → `scheduled`; `AWARDED` só com placar decidido em `known_exceptions.csv` (`code=awarded`), senão a ingestão falha. Ingestão real em 2026-10-27 (3 chamadas, 2024–2026, versão `v4-20261027T205022Z`) |
 | [brasileirao-dataset](https://github.com/leeofernandes1980/brasileirao-dataset) (`brasileirao_dataset`) | Partidas, cartões, gols, estatísticas | 2003–2026, atualizado por GitHub Actions | `git clone` (adaptador `BrasileiraoDatasetSource`) | `research_only_unverified`. Sem arquivo LICENSE. 2003–2023 vêm do dataset de Adão Duque; 2024+ foi coletado da API não oficial do Sofascore, cujos termos restringem coleta automatizada e uso comercial. Usos: `research_local`, `prototype_local` | **Fora da publicação.** Só pesquisa local (`brasileirao ingest --research-source brasileirao_dataset`) e conferência 2003–2023. Em 2024+ a data é o dia UTC do pontapé inicial, sem hora: não dá para converter, e a conferência usa tolerância de ±1 dia |
-| [CBF](https://www.cbf.com.br) | Tabela, súmulas, regulamentos (fonte oficial) | temporada corrente | site; sem API pública documentada | Termos do site **a verificar** (falha de TLS em 2026-10-27) | Regulamento 2026 usado para as regras. Conferência manual dos jogos publicados: pendência do dono |
+| [CBF](https://www.cbf.com.br) | Tabela, súmulas, regulamentos (fonte oficial) | temporada corrente | site; sem API pública documentada | Termos do site **a verificar** (falha de TLS em 2026-10-27) | Regulamento 2026 usado para as regras. Nenhum programa lê o site (pendência 5 do ADR-0008, decidida pelo 00 em 2026-10-28): quem confere 2026 é o 01, com evidência pontual nas divergências (seção "Conferência local") |
 | [ge.globo](https://ge.globo.com/futebol/brasileirao-serie-a/) | Placar final e tabela (conferência) | temporada corrente | consulta manual no navegador, sem coleta automatizada | Conteúdo jornalístico protegido; usado só como evidência pontual, citando a URL | Evidência de correções manuais (`data/reference/manual_corrections.csv`, ignorado pelo git) |
-| [Wikipédia (pt)](https://pt.wikipedia.org) | Classificação e matriz de confrontos | por temporada | consulta manual | CC BY-SA 4.0 | Só conferência manual pontual; sem automação |
+| [Wikipédia (pt)](https://pt.wikipedia.org) | Classificação e matriz de confrontos | por temporada | consulta manual | CC BY-SA 4.0 | Só conferência pontual; sem automação no pipeline. Na conferência de 2026 o wikitexto da página da Série A 2026 foi baixado uma vez (2026-10-28, `action=raw`) para ler a matriz de confrontos fora do repositório |
+| [ESPN](https://africa.espn.com/football/fixtures/_/league/bra.1) | Placar final, status e calendário por data | temporada corrente | consulta pontual de páginas (WebFetch), sem coleta automatizada | Conteúdo protegido; só evidência pontual, citando a URL | Evidência das divergências da conferência de 2026 |
 | [Football-Data.co.uk](https://www.football-data.co.uk) | Resultados e odds de fechamento (arquivo BRA) | 2012+ | download CSV | "My data is free", sem licença declarada | Benchmark de odds local (etapa 3). Não é fonte publicada |
 | [openfootball](https://github.com/openfootball/south-america) | Resultados | 2018–2026 | GitHub | CC0 declarado, mas o Brasil recente vem do football-data.org | Descartado para publicação (ADR-0008) |
 | API-Football | — | a verificar | — | proíbe revenda; termos não lidos (403) | Descartada |
@@ -69,6 +71,16 @@ por temporada no relatório de qualidade confirma a regra.
   (`test_club_aliases.py`, lista conferida no arquivo baixado).
 - Manifesto: `data/raw/adaoduque_kaggle/v18/manifest.json`. Reingerir os mesmos arquivos produziu
   silver, gold, `sources.json` e manifesto byte a byte idênticos (conferido por SHA-256).
+- `retrieved_at` (achado N7 do 06): é o maior mtime dos dois arquivos baixados, porque o Kaggle não informa
+  a data do download e o adaptador não baixa nada. A identidade dos dados é a versão (`kaggle-v18`) e o
+  SHA-256 fixado, não a data. Na primeira ingestão de uma pasta raw a data fica registrada. Ingestões
+  seguintes com os mesmos hashes a mantêm, mesmo que o mtime mude. No workflow, que reconstrói tudo do
+  zero, ela é a hora da extração do zip. Essa data não entra em nenhum cálculo: a checagem de resultado
+  futuro da composição só pega 2003–2025, todas anteriores.
+- 2026-10-28: `license_notes` perdeu a frase "Texto de atribuição provisório até a aprovação do C2". A
+  D-033 tornou final a atribuição, que não mudou. Quando só os termos do adaptador mudam, a ingestão
+  regrava o manifesto com a mesma data de coleta. Muda o SHA-256 do manifesto, e só o
+  `manifest_sha256` do `sources.json` muda junto. Silver e gold ficam idênticos (conferido numa cópia).
 
 ### Partidas por temporada e fonte (silver de publicação de 2026-10-27)
 
@@ -115,6 +127,7 @@ corrigir nada. Pares:
 |---|---|---|---|---|
 | `football_data_org` | `adaoduque_kaggle` | 2024–2025 | 0 dia | testar a premissa de data de Brasília do Adão Duque (esperado zero divergência) |
 | `adaoduque_kaggle` | `brasileirao_dataset` | 2003–2023 | ±1 dia | medir o efeito da troca de fonte no histórico |
+| `football_data_org` | `brasileirao_dataset` | 2026 | ±1 dia | conferência local de 2026 (pendência 5 do ADR-0008); divergência em jogo encerrado exige evidência pontual |
 
 Resultado da primeira execução real (2026-10-27; `football_data_org` versão `v4-20261027T205022Z`,
 `adaoduque_kaggle` v18, `brasileirao_dataset` `838614dbaee3`). Só contagens (decisão B1):
@@ -127,6 +140,41 @@ Resultado da primeira execução real (2026-10-27; `football_data_org` versão `
 A premissa de data de Brasília do Adão Duque se confirmou nos 760 jogos de 2024–2025. Em 2003–2023 o
 `brasileirao-dataset` repete a v18 inclusive nas 4 diferenças com o espelho (mesma linhagem), então a
 troca de fonte não muda nenhum resultado histórico.
+
+### Conferência de 2026 (2026-10-28)
+
+Pendência 5 do ADR-0008, como o 00 a redefiniu: nenhum programa lê o site da CBF; o 01 confere 2026 e
+resolve as divergências com evidência pontual. Mesmas ingestões da tabela acima (`v4-20261027T205022Z`
+× `838614dbaee3`, ambas de 2026-10-27), sem chamada nova à API. Só contagens (decisão B1); o detalhe
+jogo a jogo fica em `data/silver/conference_report.json` e fora do repositório.
+
+| Par | Partidas (cand./ref.) | Casadas | Só em uma | Mesma data | ±1 dia | Data fora da tolerância | Status diferente | Encerradas nas duas | Placar diferente | Rodada diferente |
+|---|---|---|---|---|---|---|---|---|---|---|
+| football-data.org × brasileirao-dataset, 2026 | 380 / 380 | 380 | 0 | 280 | 75 | 25 | 2 | 318 | 1 | 0 |
+
+Classificação das divergências:
+
+- **Jogos encerrados (2)**, os dois da 32ª rodada, de 26/10. São a captura durante o jogo do
+  `brasileirao-dataset` já registrada em "Problemas de qualidade conhecidos":
+  - 1 placar diferente, com o jogo encerrado nas duas fontes;
+  - 1 jogo encerrado no football-data.org e ainda `scheduled` na fonte de pesquisa.
+
+  Nos dois, a ESPN (página do jogo e calendário do dia) e a matriz de confrontos da Wikipédia (atualizada
+  em 26/10) confirmam o football-data.org. **Classificação**: erro ou defasagem da fonte de pesquisa;
+  a fonte de publicação está correta, e nenhuma correção manual é necessária.
+- **Status de jogo não encerrado (1)**: o jogo adiado da 21ª rodada é `postponed` no football-data.org
+  e `scheduled` no `brasileirao-dataset`, sem placar nas duas. A ESPN mostra "Postponed". O
+  football-data.org está correto.
+- **Datas fora da tolerância (25)**, todas em jogos sem placar:
+  - 1 é o adiado;
+  - 4 são remarcações das rodadas 33 e 34. Em 3 delas, a ESPN confirma a data do football-data.org; a
+    quarta é posterior à página consultada;
+  - 20 são das rodadas 36 e 37, ainda sem detalhamento. Cada fonte usa uma data-base diferente, e a ESPN
+    mostra horário "TBD". São datas provisórias, que as próximas ingestões atualizam.
+- **±1 dia (75)**: o `brasileirao-dataset` grava o dia UTC (jogos noturnos), como em 2024–2025.
+- **Checagem extra**: os 319 jogos encerrados no football-data.org foram comparados com a matriz de
+  confrontos da Wikipédia. Os 319 placares são iguais; nenhum jogo encerrado falta na matriz, e a matriz
+  não tem placar de jogo não encerrado.
 
 ## Problemas de qualidade conhecidos
 
@@ -168,7 +216,8 @@ Registrados em `data/reference/known_exceptions.csv` e reportados em `data/gold/
 2. Placar ausente é sempre `scheduled`. Nunca vira 0 x 0. Placar parcial (`IN_PLAY`, `PAUSED`) nunca
    entra.
 3. Diferenças entre ingestões (resultado, data, rodada), divergências de conferência e correções
-   redundantes ou não aplicadas vão para `data/silver/changes.jsonl`.
+   redundantes ou não aplicadas vão para `data/silver/changes.jsonl`. Diferenças são eventos e entram a
+   cada ocorrência; divergências e correções são estados e entram uma vez, de novo só se mudarem (N3).
 4. Publicação só com a composição do ADR-0008; fontes de conferência nunca entram em `data/gold/`.
    Os termos do football-data.org são relidos no início de cada temporada e antes de mudar o uso
    (`terms_checked_at`).
