@@ -2632,3 +2632,63 @@ Branch `api/current-round` (sobre `data/kickoff` do 01). Sem merge na `main`.
     `predictions.json` esconde a aba (tratado como erro de carga, D-037 item 3).
 - **Próximo responsável:** 04 (export `current-round.json` e campos `kickoff_utc`/`source_match_id`); depois o 05
   repete a conferência com o export real e só então pede merge; 08 revisa os textos acima; 06 audita.
+
+## Agente 07: `atualizar-rodada.yml` e inputs do `publish-site` (ADR-0009, Decisão 1; 2026-10-28) — em andamento: código e testes prontos, ensaio pendente
+
+- **O que mudou** (branch `deploy/atualizar-rodada`, a partir de `02eb123`; nada na `main`):
+  - `.github/workflows/atualizar-rodada.yml` (cópia idêntica em `infrastructure/github-workflows/`):
+    crons `37 15 * * *` e `37 21 * * *` (12:37 e 18:37 em Brasília) e `workflow_dispatch` com a
+    janela (`auto`, `tarde`, `noite`). Só na `main`, com `PUBLISH_ENABLED == 'true'` e
+    `MATCH_UPDATES != 'off'`. `permissions: {}` no workflow; `contents: read` e `actions: write` só no
+    job. `timeout-minutes: 360`. O token do football-data.org e o `GH_TOKEN` só no passo que chama as
+    APIs.
+  - `infrastructure/scripts/match_updates.py` (biblioteca padrão, `python -I`): 1 chamada por disparo
+    (`dateFrom = dia`, `dateTo = dia + 2`, filtro local pelo dia em `America/Sao_Paulo`),
+    `check_at = início + 2 h 10`, agrupamento por `check_at`, sono até cada grupo, 1 chamada por grupo,
+    nova tentativa em 30 min dentro do prazo de 5 h 50, `POSTPONED`/`SUSPENDED`/`CANCELLED`/`AWARDED`
+    para a publicação diária, janela da tarde (`check_at` antes de 18:30) e da noite (o dia inteiro,
+    o que recolhe os jogos da tarde não publicados). `MATCH_UPDATES`: `off` não faz nada, `on`
+    dispara, o resto (ausente, `dry-run`) só registra no log e no resumo. A função de decisão e o laço
+    recebem relógio, sono e chamadas externas injetados.
+  - `.github/workflows/publish-site.yml`: inputs `trigger` (`manual`/`match`) e `match_ids`, `run-name`
+    com o gatilho, passo `Conferir os inputs` (expressão regular, só por variável de ambiente) e
+    gatilho no resumo. `concurrency: publish-site` mantido.
+  - `tests/unit/test_match_updates.py` (51 testes, sintéticos, sem rede) e 13 casos novos em
+    `tests/unit/test_workflows.py`.
+  - `docs/architecture/deploy.md`: runbook "Atualização depois de cada jogo" (como funciona,
+    interruptores, como ver o dry-run, custo).
+- **Evidência** (Windows, `.venv` da pasta principal com `PYTHONPATH` apontando para o `src` da
+  worktree; import conferido em `.claude/worktrees/agent-a06ff014f24f95ef2/src/brasileirao`):
+  - `pytest -q`: 634 passed, 1 skipped;
+  - `ruff check src apps tests scripts infrastructure`: sem achados; `ruff format --check`: 108 arquivos
+    formatados; `mypy` (pacote): sem achados; `mypy --strict` no script e nos dois testes: sem achados;
+  - `actionlint` nos 3 workflows: código de saída 0;
+  - `MATCH_UPDATES=off python -I infrastructure/scripts/match_updates.py --site-url ...`: termina sem
+    chamada, resumo "nada a fazer"; sem `FOOTBALL_DATA_ORG_TOKEN` em `dry-run`: código de saída 1.
+  - Documentação do GitHub ("Triggering a workflow from a workflow",
+    <https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow>,
+    consultada em 2026-10-28): eventos do `GITHUB_TOKEN` não criam execuções, exceto
+    "`workflow_dispatch` and `repository_dispatch` events always create workflow runs".
+- **Premissas e limitações:**
+  - **a verificar no ensaio**: o `gh workflow run` com o `GITHUB_TOKEN` de fato inicia o `publish-site`
+    (a documentação diz que sim; só a primeira execução com `MATCH_UPDATES = on` prova);
+  - **depende do 04**: sem `source_match_id` no `predictions.json` publicado, o estado do site é
+    "desconhecido" e todo jogo `FINISHED` conta como "publicar" (a noite pede uma publicação extra para
+    os jogos da tarde já publicados). Com o campo, a regra "já publicado" passa a valer sem mudar o
+    script;
+  - **pendente (07)**: estender o `check_site_artifact.py` ao `current-round.json` (regras do contrato
+    do ADR-0009), depois de o 04 criar o export; O1 (paralelismo) não feito;
+  - semântica do `dateTo` da API (inclusivo ou exclusivo) não confirmada na documentação do
+    football-data.org; o pedido até `dia + 2` com filtro local cobre os dois casos;
+  - jogo `SCHEDULED` (sem horário confirmado) com início no futuro não entra na fila; se o horário for
+    confirmado no mesmo dia, só a execução seguinte o vê;
+  - se a publicação disparada falhar, o GitHub avisa por e-mail e a publicação diária refaz tudo; falha
+    do `gh workflow run` fica registrada no log e a execução continua.
+- **Próximo responsável:**
+  - **06**: auditar o script e os testes (decisão, janela, prazo, nada de placar no log) e os inputs do
+    `publish-site`;
+  - **00**: revisar e decidir o merge na `main` (o 07 não fez merge);
+  - **04**: `source_match_id` e `kickoff_utc` no `predictions.json` e o `current-round.json`;
+  - **07**, depois do 04: `check_site_artifact.py` com o `current-round.json`; depois do merge, ensaio
+    de um dia de jogos com `MATCH_UPDATES` ausente, comparando o resumo com os horários reais;
+  - **dono do produto**: nada agora. Depois do ensaio e dos pareceres, criar `MATCH_UPDATES = on`.

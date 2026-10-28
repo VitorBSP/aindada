@@ -18,7 +18,8 @@ docker compose run --rm pipeline   # atualiza dados e gera novo snapshot
 
 ## Operação
 
-- Agendamento: `publish-site.yml` (seção seguinte), todo dia às 09:00 UTC, só com a publicação ligada.
+- Agendamento: `publish-site.yml` (seção seguinte), todo dia às 09:17 UTC, só com a publicação ligada;
+  `atualizar-rodada.yml` às 15:37 e 21:37 UTC (seção "Atualização depois de cada jogo").
 - Rollback local: os snapshots são imutáveis. Para voltar, basta apagar o snapshot mais recente ou
   servir um banco anterior (`BRASILEIRAO_SNAPSHOT_DB`).
 - Logs: JSON em stderr (`brasileirao.logging_utils`).
@@ -158,6 +159,84 @@ tornar o repositório público, escolher "GitHub Actions" como fonte do Pages e 
 - Execuções agendadas do GitHub podem atrasar ou ser puladas em horários de pico.
 - Limites do Pages (~1 GB por site, ~100 GB/mês de banda, cache de ~10 min) e do Actions (6 h por
   job) estão "a verificar" na data da implantação.
+
+## Atualização depois de cada jogo (ADR-0009, Decisão 1) — runbook
+
+Estado em 2026-10-28: `atualizar-rodada.yml` e `infrastructure/scripts/match_updates.py` na branch
+`deploy/atualizar-rodada`, **nunca executados no GitHub**. Padrão: `dry-run`.
+
+### Como funciona
+
+```text
+cron 15:37 UTC (12:37 BRT, "tarde") ou 21:37 UTC (18:37 BRT, "noite")
+  -> 1 chamada: GET /v4/competitions/BSA/matches?dateFrom=<dia>&dateTo=<dia+2>
+     (filtro da API por data UTC; o script fica só com os jogos cuja data em America/Sao_Paulo é o dia)
+  -> fila: jogos com horário confirmado (TIMED, ou início já passado), check_at = início + 2 h 10
+     tarde: check_at antes de 18:30 BRT; noite: o dia inteiro (recolhe os da tarde não publicados)
+  -> dorme até o próximo check_at; 1 chamada por grupo de jogos com o mesmo check_at
+     FINISHED e não "finished" no predictions.json público -> 1 publish-site para o grupo
+     FINISHED e já "finished" no site                     -> nada
+     SCHEDULED/TIMED/IN_PLAY/PAUSED/LIVE ou falha na API   -> nova tentativa em 30 min, se couber no prazo
+     POSTPONED/SUSPENDED/CANCELLED/AWARDED                 -> sai da fila; a publicação diária trata
+  -> prazo interno: início da execução + 5 h 50 (timeout do job: 360 min)
+```
+
+- Sem jogo no dia (ou na janela), a execução faz 1 chamada e termina em segundos.
+- O `dateTo` é `dia + 2` para cobrir o dia inteiro em Brasília (até 02:59 UTC do dia seguinte) seja o
+  `dateTo` da API inclusivo ou exclusivo; o filtro pelo dia em Brasília é do script.
+- Cada jogo é disparado no máximo uma vez por execução. Jogo cuja checagem cairia depois do prazo (por
+  exemplo, início depois de ~22:15 na noite) fica para a publicação diária das 06:17.
+- O disparo usa `gh workflow run publish-site.yml --ref main -f trigger=match -f match_ids=<ids>` com o
+  `GITHUB_TOKEN`. O `publish-site` confere os dois inputs por expressão regular (passo `Conferir os
+  inputs`), mostra o gatilho no `run-name` (`publish-site (match: 123,456)`) e no resumo, e segue a
+  mesma publicação diária, com gate G1 a G5 e `check_site_artifact.py`. O `concurrency: publish-site`
+  continua: uma publicação por vez; um pedido novo substitui o que estiver na fila.
+- O GitHub documenta que eventos criados com o `GITHUB_TOKEN` não iniciam workflows, **com exceção de
+  `workflow_dispatch` e `repository_dispatch`, que sempre criam execuções** ("Triggering a workflow
+  from a workflow",
+  <https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow>,
+  consultado em 2026-10-28). **A verificar no ensaio**: só a primeira execução com `MATCH_UPDATES = on`
+  mostra o `publish-site` iniciado com `trigger=match`.
+- Estado do site: lido do `predictions.json` público (sem token), pelo campo `source_match_id` de cada
+  partida. **Enquanto o export do 04 não tiver esse campo**, o estado do site é "desconhecido" e todo
+  jogo `FINISHED` conta como "publicar". Consequência: a execução da noite também pede uma publicação
+  extra, ao começar, para os jogos da tarde já publicados. Isso só gasta minutos; o resumo marca
+  "(estado do site desconhecido)".
+- Permissões: `permissions: {}` no workflow; `contents: read` e `actions: write` só no job `watch`.
+  `persist-credentials: false` no checkout. O `FOOTBALL_DATA_ORG_TOKEN` e o `GH_TOKEN` existem só no
+  passo `Acompanhar os jogos do dia`, que é o único que chama as APIs; o script nunca imprime o token
+  nem placares (só lê `id`, `utcDate` e `status`). Diferente do que o R11 evitava, este job tem
+  `actions: write` e o segredo no mesmo passo, como o ADR-0009 decidiu: o processo precisa dos dois
+  ao longo das horas em que dorme.
+- `concurrency: atualizar-rodada-<cron>`: uma execução por janela; a tarde e a noite são independentes.
+
+### Interruptores
+
+| Variável | Valor | Efeito |
+|---|---|---|
+| `PUBLISH_ENABLED` | diferente de `true` | o workflow não roda (nem por `workflow_dispatch`) |
+| `MATCH_UPDATES` | ausente, `dry-run` ou qualquer valor desconhecido | faz as chamadas e dorme, mas **não** dispara; o resumo diz o que teria disparado e quando |
+| `MATCH_UPDATES` | `on` | dispara o `publish-site` |
+| `MATCH_UPDATES` | `off` | o job nem começa |
+
+Para criar ou mudar: Settings → Secrets and variables → Actions → Variables. Ligar (`on`) só depois
+do ensaio e dos pareceres do 06 e do 00 (ADR-0009, "Ligar").
+
+### Como ver o dry-run
+
+1. Actions → `atualizar-rodada` → a execução do dia (ou "Run workflow" na `main`, com a janela
+   `auto`, `tarde` ou `noite`).
+2. O log do passo `Acompanhar os jogos do dia` mostra, em tempo real, uma linha por decisão
+   (`hora BRT | id do jogo | decisão`) e cada "dormindo N min".
+3. No fim, o resumo da execução tem a tabela de decisões e a lista "Publicações", com
+   "teria disparado (dry-run) `publish-site` para <ids>" e o horário. Para o ensaio do ADR-0009,
+   comparar esses horários com a hora real de fim de cada jogo e com a publicação diária seguinte.
+4. Se o job for cortado no timeout, o resumo final não é escrito, mas o log do passo já tem as linhas.
+
+### Custo
+
+Um dia com jogos à tarde e à noite: até ~12 h de runner (gratuito em repositório público), mais uma
+publicação de ~20–45 min por grupo de jogos com `on`. Dia sem jogo: segundos.
 
 ## Proposta: deploy gratuito (histórico, 2026-10-26)
 
