@@ -283,6 +283,31 @@ main > p.highlight-links { margin: -8px 0 24px; }
 .segmented a + a { border-left: 1px solid var(--ink); }
 .segmented a:hover { background: color-mix(in srgb, var(--ink) 8%, transparent); }
 .segmented a[aria-current="page"] { background: var(--ink); color: var(--paper); }
+.segmented a { display: inline-flex; align-items: center; justify-content: center; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* Aba da rodada (D-037, versão enxuta do ADR-0009) */
+.round-update { margin: 0 0 8px; }
+.round-update .note { margin: 0 0 6px; }
+.round-updated strong { color: var(--ink-soft); font-weight: 600; }
+.round-day { margin: 18px 0 0; }
+.round-day h3 { margin: 0 0 4px; }
+main ol.round-matches { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule-strong); }
+.round-match { display: grid; grid-template-columns: 3.5rem 9.5rem minmax(0, 1fr) 4rem minmax(0, 1fr); grid-template-areas: "time status home center away" ". . meta meta meta"; align-items: center; column-gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--rule); font-family: var(--sans); font-size: 15px; }
+.rm-time { grid-area: time; font-variant-numeric: tabular-nums; font-weight: 600; }
+.rm-status { grid-area: status; font-size: 13px; color: var(--ink-soft); }
+.rm-status-alert { color: var(--sudamericana); font-weight: 650; }
+.rm-home { grid-area: home; justify-self: end; text-align: right; }
+.rm-away { grid-area: away; justify-self: start; }
+.rm-home a, .rm-away a { font-weight: 600; }
+.rm-center { grid-area: center; text-align: center; font-variant-numeric: tabular-nums; font-weight: 700; color: var(--ink-faint); }
+.is-finished .rm-center { color: var(--ink); font-size: 17px; }
+.is-postponed .rm-center { font-size: 13px; font-weight: 650; color: var(--sudamericana); }
+main .round-match p.rm-meta { grid-area: meta; margin: 4px 0 0; font-family: var(--sans); font-size: 13px; line-height: 1.45; color: var(--ink-faint); }
+.round-changes caption { caption-side: top; text-align: left; font-size: 13px; color: var(--ink-soft); padding: 8px 0 4px; }
+.round-changes th[scope="row"] { font-size: 14px; color: var(--ink); background: transparent; position: static; font-weight: 600; }
+.round-changes td { vertical-align: top; }
+.round-changes .range { display: block; }
 .race-heading { border-top: 0; margin-top: 8px; padding-top: 0; font-size: 26px; }
 .lede-method { color: var(--ink-faint); font-size: 16px; }
 .mosaic-labels text { font-family: var(--sans); font-size: 12px; font-weight: 700; fill: var(--ink-soft); }
@@ -345,6 +370,15 @@ main > ul.club-grid li { font-family: var(--sans); font-size: 15px; }
   .match .home .club-cell { justify-content: flex-start; }
   .goals-chance { border-left: 0; padding-left: 0; flex-basis: 100%; text-align: center; }
   .segmented a { padding: 7px 12px; }
+  .segmented.has-round { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; }
+  .segmented.has-round a { min-height: 44px; padding: 7px 8px; }
+  .segmented.has-round a:first-child { grid-column: 1 / -1; border-bottom: 1px solid var(--ink); }
+  .segmented.has-round a:nth-child(2) { border-left: 0; }
+  .round-match { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-areas: "time time status" "home center away" "meta meta meta"; row-gap: 6px; }
+  .rm-status { justify-self: end; text-align: right; }
+  .rm-home { justify-self: start; text-align: left; }
+  .rm-away { justify-self: end; text-align: right; }
+  .rm-home .club-cell, .rm-away .club-cell { align-items: flex-start; }
   .match .away { text-align: right; }
   .lede { font-size: 17px; }
   .stat .big { font-size: 28px; }
