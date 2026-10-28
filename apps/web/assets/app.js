@@ -602,7 +602,7 @@
         <td class="pos">${team.current_position}</td>
         <td class="left club">${clubLink(team.club_id)}</td>
         <td><strong>${standing.points}</strong></td><td>${standing.played}</td><td>${standing.wins}</td><td>${standing.goal_difference > 0 ? "+" : ""}${standing.goal_difference}</td>
-        <td><strong>${num(team.expected_points)}</strong><div class="range">${Math.round(team.points_interval_90[0])}–${Math.round(team.points_interval_90[1])}</div></td>
+        <td><strong>${num(team.expected_points)}</strong><div class="range" title="Faixa provável">${Math.round(team.points_interval_90[0])}–${Math.round(team.points_interval_90[1])}</div></td>
         <td>${num(team.expected_position)}</td>
         ${view.cells(team).map((cell, index) => `<td class="${index === 0 ? "view-start" : ""}${viewId === "dificuldade" && index === view.head.length - 1 ? " left" : ""}">${cell}</td>`).join("")}
       </tr>`;
@@ -619,7 +619,7 @@
         <thead><tr><th>#</th><th class="left">Clube</th><th>Pts</th><th>J</th><th>V</th><th>SG</th><th>Pts proj.</th><th>Pos. média</th>${head}</tr></thead>
         <tbody>${rows}</tbody></table></div>
       <div class="legend"><span class="l-lib">G5 (Libertadores via Brasileirão)</span><span class="l-sula">faixa típica da Sul-Americana</span><span class="l-z4">Z4</span></div>
-      <p class="note">Pts proj. = média simulada de pontos no fim (embaixo, o intervalo de 90%). Pos. média = posição final média nas simulações.${view.caption ? ` ${view.caption}` : ""}</p>`;
+      <p class="note">Pts proj. = média simulada de pontos no fim. Embaixo, a faixa provável, onde terminam 90% das simulações; nas temporadas passadas, a pontuação final ficou dentro dela menos vezes que isso (<a href="#/metodologia">Como calculamos</a>). Pos. média = posição final média nas simulações.${view.caption ? ` ${view.caption}` : ""}</p>`;
     if (view.scenarios) bindScenarioPanel(() => renderStandings(viewId));
   }
 
@@ -757,7 +757,7 @@
     main.innerHTML = `
       ${picker}
       <h1 class="club-heading">${crest(clubId, 48)}<span>${escapeHtml(team.name)}</span></h1>
-      <p class="lede">${team.current_position}º lugar com ${team.current_points} pontos em ${team.played} jogos. Projeção: ${num(team.expected_points)} pontos (90% entre ${Math.round(team.points_interval_90[0])} e ${Math.round(team.points_interval_90[1])}).</p>
+      <p class="lede">${team.current_position}º lugar com ${team.current_points} pontos em ${team.played} jogos. Projeção: ${num(team.expected_points)} pontos (faixa provável de ${Math.round(team.points_interval_90[0])} a ${Math.round(team.points_interval_90[1])}).</p>
       <div class="stat-row">
         <div class="stat"><span class="label">Título</span><span class="big">${pct(team.title)}</span></div>
         <div class="stat"><span class="label">G4</span><span class="big">${pct(team.top4)}</span></div>
@@ -865,12 +865,54 @@
     return `<li>${named}. Temporadas usadas: <strong>${seasonRange(source.seasons)}</strong>. ${license}${terms}. Versão <code class="data-version">${escapeHtml(source.version)}</code>, coletada em ${escapeHtml(String(source.retrieved_at).slice(0, 10))}.</li>`;
   }
 
+  const seasonRangeText = (seasons) => (Array.isArray(seasons) && seasons.length ? `${escapeHtml(seasons[0])}–${escapeHtml(seasons[seasons.length - 1])}` : "");
+
+  function coverageVerdict(coverage) {
+    if (coverage < 0.87) return ": ela é mais estreita do que deveria, e o resultado final cai fora dela mais vezes do que os 90% sugerem.";
+    if (coverage > 0.93) return ": ela é mais larga do que precisaria.";
+    return ", perto dos 90% esperados.";
+  }
+
+  function seasonSimulationText(metrics, snapshot, context) {
+    if (!metrics.model_version) return "";
+    if (!context.sameModelVersion) {
+      return `<p class="note">O relatório de testes disponível é da versão ${escapeHtml(metrics.model_version)} do modelo, e o site usa a ${escapeHtml(snapshot.model.model_version)}. Os números de acerto da versão em uso ainda não foram publicados.</p>`;
+    }
+    const { finalTest, finalValidation, fixedRatings } = context;
+    const usable = (entry) => Boolean(entry) && typeof entry.points_interval_90_coverage === "number" && typeof entry.points_mae === "number";
+    if (!usable(finalTest) || !usable(finalValidation)) return "";
+    const rounds = Array.isArray(metrics.season_simulation.rounds) ? metrics.season_simulation.rounds.map(escapeHtml).join(", ") : "";
+    const mode = fixedRatings ? "ratings fixos: a força de cada clube não muda durante a simulação" : "ratings dinâmicos: a força de cada clube é atualizada a cada rodada simulada";
+    const shortMode = fixedRatings ? "os ratings fixos" : "os ratings dinâmicos";
+    return `<p>Para medir a projeção de pontos, refizemos temporadas passadas a partir das rodadas ${rounds}, com o mesmo modelo usado aqui (${mode}). Nas temporadas de teste (${seasonRangeText(metrics.test_seasons)}), a projeção errou a pontuação final por ${num(finalTest.points_mae)} pontos em média.</p>
+        <p>A faixa provável de pontos é onde terminam 90% das simulações. Se ela fosse exata, a pontuação final cairia dentro dela 90% das vezes. Com ${shortMode} usados aqui, caiu ${pct(finalTest.points_interval_90_coverage)} das vezes nas temporadas de teste e ${pct(finalValidation.points_interval_90_coverage)} nas de validação (${seasonRangeText(metrics.validation_seasons)})${coverageVerdict(finalTest.points_interval_90_coverage)}</p>`;
+  }
+
+  function historySection(reconstruction) {
+    if (reconstruction) {
+      const version = reconstruction.consistent
+        ? `Versão do modelo da curva atual: ${reconstruction.modelVersion}, recalculada em ${reconstruction.generatedAt}.`
+        : `Versão do modelo atual: ${reconstruction.modelVersion}, recalculada em ${reconstruction.generatedAt}. Atenção: parte da curva ainda foi calculada com outra versão do modelo.`;
+      return `<h2>Histórico das chances</h2>
+      <p>O gráfico de evolução de cada clube não guarda as previsões antigas. A cada atualização, refazemos a temporada inteira: para cada data de referência, o modelo atual roda as simulações usando só os resultados conhecidos até aquela data. Por isso a curva inteira muda quando o modelo muda ou quando um placar é corrigido na fonte, e um ponto antigo pode não bater com o que este site mostrou naquele dia. ${version} A aba Rodada a rodada é feita do mesmo jeito.</p>`;
+    }
+    if (state.rounds) {
+      return `<h2>Histórico das chances</h2><p>A aba Rodada a rodada não guarda as previsões antigas. A cada atualização, o modelo atual refaz a véspera de cada rodada usando só os resultados conhecidos até ali.</p>`;
+    }
+    return "";
+  }
+
   function renderMethodology() {
     const snapshot = state.snapshot;
     const metrics = state.metrics;
     const labels = { base_rate: "Taxa-base (frequências históricas)", intercept_only: "Poisson sem variáveis", elo_only: "Elo", attack_defense_only: "Ataque/defesa", elo_attack_defense: "Elo + ataque/defesa (escolhido)", full: "Elo + ataque/defesa + forma", elo_attack_defense_sem_dixon_coles: "Escolhido sem Dixon-Coles" };
     const metricRows = metrics ? Object.entries(metrics.test_metrics).map(([name, values]) => `<tr><td class="left">${labels[name] || escapeHtml(name)}</td><td>${num(values.log_loss, 4)}</td><td>${num(values.brier, 4)}</td><td>${num(values.rps, 4)}</td></tr>`).join("") : "";
-    const simulation = metrics && metrics.season_simulation ? metrics.season_simulation.overall : null;
+    const finalSimulation = metrics && metrics.season_simulation ? metrics.season_simulation.uncertainty : null;
+    const chosenVariant = finalSimulation ? finalSimulation.selected : null;
+    const finalTest = chosenVariant && finalSimulation.test ? finalSimulation.test[chosenVariant] : null;
+    const finalValidation = chosenVariant && finalSimulation.validation ? finalSimulation.validation[chosenVariant] : null;
+    const sameModelVersion = Boolean(metrics && metrics.model_version === snapshot.model.model_version);
+    const fixedRatings = !snapshot.dynamic_ratings;
     const reconstruction = reconstructionInfo();
     main.innerHTML = `
       <span class="kicker">Como calculamos</span>
@@ -878,8 +920,8 @@
       <p class="lede">O modelo, as regras do regulamento, os testes com temporadas passadas, de onde vêm os dados e o que o modelo não sabe.</p>
       <h2>Modelo</h2>
       <p>Cada clube tem um <strong>rating Elo</strong> (força geral, com vantagem de mando e peso pelo saldo de gols) e <strong>ratings de ataque e defesa</strong> atualizados jogo a jogo, ajustados pela força do adversário. Duas regressões de Poisson convertem esses ratings em gols esperados do mandante e do visitante.</p>
-      <p>A simulação de Monte Carlo parte da tabela real, preserva os jogos já disputados e sorteia placares para os ${snapshot.remaining_matches} restantes. Dentro de cada simulação, os ratings são atualizados após cada rodada simulada. Jogos da mesma data usam os ratings da véspera. Cada temporada simulada é independente. A classificação aplica os critérios do Art. 15 do regulamento: pontos, vitórias, saldo, gols pró, confronto direto (só entre dois clubes), cartões e sorteio.</p>
-      <p class="note">Versão ${escapeHtml(snapshot.model.model_version)} · variáveis: ${escapeHtml(snapshot.model.feature_set)} · treino: ${snapshot.model.training_seasons[0]}–${snapshot.model.training_seasons[snapshot.model.training_seasons.length - 1]} · semente ${snapshot.seed} · ratings dinâmicos na simulação: ${snapshot.dynamic_ratings ? "sim" : "não"}.</p>
+      <p>A simulação de Monte Carlo parte da tabela real, preserva os jogos já disputados e sorteia placares para os ${snapshot.remaining_matches} restantes. ${fixedRatings ? "Durante a simulação, a força de cada clube fica fixa no valor da data de referência: só os jogos reais mudam os ratings." : "Dentro de cada simulação, os ratings são atualizados após cada rodada simulada. Jogos da mesma data usam os ratings da véspera."} Cada temporada simulada é independente. A classificação aplica os critérios do Art. 15 do regulamento: pontos, vitórias, saldo, gols pró, confronto direto (só entre dois clubes), cartões e sorteio.</p>
+      <p class="note">Versão ${escapeHtml(snapshot.model.model_version)} · variáveis: ${escapeHtml(snapshot.model.feature_set)} · treino: ${snapshot.model.training_seasons[0]}–${snapshot.model.training_seasons[snapshot.model.training_seasons.length - 1]} · semente ${snapshot.seed} · ratings na simulação: ${snapshot.dynamic_ratings ? "dinâmicos" : "fixos"}.</p>
       <h2>Vagas continentais</h2>
       <p>Pelo <a href="${escapeHtml(snapshot.regulation.url)}">${escapeHtml(snapshot.regulation.title)}</a> (${escapeHtml(snapshot.regulation.date)}): do 1º ao 4º vão à fase de grupos da Libertadores 2027 e o 5º à fase preliminar. O campeão da Copa do Brasil vai à fase de grupos e o vice à preliminar. Os campeões da Libertadores e da Sul-Americana 2026 também se classificam, e as vagas liberadas descem para o melhor colocado ainda não classificado. A Sul-Americana fica com os seis melhores restantes. Os quatro últimos são rebaixados.</p>
       <p>Situação em ${escapeHtml(snapshot.external_context.as_of)}: ${snapshot.external_context.notes.map(escapeHtml).join(" ")} Como esses torneios não têm vencedor definido, mostramos faixas entre os ${snapshot.scenarios.length} cenários possíveis. Não estimamos a chance de cada um.</p>
@@ -891,10 +933,9 @@
       ${metrics ? `<p>Backtesting temporal: o modelo de cada temporada foi treinado só com temporadas anteriores. Os hiperparâmetros foram escolhidos em ${metrics.validation_seasons[0]}–${metrics.validation_seasons[metrics.validation_seasons.length - 1]} e o teste foi feito em ${metrics.test_seasons[0]}–${metrics.test_seasons[metrics.test_seasons.length - 1]}. Valores menores são melhores.</p>
         <div class="table-scroll"><table><thead><tr><th class="left">Modelo</th><th>Log loss</th><th>Brier</th><th>RPS</th></tr></thead><tbody>${metricRows}</tbody></table></div>
         <p class="note">Empates previstos: ${pct(metrics.draw_rate.predicted)} · observados: ${pct(metrics.draw_rate.observed)}.</p>
-        ${simulation ? `<p>Na simulação de temporadas passadas (snapshots nas rodadas ${metrics.season_simulation.rounds.join(", ")}), o intervalo de 90% para os pontos finais acertou ${pct(simulation.dynamic.points_interval_90_coverage)} das vezes com ratings dinâmicos e ${pct(simulation.fixed.points_interval_90_coverage)} com ratings fixos. Erro médio da pontuação final projetada: ${num(simulation.dynamic.points_mae)} pontos.</p>` : ""}`
+        ${seasonSimulationText(metrics, snapshot, { finalTest, finalValidation, sameModelVersion, fixedRatings })}`
         : "<p class='note'>Relatório de backtesting indisponível.</p>"}
-      ${reconstruction ? `<h2>Histórico das chances</h2>
-      <p>O gráfico de evolução de cada clube não guarda as previsões antigas. A cada atualização, refazemos a temporada inteira: para cada data de referência, o modelo atual roda as simulações usando só os resultados conhecidos até aquela data. Por isso a curva inteira muda quando o modelo muda ou quando um placar é corrigido na fonte, e um ponto antigo pode não bater com o que este site mostrou naquele dia. Versão do modelo da curva atual: ${reconstruction.modelVersion}, recalculada em ${reconstruction.generatedAt}.</p>` : ""}
+      ${historySection(reconstruction)}
       <h2>Dados</h2>
       <p>Cada temporada vem de uma única fonte, sem completar com outra. Jogo sem placar na fonte entra nas simulações como ainda não disputado.</p>
       <ul class="data-sources">${dataSources(snapshot.data).map(sourceItem).join("")}</ul>
@@ -908,7 +949,7 @@
       <ul>
         <li>O modelo não conhece lesões, suspensões, troca de treinador nem rodízio por outras competições.</li>
         <li>Os gols simulados não geram cartões; os critérios de cartões usam apenas jogos já disputados.</li>
-        <li>As probabilidades dos jogos usam a força na data de referência; dentro das simulações, a força evolui.</li>
+        <li>${fixedRatings ? "A força de cada clube fica fixa na data de referência durante toda a simulação: uma sequência de vitórias simuladas não deixa o time mais forte nas rodadas seguintes." : "As probabilidades dos jogos usam a força na data de referência; dentro das simulações, a força evolui."}</li>
         <li>Percentuais muito pequenos ou muito grandes ainda são incertos: "0%" significa que o desfecho não ocorreu em nenhuma simulação, não que seja impossível.</li>
       </ul>`;
   }
@@ -927,7 +968,7 @@
     else if (section === "clubes") renderClub(decodeURIComponent(parameter));
     else if (section === "partidas") renderMatches();
     else if (section === "rodadas") {
-      window.Rounds.render(main, [parameter, ...rest], { review: state.rounds, escapeHtml, pct, num, formatDate, formatShortDate, highlights: roundHighlights, reconstructed: Boolean(reconstructionInfo()) });
+      window.Rounds.render(main, [parameter, ...rest], { review: state.rounds, escapeHtml, pct, num, formatDate, formatShortDate, highlights: roundHighlights });
     }
     else if (section === "metodologia") renderMethodology();
     else renderHome(parameter);
