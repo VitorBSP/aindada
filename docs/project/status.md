@@ -2390,3 +2390,46 @@ ADR-0007 e ADR-0008 e o roadmap. Nenhum código, workflow ou dado mudou.
   4. Actions → publish-site → Run workflow → branch `main` (temporada em branco) → Run. Quando terminar, passar o
      link da execução ao 06. Se `build` ou `deploy` falhar, ou se o 06 reprovar o site, mudar `PUBLISH_ENABLED`
      para `false`.
+
+## Agente 00: ADR-0009, atualização depois de cada jogo e aba "Rodada atual" (2026-10-28) — desenho aceito, nada implementado
+
+- **O que mudou** (só documentação, branch `docs/adr-atualizacao-por-partida`):
+  - `docs/decisions/ADR-0009-atualizacao-por-partida.md` (novo, **aceito** como desenho);
+  - `docs/project/risks.md`: R19 (atraso dos agendamentos), R20 (atraso da fonte), R21 (`actions: write`);
+  - `docs/roadmap.md`: linha 4b.
+- **Decisão, em resumo:**
+  - um workflow `atualizar-rodada.yml` com dois disparos por dia (12:37 e 18:37 em Brasília). Cada um faz uma
+    chamada ao football-data.org, agrupa os jogos do dia por `check_at = kickoff + 2 h 10`, dorme até cada
+    grupo e, se o jogo acabou e o site ainda não o mostra como encerrado, dispara o `publish-site` com
+    `workflow_dispatch`. Se o jogo não acabou, tenta de novo em 30 min, dentro do prazo do disparo. A publicação
+    diária das 06:17 continua como rede de segurança;
+  - sem vigia frequente nem `schedule.json`: o primeiro desenho foi recusado pelo dono por excesso de
+    infraestrutura (correção registrada no ADR);
+  - sem cache entre execuções (Decisão 4); a otimização O1, paralela e sem estado, é opcional;
+  - "Rodada atual", "Última rodada" e o contrato do `current-round.json` estão na Decisão 3 do ADR.
+- **Evidência:** ADR com contexto, quatro decisões, contrato com exemplo fictício, alternativas e consequências.
+  Desenho conferido contra o código do `main` em `c0310f8`:
+  - mapa de status do adaptador (`football_data_org.py`: `IN_PLAY`, `PAUSED` e `LIVE` → `scheduled`);
+  - `MatchRecord` só com `match_date` (`contracts.py`);
+  - `round_cutoffs` (véspera de cada rodada) e `RoundViewInfo` (`partial`, `changes`) para a base da variação;
+  - `publish-site.yml` (agendamento `17 9 * * *`, `concurrency: publish-site`);
+  - tempos de `docs/architecture/deploy.md`.
+  Nenhum teste foi rodado: a entrega é só documentação.
+- **Premissas e limitações:**
+  - **a verificar pelo 07**: `workflow_dispatch` disparado pelo `GITHUB_TOKEN` inicia o `publish-site`;
+    filtros de data da API (UTC) cobrindo o dia em Brasília; leitura de caches por pull requests (só reforça
+    a Decisão 4);
+  - **a medir pelo 01**: o atraso do placar no plano gratuito (R20);
+  - a promessa de 30 a 60 min é estimativa, a confirmar no ensaio.
+- **Próximos responsáveis, na ordem:**
+  1. **01**: `kickoff_utc` e `kickoff_time_confirmed` no silver e no gold (Decisão 2);
+  2. **04**: campos novos no `MatchPrediction`, `current-round.json`, rota na API e constantes em `config.py`
+     (Decisões 2 e 3; o 04 tem handoff explícito para editar `export_static_api` e esse trecho de `config.py`);
+  3. **06**: auditoria de 1 e 2;
+  4. **07**: `atualizar-rodada.yml`, `inputs` e `run-name` do `publish-site`, `check_site_artifact.py` e ensaio em
+     `dry-run`;
+  - **08**, já, em paralelo: experiência e textos da aba e da página `#/rodada-atual` sobre o contrato da
+    Decisão 3, registrados em `BRAND_DECISIONS.md`;
+  - **05**: implementação sobre uma fixture sintética, com merge depois do export do 04;
+  - **06** e **00**: pareceres antes de o dono criar `MATCH_UPDATES = on`.
+- **Ação do dono do produto:** nenhuma agora. No fim, criar a variável `MATCH_UPDATES = on`.
