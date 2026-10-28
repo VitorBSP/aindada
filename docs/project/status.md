@@ -2479,3 +2479,76 @@ ADR-0007 e ADR-0008 e o roadmap. Nenhum código, workflow ou dado mudou.
   - **05**: escopo v1 da Decisão 3 sobre uma fixture sintética, com merge depois do export do 04;
   - **06** e **00**: pareceres antes de o dono criar `MATCH_UPDATES = on`.
 - **Ação do dono do produto:** nenhuma agora. No fim, criar a variável `MATCH_UPDATES = on`.
+
+## Agente 01: horário do jogo no silver e no gold, passo 1 do ADR-0009 (2026-10-28) — entregue, aguarda auditoria do 06
+
+- **O que mudou** (branch `data/kickoff`, a partir de `02eb123`):
+  - `contracts.py`: `MatchRecord` ganha `kickoff_utc: datetime | None` (convertido para UTC; sem fuso é
+    recusado) e `kickoff_time_confirmed: bool | None`. O validador exige que `match_date` seja a data de
+    `kickoff_utc` em America/Sao_Paulo, que `kickoff_utc` venha com a confirmação e que `True` venha com
+    horário. Sem os dois campos, o registro continua válido;
+  - `data_pipeline/sources.py`: `RawMatch` com os dois campos (padrão `None`);
+  - `data_pipeline/football_data_org.py`: `kickoff_of(utcDate, status)`. Horário confirmado com `TIMED`,
+    `IN_PLAY`, `PAUSED`, `LIVE` e `FINISHED`. `SCHEDULED`, `POSTPONED`, `SUSPENDED` e `CANCELLED` às
+    00:00:00Z são jogos **só com data**: sem `kickoff_utc`, confirmação `False`, e `match_date` = dia do
+    `utcDate`, sem conversão. Com outro horário, ou `AWARDED`: `kickoff_utc` provisório e `False`;
+  - `data_pipeline/ingest.py`: duas colunas novas no fim da silver e do gold (`SILVER_MATCH_COLUMNS`);
+    `with_kickoff_columns` (tipos estáveis; silver antiga sem as colunas fica com NA); `read_matches` as
+    cria. `detect_changes` registra mudança de horário só quando a versão anterior já o tinha.
+    `confirmed_kickoff_utc(kickoff_utc, kickoff_time_confirmed) -> str | None` é a regra do
+    `MatchPrediction.kickoff_utc` do 04;
+  - `data_pipeline/validation.py`: `kickoff_issues` (`kickoff_date_mismatch`, erro) dentro do
+    `run_quality_checks`;
+  - `tests/unit/test_kickoff.py` (31 testes) e 2 jogos `SCHEDULED` na fixture sintética
+    `tests/fixtures/football_data_org_synthetic.json`: um só com data às 00:00Z e um com horário provisório.
+    O jogo `TIMED` às 00:30Z (21h30 em Brasília, vira o dia em UTC) já estava lá;
+  - `docs/data-sources/catalog.md`: seção "Horário do jogo" e linha do football-data.org.
+- **Achado de dados (corrigido aqui)**: o football-data.org devolve `SCHEDULED` com `utcDate` às 00:00:00Z
+  (só a data). A conversão para Brasília punha esses jogos **um dia antes**. Na ingestão de 2026-10-27
+  são 41 jogos: os 40 das rodadas 35 a 38 e o adiado da rodada 21. As datas do marcador batem com a
+  tabela básica da CBF (21: 29/07; 35: 18/11; 36: 21/11; 37: 28/11; 38: 02/12). Com a correção, os 41
+  avançam 1 dia e o `changes.jsonl` registra 41 linhas `match_date`. Nenhum jogo encerrado ou com
+  horário confirmado muda.
+- **Evidência** (Python da `.venv` da pasta principal, com `PYTHONPATH` da worktree; o import resolve para
+  `.../worktrees/agent-adf2c37338c729fa2/src/brasileirao/__init__.py`):
+  - `pytest -q`: 597 passed, 1 skipped (eram 566 passed antes da mudança);
+  - `ruff check .`: All checks passed. `ruff format --check .`: 165 files already formatted. `mypy`:
+    Success, no issues found in 50 source files;
+  - ingestão real `brasileirao ingest --season 2026` (sem `--fetch`, raw `v4-20261027T205022Z` e
+    Adão Duque v18) com `BRASILEIRAO_ROOT` numa cópia dos dados no scratchpad (a pasta principal não foi
+    tocada). Resultado: 9.545 partidas. Em 2026: 319 `finished` e 20 `scheduled` com horário confirmado,
+    40 `scheduled` e 1 `postponed` só com data. **0 violações do invariante em 339 jogos com horário.**
+    Nenhuma partida de 2003–2025 tem horário. A diferença para a silver anterior são só 41 células
+    `match_date`;
+  - idempotência: a segunda ingestão sobre a mesma entrada deixou `matches.csv`, `changes.jsonl`,
+    `sources.json`, `cards_by_match.csv` e `matches_model.csv` com o mesmo SHA-256 (`sha256sum -c` OK);
+  - `brasileirao validate --reference-date 2026-10-27`: erros False, sem `kickoff_date_mismatch`.
+    Continua o aviso já conhecido do adiado da rodada 21, agora com a data 2026-07-29;
+  - `hora` do Adão Duque contra o football-data.org em 2024–2025: a até 5 min em 755 de 760 jogos.
+- **Premissas e limitações:**
+  - **Atraso da fonte no plano gratuito: não medido; fica para o ensaio (`dry-run`).** Nenhuma chamada à API
+    foi feita. Às 18h59 em Brasília nenhum jogo do dia tinha começado, e uma chamada só não mede atraso.
+    O `lastUpdated` não serve de medida, porque há atualizações em lote: 12 jogos com o mesmo
+    `2026-10-26T20:20:24Z`. Os 2 jogos encerrados mais recentes têm `lastUpdated` 3 h 30 a 4 h depois do
+    fim estimado. Isso é só um limite superior, mas, se for o atraso real, a checagem às 2 h 10 quase
+    nunca acha o jogo encerrado (R20). A página de preços diz só "Scores delayed" e "Schedules delayed",
+    sem números;
+  - a regra das 00:00Z vale para jogo sem horário. Um jogo realmente marcado para 21h em Brasília e depois
+    adiado ficaria com o dia UTC (+1). O risco é aceito porque o jogo adiado não tem data válida;
+  - a contagem "Datas fora da tolerância" da conferência de 2026 no catálogo foi feita com as datas
+    antigas. Os 41 jogos mudaram, então o 01 precisa refazer a conferência na próxima ingestão (o raw do
+    `brasileirao-dataset` não foi copiado para o scratchpad);
+  - a silver e o gold reais da pasta principal **não** foram regravados. A próxima ingestão de publicação
+    faz isso e registra os 41 `match_date` no `changes.jsonl`;
+  - `hora` do Adão Duque não usada (motivos no catálogo).
+- **Próximos responsáveis:**
+  - **06**: auditar o passo 1. Conferir o invariante, a regra das 00:00Z e a idempotência, e se a validação
+    temporal continua por `match_date`;
+  - **04**: no `_match_predictions` (com handoff do 00 para o `pipeline.py`) e no export, preencher
+    `MatchPrediction.kickoff_utc` com `confirmed_kickoff_utc(match.kickoff_utc, match.kickoff_time_confirmed)`
+    e `source_match_id` com a coluna do gold que já existe. As colunas chegam pelo `read_matches` do
+    `matches_model.csv`;
+  - **07/01**: no ensaio, registrar para cada jogo a hora em que o `FINISHED` aparece pela primeira vez
+    (medida do R20);
+  - **00**: ciente da mudança de data dos 41 jogos (rodadas 35 a 38 e o adiado da 21), que afeta o
+    `round_cutoffs` e a janela da rodada do ADR-0009 (agora no dia certo).
