@@ -7,6 +7,7 @@
 | 2 | Elo, ataque/defesa, Poisson, Monte Carlo, vagas e cenários, backtesting | ✅ concluída |
 | 3 | Snapshots, API, interface, execução local ponta a ponta | ✅ MVP (API não executada neste ambiente; ver status) |
 | 4 | Fontes licenciadas (football-data.org com token; conferência com a CBF); atualização agendada | ✅ concluída (ADR-0008 implementado, 2026-10-28); agendamento diário ativo quando `PUBLISH_ENABLED=true` |
+| 4b | Atualização depois de cada jogo e aba "Rodada atual" / "Última rodada" (ADR-0009) | ⏳ desenho aceito (2026-10-28); implementação pendente (01 → 04 → 06 → 07; 08 e 05 em paralelo) |
 | 5 | Etapa 2 do modelo: modelagem de empates, ρ por temporada, incerteza de parâmetros, cobertura de 90% | ⏳ |
 | 6 | Etapa 3: classificador multiclasse calibrado, benchmark de odds (Football-Data.co.uk), blending só com ganho validado | ⏳ |
 | 7 | Frontend Next.js/TypeScript, PostgreSQL, deploy público após revisão | ⏳ deploy: ADR-0007 aceito (2026-10-28, GitHub Pages estático); publicação aprovada com condições pelo 00 e pelo 06; primeira publicação pendente das ações do dono e da conferência do 06 no site no ar. Next.js e PostgreSQL ⏳ |
