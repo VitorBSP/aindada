@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 MODEL_VERSION = "poisson-elo-ad-0.1.0"
-SNAPSHOT_SCHEMA_VERSION = "1.1"
+SNAPSHOT_SCHEMA_VERSION = "1.2"
 ROUND_REVIEW_SCHEMA_VERSION = "1.0"
 INSIGHT_RULES_VERSION = "rules-2026.10.1"
 
