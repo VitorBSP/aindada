@@ -1909,3 +1909,48 @@ configurações do repositório.
   4. **Só depois do parecer final 00 + 06:** Settings → General → Change visibility → Public; Settings → Pages →
      Source → GitHub Actions; Settings → Secrets and variables → Actions → Variables → `PUBLISH_ENABLED` = `true`;
      Actions → publish-site → Run workflow.
+
+## Parecer do Agente 06: workflow `publish-site` e publicação (2026-10-28)
+
+Registrado pelo orquestrador a partir do relatório do 06, que auditou sem editar arquivos.
+
+- **Parecer**:
+  - Merge na `main` para o ensaio C5, com o repositório privado: **aprovado**.
+  - Tornar o repositório público e ligar o Pages: **reprovado no estado atual**. Converge com o
+    parecer do 00 em `f0d6eca`.
+- **Evidência**:
+  - pytest com 492 passed; `ruff` e `mypy` sem erros.
+  - `actionlint` 1.7.12 com 0 achados.
+  - `fetch_adaoduque_v18.py` rodado de verdade: confere os hashes e, com um pin adulterado, falha
+    sem gravar.
+  - G4 e G5 com 0 achados.
+  - O C4 na branch não acha caminhos proibidos nem placares.
+  - Os pontos reconstruídos do histórico respeitam a data de referência, e as sementes são fixas.
+  - Contraste dos links do rodapé: 4,83:1 no tema claro e 5,57:1 no escuro.
+- **Bloqueios**:
+  1. **C1**: passo 11 (02) e passo 12 (06). O `backtest_report.json` e o `model_config.json` ainda
+     vêm dos dados antigos.
+  2. **Ajuste 1** do 00, valendo também para a aba Rodada a rodada:
+     - `rounds.js:617`, `:294` e `:299`, e `app.js:739` apresentam a reconstrução como o que o
+       modelo dizia na época;
+     - os campos `reconstructed` e `history_mode` precisam entrar no export.
+  3. **C5**: primeira execução real, que depende do secret do dono.
+  4. **C6**: busca no INPI e kit M4, ou a frase de aceite do dono.
+  5. **Ajuste 3** (`LIVE_URL` e `github.event.repository.*` no `schedule`): bloqueia ligar
+     `PUBLISH_ENABLED`.
+  6. **C4**: refazer no `main` final. Apagar as branches extras antes de tornar o repositório
+     público.
+- **Não bloqueantes**:
+  - testes para `check_site_artifact.py`;
+  - corrigir a docstring sobre a semente;
+  - isolar o SQLite criado pelo pytest;
+  - fixar as actions por SHA e travar as dependências;
+  - automatizar as invariantes do export (B4);
+  - atualizar o `deploy.md`.
+- **Próximos**:
+  - 07: ajuste 3 e os não bloqueantes.
+  - 02/06: passos 11 e 12.
+  - 00/08/05/07: ajuste 1.
+  - 01: conferência de 2026.
+  - 08 ou dono: C6.
+  - Dono: secret e C5.
