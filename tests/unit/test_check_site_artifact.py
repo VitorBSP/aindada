@@ -29,10 +29,32 @@ def _load_script() -> ModuleType:
 CHECKER = _load_script()
 
 
+MODEL_VERSION = "synthetic-model-1"
+HISTORY_PATH = f"seasons/{SEASON}/probability-history.json"
+
+
+def _point(reference_date: str, reconstructed: Any = False, **extra: Any) -> dict[str, Any]:
+    point = {
+        "reference_date": reference_date,
+        "generated_at": "2026-10-20T12:00:00+00:00",
+        "model_version": MODEL_VERSION,
+        "reconstructed": reconstructed,
+        "n_simulations": 100,
+    } | extra
+    return {key: value for key, value in point.items() if value is not None}
+
+
 def _documents() -> dict[str, Any]:
     """Export mínimo e sintético (não é dado real), com os campos que o script lê."""
     return {
-        "seasons.json": [{"season": SEASON, "latest_reference_date": "2026-10-20", "synthetic": True}],
+        "seasons.json": [
+            {
+                "season": SEASON,
+                "latest_reference_date": "2026-10-20",
+                "history_mode": "reconstructed",
+                "synthetic": True,
+            }
+        ],
         f"seasons/{SEASON}/predictions.json": {
             "synthetic": True,
             "reference_date": "2026-10-20",
@@ -40,10 +62,7 @@ def _documents() -> dict[str, Any]:
             "model": {"model_version": "synthetic-model-1"},
             "data": {"version": "synthetic-data-1"},
         },
-        f"seasons/{SEASON}/probability-history.json": [
-            {"reference_date": "2026-10-13", "n_simulations": 100},
-            {"reference_date": "2026-10-20", "n_simulations": 100},
-        ],
+        HISTORY_PATH: [_point("2026-10-13", reconstructed=True), _point("2026-10-20")],
         f"seasons/{SEASON}/rounds.json": {
             "synthetic": True,
             "model_version": "synthetic-model-1",
@@ -91,8 +110,8 @@ def _live_site(monkeypatch: pytest.MonkeyPatch, reference_date: str) -> list[str
 
 
 def _history(*dates: str) -> dict[str, Any]:
-    points = [{"reference_date": value, "n_simulations": 100} for value in dates]
-    return {f"seasons/{SEASON}/probability-history.json": points}
+    points = [_point(value) for value in dates]
+    return {HISTORY_PATH: points}
 
 
 def test_synthetic_export_passes(tmp_path: Path) -> None:
@@ -162,8 +181,8 @@ def test_empty_history_fails(tmp_path: Path) -> None:
 
 
 def test_history_point_without_simulations_fails(tmp_path: Path) -> None:
-    points = [{"reference_date": "2026-10-20"}]
-    changes = {f"seasons/{SEASON}/probability-history.json": points}
+    points = [_point("2026-10-20", n_simulations=None)]
+    changes = {HISTORY_PATH: points}
     assert CHECKER.check(_site(tmp_path, **changes), SEASON, None) == [
         "probability-history com ponto sem n_simulations"
     ]
@@ -177,8 +196,8 @@ def test_unexpected_seed_fails(tmp_path: Path) -> None:
 
 
 def test_history_point_with_other_seed_fails(tmp_path: Path) -> None:
-    points = [{"reference_date": "2026-10-20", "n_simulations": 100, "seed": 7}]
-    changes = {f"seasons/{SEASON}/probability-history.json": points}
+    points = [_point("2026-10-20", seed=7)]
+    changes = {HISTORY_PATH: points}
     assert CHECKER.check(_site(tmp_path, **changes), SEASON, None, SEED) == [
         f"semente de probability-history[0] é 7, esperada {SEED}"
     ]
@@ -203,3 +222,68 @@ def test_main_exits_with_error_when_a_check_fails(tmp_path: Path) -> None:
     with pytest.raises(SystemExit) as raised:
         CHECKER.main(["--site-dir", str(site_dir), "--season", str(SEASON), "--seed", str(SEED)])
     assert raised.value.code == 1
+
+
+def _seasons_entry(**changes: Any) -> dict[str, Any]:
+    entry = _documents()["seasons.json"][0] | changes
+    return {"seasons.json": [{key: value for key, value in entry.items() if value is not None}]}
+
+
+@pytest.mark.parametrize("mode", CHECKER.HISTORY_MODES)
+def test_valid_history_mode_passes(tmp_path: Path, mode: str) -> None:
+    assert CHECKER.check(_site(tmp_path, **_seasons_entry(history_mode=mode)), SEASON, None) == []
+
+
+@pytest.mark.parametrize("mode", [None, "", "mixed"])
+def test_missing_or_invalid_history_mode_fails(tmp_path: Path, mode: str | None) -> None:
+    assert CHECKER.check(_site(tmp_path, **_seasons_entry(history_mode=mode)), SEASON, None) == [
+        f"seasons.json com history_mode inválido para {SEASON}: {mode!r}"
+    ]
+
+
+def test_seasons_without_published_season_fails(tmp_path: Path) -> None:
+    assert CHECKER.check(_site(tmp_path, **_seasons_entry(season=SEASON - 1)), SEASON, None) == [
+        f"seasons.json sem a temporada {SEASON}"
+    ]
+
+
+@pytest.mark.parametrize("generated_at", [None, "2026-10-20T12:00:00", "20/10/2026", 1760961600])
+def test_history_point_without_aware_generated_at_fails(tmp_path: Path, generated_at: Any) -> None:
+    point = _point("2026-10-20") | {"generated_at": generated_at}
+    changes = {HISTORY_PATH: [point]}
+    assert CHECKER.check(_site(tmp_path, **changes), SEASON, None) == [
+        "probability-history[0] sem generated_at com fuso"
+    ]
+
+
+def test_history_point_with_brasilia_offset_passes(tmp_path: Path) -> None:
+    changes = {HISTORY_PATH: [_point("2026-10-20", generated_at="2026-10-20T09:00:00-03:00")]}
+    assert CHECKER.check(_site(tmp_path, **changes), SEASON, None) == []
+
+
+def test_history_point_without_model_version_fails(tmp_path: Path) -> None:
+    changes = {HISTORY_PATH: [_point("2026-10-13", reconstructed=True, model_version=None), _point("2026-10-20")]}
+    assert CHECKER.check(_site(tmp_path, **changes), SEASON, None) == ["probability-history[0] sem model_version"]
+
+
+@pytest.mark.parametrize("reconstructed", [None, "true", 1])
+def test_history_point_without_boolean_reconstructed_fails(tmp_path: Path, reconstructed: Any) -> None:
+    changes = {HISTORY_PATH: [_point("2026-10-13", reconstructed=reconstructed), _point("2026-10-20")]}
+    assert CHECKER.check(_site(tmp_path, **changes), SEASON, None) == [
+        "probability-history[0] sem reconstructed booleano"
+    ]
+
+
+def test_history_with_other_model_version_fails(tmp_path: Path) -> None:
+    older = _point("2026-10-13", reconstructed=True, model_version="synthetic-model-0")
+    changes = {HISTORY_PATH: [older, _point("2026-10-20")]}
+    assert CHECKER.check(_site(tmp_path, **changes), SEASON, None) == [
+        f"probability-history com model_version ['synthetic-model-0', '{MODEL_VERSION}'], esperado só {MODEL_VERSION}"
+    ]
+
+
+def test_reconstructed_last_point_fails(tmp_path: Path) -> None:
+    changes = {HISTORY_PATH: [_point("2026-10-13", reconstructed=True), _point("2026-10-20", reconstructed=True)]}
+    assert CHECKER.check(_site(tmp_path, **changes), SEASON, None) == [
+        "último ponto de probability-history não tem reconstructed == false"
+    ]

@@ -85,7 +85,11 @@ checkout -> pip install -> pytest (sem dados) -> SQLite isolado em $RUNNER_TEMP
   `metrics`, `rounds.data_until` diferente do snapshot, semente de `predictions` e `rounds` diferente
   de `SEED`, histórico com data posterior ao snapshot ou ponto sem `n_simulations` e `reference_date`
   menor que a do site no ar. Os pontos do histórico não trazem semente no export; se trouxerem, ela
-  também é comparada. Testes sintéticos, sem rede, em `tests/unit/test_check_site_artifact.py`. Se
+  também é comparada. Pelo ajuste 1 do ADR-0008, o script também reprova `seasons.json` sem
+  `history_mode` (`reconstructed` ou `recorded`) para a temporada, ponto do histórico sem
+  `generated_at` com fuso, sem `model_version` ou sem `reconstructed` booleano, histórico com
+  `model_version` diferente do de `predictions` (o workflow reconstrói tudo, então a curva publicada
+  é de um único modelo) e último ponto com `reconstructed` diferente de `false`. Testes sintéticos, sem rede, em `tests/unit/test_check_site_artifact.py`. Se
   qualquer checagem falhar, nada é publicado e o site anterior continua no ar.
 - Insights: nenhum job aprova insight (D-026). O export publicado não tem `insights.json`, e a home
   aparece sem manchete. Publicar insights exige um fluxo editorial próprio (pendência do 08/04).
