@@ -2071,3 +2071,63 @@ Branch `feat/historico-reconstruido`, a partir de `origin/main` em `b97caad`. Se
     por ponto a `docs/architecture/api.md`;
   - **06**: auditar a regra e os testes;
   - **08**: confirmar a condição do texto A.
+
+
+## Handoff do Agente 01: conferência local de 2026 e achados N2–N7 do 06 (2026-10-28)
+
+- **O que mudou**:
+  - `conference.py` ganhou o par `football_data_org` × `brasileirao_dataset`, só 2026, com ±1 dia. A
+    divergência de rodada passa a entrar no detalhe.
+  - N3: correções redundantes ou em conflito e divergências de conferência são estados e entram no
+    `changes.jsonl` uma vez, de novo só se mudarem (`ingest.append_new_states`). Diferenças entre
+    ingestões continuam como eventos.
+  - N4: o teste de token confere o log JSON formatado, com os campos de `extra`. O teste do
+    `manual_corrections.csv` local é pulado de forma visível quando o arquivo não existe (CI), e o teste
+    do exemplo exige pelo menos uma linha.
+  - N5: `SourceManifest` é `frozen`.
+  - N6: `compose` falha se o nome da fonte não for igual ao `source_name` do manifesto.
+  - `license_notes` do Adão Duque perdeu a frase da atribuição provisória; a atribuição não mudou (D-033).
+    O `ingest_raw` agora regrava o manifesto quando só os termos do adaptador mudam, e mantém a data de
+    coleta.
+  - N2: a ajuda de `validate --reference-date` explica o comportamento (sem mudança de código).
+  - N7: avaliado e documentado no catálogo, sem mudança de código.
+  - `docs/data-sources/catalog.md` recebeu a seção "Conferência de 2026" (só contagens), a linha da ESPN
+    como evidência pontual, e as notas de `retrieved_at`, `license_notes` e da política do `changes.jsonl`.
+- **Evidência**:
+  - Conferência rodada numa cópia dos dados reais, fora do repositório e sem chamada à API: 380 casadas,
+    0 só numa fonte, 280 com a mesma data, 75 a ±1 dia, 25 fora da tolerância, 2 status diferentes,
+    318 encerradas nas duas, 1 placar diferente e 0 rodadas diferentes.
+  - **Jogos encerrados divergentes (2)**: os dois de 26/10 já registrados como captura durante o jogo na
+    fonte de pesquisa. Nos dois, a ESPN e a matriz da Wikipédia confirmam o football-data.org, e nenhuma
+    correção é necessária.
+  - **Jogos não encerrados (1 status, 25 datas)**:
+    - o adiado aparece como `postponed`, e a ESPN confirma;
+    - 4 remarcações (a ESPN confirma 3);
+    - 20 datas provisórias das rodadas 36 e 37.
+  - **Checagem extra**: os 319 encerrados do football-data.org batem com a matriz da Wikipédia (0
+    divergências).
+  - N3 com dados reais: `conference` e `ingest` repetidos não acrescentam linhas ao `changes.jsonl` (9.617
+    antes e depois).
+  - Duas reingestões seguidas dão SHA-256 iguais. Contra a silver da pasta principal, `matches.csv`,
+    `cards_by_match.csv` e `matches_model.csv` são idênticos; no `sources.json` só muda o
+    `manifest_sha256` do Adão Duque.
+  - `validate`: 24 temporadas, sem erros.
+  - Checagens:
+    - pytest: 500 passed, 1 skipped (o `manual_corrections.csv` local, ausente na worktree);
+    - `ruff check` e `ruff format --check`: sem erros;
+    - mypy: sem erros em 52 arquivos.
+- **Premissas e limitações**:
+  - A conferência usa o `brasileirao_dataset` de 27/10 (`838614d`), que é fonte de pesquisa: a
+    concordância dela não é evidência de publicação. As evidências pontuais foram ESPN e Wikipédia;
+    ge.globo não pôde ser lido daqui.
+  - O wikitexto da página da Wikipédia foi baixado uma vez para ler a matriz, fora do repositório.
+  - O ge.globo continua citado no catálogo como evidência de correções.
+  - A pasta principal ainda tem o manifesto antigo do Adão Duque. A próxima ingestão local (ou o
+    workflow, que reconstrói do zero) grava o novo, e com ele muda o `manifest_sha256` do `sources.json`.
+  - `docs/architecture/frontend.md` (do 05) ainda chama de provisória a seção "Adiado, data a definir"
+    "até o Agente 01 marcar `postponed` na fonte". O football-data.org já marca o adiado de 2026 como
+    `postponed`.
+- **Próximos responsáveis**:
+  - **06**: auditar a conferência de 2026 e as correções N3–N6.
+  - **00**: considerar cumprido o item 2 do parecer final ("C1, conferência").
+  - **05**: avaliar a nota de `frontend.md`.

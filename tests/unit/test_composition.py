@@ -240,3 +240,26 @@ def test_applied_correction_keeps_base_source_in_source_column(tmp_path: Path, r
     )
     corrected = matches_data.loc[matches_data["match_id"] == "2032-sintetico-01-sintetico-02", "source"].iloc[0]
     assert corrected == "synthetic_current+manual_correction@synthetic:2032-10-27"
+
+
+def test_redundant_correction_is_logged_once_across_ingestions(tmp_path: Path, registry: ClubRegistry) -> None:
+    silver_dir = tmp_path / "silver"
+    for _ in range(3):
+        write_composition(compose(_history(tmp_path), PLAN, registry), silver_dir, [_correction(0, 1, (0, 0))])
+    entries = [json.loads(line) for line in (silver_dir / "changes.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert [entry["change"] for entry in entries] == ["manual_correction_redundant"]
+
+
+def test_changed_correction_state_is_logged_again(tmp_path: Path, registry: ClubRegistry) -> None:
+    silver_dir = tmp_path / "silver"
+    write_composition(compose(_history(tmp_path), PLAN, registry), silver_dir, [_correction(0, 1, (0, 0))])
+    write_composition(compose(_history(tmp_path), PLAN, registry), silver_dir, [_correction(3, 3, (2, 2))])
+    entries = [json.loads(line) for line in (silver_dir / "changes.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert [entry["change"] for entry in entries] == ["manual_correction_redundant", "manual_correction_not_applied"]
+
+
+def test_input_with_other_manifest_source_name_fails(tmp_path: Path, registry: ClubRegistry) -> None:
+    inputs = _history(tmp_path)
+    inputs["synthetic_current"] = inputs["synthetic_history"]
+    with pytest.raises(CompositionError, match="nome de fonte diferente do manifesto"):
+        compose(inputs, PLAN, registry)

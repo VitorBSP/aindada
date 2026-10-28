@@ -22,6 +22,7 @@ from brasileirao.data_pipeline.football_data_org import (
     brasilia_date,
 )
 from brasileirao.data_pipeline.ingest import ingest_raw, load_manifest, sha256_of
+from brasileirao.logging_utils import JsonFormatter
 
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "football_data_org_synthetic.json"
 SYNTHETIC_TOKEN = "synthetic-token-never-real-0123456789"
@@ -171,7 +172,8 @@ def test_token_never_reaches_logs(tmp_path: Path, caplog: pytest.LogCaptureFixtu
     api = FakeApi([FakeResponse(429, headers={"X-RequestCounter-Reset": "3"}), _ok()])
     with caplog.at_level(logging.DEBUG):
         ingest_raw(api.source().fetch([2032], tmp_path), tmp_path)
-    assert SYNTHETIC_TOKEN not in caplog.text
+    formatter = JsonFormatter()
+    assert SYNTHETIC_TOKEN not in "\n".join(formatter.format(record) for record in caplog.records)
 
 
 def test_http_error_message_hides_token() -> None:

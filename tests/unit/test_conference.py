@@ -87,5 +87,16 @@ def test_counts_table_has_no_scores() -> None:
 
 
 def test_football_data_vs_adaoduque_requires_exact_dates() -> None:
-    pair = next(pair for pair in CONFERENCE_PAIRS if pair.candidate == "football_data_org")
+    pair = next(pair for pair in CONFERENCE_PAIRS if pair.reference == "adaoduque_kaggle")
     assert (pair.seasons, pair.date_tolerance_days) == ((2024, 2025), 0)
+
+
+def test_round_divergence_is_listed() -> None:
+    reference = REFERENCE.assign(round=REFERENCE["round"].where(REFERENCE["match_id"] != "m1", 9).astype("Int64"))
+    flagged = {entry["match_id"] for entry in compare_sources(CANDIDATE, reference, PAIR).divergences}
+    assert "m1" in flagged
+
+
+def test_2026_is_conferred_against_research_source_with_one_day_tolerance() -> None:
+    pair = next(pair for pair in CONFERENCE_PAIRS if pair.reference == "brasileirao_dataset" and 2026 in pair.seasons)
+    assert (pair.candidate, pair.seasons, pair.date_tolerance_days) == ("football_data_org", (2026,), 1)

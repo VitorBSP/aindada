@@ -107,6 +107,8 @@ class ClubCardTotals(BaseModel):
 class SourceManifest(BaseModel):
     """Proveniência de uma ingestão. Os campos de termos são obrigatórios para fontes publicáveis."""
 
+    model_config = ConfigDict(frozen=True)
+
     source_name: str
     origin: str
     version: str

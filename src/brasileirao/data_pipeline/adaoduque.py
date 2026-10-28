@@ -100,8 +100,7 @@ class AdaoDuqueSource:
     license_notes = (
         "GPL-2 declarada no Kaggle (v18). Coleta do autor 'de páginas do Google' (proveniência de segunda mão, "
         "risco aceito no ADR-0008). Redistribuição exigiria o texto da GPL-2, o aviso de origem e a mesma licença, "
-        "e um ADR próprio: o projeto não redistribui. Texto de atribuição provisório até a aprovação do C2 "
-        "(Agente 08 e dono do produto)."
+        "e um ADR próprio: o projeto não redistribui."
     )
 
     def __init__(self, input_dir: Path, pins_path: Path) -> None:
