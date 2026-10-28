@@ -2406,7 +2406,21 @@ ADR-0007 e ADR-0008 e o roadmap. Nenhum código, workflow ou dado mudou.
   - sem vigia frequente nem `schedule.json`: o primeiro desenho foi recusado pelo dono por excesso de
     infraestrutura (correção registrada no ADR);
   - sem cache entre execuções (Decisão 4); a otimização O1, paralela e sem estado, é opcional;
-  - "Rodada atual", "Última rodada" e o contrato do `current-round.json` estão na Decisão 3 do ADR.
+  - "Rodada atual", "Última rodada" e o contrato do `current-round.json` estão na Decisão 3 do ADR, na
+    **versão enxuta da D-037** decidida pelo dono. Entram:
+    - as abas;
+    - os jogos por dia, com horário de Brasília e status;
+    - a tabela "O que mudou desde o início da rodada", com o limiar de ruído e sem variação se o
+      `model_version` mudar;
+    - o aviso de atualização.
+
+    Ficam fora: efeito por jogo, chance antes do jogo, faixas continentais e próxima rodada.
+  - Contrato mínimo:
+    - `kickoff_utc` (só com horário confirmado) e `source_match_id` em cada partida do `predictions.json`;
+    - `current-round.json` com `updated_at`, `round.state` (`in_progress` ou `finished`), `starts_on`,
+      `ends_on`, `match_ids`, `rescheduled_match_ids` e `baseline`. O `baseline` é a visão do `rounds.json`
+      na véspera da rodada, com `model_version`, `n_simulations`, `reconstructed` e os valores por clube.
+  - A rodada que começa hoje já aparece como "Rodada atual" na publicação das 06:17.
 - **Evidência:** ADR com contexto, quatro decisões, contrato com exemplo fictício, alternativas e consequências.
   Desenho conferido contra o código do `main` em `c0310f8`:
   - mapa de status do adaptador (`football_data_org.py`: `IN_PLAY`, `PAUSED` e `LIVE` → `scheduled`);
@@ -2428,8 +2442,8 @@ ADR-0007 e ADR-0008 e o roadmap. Nenhum código, workflow ou dado mudou.
   3. **06**: auditoria de 1 e 2;
   4. **07**: `atualizar-rodada.yml`, `inputs` e `run-name` do `publish-site`, `check_site_artifact.py` e ensaio em
      `dry-run`;
-  - **08**, já, em paralelo: experiência e textos da aba e da página `#/rodada-atual` sobre o contrato da
-    Decisão 3, registrados em `BRAND_DECISIONS.md`;
-  - **05**: implementação sobre uma fixture sintética, com merge depois do export do 04;
+  - **08**, já, em paralelo: revisar a D-037 para o escopo v1. Trocar os campos provisórios pelos do contrato
+    (mapeamento na Decisão 3) e tirar `pre_match`, `match.impact`, as faixas continentais e a próxima rodada;
+  - **05**: escopo v1 da Decisão 3 sobre uma fixture sintética, com merge depois do export do 04;
   - **06** e **00**: pareceres antes de o dono criar `MATCH_UPDATES = on`.
 - **Ação do dono do produto:** nenhuma agora. No fim, criar a variável `MATCH_UPDATES = on`.
