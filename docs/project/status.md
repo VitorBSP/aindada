@@ -2190,3 +2190,48 @@ Branch `deploy/check-reconstrucao`, a partir de `origin/main` em `a2df5a7`. Sem 
 - **Próximo responsável**:
   - **06**: auditar o delta;
   - **00**: merge da branch na `main` antes do C5.
+
+## Agente 02: passo 11 do ADR-0008, backtest sobre o gold de publicação (2026-10-28) — entregue, aguarda revalidação do 06 (passo 12)
+
+- **O que mudou** (branch `model/backtest-publicacao`, sem merge):
+  - `data/gold/backtest_report.json` (vira o `api/models/metrics.json` do site): refeito sobre o gold de publicação
+    (Adão Duque v18 2003–2025 + football-data.org 2026, `sources.json` em `mode: publication`, 9.545 jogos), com
+    `backtest --rules-season 2026 --simulations 10000`, semente 7. Só agregados: conferido sem `match_id`, sem os
+    46 identificadores de clube do gold e sem chaves de placar por jogo.
+  - `data/gold/model_config.json`: `dynamic_ratings_in_simulation: true → false`. `goal_dispersion: true`, sem
+    inflação de empates e sem incerteza extra (iguais). Hiperparâmetros dos ratings e conjunto de variáveis iguais.
+  - `src/brasileirao/config.py` (**00**): `MODEL_VERSION` `cmp-elo-ad-0.2.0 → cmp-elo-ad-0.3.0` (N9 e troca de
+    dinâmico para fixo). O rótulo `model_version` dos dois JSON foi trocado à mão, como no 0.2.0, porque o backtest
+    rodou antes da troca da constante.
+  - `docs/methodology/validation.md`: cabeçalho, tabelas de partidas e temporadas com os números novos, e a seção
+    nova "Passo 11 do ADR-0008" (comparação, sementes, decisões e custo). `docs/methodology/model.md`: item 4 da
+    simulação (modo fixo em produção).
+- **Evidência**:
+  - Partidas, teste 2019–2025: log loss 1,02133 → 1,02134, Brier 0,61260 → 0,61261, RPS 0,20775 (igual); ECE
+    mandante 1,55 → 1,44 p.p. Vem das 138 datas de 2024–2025 um dia antes.
+  - Temporadas, validação: com 2.000 simulações, a ordem dos sorteios (o `match_id` mudou) inverteu as três decisões
+    (fixos, sem dispersão). Com 10.000: fixos 2,2571 × dinâmicos 2,2651 e dispersão adotada. Seis sementes × 10.000
+    simulações (regra fixada antes de ver os resultados: as regras do código sobre a média): dinâmico − fixo =
+    +0,0027 (erro-padrão 0,0016) e dispersão com fixos −0,0005 (0,0011). A semente 7 reproduz o relatório.
+  - Configuração em produção, teste: log loss de posição 2,2277 → 2,2411, cobertura de 90% 86,9% → 83,1%, MAE dos
+    pontos 5,12 (igual).
+  - `pytest`: 481 passed. `ruff check src tests` e `ruff format --check`: ok. `mypy`: sem erros (50 arquivos).
+- **Premissas e limitações**:
+  - A escolha entre fixos e dinâmicos está perto do ruído (1,7 erro-padrão). Os dinâmicos cobrem melhor o intervalo de
+    90% nos dois períodos e são melhores no teste. Escolhê-los olhando o teste violaria o protocolo. Se o critério
+    mudar (por exemplo, cobertura como restrição ou mais checkpoints), isso tem que ser decidido antes de rodar de novo.
+  - As sementes cobrem só a validação de dinâmico × fixo e da dispersão. A incerteza usa uma semente (empate entre
+    "sem incerteza" 2,2561 e sd 0,05 2,2566, resolvido por parcimônia).
+  - Achado para o **01** (não bloqueia): a coluna `source` do gold grava `football_data_org@v4-20261027T`,
+    truncada, enquanto o `sources.json` tem `v4-20261027T205022Z`.
+  - O resto do passo 11 **não** foi feito: regenerar os snapshots, a revisão por rodada e a história de 2026 com
+    `cmp-elo-ad-0.3.0` e ratings fixos.
+- **Próximos responsáveis**:
+  - **06 (passo 12)**: revalidar o relatório (reproduzir com o comando acima e conferir as sementes), auditar a regra
+    de agregação das sementes e a escolha de ratings fixos com o custo em cobertura, e aceitar ou não o
+    `cmp-elo-ad-0.3.0`.
+  - **00**: revisar a troca de `MODEL_VERSION` no `config.py` e decidir se a escolha fixo × dinâmico mantém o
+    critério atual. Merge só depois do 06.
+  - **02**: depois do aceite, regenerar os snapshots, o `review-rounds` e a história de 2026 em modo publicação.
+  - **05**: `apps/web/assets/app.js:862` mostra `dynamic.points_mae` como "erro médio da pontuação final projetada".
+    Com ratings fixos em produção, deve usar `fixed`, ou o modo do snapshot (`snapshot.dynamic_ratings`).

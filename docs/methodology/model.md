@@ -79,8 +79,11 @@ ou mais gols (`p_three_plus_goals`), além dos gols esperados.
 2. Simula apenas os jogos restantes, incluindo adiados ou sem placar na fonte, em ordem de data.
 3. Os estados (Elo, ataque, defesa, forma) são matrizes `simulações × clubes`. Cada linha é uma
    temporada independente.
-4. Após cada data simulada, os ratings da linha são atualizados com as mesmas funções usadas no
-   histórico real. O modo de ratings fixos fica disponível para comparação.
+4. Dois modos, escolhidos pela validação (`dynamic_ratings_in_simulation` em `model_config.json`):
+   ratings **fixos** na data de referência (em produção desde `cmp-elo-ad-0.3.0`, 2026-10-28) ou
+   **dinâmicos**, em que os ratings da linha são atualizados após cada data simulada com as mesmas
+   funções usadas no histórico real (produção até `cmp-elo-ad-0.2.0`). A troca e o custo em
+   cobertura dos intervalos estão em `validation.md`, seção "Passo 11 do ADR-0008".
 5. A classificação final aplica o Art. 15. Empates exatos em pontos, vitórias, saldo e gols pró
    são resolvidos com confronto direto (só entre dois clubes), cartões (só jogos observados) e
    sorteio aleatório reprodutível.
