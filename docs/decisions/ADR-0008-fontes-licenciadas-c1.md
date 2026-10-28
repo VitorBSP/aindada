@@ -294,6 +294,20 @@ Alternativas descartadas:
 8. Opcional: escrever ao autor do dataset, pedindo confirmação da GPL-2 para 2024–2025 e para o
    espelho do GitHub, e perguntando a origem dos dados.
 
+### Registro do dono do produto (2026-10-27)
+
+Mensagem do dono no chat, literal: "Aceito os riscos residuais do ADR-0008 (cláusulas 9.1, 11.1, 6.1
+e 2.3 do football-data.org, GPL-2 do Adão Duque com coleta de segunda mão, sem garantia de
+exatidão, história publicada reconstruída) e a licença MIT para o código."
+
+- Itens 2, 6 e 7: **aceitos**.
+- Item 1: **feito** pelo orquestrador, a pedido do dono. A v18 foi baixada do endpoint público do
+  Kaggle, sem login, e os hashes foram fixados em `data/reference/source_pins.json`. Ver
+  `docs/data-sources/catalog.md`.
+- Item 3: em revisão pelo 07, que avalia reconstruir a história no CI sem repositório de estado.
+- Itens 4, 5 e 8: em aberto.
+- Licença do código: MIT (`LICENSE` na raiz). Ela não cobre dados de terceiros nem marcas.
+
 ## Alternativas
 
 - **football-data.org para 2024–2025 também:** possível pela cobertura, mas amplia a dependência da

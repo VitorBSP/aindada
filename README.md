@@ -82,6 +82,8 @@ tests/                         unitários e integração (fixtures sintéticas i
 - Modelo: `docs/methodology/model.md` · Validação: `docs/methodology/validation.md`
 - Regras e vagas: `docs/methodology/competition-rules.md`
 - Fontes e licenças: `docs/data-sources/catalog.md`
+- Licença do código: MIT (`LICENSE`). Ela não cobre os dados de terceiros (ver o catálogo) nem os
+  escudos e marcas dos clubes.
 - Decisões: `docs/decisions/` · Roadmap: `docs/roadmap.md`
 - Marca: `docs/brand/` · Storytelling e insights: `docs/storytelling/` · UX: `docs/ux/`
 - Status, pendências e riscos: `docs/project/status.md`, `docs/project/risks.md`
