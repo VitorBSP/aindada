@@ -2255,3 +2255,31 @@ Registrado pelo orquestrador a partir do relatório do 08.
   - 06 confirma a troca de campo e avalia uma checagem no artefato.
   - 00/02, opcional: modo de simulação no `metrics.json`.
   - 08: alinhar o `INSIGHTS_CATALOG.md`.
+
+## D-035 implementado na interface (Agente 05, 2026-10-28)
+
+- **O que mudou**: `apps/web/assets/app.js` e `apps/web/assets/rounds.js`. Tabela e página do clube dizem
+  "faixa provável" (`title="Faixa provável"` na faixa da tabela); "Como calculamos" lê o modo de
+  `snapshot.dynamic_ratings` e o acerto de `season_simulation.uncertainty.{test,validation}[selected]`
+  (nada de `overall`), com veredito por faixa (<0,87 / >0,93 / entre) e nota quando `metrics.model_version`
+  difere do snapshot; textos de ratings fixos/dinâmicos (descrição, nota técnica, Limitações); seção D com
+  a frase da aba Rodada a rodada, variante (c) e a versão sem curva reconstruída; `rounds.js` sempre com o
+  texto recalculado e a frase da versão (`review.model_version`, por `escapeHtml`). O parâmetro
+  `reconstructed` saiu da chamada do `Rounds.render`.
+- **Evidência**: export real do código atual (`cmp-elo-ad-0.3.0`, fixos) numa cópia de dados nova (semente
+  2026, `--history-from-round 28`, 2.000/500 simulações, `review-rounds` com 300, `metrics.json` do
+  `data/gold/backtest_report.json` versionado): `publication-gate` aprovado (0 achados);
+  `check_site_artifact.py --seed 2026` aprovado (0 achados). Chrome headless, 375 e 1280 px, claro e escuro,
+  início/tabela/clube/Como calculamos/Rodada a rodada: sem rolagem horizontal, sem erro de JS (só os 404 de
+  sondagem de `/api` e de `insights.json`, que já existiam). Texto lido: "5,1 pontos", "83% … e 87% …
+  (2013–2018): ela é mais estreita do que deveria…", "ratings na simulação: fixos". Exports antigos
+  (`cmp-elo-ad-0.2.0` dinâmico; um sem `uncertainty`, `model_version`, `dynamic_ratings` e `history_mode`;
+  relatório de outra versão; curva com versões misturadas) renderizam sem erro e com o texto previsto.
+  pytest 566 passaram, 1 pulado; ruff e mypy limpos.
+- **Premissas e limitações**: snapshot sem `dynamic_ratings` é tratado como fixo (como a variável da D-035).
+  A nota da tabela ainda contém "90%" (texto da D-035, fora de "Como calculamos"); a checagem pedida ao 06
+  deve aceitar essa frase. A frase "ficou dentro dela menos vezes que isso" é fixa e só vale enquanto a
+  cobertura medida ficar abaixo de 90%. Com cobertura entre 86,5% e 87% o texto mostra "87%" e o veredito
+  "mais estreita" (visto no export 0.2.0, 86,9%).
+- **Próximo responsável**: 06 revisa a entrega e a checagem do artefato; 00 decide o merge da branch
+  `web/d035-faixa-provavel`; 08 avalia as duas ressalvas de texto acima.
