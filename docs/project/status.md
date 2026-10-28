@@ -2235,3 +2235,23 @@ Branch `deploy/check-reconstrucao`, a partir de `origin/main` em `a2df5a7`. Sem 
   - **02**: depois do aceite, regenerar os snapshots, o `review-rounds` e a história de 2026 em modo publicação.
   - **05**: `apps/web/assets/app.js:862` mostra `dynamic.points_mae` como "erro médio da pontuação final projetada".
     Com ratings fixos em produção, deve usar `fixed`, ou o modo do snapshot (`snapshot.dynamic_ratings`).
+
+## D-035: faixa provável e modo de simulação na interface (Agente 08, 2026-10-28)
+
+Registrado pelo orquestrador a partir do relatório do 08.
+
+- **O que mudou**: D-035 em `docs/brand/BRAND_DECISIONS.md`. Na interface, "intervalo de 90%" passa a
+  "faixa provável". "Como calculamos" passa a dizer o modo em produção e o acerto medido da faixa.
+- **Campos certos para a cobertura e o erro médio**: `uncertainty.{test,validation}[uncertainty.selected]`
+  no `metrics.json`, e não `season_simulation.overall.fixed`, que mede fixos sem dispersão (83,3%). Os
+  valores aceitos pelo 06 são 83,1% no teste e 87,2% na validação.
+- **Outros textos que ficaram falsos com ratings fixos**: `app.js:881`, `:882` e `:911`. Passam a
+  depender de `snapshot.dynamic_ratings`.
+- **N1 confirmado**: os textos E de D-034 em `rounds.js` valem sempre, porque a revisão por rodada é
+  sempre uma reconstrução.
+- **Pendências do 05 sobre D-034**: (a) e (b) confirmadas; (c) ajustada.
+- **Próximos**:
+  - 05 implementa D-035.
+  - 06 confirma a troca de campo e avalia uma checagem no artefato.
+  - 00/02, opcional: modo de simulação no `metrics.json`.
+  - 08: alinhar o `INSIGHTS_CATALOG.md`.

@@ -54,6 +54,7 @@ Propostas que ainda aguardam decisão ficam em "Questões abertas".
 | D-032 | 2026-10-27 | **Bolinha por clube no mosaico**: cada ponto usa as cores do clube, no lugar da cor da disputa. Formas: cor única (Atlético-MG, Cruzeiro, Internacional, Mirassol, Palmeiras, Remo); metade de cima e de baixo (Athletico-PR, Chapecoense, Coritiba, Flamengo, Santos, Vitória; Corinthians com borda vermelha); faixas horizontais (Bahia, São Paulo) ou verticais (Fluminense, Grêmio); preto com miolo branco (Botafogo); branco com aro vermelho e miolo amarelo (Red Bull Bragantino); diagonal preta e branca com miolo vermelho (Vasco). Contorno fino em todas para as partes brancas não sumirem no fundo. Especificação em `CLUB_DOTS` (`apps/web/assets/app.js`) | dono do produto (lista de cores por clube no chat, 2026-10-27) | o mosaico passa a ser lido pelas cores dos clubes, sem depender só da legenda |
 | D-033 | 2026-10-27 | **Textos de fonte, atribuição e licença do site (condição C2 do ADR-0007; passo 14 e G4 do ADR-0008)**: rodapé estático com as duas atribuições exatas dos manifestos, aviso de projeto independente no lugar de "pesquisa local / licença em verificação", seção "Dados" de "Como calculamos" montada a partir de `data.sources` e versão composta dos dados exibida inteira. A atribuição do Adão Duque que estava provisória no manifesto passa a ser a **final, sem mudança de texto**. Textos exatos e especificação para o 05 na seção "Textos de fonte, atribuição e licença (D-033)" abaixo. **Status: decidido pelo Agente 08 sob D-022**; revisão posterior do dono (Q18) | Agente 08, sob D-022, a pedido do orquestrador (o dono quer participar o mínimo) | os textos atuais ficaram falsos com as fontes licenciadas, e o gate G4 reprova o deploy sem as atribuições no HTML estático |
 | D-034 | 2026-10-28 | **C6 do ADR-0007 e texto da reconstrução.** Busca de marca: no INPI (pePI, por radical, termos "ainda da" e "aindada", 28/10/2026) aparecem "Ainda dá Tempo" com registro em vigor nas classes 16 e 41 e um pedido em exame na classe 41; não há "Ainda dá" isolado nem "AInda dá?". Na web aberta não há uso por terceiros em esportes ou apps; WIPO não verificado (CAPTCHA). Kit M4 mínimo = favicon SVG, ícones 180/192/512, manifest e assinaturas que já estão no site; og:image, .ico e o guia ficam para depois. Textos e especificação para o 05 do histórico reconstruído na seção "Busca de marca e reconstrução (D-034)" abaixo | Agente 08 sob D-022 (textos, kit) e **dono do produto** (aceite: "Aceito publicar o AInda dá? sem a busca no INPI concluída e com o kit de marca mínimo que já está no site, ciente das marcas \"Ainda dá Tempo\" na classe 41.", 2026-10-28) | C6 exige busca registrada ou aceite; o histórico reconstruído não pode parecer previsão da época |
+| D-035 | 2026-10-28 | **Intervalo de pontos e modo de simulação do `cmp-elo-ad-0.3.0`.** (1) "Como calculamos" diz o modo em uso (de `snapshot.dynamic_ratings`) e dá o erro médio e a cobertura **da configuração em produção**, lidos de `season_simulation.uncertainty.{test,validation}[season_simulation.uncertainty.selected]` no `metrics.json`, e não de `overall.fixed` (que é fixo **sem** dispersão de gols: 83,3%/87,5%). Também corrige as frases que descrevem ratings dinâmicos (`app.js:881`, `:882`, `:911`). (2) Na interface, o rótulo "90%" sai e vira **"faixa provável"**; o 90% fica só em "Como calculamos", junto com o acerto medido. (3) Os textos E de D-034 valem **sempre** na aba Rodada a rodada. (4) Pendências do 05 sobre D-034: variante do texto C e título da home confirmados; a seção D sob o texto B passa a avisar que a curva mistura versões. Textos exatos na seção "Intervalo de pontos e modo de simulação (D-035)" abaixo. **Status: decidido pelo Agente 08 sob D-022**; revisão posterior do dono | Agente 08, sob D-022, a pedido do orquestrador (ressalva de integridade do 06, passo 12, e N1) | o intervalo rotulado "90%" acertou 83,1% no teste; a metodologia descrevia o modo que não está em produção; a aba Rodada a rodada é sempre reconstrução (`build_round_review`) |
 
 ## Propostas rejeitadas ou reconsideradas pelo dono do produto
 
@@ -371,6 +372,160 @@ Só aparece com `history_mode == "reconstructed"` em `seasons.json`. Campos por 
 5. `renderMethodology`: seção D depois de "Validação".
 6. `rounds.js`: textos E.
 7. `aria-label` do SVG em `lineChart`: acrescentar " (curva recalculada com o modelo atual)".
+
+## Intervalo de pontos e modo de simulação (D-035)
+
+Origem: revalidação do Agente 06 do `cmp-elo-ad-0.3.0` (passo 12, `docs/methodology/validation.md`), com a
+ressalva de integridade da interface e o achado N1. Decidido pelo Agente 08 sob D-022. Nenhum número
+da modelagem muda: os textos só leem o que já está no `metrics.json` e no snapshot.
+
+### Campos (conferidos em `data/gold/backtest_report.json` e `export_static_api`, `pipeline.py:557-562`)
+
+O `metrics.json` é o `backtest_report.json` sem `tuning_records` e sem `season_simulation.records`.
+
+| Uso no texto | Campo | Valor hoje |
+|---|---|---|
+| Modo em uso | `predictions.json` → `dynamic_ratings` (o modo que gerou o snapshot exibido) | `false` (fixos) |
+| Configuração escolhida | `metrics.season_simulation.uncertainty.selected` | `"sem_incerteza"` |
+| Cobertura no teste | `metrics.season_simulation.uncertainty.test[selected].points_interval_90_coverage` | 0,8310 (83,1%) |
+| Cobertura na validação | `metrics.season_simulation.uncertainty.validation[selected].points_interval_90_coverage` | 0,8722 (87,2%) |
+| Erro médio no teste | `metrics.season_simulation.uncertainty.test[selected].points_mae` | 5,124 |
+| Rodadas dos cortes | `metrics.season_simulation.rounds` | 10, 19, 28 |
+| Temporadas | `metrics.test_seasons`, `metrics.validation_seasons` | 2019–2025, 2013–2018 |
+| Versão do relatório | `metrics.model_version` (comparar com `snapshot.model.model_version`) | `cmp-elo-ad-0.3.0` |
+
+Por que não `season_simulation.overall.fixed`, como a ressalva do 06 sugeria: `overall` compara dinâmico
+× fixo **sem** dispersão de gols (teste 83,3%, validação 87,5%, MAE 5,123). A produção usa fixos **com**
+dispersão e sem incerteza extra (`model_config.json`). Os candidatos de `uncertainty` são montados
+sobre o modo e a dispersão escolhidos (`validation/report.py:288`), e `uncertainty.test.sem_incerteza`
+é idêntico a `goal_dispersion.test.dispersao_gols`. Os 83,1% e 87,2% que o 06 aceitou estão nesse campo.
+Ler `uncertainty[selected]` também acompanha sozinho uma troca futura de configuração.
+
+### 1. "Como calculamos" (`renderMethodology`, `app.js`)
+
+**Variáveis (substituem `const simulation = … .overall : null;` em `app.js:873`):**
+
+```js
+const finalSimulation = metrics && metrics.season_simulation ? metrics.season_simulation.uncertainty : null;
+const chosenVariant = finalSimulation ? finalSimulation.selected : null;
+const finalTest = chosenVariant && finalSimulation.test ? finalSimulation.test[chosenVariant] : null;
+const finalValidation = chosenVariant && finalSimulation.validation ? finalSimulation.validation[chosenVariant] : null;
+const sameModelVersion = Boolean(metrics && metrics.model_version === snapshot.model.model_version);
+const fixedRatings = !snapshot.dynamic_ratings;
+```
+
+**`app.js:881`** (descrição da simulação). Antes:
+"… sorteia placares para os {n} restantes. Dentro de cada simulação, os ratings são atualizados após
+cada rodada simulada. Jogos da mesma data usam os ratings da véspera. Cada temporada simulada é
+independente. …"
+
+Depois, com `fixedRatings`:
+"… sorteia placares para os {n} restantes. Durante a simulação, a força de cada clube fica fixa no
+valor da data de referência: só os jogos reais mudam os ratings. Cada temporada simulada é
+independente. …"
+
+Com ratings dinâmicos, o texto atual fica como está. O resto do parágrafo não muda.
+
+**`app.js:882`** (nota técnica). Antes: "· ratings dinâmicos na simulação: ${sim|não}."
+Depois: "· ratings na simulação: ${snapshot.dynamic_ratings ? "dinâmicos" : "fixos"}."
+
+**`app.js:894`** (parágrafo da simulação de temporadas). Antes:
+"Na simulação de temporadas passadas (snapshots nas rodadas {rounds}), o intervalo de 90% para os
+pontos finais acertou {dynamic.coverage} das vezes com ratings dinâmicos e {fixed.coverage} com ratings
+fixos. Erro médio da pontuação final projetada: {dynamic.points_mae} pontos."
+
+Depois, quando `finalTest && finalValidation && sameModelVersion`, dois parágrafos:
+
+> <p>Para medir a projeção de pontos, refizemos temporadas passadas a partir das rodadas {rounds
+> unidas por ", "}, com o mesmo modelo usado aqui ({modo}). Nas temporadas de teste ({t0}–{t1}), a
+> projeção errou a pontuação final por {num(finalTest.points_mae)} pontos em média.</p>
+> <p>A faixa provável de pontos é onde terminam 90% das simulações. Se ela fosse exata, a pontuação
+> final cairia dentro dela 90% das vezes. Com {modo curto} usados aqui, caiu
+> {pct(finalTest.points_interval_90_coverage)} das vezes nas temporadas de teste e
+> {pct(finalValidation.points_interval_90_coverage)} nas de validação ({v0}–{v1}){veredito}</p>
+
+- {modo}: fixos → "ratings fixos: a força de cada clube não muda durante a simulação"; dinâmicos →
+  "ratings dinâmicos: a força de cada clube é atualizada a cada rodada simulada".
+- {modo curto}: "os ratings fixos" / "os ratings dinâmicos".
+- {veredito}, pela cobertura no teste `c` (420 casos, 20 clubes × 7 temporadas × 3 cortes; 2 erros-padrão
+  em torno de 90% ≈ ±3 p.p.):
+  - `c < 0.87` → ": ela é mais estreita do que deveria, e o resultado final cai fora dela mais vezes do
+    que os 90% sugerem."
+  - `c > 0.93` → ": ela é mais larga do que precisaria."
+  - senão → ", perto dos 90% esperados."
+
+Com os dados de hoje o texto fica: "… Nas temporadas de teste (2019–2025), a projeção errou a pontuação
+final por 5,1 pontos em média." e "… Com os ratings fixos usados aqui, caiu 83% das vezes nas
+temporadas de teste e 87% nas de validação (2013–2018): ela é mais estreita do que deveria, e o
+resultado final cai fora dela mais vezes do que os 90% sugerem." Nenhum número fica escrito no texto.
+
+Quando `!sameModelVersion` (relatório de outra versão), no lugar dos dois parágrafos:
+"<p class="note">O relatório de testes disponível é da versão {metrics.model_version} do modelo, e o
+site usa a {snapshot.model.model_version}. Os números de acerto da versão em uso ainda não foram
+publicados.</p>" (as duas versões passam por `escapeHtml`). Quando faltar `uncertainty` ou o variante
+escolhido, o parágrafo some; não cair para `overall`, que mede outra configuração.
+
+**`app.js:911`** (Limitações). Antes: "As probabilidades dos jogos usam a força na data de referência;
+dentro das simulações, a força evolui." Depois, com `fixedRatings`: "A força de cada clube fica fixa na
+data de referência durante toda a simulação: uma sequência de vitórias simuladas não deixa o time mais
+forte nas rodadas seguintes." Com ratings dinâmicos, o texto atual fica.
+
+### 2. Rótulo do intervalo: "faixa provável"
+
+Decisão: o "90%" sai da tabela e da página do clube. O torcedor lê "90%" como promessa, e a promessa não
+se cumpriu no teste (83%). "Faixa provável" diz o que a faixa é sem prometer um acerto que não foi
+medido. O 90% continua, explicado, em "Como calculamos", ao lado do acerto real.
+
+- **`app.js:622`**. Antes: "Pts proj. = média simulada de pontos no fim (embaixo, o intervalo de 90%).
+  Pos. média = posição final média nas simulações." Depois: "Pts proj. = média simulada de pontos no
+  fim. Embaixo, a faixa provável, onde terminam 90% das simulações; nas temporadas passadas, a
+  pontuação final ficou dentro dela menos vezes que isso (<a href="#/metodologia">Como
+  calculamos</a>). Pos. média = posição final média nas simulações."
+- **`app.js:760`**. Antes: "Projeção: {x} pontos (90% entre {a} e {b})." Depois: "Projeção: {x} pontos
+  (faixa provável de {a} a {b})."
+- **`app.js:605`**: sem texto visível novo. Acrescentar `title="Faixa provável"` ao `<div class="range">`.
+- Insights do 08A: nenhum texto publicado escreve "intervalo de 90%" ou "90% de chance de terminar
+  entre"; usar "faixa provável". O `UNCERTAIN_FINISH` usa o intervalo de **posição**, que não tem
+  cobertura medida; não citar porcentagem de acerto para ele.
+
+### 3. Rodada a rodada é sempre reconstrução (N1 do 06): confirmado
+
+`build_round_review` (`pipeline.py:593-595`) recalcula todos os cortes com o `model_config` atual a cada
+execução; `rounds.json` nunca guarda previsões da época. Os textos E de D-034 valem sempre, com qualquer
+`history_mode`.
+
+- **`rounds.js:294`**: antes, o ternário com `helpers.reconstructed`; depois, só "medida em simulações
+  recalculadas com os resultados até a véspera".
+- **`rounds.js:299`**: só "Como o modelo atual vê o campeonato na véspera de cada rodada", e no fim do
+  cabeçalho, depois de "dados até {data}.", acrescentar: " Tudo recalculado com a versão
+  {review.model_version} do modelo; não são as previsões publicadas na época." (`escapeHtml`).
+- **`rounds.js:617`**: só "as chances recalculadas com o modelo atual para aquele dia".
+- O parâmetro `reconstructed` passado em `app.js:930` deixa de ser usado pelo `rounds.js` e pode sair.
+- **Seção D de "Como calculamos"**: ao texto atual acrescentar, no fim: " A aba Rodada a rodada é feita
+  do mesmo jeito." Se `reconstructionInfo()` for `null` mas houver `state.rounds`, mostrar a seção só
+  com: "<h2>Histórico das chances</h2><p>A aba Rodada a rodada não guarda as previsões antigas. A cada
+  atualização, o modelo atual refaz a véspera de cada rodada usando só os resultados conhecidos até
+  ali.</p>"
+
+### 4. Pendências do 05 sobre D-034
+
+- **(a) Texto C quando os dois pontos comparados têm versões diferentes**: confirmado como está
+  (`app.js:170`): "Comparado a {data}, na curva recalculada." + texto B. Em `raceSwitch` (`app.js:399`),
+  ", na curva recalculada" sem o texto B também fica, porque o aviso completo aparece logo abaixo.
+- **(b) Título da home "O que mudou em … desde a última atualização"** (`app.js:447`): confirmado. O ponto
+  comparado é a atualização anterior da curva, e a data e a ressalva estão na nota logo abaixo; repetir
+  a data no título só duplicaria.
+- **(c) Seção D sob o texto B**: ajustado. Hoje ela diz "Versão do modelo da curva atual: {v}", o que é
+  falso quando a curva mistura versões. Com `reconstruction.consistent === false`, a última frase passa
+  a: "Versão do modelo atual: {modelVersion}, recalculada em {generatedAt}. Atenção: parte da curva
+  ainda foi calculada com outra versão do modelo." Com `consistent === true`, o texto atual fica.
+
+### Conferência pedida ao 05 e ao 06
+
+- 05: 375 px e 1280 px, claro e escuro, sem rolagem horizontal (a nota da tabela ficou mais longa).
+- 06: `check_site_artifact.py` ou teste equivalente que reprove a página se "Como calculamos" ler
+  `season_simulation.overall` para a cobertura ou o MAE em produção, ou se "90%" aparecer fora de
+  "Como calculamos".
 
 ## Modelo de registro
 
