@@ -1,6 +1,10 @@
 # ADR-0008 — Fontes licenciadas para publicação (condição C1): Adão Duque v18 até 2025 e football-data.org de 2026 em diante
 
-- Status: **aceito com condições** (2026-10-27). Aprova, com ajustes, a proposta do Agente 01 em
+- Status: **aceito, implementado** (2026-10-28). Passos 1–14 concluídos com evidência, backtest
+  revalidado pelo 06 (`cmp-elo-ad-0.3.0`, `docs/methodology/validation.md`) e pendências 1–7 do dono
+  resolvidas (a 8 é opcional). C1 do ADR-0007 cumprida, conforme os pareceres finais do 06 e do 00 em
+  `docs/project/status.md`. O registro original segue abaixo.
+- Status original: **aceito com condições** (2026-10-27). Aprova, com ajustes, a proposta do Agente 01 em
   `docs/data-sources/c1-fonte-licenciada.md`. **Nada foi implementado.** A condição C1 do ADR-0007
   só é cumprida quando o plano da seção "Plano de implementação" estiver concluído com evidência, o
   Agente 06 tiver revalidado o backtest e o dono do produto tiver cumprido as pendências da seção

@@ -2283,3 +2283,94 @@ Registrado pelo orquestrador a partir do relatório do 08.
   "mais estreita" (visto no export 0.2.0, 86,9%).
 - **Próximo responsável**: 06 revisa a entrega e a checagem do artefato; 00 decide o merge da branch
   `web/d035-faixa-provavel`; 08 avalia as duas ressalvas de texto acima.
+
+## Parecer final do Agente 06: publicação (repositório público e Pages), 2026-10-28
+
+- **Veredito**: **aprovado com condições** para tornar `VitorBSP/aindada` público e ligar o Pages (`PUBLISH_ENABLED=true`), sobre `origin/main` = `94a1a10`.
+- **Condições**:
+  1. Ordem dos passos: primeiro tornar público; depois Pages com Source = "GitHub Actions" e `PUBLISH_ENABLED=true`; por último `workflow_dispatch` do `publish-site` na `main`. Nenhum commit novo na `main` sem passar pelo 06.
+  2. C4: o remoto tem só `refs/heads/main` (`94a1a10`), conferido num mirror novo depois de apagadas as 10 branches extras, todas já contidas no `main`. Qualquer ref nova antes de tornar público exige refazer o C4.
+  3. Primeira publicação: `build` e `deploy` verdes, e o 06 confere o site no ar (SHA-256 do `predictions.json` igual ao do resumo; rotas sem erro de JS). Se falhar, desligar `PUBLISH_ENABLED` e devolver ao 07.
+  4. Registrar o tempo total e o do `review-rounds` da execução C5 verde de `94a1a10`, como pede o ADR-0007. Não bloqueia.
+- **Evidência**: delta `87c1885..94a1a10` auditado (D-035 lê `season_simulation.uncertainty.{test,validation}[selected]`, 83,1% / 87,2%, MAE 5,1, sem nenhum uso de `overall`; textos dependem de `snapshot.dynamic_ratings`; `escapeHtml`; `rounds.js` sempre "recalculado"; correção do C5 igual nas duas cópias do workflow). Reprodução local do `publish-site` com o código de `94a1a10` e menos simulações: `publication-gate` e `check_site_artifact` aprovados (0 achados); Chrome headless 375/1280, claro e escuro, sem erro de JS nem rolagem horizontal. pytest 566 passaram e 1 pulado; ruff, mypy e actionlint limpos. C4 sobre o mirror: 784 objetos, 319 caminhos, nenhum caminho proibido, nenhum segredo; só os falsos positivos já aceitos. C5: o resumo da execução verde prova que o gate e as checagens do artefato passaram.
+- **Limitações**: `deploy-pages` e upload com o repositório público ainda não exercitados; visibilidade e tempo não estão no resumo; a reprodução local usou menos simulações e o football-data já baixado.
+- **Ressalvas que não bloqueiam**: (R1) nota da tabela com "menos vezes que isso" fixa no texto, a condicionar à cobertura (05/08); (R2) checar `metrics.model_version == predictions.model.model_version` no `check_site_artifact` (07/06); (R3) visibilidade e durações no resumo do `publish-site` (07).
+
+## Parecer final do Agente 00: publicação (repositório público e Pages), 2026-10-28 — **aprovado com condições**
+
+Branch `docs/parecer-final`, sobre `origin/main` = `94a1a10`. Só documentação: este registro, o status dos
+ADR-0007 e ADR-0008 e o roadmap. Nenhum código, workflow ou dado mudou.
+
+- **Veredito**: **aprovado com condições** para tornar `VitorBSP/aindada` público, ligar o GitHub Pages
+  (Source = GitHub Actions) e definir `PUBLISH_ENABLED=true`. Converge com o parecer final do 06 acima, cujas
+  condições 1 a 4 o 00 adota sem mudança. Com os dois pareceres registrados, o ADR-0007 passa a **aceito** e o
+  ADR-0008 a **aceito, implementado** (C1 cumprida).
+- **Avaliação das condições do ADR-0007**:
+
+  | Condição | Situação | Evidência |
+  |---|---|---|
+  | C1, licença dos dados (ADR-0008) | cumprida | passos 1–9 (01, auditados pelo 06); passo 10 (00, revisão do 04 e auditoria do 06); passo 11: backtest sobre o gold de publicação (`bd8456a`), e snapshots, `review-rounds` e história de 2026 regenerados pelo próprio `publish-site` com `cmp-elo-ad-0.3.0` (execução C5 verde: `model_version cmp-elo-ad-0.3.0`, `data_version adaoduque_kaggle@kaggle-v18+football_data_org@v4-20261028T162209Z`); passo 12: revalidação do 06 em `validation.md` ("aceito com ressalvas"), e a ressalva de integridade resolvida por D-035 (`5f8b9a8`) e auditada no parecer final do 06; avaliação do deslocamento de data feita (handoff do 06 de 2026-10-27); passo 13: `publish-site.yml` sem estado; passo 14: D-033; conferência de 2026 pelo 01 (`cf00a9a`); pendências do dono 1–7 resolvidas (8 é opcional) |
+  | C2, textos de fonte e licença | cumprida | D-033 implementada pelo 05; G4 confere as atribuições no export e no HTML (0 achados no C5) |
+  | C3, escudos | cumprida | D-028/D-029; `git ls-files` em `94a1a10` sem `bragantino.png`, `corinthians.png` nem `vasco.svg` |
+  | C4, repositório limpo | cumprida em `94a1a10` | mirror do 06 (784 objetos, 319 caminhos, só `refs/heads/main`); conferência do 00 em `94a1a10`: `git ls-files` (297 arquivos) sem `data/raw/`, `data/silver/`, `data/snapshots/`, `data/editorial/`, `apps/web/data/`, `matches_model.csv`, `quality_report.json` nem os 3 escudos (0 ocorrências); `git ls-remote origin` só com `HEAD` e `refs/heads/main` = `94a1a10`. **A branch desta entrega é uma ref nova**: ver condição 5 abaixo |
+  | C5, workflow verificado | cumprida, com o registro de tempo pendente | segunda execução do `publish-site` em `94a1a10` verde: temporada 2026, semente 2026, 100000/10000/20000 simulações, `reference_date` 2026-10-26, publicação desligada, SHA-256 dos 5 JSON no resumo (metrics `dce030a1…`, seasons `08d03748…`, predictions `9e3b3e38…`, probability-history `7cf47821…`, rounds `d2827372…`). Falta o tempo do `review-rounds`, que o texto do C5 pede: não bloqueia (condição 4 do 06), porque os tempos da reconstrução já foram medidos pelo 07 (`f4c3837`) e a execução terminou dentro do `timeout-minutes: 180` |
+  | C6, marca | cumprida por aceite do dono | D-034 e Q19 (fechada), com a busca no INPI registrada |
+
+- **ADR-0007, itens da decisão revistos**: arquitetura estática sem API (1), fluxo sem estado (2, adendo de
+  2026-10-28), versionamento (3, conferido no C4), persistência substituída (4), métricas do relatório versionado
+  com o mesmo `model_version` do snapshot (5: `config.py`, `backtest_report.json` e `model_config.json` em
+  `cmp-elo-ad-0.3.0`), `review-rounds` no workflow (6), insights fora do site (7, D-026), gate e
+  `check_site_artifact` (8), agendamento diário `17 9 * * *` só com `PUBLISH_ENABLED` (9). Nada pendente de
+  arquitetura.
+- **Condições do 00 (somam-se às do 06)**:
+  5. **Esta branch é uma ref e um commit novos.** Antes de tornar público: o orquestrador faz o merge de
+     `docs/parecer-final` na `main` e **apaga a branch remota**; o 06 refaz o C4 só sobre o delta, com dois
+     comandos: `git ls-remote origin` deve listar só `HEAD` e `refs/heads/main`, e
+     `git diff --name-only 94a1a10..origin/main` deve listar só `docs/project/status.md`, `docs/roadmap.md`,
+     `docs/decisions/ADR-0007-deploy-estatico-github-pages.md` e `docs/decisions/ADR-0008-fontes-licenciadas-c1.md`.
+     Isso cumpre as condições 1 e 2 do 06 sem nova auditoria de código, porque o delta é só documentação.
+  6. **SHA-256 da condição 3 do 06**: compara o `predictions.json` servido pelo Pages com o SHA-256 do resumo
+     **da própria execução de publicação**, não com o do C5. O `generated_at` e, possivelmente, os dados do
+     football-data.org mudam entre as execuções, então o hash do C5 (`9e3b3e38…`) não se repete.
+  7. **Logs e artefatos ficam públicos.** Ao tornar público, os logs das execuções anteriores do Actions passam
+     a ser visíveis. O segredo é mascarado e o C5 não publicou dados além dos que o site vai mostrar; o artefato
+     do Pages do C5 tem `retention-days: 1`. Não bloqueia; o 06 olha o log do C5 ao conferir a primeira
+     publicação.
+- **Pós-publicação (backlog, não bloqueia)**:
+  - **06**: conferir o site no ar depois do primeiro `deploy` (condição 3 do 06 e condição 6 do 00) e registrar
+    aqui. Se reprovar, o dono põe `PUBLISH_ENABLED=false` e o 07 corrige.
+  - **07**: registrar o tempo total e o do `review-rounds` da execução C5 verde (condição 4 do 06); R3
+    (visibilidade e durações no resumo).
+  - **07/06**: R2 (`metrics.model_version == predictions.model.model_version` no `check_site_artifact`).
+  - **05/08**: R1 (frase "menos vezes que isso" condicionada à cobertura medida).
+  - Já registrados e ainda abertos: Q18 (revisão posterior do dono), pendência 8 do ADR-0008 (opcional), modo
+    estático explícito em `fetchJson`, R11 (60 dias sem atividade, risco aceito), R17 (endpoint do Kaggle).
+- **Evidência do 00**:
+  - `git ls-remote origin`: `94a1a10…` em `HEAD` e `refs/heads/main`, nenhuma outra ref (antes do push desta
+    branch).
+  - `git ls-files` em `94a1a10`: 297 arquivos; 0 caminhos proibidos pela tabela do item 3 do ADR-0007.
+  - `src/brasileirao/config.py`: `MODEL_VERSION = "cmp-elo-ad-0.3.0"`; `data/gold/backtest_report.json` e
+    `data/gold/model_config.json` com o mesmo `model_version`.
+  - `.github/workflows/publish-site.yml` em `94a1a10`: `build` só na `main`; agendamento e `deploy` só com
+    `PUBLISH_ENABLED == 'true'`; upload do artefato em repositório público só quando publica; permissões mínimas.
+  - Delta `87c1885..94a1a10`: `publish-site.yml` (nas duas cópias), `app.js`, `rounds.js`, `BRAND_DECISIONS.md`,
+    `status.md` e um teste de integração, o mesmo conjunto auditado pelo 06.
+  - O 00 **não** rodou `pytest` nesta entrega: o isolamento da worktree impediu usar o `.venv` da pasta principal.
+    Vale a execução do 06 sobre `94a1a10` (566 passaram, 1 pulado), e o delta desta entrega é só documentação.
+- **Premissas e limitações**:
+  - O resumo do C5 foi recebido do orquestrador; o 00 não abriu a execução no GitHub.
+  - `deploy-pages`, a criação do ambiente `github-pages` e o comportamento do upload com o repositório público
+    não foram exercitados (limitação já registrada pelo 06).
+- **Próximos responsáveis**:
+  - **Orquestrador**: merge desta branch na `main` e remoção da branch remota (condição 5);
+  - **06**: C4 do delta (condição 5) e, depois do primeiro deploy, a conferência do site no ar;
+  - **dono do produto**: os quatro passos de configuração abaixo, só depois do C4 do delta;
+  - **07, 05/08**: itens do backlog acima.
+- **Ações do dono do produto (lista mínima e exata, na ordem)**, depois de o 06 confirmar o C4 do delta:
+  1. Settings → General → Danger Zone → Change repository visibility → **Public**.
+  2. Settings → Pages → Build and deployment → Source → **GitHub Actions**.
+  3. Settings → Secrets and variables → Actions → Variables → New repository variable → nome
+     `PUBLISH_ENABLED`, valor `true`.
+  4. Actions → publish-site → Run workflow → branch `main` (temporada em branco) → Run. Quando terminar, passar o
+     link da execução ao 06. Se `build` ou `deploy` falhar, ou se o 06 reprovar o site, mudar `PUBLISH_ENABLED`
+     para `false`.
