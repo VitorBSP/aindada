@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import shutil
 from collections import Counter
 from collections.abc import Mapping, Sequence
@@ -37,7 +38,10 @@ SILVER_MATCH_COLUMNS = [
     "status",
     "source",
     "source_match_id",
+    "kickoff_utc",
+    "kickoff_time_confirmed",
 ]
+KICKOFF_COLUMNS = ("kickoff_utc", "kickoff_time_confirmed")
 
 
 def sha256_of(path: Path) -> str:
@@ -142,6 +146,8 @@ def normalize_matches(raw_matches: Sequence[RawMatch], registry: ClubRegistry, s
             status=raw_match.status,
             source=source_label,
             source_match_id=raw_match.source_match_id,
+            kickoff_utc=raw_match.kickoff_utc,
+            kickoff_time_confirmed=raw_match.kickoff_time_confirmed,
         )
         for match_id, raw_match in zip(match_ids, raw_matches, strict=True)
     ]
@@ -241,15 +247,48 @@ def matches_to_frame(match_records: list[MatchRecord]) -> pd.DataFrame:
     matches_data["match_date"] = pd.to_datetime(matches_data["match_date"])
     for column in ("round", "home_goals", "away_goals"):
         matches_data[column] = matches_data[column].astype("Int64")
+    matches_data = with_kickoff_columns(matches_data)
     return matches_data.sort_values(["season", "match_date", "match_id"]).reset_index(drop=True)
 
 
+def with_kickoff_columns(matches_data: pd.DataFrame) -> pd.DataFrame:
+    """Colunas opcionais de horário (ADR-0009) com tipos estáveis; silver antiga sem elas fica com NA."""
+    typed = matches_data.copy()
+    if "kickoff_utc" not in typed.columns:
+        typed["kickoff_utc"] = pd.NA
+    if "kickoff_time_confirmed" not in typed.columns:
+        typed["kickoff_time_confirmed"] = pd.NA
+    typed["kickoff_utc"] = typed["kickoff_utc"].astype("string")
+    typed["kickoff_time_confirmed"] = typed["kickoff_time_confirmed"].astype("boolean")
+    return typed
+
+
+def confirmed_kickoff_utc(kickoff_utc: object, kickoff_time_confirmed: object) -> str | None:
+    """`kickoff_utc` em ISO 8601 UTC só com horário confirmado; senão `None` (contrato do 04, ADR-0009)."""
+    if _is_missing(kickoff_utc) or _is_missing(kickoff_time_confirmed) or not bool(kickoff_time_confirmed):
+        return None
+    return str(kickoff_utc)
+
+
+def _is_missing(value: object) -> bool:
+    return value is None or value is pd.NA or (isinstance(value, float) and math.isnan(value))
+
+
+def _optional_text(value: object) -> str | None:
+    return None if _is_missing(value) else str(value)
+
+
 def detect_changes(previous_matches: pd.DataFrame, current_matches: pd.DataFrame) -> list[dict[str, str]]:
-    """Diferenças de calendário/resultado entre duas versões da camada silver."""
+    """Diferenças de calendário/resultado entre duas versões da camada silver.
+
+    O horário (`kickoff_utc`, `kickoff_time_confirmed`) só é comparado quando a versão anterior já o
+    tinha: a primeira ingestão com as colunas novas não registra uma mudança por partida.
+    """
     tracked_columns = ["match_date", "status", "home_goals", "away_goals", "round"]
-    previous_indexed = previous_matches.set_index("match_id")
+    previous_indexed = with_kickoff_columns(previous_matches).set_index("match_id")
+    current_rows = with_kickoff_columns(current_matches)
     changes: list[dict[str, str]] = []
-    for current_row in current_matches.itertuples(index=False):
+    for current_row in current_rows.itertuples(index=False):
         match_id = str(current_row.match_id)
         if match_id not in previous_indexed.index:
             changes.append({"match_id": match_id, "change": "new_match"})
@@ -259,6 +298,11 @@ def detect_changes(previous_matches: pd.DataFrame, current_matches: pd.DataFrame
             old_value, new_value = previous_row[column], getattr(current_row, column)
             if str(old_value) != str(new_value):
                 changes.append({"match_id": match_id, "change": column, "old": str(old_value), "new": str(new_value)})
+        for column in KICKOFF_COLUMNS:
+            old_text = _optional_text(previous_row[column])
+            new_text = _optional_text(getattr(current_row, column))
+            if old_text is not None and old_text != new_text:
+                changes.append({"match_id": match_id, "change": column, "old": old_text, "new": str(new_text)})
     return changes
 
 
@@ -387,7 +431,7 @@ def read_matches(path: Path) -> pd.DataFrame:
     )
     for column in ("round", "home_goals", "away_goals"):
         matches_data[column] = matches_data[column].astype("Int64")
-    return matches_data
+    return with_kickoff_columns(matches_data)
 
 
 def write_gold(silver_dir: Path, gold_dir: Path) -> pd.DataFrame:

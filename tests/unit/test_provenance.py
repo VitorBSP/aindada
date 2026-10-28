@@ -50,7 +50,7 @@ def _info(root: Path, mode: CompositionMode = CompositionMode.PUBLICATION) -> Da
 
 
 def test_schema_version_bumped_for_sources() -> None:
-    assert SNAPSHOT_SCHEMA_VERSION == "1.2"
+    assert tuple(int(part) for part in SNAPSHOT_SCHEMA_VERSION.split(".")) >= (1, 2)
 
 
 def test_one_entry_per_source(publication_root: Path) -> None:

@@ -6,6 +6,7 @@ Execução local: `uvicorn apps.api.main:app --reload` (requer `pip install -e .
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -17,7 +18,9 @@ from brasileirao.config import PATHS
 from brasileirao.insights.contracts import PublishedInsight
 from brasileirao.insights.editorial import EditorialStore, active_insights
 from brasileirao.pipeline import HistoryMode, history_mode, probability_history
+from brasileirao.storage.current_round import build_current_round
 from brasileirao.storage.schema import (
+    CurrentRound,
     MatchPrediction,
     PredictionSnapshot,
     RoundReview,
@@ -138,6 +141,12 @@ def create_app(
         if review is None:
             raise HTTPException(status_code=404, detail=f"sem revisão por rodada para a temporada {season}")
         return review
+
+    @app.get("/api/seasons/{season}/current-round", response_model=CurrentRound)
+    def current_round(season: int) -> CurrentRound:
+        """Rodada mostrada na aba da home (ADR-0009); `round` nulo na pré-temporada."""
+        snapshot = latest_or_404(season)
+        return build_current_round(snapshot, snapshot_store.latest_round_review(season), datetime.now(tz=UTC))
 
     @app.get("/api/seasons/{season}/insights", response_model=list[PublishedInsight])
     def insights(season: int) -> list[PublishedInsight]:

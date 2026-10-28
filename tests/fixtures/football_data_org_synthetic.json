@@ -15,6 +15,12 @@
      "score": {"duration": "REGULAR", "fullTime": {"home": null, "away": null}}},
     {"id": 105, "utcDate": "2032-11-02T00:30:00Z", "status": "TIMED", "matchday": 2,
      "homeTeam": {"name": "Sintetico 09"}, "awayTeam": {"name": "Sintetico 10"},
+     "score": {"duration": "REGULAR", "fullTime": {"home": null, "away": null}}},
+    {"id": 106, "utcDate": "2032-11-10T00:00:00Z", "status": "SCHEDULED", "matchday": 3,
+     "homeTeam": {"name": "Sintetico 01"}, "awayTeam": {"name": "Sintetico 03"},
+     "score": {"duration": "REGULAR", "fullTime": {"home": null, "away": null}}},
+    {"id": 107, "utcDate": "2032-11-11T19:00:00Z", "status": "SCHEDULED", "matchday": 3,
+     "homeTeam": {"name": "Sintetico 02"}, "awayTeam": {"name": "Sintetico 04"},
      "score": {"duration": "REGULAR", "fullTime": {"home": null, "away": null}}}
   ]
 }

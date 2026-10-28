@@ -33,6 +33,8 @@ class RawMatch:
     home_goals: int | None
     away_goals: int | None
     status: MatchStatus
+    kickoff_utc: datetime | None = None
+    kickoff_time_confirmed: bool | None = None
 
 
 @dataclass(frozen=True)

@@ -11,7 +11,7 @@ fontes publicáveis, nome da licença, URL e data de leitura dos termos e texto 
 | Fonte (`source_name`) | Conteúdo | Cobertura | Acesso | Licença / restrições | Papel no projeto (ADR-0008) |
 |---|---|---|---|---|---|
 | [Adão Duque, "Campeonato Brasileiro de Futebol"](https://www.kaggle.com/datasets/adaoduque/campeonato-brasileiro-de-futebol) (`adaoduque_kaggle`) | Partidas (data dd/mm/aaaa, hora, rodada, mandante, visitante, placar), cartões, gols, estatísticas | 2003–2025: 9.165 partidas; cartões 2014–2024 (20.953 cartões; sem 2025) | Kaggle **versão 18**, baixada pelo dono do produto para `data/raw/adaoduque/v18/` (adaptador `AdaoDuqueSource`, que não baixa nada). SHA-256 fixado em `data/reference/source_pins.json` (`brasileirao pin-adaoduque`). O espelho do GitHub serve só para comparar hashes | `licensed_with_attribution`: GPL-2 declarada no Kaggle (v18; "only" ou "or later" não especificado), termos lidos em 2026-10-27. Coleta do autor "de páginas do Google" (proveniência de segunda mão, risco aceito no ADR). Usos: `research_local`, `prototype_local`, `public_display_derived`, `redistribution` (a licença permitiria; o projeto **não** redistribui sem ADR próprio) | **Publicação 2003–2025.** v18 baixada e fixada em 2026-10-27 (proveniência abaixo); ingestão real executada |
-| [football-data.org](https://www.football-data.org) (`football_data_org`) | API v4, competição BSA: partidas, rodada, status, placar de tempo normal | 2024, 2025 e 2026 confirmadas no plano gratuito (consulta de 2026-10-27) | token gratuito só por `FOOTBALL_DATA_ORG_TOKEN` (`.env` local ou segredo do Actions), nunca em log; 1 chamada por temporada, ≥ 6 s entre chamadas, espera `X-RequestCounter-Reset` em 429 (adaptador `FootballDataOrgSource`) | `licensed_with_attribution`: Terms and Conditions em vigor desde 2018-06-01, lidos em 2026-10-27. Atribuição exata (7.1): "Football data provided by the Football-Data.org API". Cláusulas 2.3, 6.1, 9.1 e 11.1 no ADR-0008. Usos: `research_local`, `prototype_local`, `public_display_derived` (sem redistribuição) | **Publicação 2026+**; 2024–2025 só **conferência local**. Data = `utcDate` convertido para America/Sao_Paulo; `IN_PLAY`/`PAUSED`/`LIVE` → `scheduled`; `AWARDED` só com placar decidido em `known_exceptions.csv` (`code=awarded`), senão a ingestão falha. Ingestão real em 2026-10-27 (3 chamadas, 2024–2026, versão `v4-20261027T205022Z`) |
+| [football-data.org](https://www.football-data.org) (`football_data_org`) | API v4, competição BSA: partidas, rodada, status, placar de tempo normal | 2024, 2025 e 2026 confirmadas no plano gratuito (consulta de 2026-10-27) | token gratuito só por `FOOTBALL_DATA_ORG_TOKEN` (`.env` local ou segredo do Actions), nunca em log; 1 chamada por temporada, ≥ 6 s entre chamadas, espera `X-RequestCounter-Reset` em 429 (adaptador `FootballDataOrgSource`) | `licensed_with_attribution`: Terms and Conditions em vigor desde 2018-06-01, lidos em 2026-10-27. Atribuição exata (7.1): "Football data provided by the Football-Data.org API". Cláusulas 2.3, 6.1, 9.1 e 11.1 no ADR-0008. Usos: `research_local`, `prototype_local`, `public_display_derived` (sem redistribuição) | **Publicação 2026+**; 2024–2025 só **conferência local**. Data = `utcDate` convertido para America/Sao_Paulo, exceto jogo só com data (`SCHEDULED`/`POSTPONED` às 00:00Z, seção "Horário do jogo"); `kickoff_utc` e `kickoff_time_confirmed` desde o ADR-0009; `IN_PLAY`/`PAUSED`/`LIVE` → `scheduled`; `AWARDED` só com placar decidido em `known_exceptions.csv` (`code=awarded`), senão a ingestão falha. Ingestão real em 2026-10-27 (3 chamadas, 2024–2026, versão `v4-20261027T205022Z`) |
 | [brasileirao-dataset](https://github.com/leeofernandes1980/brasileirao-dataset) (`brasileirao_dataset`) | Partidas, cartões, gols, estatísticas | 2003–2026, atualizado por GitHub Actions | `git clone` (adaptador `BrasileiraoDatasetSource`) | `research_only_unverified`. Sem arquivo LICENSE. 2003–2023 vêm do dataset de Adão Duque; 2024+ foi coletado da API não oficial do Sofascore, cujos termos restringem coleta automatizada e uso comercial. Usos: `research_local`, `prototype_local` | **Fora da publicação.** Só pesquisa local (`brasileirao ingest --research-source brasileirao_dataset`) e conferência 2003–2023. Em 2024+ a data é o dia UTC do pontapé inicial, sem hora: não dá para converter, e a conferência usa tolerância de ±1 dia |
 | [CBF](https://www.cbf.com.br) | Tabela, súmulas, regulamentos (fonte oficial) | temporada corrente | site; sem API pública documentada | Termos do site **a verificar** (falha de TLS em 2026-10-27) | Regulamento 2026 usado para as regras. Nenhum programa lê o site (pendência 5 do ADR-0008, decidida pelo 00 em 2026-10-28): quem confere 2026 é o 01, com evidência pontual nas divergências (seção "Conferência local") |
 | [ge.globo](https://ge.globo.com/futebol/brasileirao-serie-a/) | Placar final e tabela (conferência) | temporada corrente | consulta manual no navegador, sem coleta automatizada | Conteúdo jornalístico protegido; usado só como evidência pontual, citando a URL | Evidência de correções manuais (`data/reference/manual_corrections.csv`, ignorado pelo git) |
@@ -175,6 +175,58 @@ Classificação das divergências:
 - **Checagem extra**: os 319 jogos encerrados no football-data.org foram comparados com a matriz de
   confrontos da Wikipédia. Os 319 placares são iguais; nenhum jogo encerrado falta na matriz, e a matriz
   não tem placar de jogo não encerrado.
+
+## Horário do jogo (ADR-0009, Decisão 2; 2026-10-28)
+
+`MatchRecord` tem dois campos opcionais, gravados em `data/silver/matches.csv` e em
+`data/gold/matches_model.csv` (últimas colunas): `kickoff_utc` (ISO 8601 UTC, `2026-10-29T00:30:00Z`)
+e `kickoff_time_confirmed` (`True`, `False` ou vazio). Regra do football-data.org
+(`football_data_org.kickoff_of`):
+
+| Status na fonte | `kickoff_utc` | `kickoff_time_confirmed` | `match_date` |
+|---|---|---|---|
+| `TIMED`, `IN_PLAY`, `PAUSED`, `LIVE`, `FINISHED` | `utcDate` | `True` | dia de `utcDate` em Brasília |
+| `SCHEDULED`, `POSTPONED`, `SUSPENDED`, `CANCELLED` com `utcDate` às 00:00:00Z | vazio | `False` | dia do próprio `utcDate`, sem conversão |
+| esses status com outro horário, e `AWARDED` | `utcDate` (provisório ou que não vale mais) | `False` | dia de `utcDate` em Brasília |
+
+- **Invariante**: com `kickoff_utc`, `match_date` é a data dele em America/Sao_Paulo. O `MatchRecord`
+  recusa o contrário, e o `run_quality_checks` acusa `kickoff_date_mismatch` (erro) na silver e no gold.
+- **Só a data**: no football-data.org, jogo `SCHEDULED` vem com `utcDate` às 00:00:00Z, um marcador sem
+  horário. Na ingestão de 2026-10-27, os 40 `SCHEDULED` (rodadas 35 a 38) e o adiado da rodada 21 estão
+  às 00:00Z. As datas desse marcador são as da tabela básica da CBF (rodada 21: 29/07; 35: 18/11; 36:
+  21/11; 37: 28/11; 38: 02/12, na tabela do Palmeiras publicada pela Itatiaia, consultada em
+  2026-10-28), e não o dia anterior que a conversão para Brasília dava. Por isso esses 41 jogos
+  **avançaram 1 dia** na silver (`match_date` no `changes.jsonl`). Jogo encerrado ou com horário
+  confirmado não muda de data. Um jogo `TIMED` às 00:00Z é horário real (21h em Brasília) e é
+  convertido.
+- **Exportação**: `ingest.confirmed_kickoff_utc(kickoff_utc, kickoff_time_confirmed)` devolve o texto
+  ISO só com horário confirmado, e `None` nos demais casos. É a regra do `MatchPrediction.kickoff_utc`
+  do 04.
+- **Fontes sem horário**: Adão Duque e as de conferência ficam com os dois campos vazios. Silver ou
+  gold antigos, sem as colunas, continuam válidos: `read_matches` as cria vazias.
+- **Histórico de mudanças**: mudança de `kickoff_utc` ou de `kickoff_time_confirmed` entre ingestões vai
+  para o `changes.jsonl`, mas só quando a versão anterior já tinha o valor. A primeira ingestão com as
+  colunas novas não registra uma linha por jogo.
+- **Validação temporal**: inalterada, por `match_date` (dia de Brasília). O horário não muda o que entra
+  em ratings, treino ou simulação.
+- **Ingestão real de 2026** (raw `v4-20261027T205022Z`, sem chamada nova, em cópia local dos dados):
+  319 `finished` e 20 `scheduled` com horário confirmado, 40 `scheduled` e 1 `postponed` sem horário,
+  0 violações do invariante em 339 jogos com horário. Nenhum jogo de 2003–2025 tem horário.
+- **`hora` do Adão Duque, avaliada e não usada**: a coluna está preenchida em 100% das 9.165 partidas.
+  Lida como hora de Brasília, ela bate com o `utcDate` do football-data.org a até 5 min em 755 de 760
+  jogos de 2024–2025 (335 exatos; a diferença típica é de 1 a 4 min, então parece o início real, e não
+  o marcado). Não foi usada: nenhum consumidor precisa do horário antes de 2026, 2003–2023 não tem uma
+  segunda fonte para conferir, e o ADR-0009 fixa os campos vazios para essa fonte. Se for preciso,
+  entra com decisão nova.
+- **Atraso da fonte no plano gratuito: a medir no ensaio (`dry-run`) do ADR-0009.** A página de
+  preços do football-data.org (consultada em 2026-10-28) diz só "Scores delayed" e "Schedules delayed"
+  para o plano gratuito, sem números. O `lastUpdated` não serve de medida: é a última alteração do
+  registro, e 12 jogos das rodadas 31 e 32 têm o mesmo `2026-10-26T20:20:24Z` (atualização em lote).
+  Os 2 jogos encerrados mais recentes (26/10) têm `lastUpdated` 3 h 30 a 4 h depois do fim estimado
+  (início + 115 min). Isso é só um limite superior, mas, se o atraso real for desse tamanho, a checagem
+  às 2 h 10 do início quase nunca acha o jogo encerrado. Nenhuma chamada nova foi feita: às 18h59 de
+  2026-10-28, em Brasília, nenhum jogo do dia tinha começado. A medida pede várias consultas perto do
+  fim de um jogo, que é o que o ensaio faz.
 
 ## Problemas de qualidade conhecidos
 

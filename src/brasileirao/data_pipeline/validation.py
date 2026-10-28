@@ -5,12 +5,15 @@ from __future__ import annotations
 from datetime import date
 from enum import StrEnum
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 from pydantic import BaseModel
 
 from brasileirao.contracts import MatchStatus
 from brasileirao.frame_values import as_int
+
+BRASILIA = ZoneInfo("America/Sao_Paulo")
 
 
 class Severity(StrEnum):
@@ -179,6 +182,28 @@ def _apply_known_exceptions(
     return reviewed_issues
 
 
+def kickoff_issues(matches_data: pd.DataFrame) -> list[QualityIssue]:
+    """Invariante do ADR-0009: com `kickoff_utc`, `match_date` é a data dele em America/Sao_Paulo."""
+    if "kickoff_utc" not in matches_data.columns:
+        return []
+    with_kickoff = matches_data[matches_data["kickoff_utc"].notna()]
+    if not len(with_kickoff):
+        return []
+    kickoff_days = pd.to_datetime(with_kickoff["kickoff_utc"], utc=True).dt.tz_convert(BRASILIA).dt.date
+    mismatched = with_kickoff[kickoff_days.to_numpy() != with_kickoff["match_date"].dt.date.to_numpy()]
+    if not len(mismatched):
+        return []
+    return [
+        QualityIssue(
+            severity=Severity.ERROR,
+            code="kickoff_date_mismatch",
+            season=None,
+            detail=f"{len(mismatched)} partidas com kickoff_utc fora da match_date em Brasília: "
+            f"{list(mismatched['match_id'].astype(str))[:5]}",
+        )
+    ]
+
+
 def run_quality_checks(
     matches_data: pd.DataFrame,
     reference_date: date,
@@ -200,6 +225,7 @@ def run_quality_checks(
         issues.append(
             QualityIssue(severity=Severity.ERROR, code="self_match", season=None, detail="clube enfrentando a si mesmo")
         )
+    issues.extend(kickoff_issues(matches_data))
     for season, season_matches in matches_data.groupby("season"):
         season_number = int(str(season))
         clubs = set(season_matches["home_id"]) | set(season_matches["away_id"])

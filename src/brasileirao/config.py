@@ -7,8 +7,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 MODEL_VERSION = "cmp-elo-ad-0.3.0"
-SNAPSHOT_SCHEMA_VERSION = "1.2"
+SNAPSHOT_SCHEMA_VERSION = "1.3"
 ROUND_REVIEW_SCHEMA_VERSION = "1.1"
+CURRENT_ROUND_SCHEMA_VERSION = "1.0"
+
+# Rodada atual (ADR-0009, Decisão 3): jogo na janela fica a até ROUND_WINDOW_DAYS dias da âncora da rodada;
+# jogo `scheduled` sem placar conta como resolvido STALE_RESULT_HOURS horas depois do início.
+ROUND_WINDOW_DAYS = 4
+STALE_RESULT_HOURS = 48
 INSIGHT_RULES_VERSION = "rules-2026.10.1"
 
 # Fonte de publicação por temporada (primeira, última ou None = em aberto, source_name). ADR-0008, Decisão 1.

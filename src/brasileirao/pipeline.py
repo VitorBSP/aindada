@@ -29,7 +29,7 @@ from brasileirao.config import (
 from brasileirao.contracts import MatchStatus
 from brasileirao.data_pipeline.clubs import ClubRegistry, load_club_registry
 from brasileirao.data_pipeline.composition import CompositionMode
-from brasileirao.data_pipeline.ingest import card_totals_as_of, read_matches
+from brasileirao.data_pipeline.ingest import card_totals_as_of, confirmed_kickoff_utc, read_matches
 from brasileirao.data_pipeline.validation import (
     QualityReport,
     Severity,
@@ -46,6 +46,7 @@ from brasileirao.ratings.history import RatingEngine, RatingState, build_state_a
 from brasileirao.simulation.engine import SeasonSimulator, SimulationResult
 from brasileirao.simulation.round_review import METRICS, RoundView, build_round_view, round_cutoffs
 from brasileirao.simulation.summary import build_team_summaries
+from brasileirao.storage.current_round import build_current_round
 from brasileirao.storage.schema import (
     ClubLabel,
     DataInfo,
@@ -318,6 +319,38 @@ def _usable_card_totals(
 
 
 TOP_SCORES_PER_MATCH = 3
+PENDING_STATUSES_KEPT = frozenset({MatchStatus.POSTPONED.value, MatchStatus.CANCELLED.value})
+
+
+def _optional_value(match: Any, column: str) -> object:
+    value = getattr(match, column, None)
+    return None if value is None or pd.isna(value) else value
+
+
+def _kickoff_utc(match: Any) -> str | None:
+    """Horário só quando confirmado na fonte, em ISO 8601 UTC (ADR-0009, Decisão 2)."""
+    kickoff = confirmed_kickoff_utc(
+        _optional_value(match, "kickoff_utc"), _optional_value(match, "kickoff_time_confirmed")
+    )
+    return None if kickoff is None else _utc_text(kickoff)
+
+
+def _source_match_id(match: Any) -> str | None:
+    source_match_id = _optional_value(match, "source_match_id")
+    return None if source_match_id is None else str(source_match_id)
+
+
+def _utc_text(value: str) -> str:
+    moment = datetime.fromisoformat(value)
+    if moment.tzinfo is None:
+        raise ValueError(f"kickoff_utc sem fuso: {value!r}")
+    return moment.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _pending_status(match: Any) -> str:
+    """Jogo sem resultado na data de referência: `postponed`/`cancelled` da fonte ou `scheduled` (nunca `finished`)."""
+    status = str(match.status)
+    return status if status in PENDING_STATUSES_KEPT else MatchStatus.SCHEDULED.value
 
 
 def _match_predictions(
@@ -335,6 +368,8 @@ def _match_predictions(
                 status=MatchStatus.FINISHED.value,
                 home_goals=as_int(match.home_goals),
                 away_goals=as_int(match.away_goals),
+                kickoff_utc=_kickoff_utc(match),
+                source_match_id=_source_match_id(match),
             )
         )
     if len(remaining):
@@ -360,7 +395,7 @@ def _match_predictions(
                     match_date=as_timestamp(match.match_date).date().isoformat(),
                     home_id=str(match.home_id),
                     away_id=str(match.away_id),
-                    status=MatchStatus.SCHEDULED.value,
+                    status=_pending_status(match),
                     p_home=float(outcome[position, 0]),
                     p_draw=float(outcome[position, 1]),
                     p_away=float(outcome[position, 2]),
@@ -370,6 +405,8 @@ def _match_predictions(
                     most_likely_score_probability=best_scores[0].probability,
                     top_scores=best_scores,
                     p_three_plus_goals=float(three_plus_goals[position]),
+                    kickoff_utc=_kickoff_utc(match),
+                    source_match_id=_source_match_id(match),
                 )
             )
     return predictions
@@ -538,8 +575,13 @@ def probability_history(store: SnapshotStore, season: int) -> list[dict[str, Any
     return history
 
 
-def export_static_api(store: SnapshotStore, season: int, output_dir: Path = PATHS.web_static_data) -> list[Path]:
-    """Espelho estático dos endpoints GET, para servir o frontend sem backend."""
+def export_static_api(
+    store: SnapshotStore, season: int, output_dir: Path = PATHS.web_static_data, now: datetime | None = None
+) -> list[Path]:
+    """Espelho estático dos endpoints GET, para servir o frontend sem backend.
+
+    `now` é o horário do export, que decide a rodada mostrada em `current-round.json` (ADR-0009).
+    """
     snapshot = store.latest(season)
     if snapshot is None:
         raise RuntimeError(f"nenhum snapshot para {season}")
@@ -563,6 +605,8 @@ def export_static_api(store: SnapshotStore, season: int, output_dir: Path = PATH
     review = store.latest_round_review(season)
     if review is not None:
         documents[f"api/seasons/{season}/rounds.json"] = review.model_dump(mode="json")
+    current_round = build_current_round(snapshot, review, now or datetime.now(tz=UTC))
+    documents[f"api/seasons/{season}/current-round.json"] = current_round.model_dump(mode="json")
     written: list[Path] = []
     for relative_path, document in documents.items():
         target = output_dir / relative_path
