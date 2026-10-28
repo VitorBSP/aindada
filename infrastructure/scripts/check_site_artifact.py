@@ -6,6 +6,10 @@
 - semente de `predictions` e `rounds` igual à esperada (`--seed`, opcional);
 - `probability-history` sem data posterior à do snapshot e com número de simulações em cada ponto (os pontos
   não trazem semente no export; se um dia trouxerem, ela também é comparada com `--seed`);
+- `seasons.json` com `history_mode` (`reconstructed` ou `recorded`) para a temporada publicada (ADR-0008, ajuste 1);
+- todo ponto de `probability-history` com `generated_at` com fuso, `model_version` e `reconstructed` booleano;
+  todos os `model_version` do histórico iguais ao de `predictions` (curva de um único modelo) e o último ponto
+  com `reconstructed` falso;
 - nenhum dos escudos não livres no artefato (D-028/D-029);
 - `reference_date` não regride em relação ao site no ar (`--live-url`, opcional; sem resposta, a checagem é pulada).
 
@@ -18,10 +22,12 @@ import argparse
 import json
 import urllib.error
 import urllib.request
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 NON_FREE_CRESTS = ("bragantino.png", "corinthians.png", "vasco.svg")
+HISTORY_MODES = ("reconstructed", "recorded")
 TIMEOUT_SECONDS = 30
 
 
@@ -54,10 +60,47 @@ def _seed_problems(seed: int, predictions: Any, rounds: Any, history: list[Any])
     return [f"semente de {name} é {value}, esperada {seed}" for name, value in found.items() if value != seed]
 
 
+def _history_mode_problems(seasons: Any, season: int) -> list[str]:
+    entries = [entry for entry in seasons if isinstance(entry, dict) and entry.get("season") == season]
+    if not entries:
+        return [f"seasons.json sem a temporada {season}"]
+    mode = entries[0].get("history_mode")
+    if mode not in HISTORY_MODES:
+        return [f"seasons.json com history_mode inválido para {season}: {mode!r}"]
+    return []
+
+
+def _has_timezone(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    try:
+        return datetime.fromisoformat(value).tzinfo is not None
+    except ValueError:
+        return False
+
+
+def _provenance_problems(history: list[Any], model_version: str) -> list[str]:
+    """Origem de cada ponto (ADR-0008, ajuste 1); o site publicado mostra a curva de um único modelo."""
+    problems: list[str] = []
+    for index, point in enumerate(history):
+        if not _has_timezone(point.get("generated_at")):
+            problems.append(f"probability-history[{index}] sem generated_at com fuso")
+        if not point.get("model_version"):
+            problems.append(f"probability-history[{index}] sem model_version")
+        if not isinstance(point.get("reconstructed"), bool):
+            problems.append(f"probability-history[{index}] sem reconstructed booleano")
+    versions = sorted({str(point["model_version"]) for point in history if point.get("model_version")})
+    if any(version != model_version for version in versions):
+        problems.append(f"probability-history com model_version {versions}, esperado só {model_version}")
+    if history and history[-1].get("reconstructed") is not False:
+        problems.append("último ponto de probability-history não tem reconstructed == false")
+    return problems
+
+
 def check(site_dir: Path, season: int, live_url: str | None, seed: int | None = None) -> list[str]:
     problems: list[str] = []
     api = site_dir / "data" / "api"
-    _load(api / "seasons.json", problems)
+    seasons = _load(api / "seasons.json", problems)
     predictions = _load(api / "seasons" / str(season) / "predictions.json", problems)
     history = _load(api / "seasons" / str(season) / "probability-history.json", problems)
     rounds = _load(api / "seasons" / str(season) / "rounds.json", problems)
@@ -72,6 +115,7 @@ def check(site_dir: Path, season: int, live_url: str | None, seed: int | None = 
     }
     if len(set(model_versions.values())) != 1:
         problems.append(f"model_version divergente: {model_versions}")
+    problems.extend(_history_mode_problems(seasons if isinstance(seasons, list) else [], season))
     if rounds.get("data_version") != predictions["data"]["version"]:
         problems.append("data_version de rounds.json diferente da do snapshot")
     if rounds.get("data_until") != reference_date:
@@ -82,6 +126,7 @@ def check(site_dir: Path, season: int, live_url: str | None, seed: int | None = 
         problems.append("probability-history tem data posterior ao snapshot")
     elif any(not point.get("n_simulations") for point in history):
         problems.append("probability-history com ponto sem n_simulations")
+    problems.extend(_provenance_problems(history or [], str(model_versions["predictions"])))
     if seed is not None:
         problems.extend(_seed_problems(seed, predictions, rounds, history or []))
     crests = [path.as_posix() for name in NON_FREE_CRESTS for path in site_dir.rglob(name)]

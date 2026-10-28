@@ -2071,3 +2071,34 @@ Branch `feat/historico-reconstruido`, a partir de `origin/main` em `b97caad`. Se
     por ponto a `docs/architecture/api.md`;
   - **06**: auditar a regra e os testes;
   - **08**: confirmar a condição do texto A.
+
+## Ajuste 1 no check_site_artifact.py (Agente 07, 2026-10-28)
+
+Branch `deploy/check-reconstrucao`, a partir de `origin/main` em `a2df5a7`. Sem merge no `main`.
+
+- **O que mudou**:
+  - `infrastructure/scripts/check_site_artifact.py` reprova:
+    - `seasons.json` sem a temporada ou sem `history_mode` em `reconstructed`/`recorded`;
+    - ponto de `probability-history` sem `generated_at` com fuso, sem `model_version` ou sem
+      `reconstructed` booleano;
+    - `model_version` do histórico diferente do de `predictions` (curva de um único modelo);
+    - último ponto com `reconstructed` diferente de `false`.
+  - `tests/unit/test_check_site_artifact.py`: export sintético com os campos novos e 17 casos novos
+    (36 no arquivo); `docs/architecture/deploy.md` atualizado. Workflows não mudaram.
+- **Evidência**:
+  - `pytest -q`: 558 passed; `ruff check` e `ruff format --check` sem erros; `mypy src apps` sem
+    erros em 52 arquivos, e também no script e no teste. `.venv` da pasta principal com `PYTHONPATH`
+    na worktree; `brasileirao` importado da worktree.
+  - Export real numa cópia nova do ensaio (`simulate --history-from-round 28`, 300/200 simulações,
+    `review-rounds` com 200, `export-web`, `data/snapshots/` apagado antes): 5 pontos em
+    `cmp-elo-ad-0.2.0`, 4 com `reconstructed: true` e o de 26/10 com `false`, `history_mode:
+    "reconstructed"`. O script aprovou (0 achados, saída 0).
+  - Na mesma cópia, adulterada (sem `history_mode`, um ponto em outro modelo, um `generated_at` sem
+    fuso, último ponto reconstruído), o script reprovou com os 4 achados esperados (saída 1).
+- **Premissas e limitações**:
+  - A exigência de modelo único vale para o site publicado, porque o workflow reconstrói a história
+    inteira. Um export local com snapshots antigos de outro modelo é reprovado de propósito.
+  - Nada rodou no GitHub; a conferência fica para o ensaio C5.
+- **Próximo responsável**:
+  - **06**: auditar o delta;
+  - **00**: merge da branch na `main` antes do C5.
