@@ -1,4 +1,5 @@
-"""Modelos de gols: Poisson independente (Modelo A), correção Dixon-Coles (Modelo B) e inflação de empates."""
+"""Modelos de gols: Poisson independente (Modelo A), correção Dixon-Coles (Modelo B), inflação de empates e
+dispersão dos gols (Conway-Maxwell-Poisson com média preservada)."""
 
 from __future__ import annotations
 
@@ -9,6 +10,7 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 from scipy.optimize import minimize_scalar
+from scipy.special import gammaln
 from scipy.stats import poisson
 from sklearn.linear_model import PoissonRegressor
 
@@ -48,16 +50,48 @@ def dixon_coles_tau(
     return np.where((home_goals == 1) & (away_goals == 1), 1.0 - rho, tau)
 
 
+GOAL_DISPERSION_BOUNDS = (0.5, 2.0)
+_LOG_LAMBDA_GRID = np.linspace(-8.0, 6.0, 7001)
+
+
+def goal_pmf(rate: FloatArray, max_goals: int, dispersion: float = 1.0) -> FloatArray:
+    """P(k gols), k = 0..max_goals, com shape (..., max_goals+1).
+
+    `dispersion` é o ν do Conway-Maxwell-Poisson, P(k) ∝ λ^k / (k!)^ν: 1 reproduz a Poisson, ν > 1 dá
+    variância menor que a média e ν < 1, maior. Para ν ≠ 1, λ é escolhido para que a média da
+    distribuição (truncada em `max_goals`) seja igual a `rate`: o ν muda só a forma, não os gols esperados.
+    """
+    goals = np.arange(max_goals + 1)
+    rates = np.asarray(rate, dtype=np.float64)
+    if dispersion == 1.0:
+        poisson_pmf: FloatArray = poisson.pmf(goals, rates[..., None])
+        return poisson_pmf
+    log_weights = -dispersion * gammaln(goals + 1.0)
+    grid_logits = _LOG_LAMBDA_GRID[:, None] * goals[None, :] + log_weights[None, :]
+    grid_probabilities = np.exp(grid_logits - grid_logits.max(axis=1, keepdims=True))
+    grid_means = (grid_probabilities @ goals) / grid_probabilities.sum(axis=1)
+    log_lambda = np.interp(rates, grid_means, _LOG_LAMBDA_GRID)
+    logits = log_lambda[..., None] * goals + log_weights
+    weights = np.exp(logits - logits.max(axis=-1, keepdims=True))
+    pmf: FloatArray = weights / weights.sum(axis=-1, keepdims=True)
+    return pmf
+
+
 def score_matrix(
-    home_rate: FloatArray, away_rate: FloatArray, rho: float, max_goals: int, draw_inflation: float = 0.0
+    home_rate: FloatArray,
+    away_rate: FloatArray,
+    rho: float,
+    max_goals: int,
+    draw_inflation: float = 0.0,
+    goal_dispersion: float = 1.0,
 ) -> FloatArray:
     """Probabilidades de placar com shape (..., max_goals+1, max_goals+1), normalizadas.
 
     `draw_inflation` multiplica a diagonal (empates) por 1 + draw_inflation antes da normalização.
+    `goal_dispersion` é o ν das marginais de gols (ver `goal_pmf`); 1 = Poisson.
     """
-    goals = np.arange(max_goals + 1)
-    home_pmf = poisson.pmf(goals, np.asarray(home_rate)[..., None])
-    away_pmf = poisson.pmf(goals, np.asarray(away_rate)[..., None])
+    home_pmf = goal_pmf(home_rate, max_goals, goal_dispersion)
+    away_pmf = goal_pmf(away_rate, max_goals, goal_dispersion)
     matrix = home_pmf[..., :, None] * away_pmf[..., None, :]
     if rho != 0.0:
         home_rates = np.asarray(home_rate, dtype=np.float64)
@@ -73,6 +107,26 @@ def score_matrix(
         matrix[..., diagonal, diagonal] *= 1.0 + draw_inflation
     normalized: FloatArray = matrix / matrix.sum(axis=(-2, -1), keepdims=True)
     return normalized
+
+
+def top_scores(matrix: FloatArray, n_scores: int = 3) -> list[tuple[int, int, float]]:
+    """Os `n_scores` placares mais prováveis de uma matriz (mandante, visitante, probabilidade).
+
+    Ordem decrescente de probabilidade; empates exatos ficam na ordem da matriz (menos gols do
+    mandante, depois menos gols do visitante), a mesma regra do `argmax` do placar mais provável.
+    """
+    flat = np.asarray(matrix, dtype=np.float64).reshape(-1)
+    size = matrix.shape[-1]
+    order = np.argsort(-flat, kind="stable")[:n_scores]
+    return [(int(index // size), int(index % size), float(flat[index])) for index in order]
+
+
+def total_goals_at_least(matrix: FloatArray, minimum_goals: int) -> FloatArray:
+    """P(gols do mandante + gols do visitante >= minimum_goals), com shape (...)."""
+    goals = np.arange(matrix.shape[-1])
+    reaches_minimum = (goals[:, None] + goals[None, :]) >= minimum_goals
+    probability: FloatArray = (matrix * reaches_minimum).sum(axis=(-2, -1))
+    return probability
 
 
 def outcome_probabilities(matrix: FloatArray) -> FloatArray:
@@ -124,6 +178,7 @@ class GoalsModel:
     away_coefficients: list[float] = field(default_factory=list)
     rho: float = 0.0
     draw_inflation: float = 0.0
+    goal_dispersion: float = 1.0
     home_covariance: list[list[float]] = field(default_factory=list)
     away_covariance: list[list[float]] = field(default_factory=list)
     max_goals: int = 10
@@ -139,6 +194,7 @@ class GoalsModel:
         dixon_coles: bool = True,
         max_goals: int = 10,
         draw_inflation: bool = False,
+        goal_dispersion: bool = False,
     ) -> GoalsModel:
         home_columns, away_columns = FEATURE_SETS[feature_set]
         home_regressor = PoissonRegressor(alpha=alpha, max_iter=1000)
@@ -170,6 +226,8 @@ class GoalsModel:
         model.away_covariance = _coefficient_covariance(away_design, fitted_away_rate, alpha)
         if dixon_coles:
             model.rho = model.fit_rho(training_features)
+        if goal_dispersion:
+            model.goal_dispersion = model.fit_goal_dispersion(training_features)
         if draw_inflation:
             model.draw_inflation = model.fit_draw_inflation(training_features)
         return model
@@ -203,10 +261,24 @@ class GoalsModel:
         rows = np.arange(len(home_goals))
 
         def negative_log_likelihood(draw_inflation: float) -> float:
-            matrix = score_matrix(home_rate, away_rate, self.rho, self.max_goals, draw_inflation)
+            matrix = score_matrix(home_rate, away_rate, self.rho, self.max_goals, draw_inflation, self.goal_dispersion)
             return float(-np.sum(np.log(matrix[rows, home_goals, away_goals])))
 
         optimum = minimize_scalar(negative_log_likelihood, bounds=(-0.5, 1.0), method="bounded")
+        return float(optimum.x)
+
+    def fit_goal_dispersion(self, training_features: pd.DataFrame) -> float:
+        """ν por máxima verossimilhança do placar observado, com médias (regressões) e ρ fixos."""
+        home_rate, away_rate = self.expected_goals(training_features)
+        home_goals = np.minimum(training_features["home_goals"].to_numpy(dtype=np.int64), self.max_goals)
+        away_goals = np.minimum(training_features["away_goals"].to_numpy(dtype=np.int64), self.max_goals)
+        rows = np.arange(len(home_goals))
+
+        def negative_log_likelihood(dispersion: float) -> float:
+            matrix = score_matrix(home_rate, away_rate, self.rho, self.max_goals, self.draw_inflation, dispersion)
+            return float(-np.sum(np.log(matrix[rows, home_goals, away_goals])))
+
+        optimum = minimize_scalar(negative_log_likelihood, bounds=GOAL_DISPERSION_BOUNDS, method="bounded")
         return float(optimum.x)
 
     def sample_parameters(self, n_draws: int, generator: np.random.Generator) -> tuple[FloatArray, FloatArray]:
@@ -232,7 +304,7 @@ class GoalsModel:
 
     def score_probabilities(self, features: pd.DataFrame | dict[str, FloatArray]) -> FloatArray:
         home_rate, away_rate = self.expected_goals(features)
-        return score_matrix(home_rate, away_rate, self.rho, self.max_goals, self.draw_inflation)
+        return score_matrix(home_rate, away_rate, self.rho, self.max_goals, self.draw_inflation, self.goal_dispersion)
 
     def outcome_probabilities(self, features: pd.DataFrame | dict[str, FloatArray]) -> FloatArray:
         return outcome_probabilities(self.score_probabilities(features))

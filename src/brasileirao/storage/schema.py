@@ -142,6 +142,12 @@ class TeamPrediction(BaseModel):
     ratings: RatingsInfo
 
 
+class ScoreProbability(BaseModel):
+    home_goals: int
+    away_goals: int
+    probability: float
+
+
 class MatchPrediction(BaseModel):
     match_id: str
     round: int | None
@@ -158,6 +164,8 @@ class MatchPrediction(BaseModel):
     xg_away: float | None = None
     most_likely_score: str | None = None
     most_likely_score_probability: float | None = None
+    top_scores: list[ScoreProbability] | None = None
+    p_three_plus_goals: float | None = None
 
 
 class ModelInfo(BaseModel):
@@ -165,6 +173,7 @@ class ModelInfo(BaseModel):
     feature_set: str
     rho: float
     draw_inflation: float = 0.0
+    goal_dispersion: float = 1.0
     simulation_uncertainty: dict[str, float] = Field(default_factory=dict)
     home_coefficients: list[float]
     away_coefficients: list[float]

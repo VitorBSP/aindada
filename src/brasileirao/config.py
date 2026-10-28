@@ -6,7 +6,7 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
-MODEL_VERSION = "poisson-elo-ad-0.1.0"
+MODEL_VERSION = "cmp-elo-ad-0.2.0"
 SNAPSHOT_SCHEMA_VERSION = "1.1"
 ROUND_REVIEW_SCHEMA_VERSION = "1.0"
 INSIGHT_RULES_VERSION = "rules-2026.10.1"

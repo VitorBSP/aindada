@@ -65,6 +65,7 @@ def _sample_scores(
     max_goals: int,
     draw_inflation: float,
     generator: np.random.Generator,
+    goal_dispersion: float = 1.0,
 ) -> tuple[IntArray, IntArray]:
     """Sorteia placares em blocos de `SAMPLING_CHUNK_ROWS` jogos simulados para limitar a memória.
 
@@ -75,7 +76,9 @@ def _sample_scores(
     n_scores = (max_goals + 1) ** 2
     for start in range(0, len(flat_home), SAMPLING_CHUNK_ROWS):
         stop = min(start + SAMPLING_CHUNK_ROWS, len(flat_home))
-        probabilities = score_matrix(flat_home[start:stop], flat_away[start:stop], rho, max_goals, draw_inflation)
+        probabilities = score_matrix(
+            flat_home[start:stop], flat_away[start:stop], rho, max_goals, draw_inflation, goal_dispersion
+        )
         cumulative = np.cumsum(probabilities.reshape(stop - start, -1), axis=1)
         draws = generator.random(stop - start)[:, None]
         flat_index[start:stop] = np.minimum((cumulative < draws).sum(axis=1), n_scores - 1)
@@ -226,6 +229,7 @@ class SeasonSimulator:
                 self.goals_model.max_goals,
                 self.goals_model.draw_inflation,
                 generator,
+                self.goals_model.goal_dispersion,
             )
             simulated_home[:, positions_in_batch] = home_goals
             simulated_away[:, positions_in_batch] = away_goals

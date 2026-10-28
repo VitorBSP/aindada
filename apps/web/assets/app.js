@@ -210,7 +210,58 @@
   }
 
   const raceTeams = (race) => state.snapshot.teams.filter((team) => team[race.key] > 0).sort((left, right) => right[race.key] - left[race.key]);
-  const groupOpacity = (index) => (index % 2 ? 0.5 : 1);
+  const BLACK = "#16171a", WHITE = "#ffffff";
+  const CLUB_DOTS = {
+    "athletico-pr": { split: [BLACK, "#c8102e"] },
+    "atletico-mg": { fill: BLACK },
+    bahia: { hbands: ["#0057a8", "#d7192a", WHITE] },
+    botafogo: { fill: BLACK, center: WHITE },
+    bragantino: { fill: WHITE, ring: "#d7192a", center: "#f6c400" },
+    chapecoense: { split: ["#00843d", WHITE] },
+    corinthians: { split: [BLACK, WHITE], ring: "#d7192a" },
+    coritiba: { split: [WHITE, "#00543c"] },
+    cruzeiro: { fill: "#1b4da0" },
+    flamengo: { split: ["#c8102e", BLACK] },
+    fluminense: { vbands: ["#00613c", WHITE, "#8b1e3f"] },
+    gremio: { vbands: ["#0d80bf", BLACK, WHITE] },
+    internacional: { fill: "#e2231a" },
+    mirassol: { fill: "#f7d117" },
+    palmeiras: { fill: "#006437" },
+    remo: { fill: "#3b2c7a" },
+    santos: { split: [WHITE, BLACK] },
+    "sao-paulo": { hbands: ["#e30613", WHITE, BLACK] },
+    vasco: { diagonal: [BLACK, WHITE], center: "#d7192a" },
+    vitoria: { split: ["#d7192a", BLACK] },
+  };
+  const DOT_RADIUS = 5;
+  const dotId = (clubId) => `dot-${clubId.replace(/[^a-z0-9-]/g, "")}`;
+
+  function bands(colors, vertical) {
+    const size = (DOT_RADIUS * 2) / colors.length;
+    return colors.map((color, index) => {
+      const start = -DOT_RADIUS + index * size;
+      return vertical
+        ? `<rect x="${start}" y="-${DOT_RADIUS}" width="${size}" height="${DOT_RADIUS * 2}" fill="${color}"/>`
+        : `<rect x="-${DOT_RADIUS}" y="${start}" width="${DOT_RADIUS * 2}" height="${size}" fill="${color}"/>`;
+    }).join("");
+  }
+
+  function dotShapes(clubId) {
+    const spec = CLUB_DOTS[clubId] || { fill: "var(--ink-faint)" };
+    const r = DOT_RADIUS, d = (r * Math.SQRT1_2).toFixed(3);
+    let shapes = "";
+    if (spec.fill) shapes += `<circle r="${r}" fill="${spec.fill}"/>`;
+    if (spec.split) shapes += `<path d="M-${r},0A${r},${r} 0 0 1 ${r},0Z" fill="${spec.split[0]}"/><path d="M-${r},0A${r},${r} 0 0 0 ${r},0Z" fill="${spec.split[1]}"/>`;
+    if (spec.diagonal) shapes += `<circle r="${r}" fill="${spec.diagonal[1]}"/><path d="M-${d},-${d}A${r},${r} 0 0 1 ${d},${d}Z" fill="${spec.diagonal[0]}"/>`;
+    if (spec.hbands || spec.vbands) shapes += `<g clip-path="url(#dot-clip)">${bands(spec.hbands || spec.vbands, Boolean(spec.vbands))}</g>`;
+    if (spec.ring) shapes += `<circle r="${r - 0.8}" fill="none" stroke="${spec.ring}" stroke-width="1.6"/>`;
+    if (spec.center) shapes += `<circle r="${spec.ring ? 1.9 : 1.6}" fill="${spec.center}"/>`;
+    return `${shapes}<circle class="dot-outline" r="${r - 0.2}" fill="none"/>`;
+  }
+
+  const dotDefs = (clubIds) => `<defs><clipPath id="dot-clip"><circle r="${DOT_RADIUS}"/></clipPath>${clubIds.map((clubId) =>
+    `<symbol id="${dotId(clubId)}" viewBox="-${DOT_RADIUS} -${DOT_RADIUS} ${DOT_RADIUS * 2} ${DOT_RADIUS * 2}">${dotShapes(clubId)}</symbol>`).join("")}</defs>`;
+  const dotSwatch = (clubId) => `<svg class="mosaic-swatch" viewBox="-${DOT_RADIUS} -${DOT_RADIUS} ${DOT_RADIUS * 2} ${DOT_RADIUS * 2}" width="14" height="14" aria-hidden="true"><use href="#${dotId(clubId)}" x="-${DOT_RADIUS}" y="-${DOT_RADIUS}" width="${DOT_RADIUS * 2}" height="${DOT_RADIUS * 2}"/></svg>`;
 
   function raceMosaic(race) {
     const contenders = raceTeams(race);
@@ -222,19 +273,21 @@
     let index = 0;
     let labelEnd = -Infinity;
     const labels = [];
-    const dots = groups.map((group, groupIndex) => {
+    const size = 7.6;
+    const dots = groups.map((group) => {
       const startColumn = Math.floor(index / rows);
       const circles = [];
+      const href = `#${dotId(group.team.club_id)}`;
       for (let count = 0; count < group.dots; count += 1, index += 1) {
         const column = Math.floor(index / rows), row = index % rows;
-        circles.push(`<circle cx="${column * cell + cell / 2}" cy="${top + row * cell + cell / 2}" r="3.4"/>`);
+        circles.push(`<use href="${href}" x="${column * cell + (cell - size) / 2}" y="${top + row * cell + (cell - size) / 2}" width="${size}" height="${size}"/>`);
       }
       const labelX = startColumn * cell + 1;
       if (group.dots >= MOSAIC_LABEL_MIN_DOTS && labelX > labelEnd + 6) {
         labels.push(`<text x="${labelX}" y="${top - 9}">${escapeHtml(group.team.short_name)}</text>`);
         labelEnd = labelX + group.team.short_name.length * 9;
       }
-      return `<g fill="${race.color}" fill-opacity="${groupOpacity(groupIndex)}">${circles.join("")}</g>`;
+      return `<g>${circles.join("")}</g>`;
     }).join("");
     const unit = race.slots === 1 ? "simulações" : `vagas de ${race.noun}`;
     const lastX = width - cell / 2, lastY = top + rows * cell - cell / 2;
@@ -243,14 +296,14 @@
       <text x="${lastX - 20}" y="${height - 6}" text-anchor="end">cada ponto, ${perDot.toLocaleString("pt-BR")} ${unit}</text></g>`;
     const others = contenders.length - groups.length;
     const description = groups.map((group) => `${group.team.name}: ${group.dots} pontos`).join("; ");
-    const legend = groups.map((group, groupIndex) => `<li><span class="mosaic-swatch" style="background:${race.color};opacity:${groupOpacity(groupIndex)}"></span>
+    const legend = groups.map((group) => `<li>${dotSwatch(group.team.club_id)}
       ${clubLink(group.team.club_id)} <strong>${pct(group.team[race.key])}</strong></li>`).join("");
     const simulations = state.snapshot.n_simulations.toLocaleString("pt-BR");
     const explanation = race.slots === 1
       ? `Quem termina campeão em cada uma das ${simulations} simulações, agrupadas em ${MOSAIC_DOTS.toLocaleString("pt-BR")} pontos.`
       : `Em cada simulação, ${race.slots} clubes terminam no ${race.noun}: são ${(state.snapshot.n_simulations * race.slots).toLocaleString("pt-BR")} vagas no total, agrupadas em ${MOSAIC_DOTS.toLocaleString("pt-BR")} pontos. Ao lado do clube, a chance dele.`;
     return `<figure class="mosaic">
-      <svg class="mosaic-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Mosaico de ${escapeHtml(race.noun)} em ${MOSAIC_DOTS.toLocaleString("pt-BR")} pontos, cada um igual a ${perDot.toLocaleString("pt-BR")} ${unit}. ${escapeHtml(description)}."><g class="mosaic-labels">${labels.join("")}</g>${dots}${annotation}</svg>
+      <svg class="mosaic-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Mosaico de ${escapeHtml(race.noun)} em ${MOSAIC_DOTS.toLocaleString("pt-BR")} pontos, cada um igual a ${perDot.toLocaleString("pt-BR")} ${unit}. ${escapeHtml(description)}.">${dotDefs(groups.map((group) => group.team.club_id))}<g class="mosaic-labels">${labels.join("")}</g>${dots}${annotation}</svg>
       <figcaption>
         <ul class="mosaic-legend">${legend}</ul>
         <p class="note">${explanation}${others > 0 ? ` ${others} clube(s) com chance menor que um ponto não aparecem.` : ""}</p>
@@ -623,6 +676,15 @@
     return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Distribuição da posição final">${bars}</svg>`;
   }
 
+  function scoreOutlook(match) {
+    if (!match.top_scores || !match.top_scores.length) {
+      return match.most_likely_score ? ` · placar mais provável ${match.most_likely_score.replace("-", " × ")} (${pct(match.most_likely_score_probability)})` : "";
+    }
+    const scores = match.top_scores.map((score) => `<span class="score-chip">${score.home_goals} × ${score.away_goals} <strong>${pct(score.probability)}</strong></span>`).join("");
+    const goals = match.p_three_plus_goals === null || match.p_three_plus_goals === undefined ? "" : `<span class="goals-chance">3 gols ou mais: <strong>${pct(match.p_three_plus_goals)}</strong></span>`;
+    return `<span class="score-outlook"><span class="score-label">Placares mais prováveis</span>${scores}${goals}</span>`;
+  }
+
   function matchRow(match) {
     const finished = match.status === "finished";
     const middle = finished
@@ -632,7 +694,7 @@
           <span class="t-draw" style="width:${match.p_draw * 100}%">${Math.round(match.p_draw * 100)}</span>
           <span class="t-away" style="width:${match.p_away * 100}%">${Math.round(match.p_away * 100)}</span></div>`;
     const when = isPostponed(match) ? ` · <strong class="postponed">adiado, data a definir</strong>` : "";
-    const meta = finished ? `Rodada ${match.round ?? "?"}` : `Rodada ${match.round ?? "?"}${when} · gols esperados ${num(match.xg_home)} × ${num(match.xg_away)} · placar mais provável ${match.most_likely_score.replace("-", " × ")} (${pct(match.most_likely_score_probability)})`;
+    const meta = finished ? `Rodada ${match.round ?? "?"}` : `Rodada ${match.round ?? "?"}${when} · gols esperados ${num(match.xg_home)} × ${num(match.xg_away)}${scoreOutlook(match)}`;
     return `<div class="match"><div class="home">${clubLink(match.home_id, 22, true)}</div><div class="triple-cell">${middle}</div><div class="away">${clubLink(match.away_id, 22)}</div><div class="match-meta">${meta}</div></div>`;
   }
 

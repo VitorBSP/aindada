@@ -79,9 +79,12 @@ def test_cutoffs_are_strictly_increasing(synthetic_matches: pd.DataFrame) -> Non
     assert all(later > earlier for earlier, later in itertools.pairwise(dates))
 
 
-def test_cutoff_before_next_round_is_partial(synthetic_matches: pd.DataFrame) -> None:
+def test_round_with_pending_match_is_partial(synthetic_matches: pd.DataFrame) -> None:
+    season = _season(synthetic_matches).copy()
     mid_round = _round_start(synthetic_matches, 3)
-    assert round_cutoffs(_season(synthetic_matches), mid_round)[-1].partial
+    pending = season.index[season["round"] == 3][0]
+    season.loc[pending, "match_date"] = pd.Timestamp(mid_round + timedelta(days=1))
+    assert round_cutoffs(season, mid_round)[-1].partial
 
 
 def test_cutoffs_stop_at_data_date(synthetic_matches: pd.DataFrame) -> None:
@@ -222,3 +225,12 @@ def test_team_metrics_include_observed_standing(
 ) -> None:
     teams = team_metrics(before_round_two, synthetic_rules)
     assert sorted(values["position"] for values in teams.values()) == [float(position) for position in range(1, 21)]
+
+
+def test_complete_last_round_is_not_partial(synthetic_matches: pd.DataFrame) -> None:
+    season = _season(synthetic_matches)
+    round_two_end = pd.Timestamp(season.loc[season["round"] == 2, "match_date"].max()).date()
+    complete = season[season["round"] <= 3].copy()
+    complete.loc[complete["round"] == 3, "match_date"] = pd.Timestamp(round_two_end + timedelta(days=10))
+    last = round_cutoffs(complete, round_two_end)[-1]
+    assert (last.round_number, last.partial) == (2, False)

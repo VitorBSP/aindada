@@ -11,7 +11,6 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 import pandas as pd
 
 from brasileirao.competition_rules.scenarios import enumerate_external_scenarios
@@ -37,7 +36,7 @@ from brasileirao.data_pipeline.validation import (
 )
 from brasileirao.frame_values import as_int, as_timestamp
 from brasileirao.logging_utils import get_logger
-from brasileirao.prediction.goals_model import GoalsModel
+from brasileirao.prediction.goals_model import GoalsModel, outcome_probabilities, top_scores, total_goals_at_least
 from brasileirao.prediction.schedule import build_schedules
 from brasileirao.ratings.history import RatingEngine, RatingState, build_state_as_of
 from brasileirao.simulation.engine import SeasonSimulator, SimulationResult
@@ -57,6 +56,7 @@ from brasileirao.storage.schema import (
     ScenarioRange,
     ScheduleInfo,
     ScheduleScaleInfo,
+    ScoreProbability,
     StandingEntry,
     SudamericanaRace,
     TeamPrediction,
@@ -75,6 +75,7 @@ class ModelConfig:
     dynamic_ratings: bool
     draw_inflation: bool = False
     uncertainty: SimulationUncertainty = field(default_factory=SimulationUncertainty)
+    goal_dispersion: bool = False
 
 
 def load_model_config(gold_dir: Path = PATHS.gold) -> ModelConfig:
@@ -89,6 +90,7 @@ def load_model_config(gold_dir: Path = PATHS.gold) -> ModelConfig:
         dynamic_ratings=bool(payload.get("dynamic_ratings_in_simulation", True)),
         draw_inflation=bool(payload.get("draw_inflation", False)),
         uncertainty=SimulationUncertainty(**payload.get("simulation_uncertainty", {})),
+        goal_dispersion=bool(payload.get("goal_dispersion", False)),
     )
 
 
@@ -145,6 +147,7 @@ def prepare_simulation(
         alpha=training_config.poisson_alpha,
         max_goals=training_config.max_goals,
         draw_inflation=model_config.draw_inflation,
+        goal_dispersion=model_config.goal_dispersion,
     )
     card_totals, card_warning = _usable_card_totals(cards_by_match, matches_data, season, reference_date)
     season_matches = matches_data[matches_data["season"] == season]
@@ -262,6 +265,7 @@ def build_snapshot(
             feature_set=model.feature_set,
             rho=model.rho,
             draw_inflation=model.draw_inflation,
+            goal_dispersion=model.goal_dispersion,
             simulation_uncertainty={key: float(value) for key, value in asdict(model_config.uncertainty).items()},
             home_coefficients=model.home_coefficients,
             away_coefficients=model.away_coefficients,
@@ -318,6 +322,9 @@ def _usable_card_totals(
     return {item.club_id: (item.red_cards, item.yellow_cards) for item in totals}, None
 
 
+TOP_SCORES_PER_MATCH = 3
+
+
 def _match_predictions(
     observed: pd.DataFrame, remaining: pd.DataFrame, engine: Any, model: GoalsModel
 ) -> list[MatchPrediction]:
@@ -344,10 +351,13 @@ def _match_predictions(
         )
         matrices = model.score_probabilities(feature_rows)
         home_rate, away_rate = model.expected_goals(feature_rows)
-        outcome = model.outcome_probabilities(feature_rows)
+        outcome = outcome_probabilities(matrices)
+        three_plus_goals = total_goals_at_least(matrices, 3)
         for position, match in enumerate(remaining.itertuples(index=False)):
-            flat_index = int(np.argmax(matrices[position]))
-            home_goals, away_goals = divmod(flat_index, matrices.shape[-1])
+            best_scores = [
+                ScoreProbability(home_goals=home_goals, away_goals=away_goals, probability=probability)
+                for home_goals, away_goals, probability in top_scores(matrices[position], TOP_SCORES_PER_MATCH)
+            ]
             predictions.append(
                 MatchPrediction(
                     match_id=str(match.match_id),
@@ -361,8 +371,10 @@ def _match_predictions(
                     p_away=float(outcome[position, 2]),
                     xg_home=float(home_rate[position]),
                     xg_away=float(away_rate[position]),
-                    most_likely_score=f"{home_goals}-{away_goals}",
-                    most_likely_score_probability=float(matrices[position].max()),
+                    most_likely_score=f"{best_scores[0].home_goals}-{best_scores[0].away_goals}",
+                    most_likely_score_probability=best_scores[0].probability,
+                    top_scores=best_scores,
+                    p_three_plus_goals=float(three_plus_goals[position]),
                 )
             )
     return predictions

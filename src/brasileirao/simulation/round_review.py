@@ -103,8 +103,8 @@ class RoundView:
 def round_cutoffs(season_matches: pd.DataFrame, data_until: date) -> list[RoundCutoff]:
     """Véspera do início de cada rodada seguinte, de 0 (pré-temporada) até a última rodada observada.
 
-    Se a rodada seguinte ainda não começou na data dos dados, a última visão é `data_until`,
-    marcada como parcial.
+    Se a rodada seguinte ainda não começou na data dos dados, a última visão é `data_until`; ela só é
+    marcada como parcial se ainda houver jogo da própria rodada sem resultado.
     """
     first_dates = {
         as_int(round_number): as_timestamp(first).date()
@@ -118,13 +118,20 @@ def round_cutoffs(season_matches: pd.DataFrame, data_until: date) -> list[RoundC
             break
         next_start = first_dates.get(round_number + 1)
         cutoff = next_start - timedelta(days=1) if next_start is not None else data_until
-        partial = cutoff > data_until
+        reached_data_end = cutoff > data_until
+        round_matches = season_matches[season_matches["round"] == round_number]
+        unfinished = bool(
+            (
+                (round_matches["status"] != MatchStatus.FINISHED.value)
+                | (round_matches["match_date"].dt.date > data_until)
+            ).any()
+        )
         cutoff = min(cutoff, data_until)
         if cutoff <= previous:
             continue
-        cutoffs.append(RoundCutoff(round_number, cutoff, partial))
+        cutoffs.append(RoundCutoff(round_number, cutoff, reached_data_end and unfinished))
         previous = cutoff
-        if partial:
+        if reached_data_end:
             break
     return cutoffs
 

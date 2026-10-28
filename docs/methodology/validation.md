@@ -266,3 +266,155 @@ Sul-Americana por cenário, reprodutibilidade por semente, independência da ord
 simultâneos e ausência de dados posteriores à data de referência. Na etapa 2 entraram: inflação
 de empates, covariância e sorteio de coeficientes, incerteza desligada reproduzindo a execução
 padrão, força latente ampliando a dispersão de pontos e regras de parcimônia.
+
+## Distribuição de gols e dispersão (Agente 02, 2026-10-27)
+
+Pedido do dono do produto: "inflar" o número de gols, porque o placar mais provável de quase todos
+os jogos restantes é 1×0, 1×1 ou 0×1. O critério combinado com o 00: ajustar só se o backtest
+mostrar viés, com parâmetro estimado nos dados, e só adotar se as métricas 1X2 não piorarem.
+
+Gerado por `python -m brasileirao.cli backtest` (2.000 simulações, semente 7), seções
+`goal_distribution` e `season_simulation.goal_dispersion` do relatório. A partir desta entrega o
+relatório também traz `score_log_loss` (placar exato) e `total_goals_log_loss` (total de gols) em
+todas as métricas de partidas. Os dados são os mesmos do snapshot publicado em 2026-10-27
+(`brasileirao_dataset@838614d`). Previsões fora da amostra: a temporada S usa modelo treinado só
+com S − 10 a S − 1, e as variáveis de cada jogo só veem jogos anteriores. Para 2026, o corte é
+2026-10-26 (319 jogos).
+
+### Diagnóstico: previsto × observado (modelo em produção até aqui, Poisson + Dixon-Coles)
+
+Percentuais, exceto as médias e variâncias. "Pearson" é a média de (y − μ)² / Var prevista: abaixo
+de 1, os gols variam menos que o modelo supõe.
+
+| Medida | Validação 2013–2018 (2.279) | Teste 2019–2025 (2.660) | 2026 até 26/10 (319) |
+|---|---|---|---|
+| Gols por jogo, total | 2,485 / 2,350 | 2,381 / 2,406 | 2,546 / 2,661 |
+| Gols do mandante | 1,518 / 1,434 | 1,414 / 1,403 | 1,480 / 1,527 |
+| Gols do visitante | 0,967 / 0,916 | 0,967 / 1,003 | 1,067 / 1,135 |
+| Variância do total | 2,52 / 2,38 | 2,42 / 2,33 | 2,57 / 2,19 |
+| Pearson mandante / visitante / total | 0,85 / 0,94 / 0,95 | 0,88 / 0,99 / 0,96 | 0,81 / 0,89 / 0,90 |
+| Total 0 gols | 8,9 / 9,0 | 9,3 / 8,3 | 7,7 / 5,3 |
+| Total 1 gol | 19,8 / 24,1 | 22,3 / 21,9 | 20,4 / 16,6 |
+| Total 2 gols | 26,1 / 24,9 | 25,9 / 25,8 | 25,1 / 27,3 |
+| Total 3 gols | 21,2 / 21,4 | 20,6 / 23,5 | 21,4 / 25,4 |
+| Total 4 gols | 13,2 / 11,9 | 12,3 / 11,7 | 13,7 / 12,9 |
+| Total 5+ gols | 10,8 / 8,8 | 9,5 / 8,9 | 11,6 / 12,5 |
+| Mais de 1,5 | 71,3 / 67,0 | 68,3 / 69,9 | 71,8 / 78,1 |
+| Mais de 2,5 | 45,2 / 42,1 | 42,4 / 44,0 | 46,7 / 50,8 |
+| Mais de 3,5 | 24,0 / 20,7 | 21,8 / 20,5 | 25,3 / 25,4 |
+| 0×0 | 8,9 / 9,0 | 9,3 / 8,3 | 7,7 / 5,3 |
+| 1×0 | 12,1 / 15,7 | 13,0 / 13,5 | 11,7 / 10,7 |
+| 0×1 | 7,7 / 8,4 | 9,3 / 8,4 | 8,8 / 6,0 |
+| 1×1 | 12,5 / 11,9 | 12,1 / 13,5 | 11,8 / 15,7 |
+| 2×0 | 9,6 / 9,4 | 9,2 / 8,0 | 8,6 / 9,7 |
+| 2×1 | 9,0 / 9,7 | 8,5 / 10,5 | 8,7 / 12,2 |
+| 1×2 | 5,9 / 5,5 | 6,0 / 7,0 | 6,5 / 8,5 |
+| 2×2 | 4,3 / 4,8 | 4,0 / 4,8 | 4,6 / 5,0 |
+| Empates | 26,5 / 26,2 | 26,1 / 27,3 | 24,9 / 27,9 |
+
+Por time, no teste (previsto / observado): mandante com 0, 1, 2, 3, 4 e 5+ gols em 25,5/23,4,
+33,8/35,9, 23,4/24,7, 11,3/10,9, 4,3/3,8 e 1,9/1,3; visitante em 38,7/36,0, 36,1/37,9, 17,5/18,9,
+5,8/5,1, 1,5/1,5 e 0,4/0,6.
+
+Leitura:
+
+- **Média de gols: sem viés sistemático.** No teste o modelo prevê 2,381 gols por jogo para 2,406
+  observados (−1%, z = +0,86 com a variância do modelo). Na validação ele **superestima** (2,485 contra
+  2,350). Em 2026 subestima 0,116 gol por jogo (−4%), mas com 319 jogos isso dá z = +1,29, e Mais de
+  2,5 dá z = +1,47: dentro do ruído. De 2022 a 2025 o observado ficou acima do previsto em todas as
+  temporadas (+0,03 a +0,08), cada uma com |z| < 1,1. É um sinal fraco de tendência, a acompanhar.
+- **Não há superdispersão.** A variância observada é **menor** que a prevista nos três períodos, e
+  a dispersão de Pearson fica abaixo de 1. A binomial negativa ajustada por máxima verossimilhança
+  nas janelas de treino de 2013, 2019 e 2026 cai no limite α = 0 (Poisson). Gols por time são
+  levemente **subdispersos**.
+- **As caudas estão superestimadas, não subestimadas**: 5+ gols por time e 4+ no total saem acima do
+  observado. Faltam jogos com 2 a 3 gols (2×1, 1×2, 1×1, 2×2) e sobram 0×0 e goleadas. É o padrão
+  da subdispersão.
+
+### Ajustes avaliados (mesmas temporadas, previsões de partidas)
+
+Métricas: log loss 1X2, log loss do placar exato e log loss do total de gols.
+
+| Ajuste (parâmetro escolhido nos dados) | Validação: 1X2 / placar / total | Teste: 1X2 / placar / total | Resultado |
+|---|---|---|---|
+| Nenhum (produção até aqui) | 1,01324 / 2,72522 / 1,79554 | 1,02133 / 2,73797 / 1,78224 | referência |
+| Peso decrescente por temporada no treino, ξ = 0,05 a 1 | 1X2 piora em toda a grade (até 1,01707) | piora em todas | não adotado |
+| Janela de treino de 3, 5, 7 ou 15 temporadas | 1X2 1,01320 a 1,01655 | 1X2 1,02116 a 1,02207 | sem ganho consistente |
+| Taxa global de nível dos ratings, 0 a 0,016 | 1X2 1,01223 a 1,01324; placar piora | 1X2 1,02089 a 1,02141; placar piora | sem ganho consistente |
+| Fator de escala fixo nos gols esperados | a validação pede **0,96** (menos gols) | 0,96 piora placar e total | rejeitado: "inflar" pioraria a validação |
+| Inflação das células 1×0 e 0×1 (ML no treino) | 1,01286 / 2,72286 | 1,02174 / 2,73797 | 1X2 piora no teste |
+| Inflação das células 2×1 e 1×2 (ML no treino) | 1,01309 / 2,72528 | 1,02172 / 2,73614 | 1X2 piora no teste |
+| **Dispersão (Conway-Maxwell-Poisson, ν por ML no treino)** | **1,01303 / 2,72375 / 1,79575** | **1,02093 / 2,73443 / 1,78140** | **adotado** |
+
+O ν estimado em cada janela de treino sobe de 1,05 (2013) para 1,17 (2025 e 2026). Teste de razão de
+verossimilhança no treino: 2,5 (2013) a 29,3 (2026), significativo a 5% (3,84) a partir da janela
+de 2015. Ganho pareado no log loss do placar exato: −0,0015 (erro-padrão 0,0007) na validação,
+−0,0035 (0,0015) no teste e −0,016 (0,005) em 2026. Ganho no log loss 1X2: −0,0002 (0,0002),
+−0,0004 (0,0003) e −0,0021 (0,0011).
+
+| Partidas | Log loss 1X2 | Brier | RPS | Log loss placar | Log loss total |
+|---|---|---|---|---|---|
+| Validação, Poisson | 1,01324 | 0,60665 | 0,20691 | 2,72522 | 1,79554 |
+| Validação, dispersão | **1,01303** | **0,60652** | **0,20685** | **2,72375** | 1,79575 |
+| Teste, Poisson | 1,02133 | 0,61260 | 0,20775 | 2,73797 | 1,78224 |
+| Teste, dispersão | **1,02093** | **0,61241** | **0,20768** | **2,73443** | **1,78140** |
+| 2026 até 26/10, Poisson | 1,01371 | 0,60759 | 0,20289 | 2,78932 | 1,80967 |
+| 2026 até 26/10, dispersão | **1,01158** | **0,60663** | **0,20252** | **2,77304** | **1,80443** |
+
+Com a dispersão, a média prevista não muda (por construção), e a variância prevista do total fica
+mais perto da observada. No teste vai de 2,42 para 2,25, contra 2,33 observado. As frequências por
+total se aproximam do observado: no teste, 0 gols vai de 9,3 para 8,4 (observado 8,3), 3 gols de
+20,6 para 21,4 (23,5) e 5+ de 9,5 para 8,8 (8,9). Mais de 1,5 passa de 68,3 para 69,5 (69,9) e Mais
+de 2,5 de 42,4 para 42,7 (44,0). Placares: 1×1 de 12,1 para 13,1 (13,5), 2×1 de 8,5 para 9,2 (10,5)
+e 0×0 de 9,3 para 8,4 (8,3). A taxa de empates prevista vai de 26,1% para 26,4% (27,3%).
+
+### Regra de adoção e nível de temporada
+
+Regra fixada no código antes de rodar o relatório (`select_goal_dispersion`). Na validação: o log
+loss 1X2 não piora, o log loss do placar exato melhora mais que 0,001, e o log loss da posição final
+(simulação da temporada) não piora mais que 0,001.
+
+| Temporadas, ratings dinâmicos | Validação: log loss posição | Validação: cobertura 90% | Teste: log loss posição | Teste: cobertura 90% |
+|---|---|---|---|---|
+| Poisson, 2.000 simulações (relatório) | 2,2614 | 91,7% | 2,2144 | 86,9% |
+| Dispersão, 2.000 simulações (relatório) | 2,2612 | 91,7% | 2,2277 | 86,9% |
+| Diferença com 10.000 simulações, semente 7 | −0,0052 (ep 0,0017) | | +0,0053 (ep 0,0029) | |
+| Diferença com 10.000 simulações, semente 11 | +0,0004 (ep 0,0027) | | −0,0007 (ep 0,0019) | |
+
+Entre as variantes, os Brier de título, G4 e rebaixamento mudam no máximo 0,0007 e o erro médio dos
+pontos no máximo 0,01.
+
+**Decisão: adotada** (`model_config.json`: `goal_dispersion: true`; `MODEL_VERSION` =
+`cmp-elo-ad-0.2.0`). As três condições valem na validação. No teste, todas as métricas de partidas
+melhoram. No nível de temporada a diferença é ruído de Monte Carlo. Com 2.000 simulações o teste
+mostrou +0,013, mas com 10.000 simulações e duas sementes a média é +0,002 no teste e −0,002 na
+validação, com erros-padrão de 0,002 a 0,003. Com 2.000 simulações, só trocar a semente ou a ordem
+dos sorteios já desloca o log loss de posição em até ~0,015.
+
+As linhas de 10.000 simulações foram rodadas fora do comando `backtest`, com os checkpoints do
+relatório. Rodaram sobre o gold de publicação (mesmos placares, ver abaixo), então não somam com as
+linhas de 2.000.
+
+O que **não** foi feito: nenhum fator para aumentar a média de gols. A validação pede o contrário
+(escala 0,96), e no teste a média já está calibrada. A dispersão não aumenta os gols esperados. Ela
+tira probabilidade de 0×0, de jogos de 1 gol e das goleadas e a passa para 1×1, 2×1, 1×2 e totais de
+2 a 3 gols. Por isso o placar mais provável continua baixo e fica **mais vezes** 1×1. Nos 61 jogos
+restantes de 2026, a moda 1×1 passa de 31 para 43 jogos. A probabilidade da moda fica entre 11% e
+14%.
+
+### Achado lateral: rerun sobre a ingestão de publicação
+
+O backtest também foi rodado sobre o gold novo do ADR-0008 (Adão Duque v18 + football-data.org),
+gravado durante esta sessão pelo 01. Os placares são os mesmos, mas `match_id` e algumas datas
+mudaram. As métricas de partidas ficaram iguais até a 5ª casa. As decisões de temporada com 2.000
+simulações **mudaram**:
+
+- dinâmico × fixo na validação: 2,2708 × 2,2538, o que inverteria para ratings fixos;
+- a dispersão falharia na terceira condição (2,2619 × 2,2538, com ratings fixos);
+- a origem móvel passaria a escolher força latente sd 0,075 para 2023–2026.
+
+A causa é a ordem dos sorteios (`remaining` é ordenado por data e `match_id`), não a informação dos
+dados. Esse relatório **não** foi adotado: `data/gold/` ficou com o relatório dos dados do snapshot
+publicado, que reproduz exatamente as decisões anteriores. A cópia do rerun ficou fora do
+repositório. Antes do passo 11 do ADR-0008, as escolhas de temporada precisam de mais simulações (ou
+mais checkpoints) para que a decisão não dependa da ordem dos IDs (ver `status.md`).

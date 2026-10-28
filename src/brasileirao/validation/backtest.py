@@ -59,6 +59,8 @@ class MatchMetrics:
     rps: float
     home_goal_deviance: float
     away_goal_deviance: float
+    score_log_loss: float = float("nan")
+    total_goals_log_loss: float = float("nan")
 
 
 def _metrics(
@@ -67,6 +69,10 @@ def _metrics(
     home_goals = test_features["home_goals"].to_numpy(dtype=np.int64)
     away_goals = test_features["away_goals"].to_numpy(dtype=np.int64)
     outcomes = outcome_index(home_goals, away_goals)
+    score_log_loss, total_goals_log_loss = float("nan"), float("nan")
+    if "p_observed_score" in test_features:
+        score_log_loss = _mean_negative_log(test_features["p_observed_score"].to_numpy(dtype=np.float64))
+        total_goals_log_loss = _mean_negative_log(test_features["p_observed_total"].to_numpy(dtype=np.float64))
     return MatchMetrics(
         n_matches=len(test_features),
         log_loss=log_loss(probabilities, outcomes),
@@ -74,7 +80,45 @@ def _metrics(
         rps=ranked_probability_score(probabilities, outcomes),
         home_goal_deviance=poisson_deviance(home_goals.astype(float), home_rate),
         away_goal_deviance=poisson_deviance(away_goals.astype(float), away_rate),
+        score_log_loss=score_log_loss,
+        total_goals_log_loss=total_goals_log_loss,
     )
+
+
+def _mean_negative_log(probabilities: np.ndarray) -> float:
+    return float(-np.mean(np.log(np.clip(probabilities, 1e-12, 1.0))))
+
+
+def total_goals_probabilities(matrices: np.ndarray) -> np.ndarray:
+    """(n, 2·max_goals + 1): P(total de gols = k) a partir das matrizes de placar."""
+    size = matrices.shape[-1]
+    totals = np.zeros((len(matrices), 2 * size - 1))
+    for home_goals in range(size):
+        totals[:, home_goals : home_goals + size] += matrices[:, home_goals, :]
+    return totals
+
+
+def _base_rate_matrices(training: pd.DataFrame, n_rows: int, max_goals: int) -> np.ndarray:
+    """Frequências empíricas de placar no treino (com suavização de Laplace), iguais para todos os jogos."""
+    counts = np.ones((max_goals + 1, max_goals + 1))
+    np.add.at(
+        counts,
+        (
+            np.minimum(training["home_goals"].to_numpy(dtype=np.int64), max_goals),
+            np.minimum(training["away_goals"].to_numpy(dtype=np.int64), max_goals),
+        ),
+        1.0,
+    )
+    return np.broadcast_to(counts / counts.sum(), (n_rows, max_goals + 1, max_goals + 1))
+
+
+def observed_score_probabilities(matrices: np.ndarray, test_features: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
+    """Probabilidade prevista do placar exato e do total de gols observados (placares acima do teto vão ao teto)."""
+    max_goals = matrices.shape[-1] - 1
+    home_goals = np.minimum(test_features["home_goals"].to_numpy(dtype=np.int64), max_goals)
+    away_goals = np.minimum(test_features["away_goals"].to_numpy(dtype=np.int64), max_goals)
+    rows = np.arange(len(home_goals))
+    return matrices[rows, home_goals, away_goals], total_goals_probabilities(matrices)[rows, home_goals + away_goals]
 
 
 def walk_forward_predictions(
@@ -85,8 +129,9 @@ def walk_forward_predictions(
     first_season: int = 2006,
     dixon_coles: bool = True,
     draw_inflation: bool = False,
+    goal_dispersion: bool = False,
 ) -> pd.DataFrame:
-    """Probabilidades 1X2 e gols esperados fora da amostra, temporada a temporada."""
+    """Probabilidades 1X2, gols esperados e probabilidade do placar e do total observados, fora da amostra."""
     prediction_frames: list[pd.DataFrame] = []
     for season in test_seasons:
         training = training_window(features, season, window, first_season)
@@ -97,10 +142,19 @@ def walk_forward_predictions(
             probabilities = np.tile(frequencies, (len(test), 1))
             home_rate = np.full(len(test), training["home_goals"].mean())
             away_rate = np.full(len(test), training["away_goals"].mean())
+            matrices = _base_rate_matrices(training, len(test), 10)
         else:
-            model = GoalsModel.fit(training, feature_set, dixon_coles=dixon_coles, draw_inflation=draw_inflation)
+            model = GoalsModel.fit(
+                training,
+                feature_set,
+                dixon_coles=dixon_coles,
+                draw_inflation=draw_inflation,
+                goal_dispersion=goal_dispersion,
+            )
+            matrices = model.score_probabilities(test)
             probabilities = model.outcome_probabilities(test)
             home_rate, away_rate = model.expected_goals(test)
+        observed_score, observed_total = observed_score_probabilities(matrices, test)
         prediction_frames.append(
             pd.DataFrame(
                 {
@@ -113,10 +167,102 @@ def walk_forward_predictions(
                     "p_away": probabilities[:, 2],
                     "xg_home": home_rate,
                     "xg_away": away_rate,
+                    "p_observed_score": observed_score,
+                    "p_observed_total": observed_total,
                 }
             )
         )
     return pd.concat(prediction_frames, ignore_index=True)
+
+
+GOAL_COUNT_BUCKETS = 5
+TOTAL_GOAL_LINES = (1.5, 2.5, 3.5)
+DIAGNOSTIC_SCORES = ((0, 0), (1, 0), (0, 1), (1, 1), (2, 0), (0, 2), (2, 1), (1, 2), (2, 2), (3, 0), (3, 1), (1, 3))
+
+
+def _predicted_observed(predicted: np.ndarray, observed: np.ndarray) -> dict[str, float]:
+    return {"predicted": float(np.mean(predicted)), "observed": float(np.mean(observed))}
+
+
+def _count_buckets(pmf: np.ndarray, observed: np.ndarray) -> dict[str, dict[str, float]]:
+    buckets = {str(goals): _predicted_observed(pmf[:, goals], observed == goals) for goals in range(GOAL_COUNT_BUCKETS)}
+    buckets[f"{GOAL_COUNT_BUCKETS}+"] = _predicted_observed(
+        pmf[:, GOAL_COUNT_BUCKETS:].sum(axis=1), observed >= GOAL_COUNT_BUCKETS
+    )
+    return buckets
+
+
+def goal_distribution_summary(matrices: np.ndarray, test_features: pd.DataFrame) -> dict[str, Any]:
+    """Previsto (média das matrizes de placar) × observado: médias, dispersão, contagens, linhas e placares."""
+    home_goals = test_features["home_goals"].to_numpy(dtype=np.int64)
+    away_goals = test_features["away_goals"].to_numpy(dtype=np.int64)
+    total_goals = home_goals + away_goals
+    goals = np.arange(matrices.shape[-1])
+    home_pmf, away_pmf = matrices.sum(axis=2), matrices.sum(axis=1)
+    total_pmf = total_goals_probabilities(matrices)
+    totals_grid = np.arange(total_pmf.shape[1])
+    summary: dict[str, Any] = {"n_matches": len(home_goals)}
+    means: dict[str, Any] = {}
+    variances: dict[str, Any] = {}
+    pearson: dict[str, float] = {}
+    for name, pmf, grid, observed in (
+        ("home", home_pmf, goals, home_goals),
+        ("away", away_pmf, goals, away_goals),
+        ("total", total_pmf, totals_grid, total_goals),
+    ):
+        match_mean = pmf @ grid
+        match_variance = pmf @ grid**2 - match_mean**2
+        means[name] = _predicted_observed(match_mean, observed)
+        variances[name] = {
+            "predicted": float(np.mean(match_variance + match_mean**2) - np.mean(match_mean) ** 2),
+            "observed": float(np.var(observed)),
+        }
+        pearson[name] = float(np.mean((observed - match_mean) ** 2 / match_variance))
+    summary["mean_goals"] = means
+    summary["variance"] = variances
+    summary["pearson_dispersion"] = pearson
+    summary["goals_per_team"] = {
+        "home": _count_buckets(home_pmf, home_goals),
+        "away": _count_buckets(away_pmf, away_goals),
+    }
+    summary["total_goals"] = _count_buckets(total_pmf, total_goals)
+    summary["over"] = {
+        str(line): _predicted_observed(total_pmf[:, int(np.ceil(line)) :].sum(axis=1), total_goals > line)
+        for line in TOTAL_GOAL_LINES
+    }
+    summary["scores"] = {
+        f"{home}-{away}": _predicted_observed(matrices[:, home, away], (home_goals == home) & (away_goals == away))
+        for home, away in DIAGNOSTIC_SCORES
+    }
+    summary["draw"] = _predicted_observed(np.trace(matrices, axis1=1, axis2=2), home_goals == away_goals)
+    flat_mode = matrices.reshape(len(matrices), -1).argmax(axis=1)
+    mode_labels = pd.Series([f"{index // len(goals)}-{index % len(goals)}" for index in flat_mode])
+    summary["most_likely_score_share"] = {
+        str(label): float(share) for label, share in mode_labels.value_counts(normalize=True).items()
+    }
+    return summary
+
+
+def goal_distribution_diagnostic(
+    features: pd.DataFrame,
+    seasons: Iterable[int],
+    feature_set: str,
+    window: int = 10,
+    first_season: int = 2006,
+    goal_dispersion: bool = False,
+) -> dict[str, Any]:
+    """Distribuição de gols prevista fora da amostra (treino só com temporadas anteriores) × observada."""
+    matrices: list[np.ndarray] = []
+    tests: list[pd.DataFrame] = []
+    for season in seasons:
+        test = features[features["season"] == season]
+        if test.empty:
+            continue
+        training = training_window(features, season, window, first_season)
+        model = GoalsModel.fit(training, feature_set, goal_dispersion=goal_dispersion)
+        matrices.append(model.score_probabilities(test))
+        tests.append(test)
+    return goal_distribution_summary(np.concatenate(matrices), pd.concat(tests, ignore_index=True))
 
 
 def evaluate_predictions(predictions: pd.DataFrame) -> MatchMetrics:
@@ -236,6 +382,7 @@ class SimulationVariant:
     dynamic_ratings: bool = True
     draw_inflation: bool = False
     uncertainty: SimulationUncertainty = field(default_factory=SimulationUncertainty)
+    goal_dispersion: bool = False
 
 
 DYNAMIC_VS_FIXED = (SimulationVariant("dinamico", True), SimulationVariant("fixo", False))
@@ -247,7 +394,7 @@ class PreparedCheckpoint:
     state: RatingState
     season_matches: pd.DataFrame
     rules: SeasonRules
-    models: dict[bool, GoalsModel]
+    models: dict[tuple[bool, bool], GoalsModel]
     actual_order: list[str]
     actual_points: dict[str, int]
 
@@ -261,7 +408,7 @@ def prepare_checkpoints(
     feature_set: str,
     window: int = 10,
 ) -> list[PreparedCheckpoint]:
-    """Estado, modelos (com e sem inflação de empates) e resultado real de cada checkpoint.
+    """Estado, modelos (chave: inflação de empates, dispersão dos gols) e resultado real de cada checkpoint.
 
     O estado de cada checkpoint é reconstruído do zero com `build_state_as_of`, porque a data de
     corte não cresce monotonicamente com a rodada quando há jogos adiados.
@@ -280,8 +427,10 @@ def prepare_checkpoints(
                 season_matches=season_matches,
                 rules=rules,
                 models={
-                    inflation: GoalsModel.fit(training, feature_set, draw_inflation=inflation)
-                    for inflation in (False, True)
+                    (inflation, dispersion): GoalsModel.fit(
+                        training, feature_set, draw_inflation=inflation, goal_dispersion=dispersion
+                    )
+                    for inflation, dispersion in product((False, True), (False, True))
                 },
                 actual_order=actual_final_order(season_matches, rules),
                 actual_points=_final_points(season_matches, rules),
@@ -304,7 +453,7 @@ def score_simulation_variants(
                 item.season_matches,
                 item.checkpoint.reference_date,
                 item.state,
-                item.models[variant.draw_inflation],
+                item.models[(variant.draw_inflation, variant.goal_dispersion)],
                 params,
                 item.rules,
             )

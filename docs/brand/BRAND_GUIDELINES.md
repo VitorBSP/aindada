@@ -154,9 +154,9 @@ Implementada em `apps/web/` (tokens no topo de `assets/styles.css`). Princípios
 - **Voz:** sobretítulo + manchete curta (formato ilustrativo: "Clube A na frente. Clube B: ainda
   dá."); números em negrito no texto; "não dá mais" só com certeza matemática.
 - **Mosaico de pontos (D-030, D-031):** imagem-assinatura da home. 1.000 pontos em 50 colunas, preenchidos
-  por coluna, um grupo por clube (maior resto para fechar exatamente 1.000). Cada disputa usa a sua
-  cor (título em tinta, G4 em azul, rebaixamento em vermelho), com grupos vizinhos alternando tom cheio
-  e 50%; sigla do clube acima de grupos com 40 pontos ou mais. Em disputas com várias vagas, os pontos
+  por coluna, um grupo por clube (maior resto para fechar exatamente 1.000). Cada ponto é a bolinha
+  do clube nas cores dele (D-032), com contorno fino; a mesma bolinha aparece na legenda. Sigla do
+  clube acima de grupos com 40 pontos ou mais. Cores de clube aparecem só como dado, nunca na marca. Em disputas com várias vagas, os pontos
   são vagas (4 por simulação). Nota manuscrita em serifa itálica ("cada ponto, N simulações" ou "N
   vagas"); legenda em grade com escudo, link e chance. Sem animação.
 - **Home por disputa (D-031):** seletor segmentado Título · G4 · Rebaixamento. A edição destaca a

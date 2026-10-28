@@ -24,6 +24,16 @@ atualizações são somadas ao fim da data. O resultado independe da ordem de pr
 - **Inflação de empates** (opcional, `draw_inflation`): diagonal da matriz de placares × (1 + δ),
   com δ por máxima verossimilhança no treino. Corrige a taxa média de empates, mas não foi adotada
   por falta de ganho nas métricas (ver `validation.md`, etapa 2).
+- **Dispersão dos gols** (`goal_dispersion`, em produção desde `cmp-elo-ad-0.2.0`, 2026-10-27): as
+  marginais de gols deixam de ser Poisson e passam a ser Conway-Maxwell-Poisson, P(k) ∝ λᵏ / (k!)^ν. O λ de cada jogo é escolhido
+  para que a média seja exatamente o gol esperado da regressão, então o ν muda só a **forma** da
+  distribuição, não os gols esperados. ν = 1 é a Poisson; ν > 1 dá variância menor que a média
+  (subdispersão); ν < 1, maior (superdispersão, o caso da binomial negativa). O ν é estimado por
+  máxima verossimilhança do placar exato na janela de treino, com as regressões e o ρ fixos
+  (`GoalsModel.fit_goal_dispersion`). Código: `prediction/goals_model.py` (`goal_pmf`, `score_matrix`).
+  O ν estimado sobe de 1,05 (janela de 2006–2012) para 1,17 (janela de 2016–2025, usada em 2026): os
+  gols por time variam menos que numa Poisson. Diagnóstico, regra de adoção e métricas: `validation.md`,
+  seção "Distribuição de gols e dispersão".
 - **Modelo C** (classificador multiclasse calibrado): planejado como benchmark (etapa 3).
 
 Treino: as 10 temporadas anteriores à temporada simulada. A temporada corrente não entra nos
@@ -31,6 +41,37 @@ coeficientes; ela atualiza apenas os ratings.
 
 Placar: matriz de probabilidades 0–10 × 0–10, normalizada. 1X2, placar mais provável e gols
 esperados saem dessa matriz.
+
+Campos por partida restante em `matches[]` (`MatchPrediction`), todos da mesma matriz (modelo de
+gols com Dixon-Coles e dispersão, estado dos ratings na data de referência):
+
+| Campo | Definição |
+|---|---|
+| `p_home`, `p_draw`, `p_away` | soma da matriz abaixo, sobre e acima da diagonal |
+| `xg_home`, `xg_away` | gols esperados das regressões (a dispersão não muda a média) |
+| `most_likely_score`, `most_likely_score_probability` | placar de maior probabilidade, `"m-v"`; igual a `top_scores[0]` |
+| `top_scores` (desde `cmp-elo-ad-0.2.0`) | lista dos 3 placares mais prováveis, `{"home_goals", "away_goals", "probability"}`, em ordem decrescente de probabilidade. Empate exato fica na ordem da matriz: menos gols do mandante e, depois, menos gols do visitante (`goals_model.top_scores`) |
+| `p_three_plus_goals` (desde `cmp-elo-ad-0.2.0`) | P(gols do mandante + gols do visitante ≥ 3) = 1 − P(0) − P(1) − P(2), o complemento de "até 2 gols" (`goals_model.total_goals_at_least`) |
+
+`top_scores` e `p_three_plus_goals` são opcionais no schema: ficam `null` em jogos encerrados e em
+snapshots anteriores a `cmp-elo-ad-0.2.0`. A matriz é truncada em 10 gols por time e normalizada.
+Por isso a soma das 3 probabilidades é sempre menor que 1.
+
+### Por que o placar mais provável é quase sempre 1×0, 1×1 ou 0×1
+
+O "placar mais provável" é o placar exato com maior probabilidade, e há dezenas de placares
+possíveis. Num jogo típico, com 1,5 gol esperado do mandante e 1,0 do visitante, o número de gols
+mais provável de cada time é 1 (ou 0 para o visitante mais fraco), mesmo que a média seja maior. Por
+isso a moda do placar fica em 1×0 ou 1×1. O número de gols mais provável de um time só passa a 2
+quando ele tem mais de ~1,9 a 2,0 gols esperados, e passa de 0 a 1 a partir de ~0,9 a 1,0. Essa moda acontece em só 11% a 14% dos jogos: em média os três placares mais prováveis
+somam ~35%, e 2×1, 2×0, 0×0 e 1×2 ficam logo atrás.
+
+O backtest mostra que o modelo não subestima gols (2019–2025: 2,38 previstos contra 2,41 por jogo).
+Um placar mais provável maior exigiria inflar os gols esperados, e isso piora a validação. A
+dispersão (acima) deixa a distribuição mais fiel: menos 0×0 e menos goleadas, mais 1×1, 2×1 e 1×2.
+Ela não muda a média, e o 1×1 passa a ser a moda mais frequente. Para mostrar jogos com mais gols
+sem distorcer o modelo, o snapshot traz os 3 placares mais prováveis (`top_scores`) e a chance de 3
+ou mais gols (`p_three_plus_goals`), além dos gols esperados.
 
 ## Simulação de Monte Carlo
 

@@ -23,6 +23,7 @@ from brasileirao.config import (
 )
 from brasileirao.frame_values import as_int
 from brasileirao.logging_utils import get_logger
+from brasileirao.prediction.goals_model import GoalsModel
 from brasileirao.validation.backtest import (
     DYNAMIC_VS_FIXED,
     PreparedCheckpoint,
@@ -30,8 +31,10 @@ from brasileirao.validation.backtest import (
     calibration_report,
     compute_features,
     evaluate_predictions,
+    goal_distribution_diagnostic,
     prepare_checkpoints,
     score_simulation_variants,
+    training_window,
     tune_rating_params,
     walk_forward_predictions,
 )
@@ -67,21 +70,46 @@ def select_feature_set(validation_losses: dict[str, float]) -> str:
     return select_with_parsimony(validation_losses, {name: FEATURE_SET_COMPLEXITY[name] for name in validation_losses})
 
 
-def uncertainty_candidates(dynamic: bool, draw_inflation: bool) -> list[tuple[SimulationVariant, float]]:
+def uncertainty_candidates(
+    dynamic: bool, draw_inflation: bool, goal_dispersion: bool = False
+) -> list[tuple[SimulationVariant, float]]:
     """Variantes de incerteza e sua complexidade (nenhuma < coeficientes < força latente crescente)."""
     candidates = [
-        (SimulationVariant("sem_incerteza", dynamic, draw_inflation), 0.0),
+        (SimulationVariant("sem_incerteza", dynamic, draw_inflation, goal_dispersion=goal_dispersion), 0.0),
         (
-            SimulationVariant("coeficientes", dynamic, draw_inflation, SimulationUncertainty(coefficient_draws=True)),
+            SimulationVariant(
+                "coeficientes",
+                dynamic,
+                draw_inflation,
+                SimulationUncertainty(coefficient_draws=True),
+                goal_dispersion,
+            ),
             1.0,
         ),
     ]
     for position, strength_sd in enumerate(STRENGTH_SD_GRID, start=2):
         uncertainty = SimulationUncertainty(strength_sd=strength_sd)
         candidates.append(
-            (SimulationVariant(f"forca_sd_{strength_sd}", dynamic, draw_inflation, uncertainty), position)
+            (
+                SimulationVariant(f"forca_sd_{strength_sd}", dynamic, draw_inflation, uncertainty, goal_dispersion),
+                position,
+            )
         )
     return candidates
+
+
+def select_goal_dispersion(
+    match_validation: dict[str, dict[str, float]], season_validation: dict[str, dict[str, float]]
+) -> bool:
+    """Regra fixada antes de rodar: na validação, log loss 1X2 não piora, log loss do placar exato melhora
+    mais que a tolerância de parcimônia e o log loss da posição final não piora mais que essa tolerância."""
+    base, candidate = match_validation["sem_dispersao"], match_validation["dispersao_gols"]
+    return bool(
+        candidate["log_loss"] <= base["log_loss"]
+        and candidate["score_log_loss"] < base["score_log_loss"] - PARSIMONY_TOLERANCE
+        and season_validation["dispersao_gols"]["position_log_loss"]
+        <= season_validation["sem_dispersao"]["position_log_loss"] + PARSIMONY_TOLERANCE
+    )
 
 
 def rolling_origin_selection(
@@ -212,7 +240,52 @@ def run_backtest_report(
         < inflation_validation["sem_inflacao"]["position_log_loss"] - PARSIMONY_TOLERANCE
     )
 
-    candidates = uncertainty_candidates(use_dynamic_ratings, use_draw_inflation)
+    dispersion_match: dict[str, dict[str, dict[str, float]]] = {}
+    for period_name, seasons in (("validation", VALIDATION_SEASONS), ("test", TEST_SEASONS)):
+        dispersion_match[period_name] = {
+            variant_name: asdict(
+                evaluate_predictions(
+                    walk_forward_predictions(
+                        features,
+                        seasons,
+                        chosen_feature_set,
+                        draw_inflation=use_draw_inflation,
+                        goal_dispersion=dispersion,
+                    )
+                )
+            )
+            for variant_name, dispersion in (("sem_dispersao", False), ("dispersao_gols", True))
+        }
+    dispersion_variants = [
+        SimulationVariant("sem_dispersao", use_dynamic_ratings, use_draw_inflation),
+        SimulationVariant("dispersao_gols", use_dynamic_ratings, use_draw_inflation, goal_dispersion=True),
+    ]
+    dispersion_validation = summarize_variants(score(validation_checkpoints, dispersion_variants))
+    dispersion_test = summarize_variants(score(test_checkpoints, dispersion_variants))
+    use_goal_dispersion = select_goal_dispersion(dispersion_match["validation"], dispersion_validation)
+    current_season = max(TEST_SEASONS) + 1
+    goal_distribution = {
+        period_name: {
+            variant_name: goal_distribution_diagnostic(
+                features, seasons, chosen_feature_set, goal_dispersion=dispersion
+            )
+            for variant_name, dispersion in (("sem_dispersao", False), ("dispersao_gols", True))
+        }
+        for period_name, seasons in (
+            ("validation", VALIDATION_SEASONS),
+            ("test", TEST_SEASONS),
+            ("current_season", (current_season,)),
+        )
+        if (features["season"].isin(seasons)).any()
+    }
+    fitted_dispersion = {
+        str(season): GoalsModel.fit(
+            training_window(features, season, 10, 2006), chosen_feature_set, goal_dispersion=True
+        ).goal_dispersion
+        for season in (*VALIDATION_SEASONS, *TEST_SEASONS, current_season)
+    }
+
+    candidates = uncertainty_candidates(use_dynamic_ratings, use_draw_inflation, use_goal_dispersion)
     candidate_variants = [variant for variant, _ in candidates]
     uncertainty_validation_records = score(validation_checkpoints, candidate_variants)
     uncertainty_test_records = score(test_checkpoints, candidate_variants)
@@ -247,6 +320,7 @@ def run_backtest_report(
             "predicted_with_inflation": predicted_draw_rate_inflated,
         },
         "calibration": calibration_report(chosen_predictions),
+        "goal_distribution": goal_distribution,
         "season_simulation": {
             "rounds": list(simulation_rounds),
             "n_simulations": n_simulations,
@@ -265,6 +339,18 @@ def run_backtest_report(
                 "selection_rule": (
                     "log loss de partidas na validação não piora mais que 0,001 e log loss da posição final "
                     "na validação melhora mais que 0,001"
+                ),
+            },
+            "goal_dispersion": {
+                "family": "Conway-Maxwell-Poisson com média preservada (nu = 1 é Poisson; nu > 1, subdispersão)",
+                "fitted_nu_by_season": fitted_dispersion,
+                "match_metrics": dispersion_match,
+                "validation": dispersion_validation,
+                "test": dispersion_test,
+                "selected": use_goal_dispersion,
+                "selection_rule": (
+                    "na validação: log loss 1X2 não piora, log loss do placar exato melhora mais que 0,001 e log "
+                    "loss da posição final não piora mais que 0,001"
                 ),
             },
             "uncertainty": {
@@ -309,6 +395,7 @@ def run_backtest_report(
                 "rating_params": rating_params_to_dict(tuned_params),
                 "dynamic_ratings_in_simulation": use_dynamic_ratings,
                 "draw_inflation": use_draw_inflation,
+                "goal_dispersion": use_goal_dispersion,
                 "simulation_uncertainty": asdict(chosen_uncertainty.uncertainty),
                 "source_report": "backtest_report.json",
             },

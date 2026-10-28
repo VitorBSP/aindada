@@ -1379,3 +1379,175 @@ Registrado pelo orquestrador a partir do relatório do 06, que auditou sem edita
   - **02**: depois do passo 10, regerar snapshots e revisão por rodada com os IDs e a fonte novos
     (não rodei `simulate` nem `export-web`, condição 2 do 06).
   - **06**: auditar a ingestão real (passo 12) e as contagens do catálogo.
+
+
+## Agente 02: diagnóstico de gols e dispersão Conway-Maxwell-Poisson (2026-10-27) — modelo adotado, snapshot pendente
+
+Pedido do dono do produto: "inflar de forma científica o número de gols", porque o placar mais
+provável de quase todos os jogos é 0×0, 1×0, 0×1 ou 1×1. Detalhes e tabelas: `validation.md`, seção
+"Distribuição de gols e dispersão".
+
+- **Diagnóstico** (fora da amostra, mesma divisão validação/teste, 2026 até 26/10):
+  - O modelo **não** subestima gols. No teste 2019–2025 prevê 2,38 gols por jogo para 2,41
+    observados (−1%, z = 0,9). Na validação 2013–2018 superestima (2,49 × 2,35).
+  - Em 2026 fica −4% (2,55 × 2,66), mas com z = 1,3: dentro do ruído.
+  - **Não há superdispersão.** A variância observada fica abaixo da prevista e a binomial negativa
+    cai no limite (Poisson).
+  - As caudas (5+ gols) estão **superestimadas**. Faltam 1×1, 2×1, 1×2 e totais de 2 a 3 gols, e
+    sobram 0×0 e goleadas. É subdispersão.
+- **Ajuste adotado**: marginais Conway-Maxwell-Poisson com média preservada (`goal_dispersion`,
+  ν por máxima verossimilhança na janela de treino; ν = 1,17 para 2026).
+  - Fator de escala, peso temporal, janela, taxa de nível e inflação de placares específicos foram
+    testados e não passaram (tabela em `validation.md`).
+  - Nenhum fator "infla" a média: a validação pediria escala 0,96.
+- **O que mudou**:
+  - `prediction/goals_model.py`: `goal_pmf`; `score_matrix(..., goal_dispersion=1.0)`;
+    `GoalsModel.goal_dispersion`; `fit(..., goal_dispersion=False)`; `fit_goal_dispersion`. Com ν = 1
+    o resultado é idêntico ao anterior.
+  - `simulation/engine.py`: o sorteio de placares usa o ν do modelo.
+  - `pipeline.py`: `ModelConfig.goal_dispersion`, lido de `model_config.json` (ausente = `false`).
+  - `storage/schema.py` (**04**): campo novo e opcional `ModelInfo.goal_dispersion: float = 1.0`.
+    Snapshots antigos continuam válidos. O `SNAPSHOT_SCHEMA_VERSION` não mudou.
+  - `config.py` (**00**): `MODEL_VERSION` = `cmp-elo-ad-0.2.0`.
+  - `validation/backtest.py` e `validation/report.py` (**06**):
+    - métricas de partidas com `score_log_loss` e `total_goals_log_loss`;
+    - `goal_distribution_diagnostic` (previsto × observado);
+    - variante de temporada `goal_dispersion`;
+    - regra `select_goal_dispersion`;
+    - seções `goal_distribution` e `season_simulation.goal_dispersion` no relatório.
+  - `data/gold/model_config.json`: `goal_dispersion: true`.
+  - `data/gold/backtest_report.json`: regerado sobre os dados do snapshot publicado. Reproduz as
+    seções anteriores sem diferença e acrescenta as novas. O rótulo `model_version` foi trocado à mão
+    para `cmp-elo-ad-0.2.0`, porque o backtest rodou antes da troca da constante. Os números são do
+    mesmo código.
+  - Docs: `model.md` (método e "por que o placar mais provável é baixo") e `validation.md` (seção
+    nova, só acrescentada).
+  - Testes: `tests/unit/test_goal_dispersion.py`, 18 testes com dados synthetic.
+- **Evidência**:
+  - `python -m brasileirao.cli backtest` (2.000 simulações, semente 7): `goal_dispersion.selected =
+    true`.
+  - Validação: log loss 1X2 1,01324 → 1,01303; placar exato 2,72522 → 2,72375; total 1,79554 →
+    1,79575; posição final 2,2614 → 2,2612.
+  - Teste: 1X2 1,02133 → 1,02093, Brier 0,61260 → 0,61241, RPS 0,20775 → 0,20768, placar 2,73797 →
+    2,73443, total 1,78224 → 1,78140.
+  - Nível de temporada com 10.000 simulações, duas sementes: diferença de −0,002 na validação e
+    +0,002 no teste, com erros-padrão de 0,002 a 0,003 (ruído).
+  - Simulação de 100 mil temporadas sem gravar: ~20 s → ~24 s. A média de gols simulada não muda
+    (2,57) e a variância cai de 2,63 para 2,40.
+  - Checagens: `pytest -q` com 393 passed; `ruff check .` e `ruff format --check` sem erros; `mypy
+    src` sem erros.
+- **Premissas e limitações**:
+  - O ν é global (o mesmo para mandante e visitante, sem variar por jogo) e é estimado com médias e ρ
+    fixos.
+  - O ganho em 1X2 é pequeno (−0,0004 no teste). O ganho claro é no placar exato e no total de
+    gols.
+  - O placar mais provável continua baixo e fica **mais vezes** 1×1: nos 61 jogos restantes de 2026,
+    31 → 43. Isso é correto estatisticamente. A queixa do dono se resolve na apresentação, não no
+    modelo.
+  - **Snapshot de 2026-10-26 não regerado e `export-web` não rodado.** Durante a sessão o 01 gravou o
+    gold de publicação do ADR-0008, e a condição 2 do parecer do 06 proíbe `simulate`/`export-web`
+    sobre ele antes do passo 10. O gold antigo de pesquisa ficou fora do repositório. O
+    `apps/web/data/` continua com o snapshot `poisson-elo-ad-0.1.0`.
+  - **Achado para 06/00**: o mesmo backtest sobre o gold de publicação (mesmos placares, `match_id` e
+    datas novos) inverteu, só pela ordem dos sorteios com 2.000 simulações, a escolha dinâmico × fixo
+    (validação 2,2708 × 2,2538). A dispersão falharia a terceira condição, e a origem móvel mudaria.
+    Esse relatório não foi adotado (cópia fora do repositório). As decisões de temporada estão no
+    nível do ruído de Monte Carlo.
+- **Próximos responsáveis**:
+  - **06**:
+    - auditar `goal_pmf` (inversão da média por grade), a regra `select_goal_dispersion` e as
+      métricas novas do backtest;
+    - definir o número de simulações ou checkpoints das escolhas de temporada (dinâmico × fixo,
+      inflação, incerteza, dispersão) para que não dependam da ordem dos IDs, antes de rerodar o
+      `backtest` sobre o gold de publicação.
+  - **00/04**:
+    - passo 10 do ADR-0008;
+    - aceitar o campo `ModelInfo.goal_dispersion` (opcional) e a nova `MODEL_VERSION`;
+    - decidir se o `backtest` é rerodado no gold novo antes do passo 11.
+  - **02** (depois do passo 10 e do parecer do 06):
+    - `python -m brasileirao.cli simulate --season 2026 --reference-date 2026-10-26` (semente 2026,
+      100 mil, padrão de config);
+    - `python -m brasileirao.cli export-web --season 2026`, que leva o `metrics.json` com as seções
+      novas;
+    - revisão por rodada.
+  - **05/08**:
+    - nada é obrigatório: `model.goal_dispersion` é opcional e a nota de versão do rodapé já mostra
+      `model_version`;
+    - para o pedido do dono, sugestão de apresentação: mostrar os 3 placares mais prováveis com
+      probabilidade, a chance de Mais de 2,5 gols ou os gols esperados (já no snapshot) em vez de só a
+      moda. A probabilidade da moda fica entre 11% e 14%;
+    - os 3 placares mais prováveis e Mais de 2,5 exigem um campo novo no snapshot. Pedir ao 02/04.
+  - **08A**: os insights publicados citam `poisson-elo-ad-0.1.0`. O próximo snapshot vem com a versão
+    nova.
+
+
+## Agente 02: 3 placares mais prováveis e chance de 3+ gols por jogo (2026-10-27) — handoff de schema ao 04
+
+Pedido do dono do produto: mostrar na página de jogos os 3 placares mais prováveis e a chance de 3
+ou mais gols, no lugar do placar mais provável.
+
+- **O que mudou**:
+  - `storage/schema.py` (**04**): modelo novo `ScoreProbability` (`home_goals: int`,
+    `away_goals: int`, `probability: float`). Em `MatchPrediction` entram dois campos opcionais:
+    - `top_scores: list[ScoreProbability] | None = None`;
+    - `p_three_plus_goals: float | None = None`.
+
+    Snapshots antigos continuam válidos (`null`). O `SNAPSHOT_SCHEMA_VERSION` não mudou.
+  - `prediction/goals_model.py`: funções puras `top_scores(matrix, n_scores=3)` e
+    `total_goals_at_least(matrix, minimum_goals)`. A ordem é decrescente de probabilidade. Em empate
+    exato, prevalece a ordem da matriz (menos gols do mandante, depois do visitante), a mesma do
+    `argmax`.
+  - `pipeline.py` (`_match_predictions`): os campos saem da mesma matriz de `p_home`/`p_draw`/`p_away`,
+    e o 1X2 agora é calculado direto dessa matriz.
+    - `most_likely_score` continua no snapshot e é igual a `top_scores[0]`.
+    - Jogos encerrados ficam com `null`.
+  - `docs/methodology/model.md`: tabela com os campos por partida.
+  - Testes:
+    - `tests/unit/test_top_scores.py` (9): P(≥3) = 1 − P(0) − P(1) − P(2), ordem, desempate, coerência
+      com o `argmax` e schema antigo válido;
+    - `tests/integration/test_match_score_fields.py` (6): snapshot synthetic com dispersão, 3 placares
+      por jogo restante, `most_likely_score` igual a `top_scores[0]`, soma < 1 e `null` em encerrados.
+- **Exemplo ilustrativo** (synthetic: 1,45 × 1,05 gols esperados, ρ = 0,02, ν = 1,17; não é jogo
+  real):
+
+  ```json
+  "top_scores": [{"home_goals": 1, "away_goals": 1, "probability": 0.134},
+                 {"home_goals": 1, "away_goals": 0, "probability": 0.121},
+                 {"home_goals": 2, "away_goals": 1, "probability": 0.101}],
+  "p_three_plus_goals": 0.46
+  ```
+
+- **Evidência**: `pytest -q` com 408 passed; `ruff check .` e `ruff format --check` sem erros; `mypy
+  src` sem erros.
+- **Premissas e limitações**:
+  - O snapshot não foi regerado. Continua valendo a condição 2 do parecer do 06 (nada de
+    `simulate`/`export-web` no gold de publicação antes do passo 10), então o `apps/web/data/` segue
+    sem os campos.
+  - Para conferir o layout, foi gerada uma amostra fora do repositório, sem rodar `simulate` nem ler
+    o gold novo. Ela usa só as partidas restantes do snapshot publicado de 2026-10-26, com os gols
+    esperados e o ρ do próprio snapshot e o ν da janela 2016–2025 do relatório sobre os mesmos dados.
+    O resultado é a matriz do `cmp-elo-ad-0.2.0`. Nos 61 jogos, P(3+) vai de 0,41 a 0,75 (média 0,48).
+- **Próximos responsáveis**:
+  - **04**: aceitar `ScoreProbability`, `top_scores` e `p_three_plus_goals`. A API já serializa o
+    `MatchPrediction` inteiro, então não há mudança de rota.
+  - **05/08**: na página de jogos, trocar o placar mais provável por `top_scores` (3 placares com
+    probabilidade) e `p_three_plus_goals`, tratando `null` em snapshots antigos. As probabilidades
+    dos 3 placares não somam 100%.
+  - **02**: regerar o snapshot e rodar `export-web` depois do passo 10 e do parecer do 06 (ver seção
+    anterior).
+  - **06**: auditar os testes e a regra de desempate.
+
+## Agente 08: bolinhas por clube e placares na página de jogos (D-032, 2026-10-27)
+
+- **O que mudou**: `apps/web/assets/app.js` e `styles.css`. O mosaico da home usa a bolinha de cada clube
+  (`CLUB_DOTS`, especificação do dono do produto, D-032) em vez da cor da disputa; a legenda usa a mesma
+  bolinha e deixou de quebrar nomes. Cada jogo da página de jogos mostra os 3 placares mais prováveis e a
+  chance de 3 gols ou mais (`top_scores`, `p_three_plus_goals`, entregues pelo Agente 02), no lugar do
+  placar mais provável; sem esses campos, a página volta ao formato anterior.
+- **Evidência**: navegador do app em 1280 px e 375 px, temas claro e escuro: as 20 bolinhas conferidas em
+  tamanho ampliado; páginas da home sem rolagem horizontal. Os placares foram conferidos numa cópia do site
+  fora do repositório, com a amostra do 02 mesclada (61 jogos); `apps/web/data/` não foi alterado.
+- **Pendência**: os placares só aparecem no site quando o 02 regerar o snapshot e exportar, depois da
+  liberação do gold novo (condição 2 do parecer do 06). Flamengo e Vitória têm bolinhas iguais pela
+  especificação; diferenciar é decisão do dono do produto.
+

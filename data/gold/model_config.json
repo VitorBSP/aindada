@@ -1,5 +1,5 @@
 {
-  "model_version": "poisson-elo-ad-0.1.0",
+  "model_version": "cmp-elo-ad-0.2.0",
   "feature_set": "elo_attack_defense",
   "rating_params": {
     "elo": {
@@ -22,6 +22,7 @@
   },
   "dynamic_ratings_in_simulation": true,
   "draw_inflation": false,
+  "goal_dispersion": true,
   "simulation_uncertainty": {
     "coefficient_draws": false,
     "strength_sd": 0.0
