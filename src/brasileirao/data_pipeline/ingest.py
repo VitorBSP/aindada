@@ -52,11 +52,29 @@ def _same_file(first: Path, second: Path) -> bool:
     return first.resolve() == second.resolve()
 
 
+def _manifest_of(snapshot: SourceSnapshot, file_hashes: dict[str, str], retrieved_at: datetime) -> SourceManifest:
+    return SourceManifest(
+        source_name=snapshot.source_name,
+        origin=snapshot.origin,
+        version=snapshot.version,
+        retrieved_at=retrieved_at,
+        files=file_hashes,
+        license_status=snapshot.license_status,
+        license_notes=snapshot.license_notes,
+        allowed_uses=list(snapshot.allowed_uses),
+        license_name=snapshot.license_name,
+        terms_url=snapshot.terms_url,
+        terms_checked_at=snapshot.terms_checked_at,
+        attribution=snapshot.attribution,
+    )
+
+
 def ingest_raw(snapshot: SourceSnapshot, raw_root: Path) -> Path:
     """Copia os arquivos da fonte, sem modificação, e grava o manifesto de proveniência.
 
-    Se o manifesto já existe com os mesmos hashes, ele é mantido: reingerir a mesma entrada não muda
-    nenhum arquivo (critério de aceite do 01).
+    Se o manifesto já existe com os mesmos hashes e a mesma versão, a data de coleta registrada é
+    mantida: reingerir a mesma entrada não muda nenhum arquivo (critério de aceite do 01). Se só os
+    termos de licença do adaptador mudaram, o manifesto é regravado com eles e a mesma data de coleta.
     """
     target_dir = raw_root / snapshot.source_name / snapshot.target_dir_name
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -67,25 +85,15 @@ def ingest_raw(snapshot: SourceSnapshot, raw_root: Path) -> Path:
             shutil.copyfile(source_path, target_path)
         file_hashes[target_path.name] = sha256_of(target_path)
     manifest_path = target_dir / "manifest.json"
+    manifest = _manifest_of(snapshot, file_hashes, snapshot.retrieved_at)
     if manifest_path.exists():
         existing = load_manifest(target_dir)
         if existing.files == file_hashes and existing.version == snapshot.version:
-            LOGGER.info("raw_unchanged", extra={"dir": str(target_dir)})
-            return target_dir
-    manifest = SourceManifest(
-        source_name=snapshot.source_name,
-        origin=snapshot.origin,
-        version=snapshot.version,
-        retrieved_at=snapshot.retrieved_at,
-        files=file_hashes,
-        license_status=snapshot.license_status,
-        license_notes=snapshot.license_notes,
-        allowed_uses=list(snapshot.allowed_uses),
-        license_name=snapshot.license_name,
-        terms_url=snapshot.terms_url,
-        terms_checked_at=snapshot.terms_checked_at,
-        attribution=snapshot.attribution,
-    )
+            manifest = _manifest_of(snapshot, file_hashes, existing.retrieved_at)
+            if manifest == existing:
+                LOGGER.info("raw_unchanged", extra={"dir": str(target_dir)})
+                return target_dir
+            LOGGER.info("raw_manifest_terms_updated", extra={"dir": str(target_dir)})
     manifest_path.write_text(manifest.model_dump_json(indent=2), encoding="utf-8")
     LOGGER.info("raw_ingested", extra={"dir": str(target_dir), "files": file_hashes})
     return target_dir
@@ -286,6 +294,30 @@ def append_changes(silver_dir: Path, entries: Sequence[Mapping[str, str]], stamp
             change_log.write(json.dumps({"detected_at": detected_at, **entry}, ensure_ascii=False) + "\n")
 
 
+def _recorded_states(silver_dir: Path) -> set[str]:
+    path = silver_dir / "changes.jsonl"
+    if not path.exists():
+        return set()
+    states: set[str] = set()
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            recorded = json.loads(line)
+            recorded.pop("detected_at", None)
+            states.add(json.dumps(recorded, ensure_ascii=False, sort_keys=True))
+    return states
+
+
+def append_new_states(silver_dir: Path, entries: Sequence[Mapping[str, str]], stamp: str | None = None) -> None:
+    """Registra um estado (correção redundante ou em conflito, divergência de conferência) só uma vez.
+
+    `append_changes` registra eventos. Um estado reaparece a cada execução e não deve se repetir no
+    `changes.jsonl` (achado N3 do Agente 06); se o estado mudar, a entrada nova é registrada.
+    """
+    recorded = _recorded_states(silver_dir)
+    fresh = [entry for entry in entries if json.dumps(dict(entry), ensure_ascii=False, sort_keys=True) not in recorded]
+    append_changes(silver_dir, fresh, stamp)
+
+
 def write_silver_frames(
     matches_data: pd.DataFrame,
     cards_data: pd.DataFrame,
@@ -295,7 +327,8 @@ def write_silver_frames(
     """Aplica correções manuais, registra no `changes.jsonl` o que mudou e grava a camada silver.
 
     Correções redundantes (a fonte já concorda) e não aplicadas (conflito) também vão para o
-    `changes.jsonl`. Mudanças causadas por correção saem com `origin = manual_correction` e a URL.
+    `changes.jsonl`, uma vez por estado. Mudanças causadas por correção saem com
+    `origin = manual_correction` e a URL.
     """
     silver_dir.mkdir(parents=True, exist_ok=True)
     matches_data, outcomes = apply_corrections(matches_data, corrections)
@@ -305,7 +338,8 @@ def write_silver_frames(
         if outcome.action == CorrectionAction.APPLIED
     }
     stamp = datetime.now(tz=UTC).isoformat()
-    log_entries = _correction_log_entries(outcomes)
+    append_new_states(silver_dir, _correction_log_entries(outcomes), stamp)
+    log_entries: list[dict[str, str]] = []
     matches_path = silver_dir / "matches.csv"
     if matches_path.exists():
         changes = detect_changes(read_matches(matches_path), matches_data)

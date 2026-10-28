@@ -129,12 +129,15 @@ def test_corrections_file_round_trip(tmp_path: Path) -> None:
 
 def test_project_corrections_file_is_valid() -> None:
     path = Path(__file__).resolve().parents[2] / "data" / "reference" / "manual_corrections.csv"
+    if not path.exists():
+        pytest.skip("manual_corrections.csv é local e ignorado pelo git (decisão B1); nada a conferir")
     assert all(correction.evidence_url.startswith("https://") for correction in load_corrections(path))
 
 
 def test_example_corrections_file_is_synthetic_and_valid() -> None:
     path = Path(__file__).resolve().parents[2] / "data" / "reference" / "manual_corrections.example.csv"
-    assert all(correction.note.startswith("synthetic") for correction in load_corrections(path))
+    corrections = load_corrections(path)
+    assert corrections and all(correction.note.startswith("synthetic") for correction in corrections)
 
 
 def test_correction_label_drops_base_source_version() -> None:

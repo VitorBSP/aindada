@@ -41,6 +41,14 @@ CONFERENCE_PAIRS = (
         date_tolerance_days=1,
         note="brasileirao-dataset só traz a data, às vezes no dia UTC; tolerância de ±1 dia",
     ),
+    ConferencePair(
+        candidate="football_data_org",
+        reference="brasileirao_dataset",
+        seasons=(2026,),
+        date_tolerance_days=1,
+        note="conferência local de 2026 (pendência 5 do ADR-0008); divergência em jogo encerrado exige "
+        "evidência pontual; tolerância de ±1 dia",
+    ),
 )
 
 
@@ -116,7 +124,7 @@ def compare_sources(
                 round_diff=int(round_diff.sum()),
             )
         )
-        flagged = joined[(day_gap > pair.date_tolerance_days) | status_diff | score_diff.fillna(False)]
+        flagged = joined[(day_gap > pair.date_tolerance_days) | status_diff | score_diff.fillna(False) | round_diff]
         for match_id, row in flagged.iterrows():
             divergences.append(
                 {
@@ -125,9 +133,9 @@ def compare_sources(
                     "candidate": pair.candidate,
                     "reference": pair.reference,
                     "candidate_value": f"{row['match_date_c'].date()} {row['status_c']} "
-                    f"{_text(row['home_goals_c'])}-{_text(row['away_goals_c'])}",
+                    f"{_text(row['home_goals_c'])}-{_text(row['away_goals_c'])} r{_text(row['round_c'])}",
                     "reference_value": f"{row['match_date_r'].date()} {row['status_r']} "
-                    f"{_text(row['home_goals_r'])}-{_text(row['away_goals_r'])}",
+                    f"{_text(row['home_goals_r'])}-{_text(row['away_goals_r'])} r{_text(row['round_r'])}",
                 }
             )
         for match_id in candidate.index.symmetric_difference(reference.index):

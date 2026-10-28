@@ -111,3 +111,8 @@ def test_most_restrictive_license_follows_declared_order() -> None:
 def test_research_source_is_more_restrictive_than_licensed() -> None:
     statuses = [LicenseStatus.RESEARCH_ONLY_UNVERIFIED, LicenseStatus.LICENSED_WITH_ATTRIBUTION]
     assert most_restrictive_license(statuses) == LicenseStatus.RESEARCH_ONLY_UNVERIFIED
+
+
+def test_manifest_is_immutable() -> None:
+    with pytest.raises(ValidationError):
+        _manifest().license_status = LicenseStatus.BLOCKED  # type: ignore[misc]

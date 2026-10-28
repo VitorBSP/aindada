@@ -151,6 +151,13 @@ def compose(
     missing_inputs = [source_name for source_name in used_sources if source_name not in inputs]
     if missing_inputs:
         raise CompositionError(f"fontes sem ingestão disponível: {missing_inputs}")
+    mislabeled = sorted(
+        f"{source_name} (manifesto: {inputs[source_name].manifest.source_name})"
+        for source_name in used_sources
+        if inputs[source_name].manifest.source_name != source_name
+    )
+    if mislabeled:
+        raise CompositionError(f"ingestão com nome de fonte diferente do manifesto: {mislabeled}")
     records: list[MatchRecord] = []
     card_frames: list[pd.DataFrame] = []
     for source_name in used_sources:

@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
+from dataclasses import replace
 from datetime import date
 from pathlib import Path
 
@@ -144,6 +146,33 @@ def test_manifest_records_sha256_per_file(pinned_source: AdaoDuqueSource, tmp_pa
 def test_reingesting_same_files_keeps_manifest(pinned_source: AdaoDuqueSource, tmp_path: Path) -> None:
     raw_dir = ingest_raw(pinned_source.snapshot(), tmp_path / "raw")
     first = (raw_dir / "manifest.json").read_bytes()
+    ingest_raw(pinned_source.snapshot(), tmp_path / "raw")
+    assert (raw_dir / "manifest.json").read_bytes() == first
+
+
+def test_changed_license_notes_update_manifest(pinned_source: AdaoDuqueSource, tmp_path: Path) -> None:
+    ingest_raw(pinned_source.snapshot(), tmp_path / "raw")
+    raw_dir = ingest_raw(
+        replace(pinned_source.snapshot(), license_notes="synthetic: termos revistos"), tmp_path / "raw"
+    )
+    assert load_manifest(raw_dir).license_notes == "synthetic: termos revistos"
+
+
+def test_changed_license_notes_keep_recorded_collection_time(
+    pinned_source: AdaoDuqueSource, landing_dir: Path, tmp_path: Path
+) -> None:
+    first = load_manifest(ingest_raw(pinned_source.snapshot(), tmp_path / "raw")).retrieved_at
+    os.utime(landing_dir / MATCHES_FILE, (2_000_000_000, 2_000_000_000))
+    raw_dir = ingest_raw(
+        replace(pinned_source.snapshot(), license_notes="synthetic: termos revistos"), tmp_path / "raw"
+    )
+    assert load_manifest(raw_dir).retrieved_at == first
+
+
+def test_touched_files_keep_manifest(pinned_source: AdaoDuqueSource, landing_dir: Path, tmp_path: Path) -> None:
+    raw_dir = ingest_raw(pinned_source.snapshot(), tmp_path / "raw")
+    first = (raw_dir / "manifest.json").read_bytes()
+    os.utime(landing_dir / MATCHES_FILE, (2_000_000_000, 2_000_000_000))
     ingest_raw(pinned_source.snapshot(), tmp_path / "raw")
     assert (raw_dir / "manifest.json").read_bytes() == first
 

@@ -30,7 +30,7 @@ from brasileirao.data_pipeline.football_data_org import (
     FootballDataOrgSource,
     MissingTokenError,
 )
-from brasileirao.data_pipeline.ingest import append_changes, ingest_raw, read_matches, write_gold
+from brasileirao.data_pipeline.ingest import append_new_states, ingest_raw, read_matches, write_gold
 from brasileirao.data_pipeline.sources import BrasileiraoDatasetSource
 from brasileirao.data_pipeline.validation import (
     load_awarded_results,
@@ -146,7 +146,7 @@ def command_conference(arguments: argparse.Namespace) -> None:
     (PATHS.silver / "conference_report.json").write_text(
         json.dumps([report.model_dump() for report in reports], indent=2, ensure_ascii=False), encoding="utf-8"
     )
-    append_changes(PATHS.silver, [entry for report in reports for entry in report.divergences])
+    append_new_states(PATHS.silver, [entry for report in reports for entry in report.divergences])
     print(json.dumps(counts_table(reports), indent=2, ensure_ascii=False))
 
 
@@ -342,7 +342,12 @@ def build_parser() -> argparse.ArgumentParser:
     conference.set_defaults(handler=command_conference)
 
     validate = commands.add_parser("validate", help="checagens de integridade")
-    validate.add_argument("--reference-date", default=None)
+    validate.add_argument(
+        "--reference-date",
+        default=None,
+        help="data da coleta (padrão: hoje em Brasília). Uma data anterior à coleta acusa como erro os jogos "
+        "encerrados depois dela; o estado numa data passada é o do simulate --reference-date",
+    )
     validate.set_defaults(handler=command_validate)
 
     backtest = commands.add_parser("backtest", help="ajuste de hiperparâmetros e backtesting temporal")
