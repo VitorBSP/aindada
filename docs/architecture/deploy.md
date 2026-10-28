@@ -27,7 +27,7 @@ docker compose run --rm pipeline   # atualiza dados e gera novo snapshot
 
 ## Publicação no GitHub Pages (ADR-0008, passo 13) — runbook
 
-Estado em 2026-10-27: workflow pronto na branch `deploy/publish-site`, **não mergeado, nunca
+Estado em 2026-10-28: workflow pronto na branch `deploy/publish-site`, **não mergeado, nunca
 executado no GitHub, nada publicado**. Repositório `VitorBSP/aindada`, privado.
 
 ### Como funciona
@@ -72,11 +72,34 @@ checkout -> pip install -> pytest (sem dados) -> baixa Adão Duque v18 do Kaggle
 
 ### Tempos medidos (2026-10-27, código do `main` `e44ea6a`, máquina local, 8 núcleos)
 
-TEMPOS_MEDIDOS
+Reconstrução do zero num diretório de dados copiado (`BRASILEIRAO_ROOT`), sem SQLite prévio, 2026 com
+319 jogos encerrados (32 rodadas):
+
+| Passo | Configuração | Tempo |
+|---|---|---|
+| download da v18 do Kaggle + SHA-256 | zip de 0,7 MB | ~2 s |
+| `ingest` (sem `--fetch`; com `--fetch` soma ~20 s: 3 chamadas com ≥ 6 s entre elas) | 9.545 partidas | 3–4 s |
+| `validate` | 24 temporadas | 2 s |
+| `simulate --history-from-round 1` | 31 pontos × 10 mil + atual × 100 mil | 379 s (~11 s por ponto; ~29 s o atual) |
+| `review-rounds` | 33 visões × 20 mil | 1.231 s |
+| `export-web`, `publication-gate`, `check_site_artifact.py` | 0 achados nos dois gates | ~10 s |
+| **Total de processamento** | | **~27 min** |
+
+- Estimativa no runner `ubuntu-latest` (mais `pip install` e `pytest`, ~3 min): **30 a 45 min**
+  por execução, a confirmar na primeira execução (C5). O `timeout-minutes` do job é 180.
+- A revisão rodada a rodada é ~75% do tempo. Com 100 mil simulações na revisão (5×) seriam ~1 h 45
+  só nesse passo localmente, e com 100 mil em cada ponto do histórico, mais ~30 min: cabe no limite de
+  6 h do job, mas não é recomendado para execução diária. O 07 manteve os valores do `config.py`
+  (`n_simulations` 100 mil no snapshot atual, `round_review_simulations` 20 mil) e 10 mil por ponto
+  do histórico (o padrão antigo do CLI era 2 mil).
+- Custo: zero em repositório público. Execução diária ≈ 15–23 h de runner por mês.
+- Reprodutibilidade: reexecutar o ponto de 2026-02-12 deu probabilidades de título e rebaixamento
+  idênticas; os demais números diferem em até 5e-13 (ruído de ponto flutuante do ajuste do modelo).
+- O artefato tem 40 arquivos e 2,4 MB (export 1,7 MB).
 
 ### O que o dono do produto faz (uma vez)
 
-Ver a lista no handoff do 07 em `docs/project/status.md` (2026-10-27). Resumo: cadastrar o secret
+Ver a lista no handoff do 07 em `docs/project/status.md` (2026-10-28). Resumo: cadastrar o secret
 `FOOTBALL_DATA_ORG_TOKEN`; depois do merge, rodar o ensaio manual; depois do parecer final 00/06,
 tornar o repositório público, escolher "GitHub Actions" como fonte do Pages e criar a variável
 `PUBLISH_ENABLED = true`.

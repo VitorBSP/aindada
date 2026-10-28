@@ -1743,3 +1743,69 @@ commit `bbf2a92`), sem push e sem tocar `data/` da pasta principal.
   diz "Temporadas usadas: temporadas não informadas" (texto do 08 para `seasons` ausente).
 - **Próximos responsáveis**: **06** auditar G4 e contraste dos links do rodapé; **00** atualizar o item 6 de
   `docs/architecture/deploy.md` e registrar Q18; **08** revisar o texto do item legado se quiser.
+
+## Agente 07: passo 13 do ADR-0008, workflow `publish-site.yml` sem repositório de estado (2026-10-28) — implementado, nunca executado no GitHub; confirmação do 00 e auditoria do 06 pendentes
+
+Branch `deploy/publish-site` (a partir de `origin/main` `e2eefae`), enviada ao repositório privado; sem merge.
+
+- **O que mudou**:
+  - `.github/workflows/publish-site.yml` (novo) e cópia em `infrastructure/github-workflows/`: reconstrução
+    completa a cada execução (download da v18 do Adão Duque com SHA-256 → `ingest --fetch` → `validate` →
+    `simulate --history-from-round 1` → `review-rounds` → `export-web` → `publication-gate` → checagens do
+    artefato → Pages). Diário às 09:00 UTC e `workflow_dispatch`; só na `main`; `contents: read`, e
+    `pages: write`/`id-token: write` só no deploy; `concurrency`; token só no passo de ingestão. Interruptor
+    `vars.PUBLISH_ENABLED == 'true'` para agendamento, upload e deploy; sem ele, o dispatch é ensaio.
+  - `update-predictions.yml` **removido** (as duas cópias): enviava o SQLite como artefato (Decisão 3).
+  - `ci.yml`: `permissions: contents: read`, `persist-credentials: false`, `concurrency`, `timeout-minutes`,
+    `ruff` também sobre `infrastructure/`. Continua sem segredos e sem dados reais.
+  - `infrastructure/scripts/fetch_adaoduque_v18.py`: baixa o zip público do Kaggle, extrai só os arquivos
+    fixados em `source_pins.json` e falha com hash divergente.
+  - `infrastructure/scripts/check_site_artifact.py`: itens 5, 6 e 8 do ADR-0007 que o `publication-gate` não
+    cobre (JSON obrigatórios, `model_version`/`data_version` coerentes, `rounds.data_until`, histórico sem data
+    futura, escudos não livres, `reference_date` não regressiva contra o site no ar).
+  - Testes (handoff ao 06): `tests/unit/test_workflows.py` (cópias iguais; workflow com segredo sem
+    `pull_request`; nenhum upload de SQLite/CSV/`data/`; deploy atrás do interruptor; gate com `--season`;
+    token num passo só) e `tests/unit/test_fetch_adaoduque_script.py` (zip sintético, sem rede).
+  - `docs/architecture/deploy.md`: runbook, tempos, rollback e riscos. ADR-0008: **adendo proposto** à
+    Decisão 3 (sem repositório de estado nem `STATE_REPO_TOKEN`), aguardando o 00.
+- **Evidência**:
+  - Reconstrução do zero numa cópia dos dados reais (código de `e44ea6a`; `e2eefae` não muda `src/`):
+    `ingest` 3 s, `validate` 2 s, `simulate` 379 s (31 pontos × 10 mil + atual × 100 mil), `review-rounds`
+    1.231 s (20 mil), export e gates ~10 s. Total ~27 min locais; estimativa no runner 30–45 min.
+  - `publication-gate` sobre o artefato montado como no workflow: **aprovado (0 achados)**;
+    `check_site_artifact.py`: aprovado (0 achados; 32 pontos no histórico, 33 visões). Artefato: 40 arquivos,
+    2,4 MB, sem SQLite nem CSV.
+  - Reexecução de um ponto do histórico: probabilidades de título e rebaixamento idênticas; demais números
+    com diferença máxima de 5e-13.
+  - `fetch_adaoduque_v18.py`: download real em 2026-10-27, sem login, hashes iguais aos fixados; com hash
+    adulterado, sai com código 1 e não grava nada.
+  - `actionlint` 1.7.12: sem achados nos 2 workflows. `pytest -q`: 492 passed. `ruff check`,
+    `ruff format --check` e `mypy` (50 arquivos; e `--strict` nos 2 scripts): sem erros.
+- **Premissas e limitações**:
+  - Nunca rodou no GitHub (C5 pendente). O tempo no runner é estimativa.
+  - Toda a história publicada é reconstrução com o modelo do dia; não há campo "reconstrução" no schema.
+  - Sem `insights.json` no site (nenhum job aprova insight, D-026).
+  - Temporada fixa em `2026` no workflow (N10); a troca de temporada é uma linha (`SEASON`) ou a entrada do
+    dispatch.
+  - Agendamentos em repositório público são desativados após 60 dias sem commit (a verificar).
+- **Próximos responsáveis**:
+  - **00**: confirmar ou recusar o adendo da Decisão 3; se confirmar, atualizar R12 em `risks.md` e o item 4
+    do ADR-0007; revisar e mergear a branch.
+  - **06**: auditar o workflow, os scripts e os testes novos; N8 e N10 estão cobertos (gate com `--season`
+    explícito; `load_inputs` e o G1 rejeitam `mode != publication`); acompanhar o ensaio C5.
+  - **08/05**: dizer na interface que a evolução das probabilidades é recalculada com o modelo atual.
+  - **Dono do produto**: os passos da seção "O que o dono do produto faz" abaixo.
+
+### O que o dono do produto faz (cliques no GitHub, `VitorBSP/aindada`)
+
+1. Agora: Settings → Secrets and variables → Actions → aba Secrets → New repository secret → nome
+   `FOOTBALL_DATA_ORG_TOKEN`, valor da chave.
+2. Depois do merge da branch na `main`: Actions → publish-site → Run workflow (ensaio C5, ~40 min; no
+   repositório privado consome minutos da cota gratuita).
+3. Depois do parecer final 00/06: Settings → General → Danger Zone → Change visibility → Public.
+4. Settings → Pages → Build and deployment → Source → **GitHub Actions**.
+5. Settings → Secrets and variables → Actions → aba Variables → New repository variable → nome
+   `PUBLISH_ENABLED`, valor `true`.
+6. Actions → publish-site → Run workflow (primeira publicação, sem esperar as 09:00 UTC).
+
+Rollback: Settings → Pages → Unpublish site (tira do ar) e `PUBLISH_ENABLED` = `false` (para o agendamento).
