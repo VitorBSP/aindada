@@ -2552,3 +2552,50 @@ ADR-0007 e ADR-0008 e o roadmap. Nenhum código, workflow ou dado mudou.
     (medida do R20);
   - **00**: ciente da mudança de data dos 41 jogos (rodadas 35 a 38 e o adiado da 21), que afeta o
     `round_cutoffs` e a janela da rodada do ADR-0009 (agora no dia certo).
+
+## Agente 04: horário no export e `current-round.json`, passo 2 do ADR-0009 (2026-10-28) — entregue, aguarda auditoria do 06
+
+Branch `api/current-round` (sobre `data/kickoff` do 01). Sem merge na `main`.
+
+- **O que mudou:**
+  - `storage/schema.py`: `MatchPrediction.kickoff_utc` (ISO 8601 UTC, só confirmado) e `source_match_id`,
+    opcionais; modelos `CurrentRound`, `CurrentRoundInfo` e `RoundBaseline`. `SNAPSHOT_SCHEMA_VERSION` 1.3
+    (aditivo; snapshot 1.2 continua legível, com os campos `null`);
+  - `pipeline.py` (handoff do ADR): `_match_predictions` preenche os dois campos e mantém `postponed` e
+    `cancelled` no `status` de jogo sem resultado (antes saía sempre `scheduled`; o `app.js` só compara
+    com `finished`, então nada quebra). `export_static_api(..., now=None)` grava
+    `data/api/seasons/{s}/current-round.json`;
+  - `config.py`: `CURRENT_ROUND_SCHEMA_VERSION = "1.0"`, `ROUND_WINDOW_DAYS = 4`, `STALE_RESULT_HOURS = 48`;
+  - `storage/current_round.py` (novo): regras da Decisão 3; rota `GET /api/seasons/{s}/current-round`;
+  - testes: `tests/unit/test_current_round.py` (25) e `tests/integration/test_current_round_export.py` (17),
+    sintéticos, mais 2 na `test_api.py`. `test_provenance.py`: a checagem do schema passou de `== "1.2"` para
+    `>= 1.2` (consequência direta do 1.3; o 06 confere);
+  - `docs/architecture/api.md`.
+- **Evidência** (Python da `.venv` da pasta principal, `PYTHONPATH` da worktree; o import resolve para a
+  worktree): `pytest -q` 641 passed, 1 skipped; `ruff check` e `ruff format --check` OK; `mypy` sem erros em
+  51 arquivos. Fumaça com a ingestão do 01 copiada para o scratchpad (`a04_current_round`), 2.000/500/500
+  simulações: `simulate --history-from-round 28`, `review-rounds`, `export-web` às 19h10 de 28/10 em
+  Brasília → rodada 33 `in_progress`, 2026-10-28 a 2026-10-31, 10 jogos com horário, nenhum remarcado,
+  ponto de partida 2026-10-26 (visão da rodada 32), 20 clubes. Regras do contrato conferidas por script:
+  ids existem, listas disjuntas, versões iguais às do `predictions.json`, `baseline.teams` = clubes e
+  valores da visão citada, nenhum placar fora de `finished`. `publication-gate`: 0 achados.
+  `check_site_artifact.py --seed 2026`: 0 achados. Com outros relógios sobre o mesmo snapshot: 27/10 →
+  rodada 32 `finished`; 28/10 às 23h de 27/10 em Brasília → 32; 03/11 → 34 `in_progress`. A rodada 21 fica
+  com 3 jogos em `rescheduled_match_ids`, e o adiado (data original) conta como resolvido.
+- **Premissas e limitações:**
+  - jogo sem `kickoff_utc` conta como iniciado no fim do dia em Brasília (hipótese mais tardia) para a regra
+    das 48 h;
+  - "jogo atrasado de outra rodada" = jogo fora da janela da própria rodada; jogos de outra rodada dentro da
+    janela dela não entram (rodadas sobrepostas não se misturam). Jogos com `round` nulo não entram;
+  - `baseline.teams` traz só `title`, `top4` e `relegation` (a visão tem também pontos e posição);
+  - `baseline` é `null` se a revisão for de outro `data_version`; clubes diferentes fazem o export falhar;
+  - **para o 00:** a revisão tem a visão da pré-temporada (rodada 0, véspera da rodada 1). Pela regra geral
+    ("maior `reference_date` anterior a `starts_on`"), a rodada 1 **tem** ponto de partida quando o
+    `rounds.json` existe; o `baseline: null` só ocorre sem revisão ou sem visão anterior. O ADR cita "rodada
+    1" como o caso sem ponto de partida; se a intenção for `null` sempre na rodada 1, é uma decisão nova;
+  - a API calcula a rodada com o relógio da requisição; o export, com o do `export-web`.
+- **Próximos responsáveis:**
+  - **06**: auditar o passo 2 (regras do contrato, `status` `postponed`, campos novos, teste do schema);
+  - **07**: estender o `check_site_artifact.py` ao `current-round.json` e usar `source_match_id`/`kickoff_utc`;
+  - **05**: o export real existe nesta branch; ler `current-round.json` e os campos novos do `predictions.json`;
+  - **00**: decidir o caso da rodada 1 acima e o merge depois do 06.

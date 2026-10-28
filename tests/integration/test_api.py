@@ -100,3 +100,11 @@ def test_rounds_returns_pre_season_first(client: TestClient) -> None:
 
 def test_rounds_missing_season_is_404(client: TestClient) -> None:
     assert client.get("/api/seasons/1999/rounds").status_code == 404
+
+
+def test_current_round_follows_contract_version(client: TestClient) -> None:
+    assert client.get("/api/seasons/2032/current-round").json()["schema_version"] == "1.0"
+
+
+def test_current_round_unknown_season_404(client: TestClient) -> None:
+    assert client.get("/api/seasons/1999/current-round").status_code == 404

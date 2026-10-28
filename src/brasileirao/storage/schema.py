@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -169,6 +169,8 @@ class MatchPrediction(BaseModel):
     most_likely_score_probability: float | None = None
     top_scores: list[ScoreProbability] | None = None
     p_three_plus_goals: float | None = None
+    kickoff_utc: str | None = None
+    source_match_id: str | None = None
 
 
 class ModelInfo(BaseModel):
@@ -340,3 +342,34 @@ class RoundReview(BaseModel):
     metrics: list[str]
     clubs: dict[str, ClubLabel]
     rounds: list[RoundViewInfo]
+
+
+class RoundBaseline(BaseModel):
+    """Ponto de partida da comparação: a visão do `rounds.json` da véspera do primeiro jogo (ADR-0009)."""
+
+    reference_date: str
+    model_version: str
+    n_simulations: int
+    reconstructed: bool
+    teams: ClubMetricValues
+
+
+class CurrentRoundInfo(BaseModel):
+    round_number: int
+    state: Literal["in_progress", "finished"]
+    starts_on: str
+    ends_on: str
+    match_ids: list[str]
+    rescheduled_match_ids: list[str]
+    baseline: RoundBaseline | None
+
+
+class CurrentRound(BaseModel):
+    """Rodada mostrada na aba "Rodada atual" / "Última rodada" (ADR-0009, Decisão 3). `round` nulo na pré-temporada."""
+
+    schema_version: str
+    season: int
+    updated_at: str
+    model_version: str
+    data_version: str
+    round: CurrentRoundInfo | None
