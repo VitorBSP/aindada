@@ -62,19 +62,19 @@ def test_scenario_ranges_bound_each_scenario(snapshot: PredictionSnapshot) -> No
 
 
 def test_store_round_trip(tmp_path: Path, snapshot: PredictionSnapshot) -> None:
-    store = SnapshotStore(tmp_path / "s.sqlite")
+    store = SnapshotStore(tmp_path / "s.sqlite", include_research=True)
     snapshot_id = store.save(snapshot)
     assert store.load(snapshot_id).reference_date == snapshot.reference_date
 
 
 def test_synthetic_snapshots_hidden_from_listing(tmp_path: Path, snapshot: PredictionSnapshot) -> None:
-    store = SnapshotStore(tmp_path / "s.sqlite")
+    store = SnapshotStore(tmp_path / "s.sqlite", include_research=True)
     store.save(snapshot.model_copy(update={"is_synthetic": True}))
     assert store.list_records() == []
 
 
 def test_probability_history_keeps_latest_per_date(tmp_path: Path, snapshot: PredictionSnapshot) -> None:
-    store = SnapshotStore(tmp_path / "s.sqlite")
+    store = SnapshotStore(tmp_path / "s.sqlite", include_research=True)
     store.save(snapshot)
     store.save(snapshot.model_copy(update={"generated_at": "9999-01-01T00:00:00"}))
     assert len(probability_history(store, 2032)) == 1
@@ -108,6 +108,6 @@ def test_round_review_attributes_matches_after_pre_season(round_review: RoundRev
 
 
 def test_round_review_round_trip(tmp_path: Path, round_review: RoundReview) -> None:
-    store = SnapshotStore(tmp_path / "reviews.sqlite")
+    store = SnapshotStore(tmp_path / "reviews.sqlite", include_research=True)
     store.save_round_review(round_review)
     assert store.latest_round_review(2032) == round_review

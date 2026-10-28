@@ -1551,3 +1551,130 @@ ou mais gols, no lugar do placar mais provável.
   liberação do gold novo (condição 2 do parecer do 06). Flamengo e Vitória têm bolinhas iguais pela
   especificação; diferenciar é decisão do dono do produto.
 
+
+## Agente 00: passo 10 do ADR-0008, snapshot com várias fontes e gate G1–G5 (2026-10-27) — implementado, revisão do 04 e auditoria do 06 pendentes
+
+Feito numa worktree isolada a partir de `bd68933` (branch `worktree-agent-a269986379fe0e877`,
+commit `bbf2a92`), sem push e sem tocar `data/` da pasta principal.
+
+- **O que mudou**:
+  - **Contrato do snapshot** (`storage/schema.py`, interface do 00; `SNAPSHOT_SCHEMA_VERSION` 1.1 → 1.2):
+    - `DataSourceInfo` novo: `source_name`, `origin`, `version`, `seasons`, `retrieved_at`,
+      `license_status`, `allowed_uses`, `attribution` (texto exato do manifesto), `license_name`, `terms_url`;
+    - `DataInfo` ganha `sources: list[DataSourceInfo]` e `composition_mode` (`publication`/`research`).
+      `source` (nomes unidos com " + "), `version` (composta, `<fonte>@<versão>+...`, que vira o
+      `data_version` do SQLite e da revisão por rodada) e `license_status` (o mais restritivo,
+      **validado** contra as fontes quando há `composition_mode`) continuam;
+    - `retrieved_at` = coleta mais recente entre as fontes;
+    - leitura tolerante: payload sem `sources` (schema ≤ 1.1) ganha uma entrada única derivada dos
+      campos legados, **sem temporadas** e com `composition_mode` nulo, e por isso reprova no G3.
+  - **`brasileirao.provenance`** (novo, 00): lê `data/silver/sources.json`, confere cada manifesto
+    listado (existe, SHA-256 igual ao da composição, nome e versão iguais) e monta o `DataInfo`.
+    `ProvenanceError` com mensagem clara se faltar `sources.json`, se o modo for desconhecido ou se
+    um manifesto mudou ou sumiu.
+  - **`pipeline.load_inputs(season, mode=publication)`**: sai `latest_raw_dir('brasileirao_dataset')`
+    (condição 2 do 06, linhas 95 e 379 antigas). Em modo publicação falha com composição ausente,
+    `mode != publication` (N8) ou gold com linha fora da composição (G1). `run_season_snapshots` e
+    `run_round_review` recebem `mode`.
+  - **CLI**: `simulate --research` e `review-rounds --research` (só pesquisa local; o snapshot leva
+    o aviso "Composição de PESQUISA ... nunca publicável" em `data.warnings`). Sem a opção, o padrão
+    é publicação. `ProvenanceError` vira `SystemExit` sem salvar snapshot.
+  - **Gate** `brasileirao.publication_gate` (novo) e comando `brasileirao publication-gate`
+    (`--gold`, `--composition`, `--predictions`, `--artifact-dir`; código de saída 1 se reprovar):
+    - G1: modo da composição; linha do gold de fonte fora da composição, sem `public_display_derived`
+      ou licença não publicável, ou de fonte diferente da composição da temporada; temporada sem fonte;
+    - G2: correção manual sem URL `http(s)` e data;
+    - G3: `data.composition_mode`, `data.license_status` publicável, `data.sources` cobrindo
+      `model.training_seasons` e a temporada exibida;
+    - G4: atribuição de cada fonte `licensed_with_attribution` presente em `data.sources` **e** no
+      texto visível dos `*.html` do artefato (marcação removida, entidades resolvidas);
+    - G5: nenhum `*.sqlite`, `*.sqlite3`, `*.db`, `*.csv`, `*.parquet`, `*.jsonl`, `*.env`, nem pasta
+      `raw/`, `silver/`, `gold/`, `snapshots/` ou `editorial/` no artefato.
+    - As mensagens levam só contagens, nomes de fonte e até 5 `match_id`, sem placar.
+  - **Export e API**: `predictions.json` e `GET /api/seasons/{s}/predictions` passam a levar
+    `data.sources` com a atribuição exata (vem do modelo; `export_static_api` e `apps/api/main.py`
+    não precisaram mudar).
+  - **N1**: `tzdata>=2024.1` nas dependências do `pyproject.toml` (sem marcador de plataforma, para
+    imagens Linux sem base de fusos).
+- **Evidência**:
+  - `pytest -q`: **431 passed** (eram 374 em `bd68933` nesta worktree; 57 novos:
+    `tests/unit/test_provenance.py` 22, `tests/unit/test_publication_gate.py` 27,
+    `tests/integration/test_multi_source_pipeline.py` 8). Fixtures em `tests/fixtures/provenance.py`,
+    marcadas como sintéticas; usam os nomes de fonte e os textos de atribuição reais (contrato), com
+    origem, versões e temporadas 2030–2032 sintéticas.
+  - `ruff check src apps tests scripts` e `ruff format --check`: sem erros. `mypy`: sem erros em 50 arquivos.
+  - Fumaça numa **cópia** de `data/silver`, `data/gold`, `data/raw/adaoduque_kaggle` e
+    `data/raw/football_data_org` no scratchpad, com `BRASILEIRAO_ROOT` apontando para ela:
+    - `load_inputs(2026)`: 2 fontes, `adaoduque_kaggle` (`kaggle-v18`, 23 temporadas, 2003–2025) e
+      `football_data_org` (`v4-20261027T205022Z`, 2026), as duas `licensed_with_attribution`; G1 passou
+      sobre o gold real;
+    - `data_version` = `adaoduque_kaggle@kaggle-v18+football_data_org@v4-20261027T205022Z`;
+    - `simulate --simulations 300` (só fumaça; números não usados nem registrados): snapshot com
+      `schema_version` 1.2, export com as duas atribuições exatas em `data.sources`;
+    - `publication-gate`: G1, G2, G3 e G5 aprovados; **G4 reprovado** (as duas atribuições ausentes do
+      HTML), como esperado até o rodapé existir. `check_g5_artifact(apps/web)` da worktree: sem achados.
+- **Premissas e limitações**:
+  - G4 procura a atribuição no HTML estático. Texto montado só por JavaScript não conta: o rodapé tem
+    de estar no `index.html` (ou outro `*.html` do artefato).
+  - O gate confia no `sources.json` para os usos e a licença de cada fonte; quem confere os manifestos
+    contra a composição é o `load_inputs` (SHA-256). O 07 pode chamar os dois no workflow.
+  - `MODEL_VERSION` **não** mudou: é do 02, no passo 11 (N9).
+  - Snapshots antigos (1 a 29, Sofascore) continuam legíveis, mas reprovam no G3 por não terem temporadas.
+  - A atribuição do Adão Duque é a provisória do manifesto (C2 pendente com o 08 e o dono).
+- **Conflitos prováveis com a sessão paralela do dono** (sem commit, na pasta principal): ela mexe
+  em `goal_dispersion` em `pipeline.py` (linhas 77, 91, 147 e 264 da base) e em `ModelInfo` no
+  `schema.py`. Os trechos alterados aqui (imports, `latest_raw_dir`, `load_inputs`,
+  `run_season_snapshots`, `run_round_review` e `DataInfo`) não se sobrepõem: o merge deve ser
+  automático. Semanticamente, `goal_dispersion` muda o modelo e reforça a necessidade de
+  `model_version` novo (passo 11).
+- **Próximos responsáveis**:
+  - **04**: revisar `storage/schema.py` (`DataSourceInfo`, leitura tolerante) e a API. Avaliar se
+    `GET /api/seasons` ou um endpoint próprio deve expor as fontes, e se o SQLite precisa de uma
+    coluna de modo ou de licença para filtrar snapshots de pesquisa (hoje só pelo payload).
+  - **02 (passo 11)**: regenerar snapshots e revisão por rodada com `simulate`/`review-rounds` no modo
+    publicação. `model_version` novo (N9, `goal_dispersion`) e `data_version` composto já saem do
+    `load_inputs`. A história de 2026 é reconstruída e identificada como reconstrução.
+  - **05/08 (G4, C2)**: rodapé no `index.html` com o texto exato de cada `data.sources[].attribution`
+    (`Football data provided by the Football-Data.org API` e o texto do Adão Duque aprovado no C2).
+    Em `apps/web/assets/app.js:766`:
+    - "Uso restrito a pesquisa local até a licença ser verificada" fica errado para
+      `licensed_with_attribution`;
+    - `data.version.slice(0, 12)` corta a versão composta;
+    - o ideal é listar `data.sources`.
+    O 00 não editou `apps/web`.
+  - **07 (passo 13)**: no `update-predictions.yml`, chamar `brasileirao publication-gate --season <s>
+    --artifact-dir <pasta do artefato>` depois do `export-web` e antes do upload. Se sair com código ≠ 0,
+    não publica. Passar `--season` explícito (N10).
+  - **06**: auditar o contrato 1.2, a leitura tolerante, as regras do gate e os testes novos.
+
+## Agente 04: revisão do passo 10 do ADR-0008, storage e API (2026-10-27) — aprovado com ajustes, auditoria do 06 pendente
+
+- **O que mudou** (na mesma branch da worktree):
+  - `storage/snapshots.py`: colunas `composition_mode` e `license_status` em `snapshots` e `round_reviews`,
+    com migração idempotente (`ALTER TABLE` só se faltar a coluna; preenchimento por `json_extract` do
+    payload só onde `license_status` é nulo) e índices `idx_snapshots_publication` e
+    `idx_round_reviews_publication`. `SnapshotStore(path, include_research=False)`: por padrão
+    `list_records`, `latest`, `latest_per_reference_date` e `latest_round_review` só veem
+    `composition_mode = 'publication'` com licença publicável. Com isso a API, o `probability-history`,
+    o `export_static_api` e o gerador de insights ignoram snapshots de pesquisa e os legados (≤ 1.1).
+    `load(snapshot_id)` continua sem filtro.
+  - `RoundReview` ganha `composition_mode` e `license_status` (opcionais); `ROUND_REVIEW_SCHEMA_VERSION`
+    1.0 → 1.1 (aditivo; o 05 não precisa mudar).
+  - `provenance.load_data_info`: em modo pesquisa o snapshot sai `composition_mode = research` mesmo sobre
+    composição de publicação. Antes, `simulate --research` pulava o G1 e gravava o snapshot como `publication`
+    (reproduzido na fumaça: snapshot 32). `RESEARCH_WARNING` reescrito para cobrir os dois casos.
+  - CLI: `simulate --research` e `review-rounds --research` não regeneram `apps/web/data`.
+  - Testes: `tests/integration/test_snapshot_visibility.py` (16). Os testes antigos com `DataInfo` sintético
+    sem modo usam `include_research=True`.
+- **Evidência**: `pytest -q` 447 passed; `ruff check`, `ruff format --check` e `mypy` (pacote, mais
+  `apps/api/main.py`) sem erros. Fumaça numa cópia do `snapshots.sqlite` real (30 snapshots 1.0/1.1, 5 revisões),
+  `BRASILEIRAO_ROOT` no scratchpad: todos os 30 payloads validam no schema 1.2 (uma fonte, sem temporadas); a migração
+  preencheu `research_only_unverified` nos 30 e deixou as 5 revisões sem modo; a API respondeu `[]` em `/api/seasons`
+  e 404 em `/predictions`. Depois de `simulate --simulations 300` (fumaça, números não usados): 1 snapshot de
+  publicação, `data.sources` com as duas atribuições, `probability-history` com 1 data, export sem caminho local.
+- **Premissas e limitações**: até o passo 11, a API e o export da pasta principal ficam vazios (os 30 snapshots
+  são `research_only_unverified`); é o comportamento pedido pelo ADR-0008. Não criei `/api/sources`: `data.sources`
+  já sai em `/predictions` e no `predictions.json`, e o G4 exige o texto no HTML. As revisões por rodada antigas
+  ficam ocultas até o 02 regerar com `review-rounds`.
+- **Próximos responsáveis**: **02** (passo 11) regera snapshots e revisão no modo publicação; **06** audita a
+  migração e o filtro; **05** pode ler `composition_mode` e `license_status` em `rounds.json`.

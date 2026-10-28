@@ -48,6 +48,8 @@ from brasileirao.insights.editorial import (
 from brasileirao.insights.generator import generate
 from brasileirao.logging_utils import configure_logging, get_logger
 from brasileirao.pipeline import export_static_api, run_round_review, run_season_snapshots
+from brasileirao.provenance import ProvenanceError
+from brasileirao.publication_gate import GateInputs, run_publication_gate
 from brasileirao.storage.snapshots import SnapshotStore
 from brasileirao.validation.report import run_backtest_report
 
@@ -174,32 +176,72 @@ def command_backtest(arguments: argparse.Namespace) -> None:
     print(json.dumps({key: report[key] for key in ("chosen_feature_set", "validation_log_loss")}, indent=2))
 
 
+def _composition_mode(arguments: argparse.Namespace) -> CompositionMode:
+    return CompositionMode.RESEARCH if arguments.research else CompositionMode.PUBLICATION
+
+
 def command_simulate(arguments: argparse.Namespace) -> None:
     reference = date.fromisoformat(arguments.reference_date) if arguments.reference_date else None
     store = SnapshotStore(PATHS.snapshots_db)
-    saved = run_season_snapshots(
-        arguments.season,
-        arguments.simulations,
-        arguments.seed,
-        reference,
-        arguments.history_from_round,
-        arguments.history_simulations,
-        store,
-    )
+    try:
+        saved = run_season_snapshots(
+            arguments.season,
+            arguments.simulations,
+            arguments.seed,
+            reference,
+            arguments.history_from_round,
+            arguments.history_simulations,
+            store,
+            _composition_mode(arguments),
+        )
+    except ProvenanceError as error:
+        raise SystemExit(f"simulação interrompida, nenhum snapshot salvo: {error}") from error
     print(f"snapshots salvos: {saved}")
-    export_static_api(store, arguments.season)
+    _export_publication(store, arguments)
 
 
 def command_review_rounds(arguments: argparse.Namespace) -> None:
     store = SnapshotStore(PATHS.snapshots_db)
-    review = run_round_review(arguments.season, arguments.simulations, arguments.seed, store)
+    try:
+        review = run_round_review(
+            arguments.season, arguments.simulations, arguments.seed, store, _composition_mode(arguments)
+        )
+    except ProvenanceError as error:
+        raise SystemExit(f"revisão interrompida, nada foi salvo: {error}") from error
     print(f"revisão salva: {len(review.rounds)} visões (rodadas 0 a {review.rounds[-1].round_number})")
+    _export_publication(store, arguments)
+
+
+def _export_publication(store: SnapshotStore, arguments: argparse.Namespace) -> None:
+    """O export estático é artefato publicável: em modo pesquisa ele não é regenerado."""
+    if _composition_mode(arguments) == CompositionMode.RESEARCH:
+        print("modo pesquisa: export estático não atualizado (snapshots de pesquisa nunca vão para apps/web/data)")
+        return
     export_static_api(store, arguments.season)
 
 
 def command_export_web(arguments: argparse.Namespace) -> None:
     for path in export_static_api(SnapshotStore(PATHS.snapshots_db), arguments.season):
         print(f"exportado: {path}")
+
+
+def command_publication_gate(arguments: argparse.Namespace) -> None:
+    """Gate G1 a G5 do ADR-0008; código de saída 1 se qualquer regra falhar (o 07 chama no workflow)."""
+    inputs = GateInputs(
+        gold_matches=Path(arguments.gold),
+        composition=Path(arguments.composition),
+        predictions=Path(
+            arguments.predictions
+            or PATHS.web_static_data / "api" / "seasons" / str(arguments.season) / "predictions.json"
+        ),
+        artifact_dir=Path(arguments.artifact_dir),
+    )
+    findings = run_publication_gate(inputs)
+    for finding in findings:
+        print(f"[{finding.rule}] {finding.detail}")
+    print(f"gate de publicação: {'REPROVADO' if findings else 'aprovado'} ({len(findings)} achados)")
+    if findings:
+        raise SystemExit(1)
 
 
 def _now() -> str:
@@ -315,13 +357,31 @@ def build_parser() -> argparse.ArgumentParser:
     simulate.add_argument("--reference-date", default=None)
     simulate.add_argument("--history-from-round", type=int, default=None)
     simulate.add_argument("--history-simulations", type=int, default=2000)
+    simulate.add_argument(
+        "--research",
+        action="store_true",
+        help="SÓ PESQUISA LOCAL: aceita sources.json com mode=research; o snapshot nunca é publicável",
+    )
     simulate.set_defaults(handler=command_simulate)
 
     review = commands.add_parser("review-rounds", help="visões rodada a rodada e atribuição das mudanças")
     review.add_argument("--season", type=int, default=2026)
     review.add_argument("--simulations", type=int, default=SimulationConfig().round_review_simulations)
     review.add_argument("--seed", type=int, default=SimulationConfig().seed)
+    review.add_argument(
+        "--research",
+        action="store_true",
+        help="SÓ PESQUISA LOCAL: aceita sources.json com mode=research; o snapshot nunca é publicável",
+    )
     review.set_defaults(handler=command_review_rounds)
+
+    gate = commands.add_parser("publication-gate", help="gate G1 a G5 do ADR-0008 antes do deploy")
+    gate.add_argument("--season", type=int, default=2026)
+    gate.add_argument("--gold", default=str(PATHS.gold / "matches_model.csv"))
+    gate.add_argument("--composition", default=str(PATHS.silver / "sources.json"))
+    gate.add_argument("--predictions", default=None, help="predictions.json exportado (padrão: o da temporada)")
+    gate.add_argument("--artifact-dir", default=str(PATHS.root / "apps" / "web"), help="pasta do artefato do Pages")
+    gate.set_defaults(handler=command_publication_gate)
 
     export = commands.add_parser("export-web", help="exporta JSON estático para apps/web/data")
     export.add_argument("--season", type=int, default=2026)

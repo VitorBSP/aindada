@@ -27,7 +27,8 @@ from brasileirao.config import (
 )
 from brasileirao.contracts import MatchStatus
 from brasileirao.data_pipeline.clubs import ClubRegistry, load_club_registry
-from brasileirao.data_pipeline.ingest import card_totals_as_of, load_manifest, read_matches
+from brasileirao.data_pipeline.composition import CompositionMode
+from brasileirao.data_pipeline.ingest import card_totals_as_of, read_matches
 from brasileirao.data_pipeline.validation import (
     QualityReport,
     Severity,
@@ -38,6 +39,8 @@ from brasileirao.frame_values import as_int, as_timestamp
 from brasileirao.logging_utils import get_logger
 from brasileirao.prediction.goals_model import GoalsModel, outcome_probabilities, top_scores, total_goals_at_least
 from brasileirao.prediction.schedule import build_schedules
+from brasileirao.provenance import ProvenanceError, load_data_info, read_composition
+from brasileirao.publication_gate import check_g1_gold_sources
 from brasileirao.ratings.history import RatingEngine, RatingState, build_state_as_of
 from brasileirao.simulation.engine import SeasonSimulator, SimulationResult
 from brasileirao.simulation.round_review import METRICS, RoundView, build_round_view, round_cutoffs
@@ -92,15 +95,6 @@ def load_model_config(gold_dir: Path = PATHS.gold) -> ModelConfig:
         uncertainty=SimulationUncertainty(**payload.get("simulation_uncertainty", {})),
         goal_dispersion=bool(payload.get("goal_dispersion", False)),
     )
-
-
-def latest_raw_dir(raw_root: Path = PATHS.raw, source_name: str = "brasileirao_dataset") -> Path:
-    candidates = sorted(
-        (raw_root / source_name).glob("*/manifest.json"), key=lambda path: load_manifest(path.parent).retrieved_at
-    )
-    if not candidates:
-        raise FileNotFoundError("nenhuma ingestão raw encontrada; rode `brasileirao ingest`")
-    return candidates[-1].parent
 
 
 def _scenario_range(values: dict[str, float]) -> ScenarioRange:
@@ -381,26 +375,27 @@ def _match_predictions(
 
 
 def load_inputs(
-    season: int,
+    season: int, mode: CompositionMode = CompositionMode.PUBLICATION
 ) -> tuple[pd.DataFrame, pd.DataFrame | None, SeasonRules, ClubRegistry, DataInfo, QualityReport]:
+    """Gold, regras e proveniência pela composição `data/silver/sources.json` (ADR-0008, passo 10).
+
+    Em modo publicação, composição ausente, de pesquisa ou gold fora da composição (G1) fazem falhar.
+    """
     matches_data = read_matches(PATHS.gold / "matches_model.csv")
+    if mode == CompositionMode.PUBLICATION:
+        findings = check_g1_gold_sources(matches_data, read_composition(PATHS.silver))
+        if findings:
+            raise ProvenanceError("; ".join(finding.detail for finding in findings))
     cards_path = PATHS.silver / "cards_by_match.csv"
     cards_by_match = pd.read_csv(cards_path) if cards_path.exists() else None
     rules = load_season_rules(season)
     registry = load_club_registry()
-    manifest = load_manifest(latest_raw_dir())
     quality = run_quality_checks(
         matches_data,
         datetime.now(tz=UTC).date(),
         load_known_exceptions(PATHS.reference / "known_exceptions.csv"),
     )
-    data_info = DataInfo(
-        source=f"{manifest.source_name} ({manifest.origin})",
-        version=manifest.version,
-        license_status=manifest.license_status.value,
-        retrieved_at=manifest.retrieved_at.isoformat(),
-        warnings=_quality_warnings(quality, season),
-    )
+    data_info = load_data_info(PATHS.silver, PATHS.raw, mode, _quality_warnings(quality, season))
     return matches_data, cards_by_match, rules, registry, data_info, quality
 
 
@@ -433,8 +428,9 @@ def run_season_snapshots(
     history_from_round: int | None = None,
     history_simulations: int = 2000,
     store: SnapshotStore | None = None,
+    mode: CompositionMode = CompositionMode.PUBLICATION,
 ) -> list[int]:
-    matches_data, cards_by_match, rules, registry, data_info, quality = load_inputs(season)
+    matches_data, cards_by_match, rules, registry, data_info, quality = load_inputs(season, mode)
     (PATHS.gold / "quality_report.json").write_text(quality.model_dump_json(indent=2), encoding="utf-8")
     snapshot_store = store or SnapshotStore(PATHS.snapshots_db)
     model_config = load_model_config()
@@ -572,6 +568,8 @@ def build_round_review(
         data_until=data_until.isoformat(),
         n_simulations=n_simulations,
         seed=seed,
+        composition_mode=data_info.composition_mode,
+        license_status=data_info.license_status,
         metrics=list(METRICS),
         clubs={
             club: ClubLabel(name=registry.display_name(club), short_name=registry.clubs[club].short_name)
@@ -581,8 +579,14 @@ def build_round_review(
     )
 
 
-def run_round_review(season: int, n_simulations: int, seed: int, store: SnapshotStore | None = None) -> RoundReview:
-    matches_data, cards_by_match, rules, registry, data_info, _ = load_inputs(season)
+def run_round_review(
+    season: int,
+    n_simulations: int,
+    seed: int,
+    store: SnapshotStore | None = None,
+    mode: CompositionMode = CompositionMode.PUBLICATION,
+) -> RoundReview:
+    matches_data, cards_by_match, rules, registry, data_info, _ = load_inputs(season, mode)
     review = build_round_review(
         matches_data,
         season,

@@ -27,7 +27,7 @@ def client(
     synthetic_rules: SeasonRules,
     synthetic_registry: ClubRegistry,
 ) -> TestClient:
-    store = SnapshotStore(tmp_path_factory.mktemp("api") / "s.sqlite")
+    store = SnapshotStore(tmp_path_factory.mktemp("api") / "s.sqlite", include_research=True)
     info = DataInfo(
         source="synthetic", version="synthetic", license_status="synthetic", retrieved_at="2032-10-01", warnings=[]
     )

@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 from datetime import date
+from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+from brasileirao.contracts import LicenseStatus, most_restrictive_license
 
 
 class ScenarioRange(BaseModel):
@@ -181,12 +184,69 @@ class ModelInfo(BaseModel):
     rating_params: dict[str, dict[str, float]]
 
 
+class DataSourceInfo(BaseModel):
+    """Uma fonte de publicação usada pelo snapshot (ADR-0008, Decisão 2), com as temporadas que cobre."""
+
+    source_name: str
+    origin: str
+    version: str
+    seasons: list[int]
+    retrieved_at: str
+    license_status: str
+    allowed_uses: list[str]
+    attribution: str | None = None
+    license_name: str | None = None
+    terms_url: str | None = None
+
+
+def _legacy_source_entry(payload: dict[str, Any]) -> dict[str, Any]:
+    """Snapshot anterior ao schema 1.2: uma fonte só, sem temporadas nem usos declarados."""
+    label = str(payload.get("source", ""))
+    name, _, origin = label.partition(" (")
+    return {
+        "source_name": name.strip(),
+        "origin": origin.removesuffix(")").strip(),
+        "version": str(payload.get("version", "")),
+        "seasons": [],
+        "retrieved_at": str(payload.get("retrieved_at", "")),
+        "license_status": str(payload.get("license_status", "")),
+        "allowed_uses": [],
+    }
+
+
 class DataInfo(BaseModel):
+    """Proveniência dos dados do snapshot.
+
+    `source` (nomes unidos), `version` (versão composta, o `data_version`) e `license_status` (o mais
+    restritivo entre as fontes) ficam por compatibilidade; `sources` traz cada fonte. Snapshots antigos
+    (sem `sources`) são lidos com uma entrada única derivada dos campos legados, sem temporadas, o que
+    os reprova no gate G3.
+    """
+
     source: str
     version: str
     license_status: str
     retrieved_at: str
     warnings: list[str]
+    composition_mode: str | None = None
+    sources: list[DataSourceInfo] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _upgrade_legacy(cls, payload: Any) -> Any:
+        if isinstance(payload, dict) and "sources" not in payload and payload.get("source"):
+            return {**payload, "sources": [_legacy_source_entry(payload)]}
+        return payload
+
+    @model_validator(mode="after")
+    def _check_aggregate_license(self) -> DataInfo:
+        if self.composition_mode is None or not self.sources:
+            return self
+        statuses = [LicenseStatus(source.license_status) for source in self.sources]
+        expected = most_restrictive_license(statuses).value
+        if self.license_status != expected:
+            raise ValueError(f"license_status {self.license_status} difere do mais restritivo das fontes ({expected})")
+        return self
 
 
 class PredictionSnapshot(BaseModel):
@@ -275,6 +335,8 @@ class RoundReview(BaseModel):
     data_until: str
     n_simulations: int
     seed: int
+    composition_mode: str | None = None
+    license_status: str | None = None
     metrics: list[str]
     clubs: dict[str, ClubLabel]
     rounds: list[RoundViewInfo]

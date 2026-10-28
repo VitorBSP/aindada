@@ -259,7 +259,9 @@ Alternativas descartadas:
 
 10. **00 e 04:** `DataInfo.sources` e `schema_version` em `storage/schema.py`; `load_inputs` em
     `pipeline.py` lê a composição (`sources.json`) em vez de um único manifesto; `data_version`
-    composto.
+    composto. *Implementado pelo 00 em 2026-10-27 (commit `bbf2a92`, schema 1.2), com o gate G1 a
+    G5 em `brasileirao.publication_gate`; revisão do 04 e auditoria do 06 pendentes. Ver
+    `docs/project/status.md`.*
 11. **02:** recalcular ratings, treino e `model_config.json` sem o Sofascore; `model_version` e
     `data_version` novos; regenerar a revisão por rodada; reconstruir a história de probabilidades
     de 2026, identificada como reconstrução (Decisão 3).
