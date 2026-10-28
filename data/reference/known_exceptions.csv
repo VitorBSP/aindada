@@ -1,5 +1,5 @@
 season,code,note,source_name,source_match_id,home_goals,away_goals
-2009,duplicate_pair,"Fonte registra Botafogo x Flamengo duas vezes com o mesmo mando (rodadas 12 e 31). Hipótese não confirmada: o mando do jogo da rodada 12 era do Flamengo. IDs da fonte e placares fora do repositório (decisão B1). Mantido como na fonte até confirmação (CBF); impacto desprezível no Elo.",,,,
+2009,duplicate_pair,"Fonte registra Botafogo x Flamengo duas vezes com o mesmo mando (rodadas 12 e 31). Erro de mando confirmado em 2026-10-27: o jogo da rodada 12 teve mando do Flamengo segundo o espelho GitHub adaoduque/Brasileirao_Dataset (15f027c3) e a RSSF (rsssf.org/tablesb/braz09.html); a Kaggle v18 mantém o erro. IDs da fonte e placares fora do repositório (decisão B1). Mantido como na fonte (manual_corrections não corrige mando; decisão pendente do Agente 00); impacto desprezível no Elo.",,,,
 2009,unbalanced_home,"Consequência da duplicidade Botafogo x Flamengo de 2009.",,,,
 2016,match_count,"Chapecoense x Atlético-MG (38ª rodada) não foi disputada após o acidente aéreo da Chapecoense. Exceção histórica real.",,,,
 2016,unbalanced_home,"Consequência da partida não disputada de 2016.",,,,

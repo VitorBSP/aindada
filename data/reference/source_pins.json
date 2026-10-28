@@ -2,7 +2,9 @@
   "adaoduque_kaggle": {
     "version": "kaggle-v18",
     "origin": "https://www.kaggle.com/datasets/adaoduque/campeonato-brasileiro-de-futebol",
-    "files": {},
-    "note": "SHA-256 dos arquivos da versão 18, a fixar com 'brasileirao pin-adaoduque' depois do download pelo dono do produto e da conferência contra o espelho do GitHub (ADR-0008). Vazio: a ingestão de publicação falha."
+    "files": {
+      "campeonato-brasileiro-full.csv": "4e5bee3000f27dfa71f30389aa4af11c03725393a82d8814fb373659ee94891b",
+      "campeonato-brasileiro-cartoes.csv": "6b48b7ceaf2ea5018972f12821571870a9ebd277fca1ccb66045465911fc6b33"
+    }
   }
 }

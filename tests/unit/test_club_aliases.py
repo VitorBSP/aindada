@@ -43,8 +43,7 @@ FOOTBALL_DATA_ORG_NAMES = {
     "SE Palmeiras": "palmeiras",
 }
 
-# Nomes do formato Adão Duque observados em 2003–2023 (cópia local do formato) e "Mirassol", esperado em
-# 2025; os nomes de 2024–2025 da v18 só serão confirmados depois do download (pendência do dono).
+# Conjunto exato dos 46 nomes de clube da v18 do Kaggle (2003–2025), conferido no arquivo baixado em 2026-10-27.
 ADAODUQUE_NAMES = (
     "America-MG", "America-RN", "Athletico-PR", "Atletico-GO", "Atletico-MG", "Avai", "Bahia", "Barueri",
     "Botafogo-RJ", "Bragantino", "Brasiliense", "CSA", "Ceara", "Chapecoense", "Corinthians", "Coritiba",

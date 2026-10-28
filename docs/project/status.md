@@ -1329,3 +1329,53 @@ Registrado pelo orquestrador a partir do relatório do 06, que auditou sem edita
     novos.
   - **N10, 07**: passar `--season` explicitamente no workflow.
   - **N11, 00**: confirmar a menção a IDs de confrontos, sem placar, neste arquivo.
+
+
+## Handoff do Agente 01: primeira ingestão real de publicação (2026-10-27)
+
+- **O que mudou**:
+  - Ingestão de publicação executada com a v18 do Adão Duque (baixada pelo orquestrador a pedido do
+    dono) e o football-data.org (3 chamadas, 2024–2026, ≥ 6 s entre elas). Antes de gravar, a silver
+    e o gold anteriores (pesquisa, `brasileirao_dataset`) foram copiados para fora do repositório.
+  - `data/silver/` e `data/gold/matches_model.csv` (não versionados) agora vêm da composição do
+    ADR-0008 (`sources.json` com `mode: publication`). `quality_report.json` regerado.
+  - Testes: `tests/unit/test_adaoduque.py` ganhou o teste do cabeçalho da v18 (coluna `arrecadacao`,
+    CRLF). `tests/unit/test_club_aliases.py`: comentário atualizado; a lista de 46 nomes é exatamente
+    a da v18 (nenhum alias novo foi preciso). Nenhuma mudança de código de produção.
+  - `data/reference/known_exceptions.csv`: nota de 2009 atualizada (erro de mando confirmado).
+  - `data/reference/manual_corrections.csv` (ignorado): as 2 correções saíram como
+    `manual_correction_redundant` e foram removidas; o arquivo ficou só com o cabeçalho.
+  - `data/reference/source_pins.json`: hashes fixados pelo `pin-adaoduque`. O campo `note` antigo
+    ("Vazio: a ingestão de publicação falha") ficou obsoleto e não voltou; a proveniência está no
+    catálogo e no manifesto.
+  - `docs/data-sources/catalog.md`: proveniência da v18, partidas por temporada e fonte, conferência
+    com o espelho do GitHub e com as fontes de conferência, problemas de qualidade.
+- **Evidência**:
+  - `ingest --fetch --season 2026`: 2003–2025 `adaoduque_kaggle` (9.165 partidas), 2026
+    `football_data_org` (380: 319 `finished`, 60 `scheduled`, 1 `postponed`). Total 9.545.
+  - Reexecução sem `--fetch`: silver, gold, `sources.json` e manifesto idênticos por SHA-256.
+  - `conference`: football-data.org × Adão Duque 2024–2025, 760 casadas e zero divergência de data,
+    status, placar ou rodada; Adão Duque × brasileirao-dataset 2003–2023, 8.405 casadas e zero
+    divergência.
+  - `validate`: 24 temporadas, sem erros; 4 avisos `info` de exceções conhecidas (2009, 2016) e 1
+    `warning` (1 jogo de 2026 adiado, sem placar, tratado como não disputado).
+  - Espelho do GitHub × v18: 4 diferenças (2 placares errados na v18, 1 placar de campo × tribunal,
+    1 mando invertido na v18), classificadas no catálogo; detalhe só fora do repositório.
+  - pytest 393 passed; `ruff check` e `ruff format --check` sem erros; mypy sem erros em 48 arquivos.
+- **Mudanças desde a última ingestão** (silver de pesquisa `838614d` × publicação, por temporada,
+  mandante e visitante): nenhum placar mudou; 1 status (o adiado de 2026 passou de `scheduled` a
+  `postponed`); datas: 71 (2024), 67 (2025) e 70 (2026) recuaram 1 dia (fim do dia UTC), e 30 de
+  2026 mudaram mais de 1 dia (calendário). O `changes.jsonl` recebeu 9.545 `new_match` porque o
+  formato do `match_id` mudou (`bds-N` → estável); é efeito único da migração.
+- **Premissas e limitações**:
+  - Cartões: a v18 cobre 2014–2024. 2025 e 2026 ficam sem cartões; em 2026 o desempate por cartões
+    cai no sorteio com aviso (já previsto no ADR-0008).
+  - As 4 diferenças da v18 seguem como na fonte. `manual_corrections.csv` não corrige mando, e o
+    caso de 2005 exige decidir entre placar de campo e de tribunal.
+- **Próximos responsáveis**:
+  - **00**: decidir o tratamento das 4 diferenças da v18 (corrigir 2003/2004 por correção manual
+    com evidência; mando de 2009; campo × tribunal em 2005) e se `manual_corrections` passa a
+    aceitar troca de mando. Passo 10 com 04.
+  - **02**: depois do passo 10, regerar snapshots e revisão por rodada com os IDs e a fonte novos
+    (não rodei `simulate` nem `export-web`, condição 2 do 06).
+  - **06**: auditar a ingestão real (passo 12) e as contagens do catálogo.

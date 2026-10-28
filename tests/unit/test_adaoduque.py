@@ -75,6 +75,29 @@ def test_score_is_read() -> None:
     assert (match.home_goals, match.away_goals) == (2, 1)
 
 
+def test_v18_header_with_arrecadacao_and_crlf_is_read(tmp_path: Path) -> None:
+    header = (
+        '"ID","rodata","data","hora","mandante","visitante","formacao_mandante","formacao_visitante",'
+        '"tecnico_mandante","tecnico_visitante","vencedor","arena","mandante_Placar","visitante_Placar",'
+        '"mandante_Estado","visitante_Estado","arrecadacao"'
+    )
+    row = (
+        '"9","3","12/04/2025","18:30","Sintetico 01","Sintetico 02","","","synthetic","synthetic",'
+        '"Sintetico 02"," Estadio Sintetico (synthetic)","1","2","XX","XX","123.456,00"'
+    )
+    matches_path = tmp_path / MATCHES_FILE
+    matches_path.write_bytes(f"{header}\r\n{row}\r\n".encode())
+    match = AdaoDuqueSource.parse_matches(matches_path)[0]
+    assert (match.season, match.round, match.home_name, match.away_name, match.home_goals, match.away_goals) == (
+        2025,
+        3,
+        "Sintetico 01",
+        "Sintetico 02",
+        1,
+        2,
+    )
+
+
 def test_cards_of_unknown_match_are_skipped() -> None:
     matches = AdaoDuqueSource.parse_matches(FIXTURE_DIR / MATCHES_FILE)
     cards = AdaoDuqueSource.parse_cards(FIXTURE_DIR / CARDS_FILE, matches)
