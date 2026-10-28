@@ -8,7 +8,11 @@
 # - secret  FOOTBALL_DATA_ORG_TOKEN: chave do football-data.org (cláusula 6.1 do ADR-0008);
 # - variável PUBLISH_ENABLED = 'true': liga o agendamento, o upload e o deploy. Sem ela, só roda
 #   manualmente (workflow_dispatch) como ensaio: reconstrói, passa no gate e não publica nada.
+#
+# O atualizar-rodada.yml (ADR-0009) dispara este workflow com `trigger=match` e os IDs dos jogos que
+# acabaram; o run-name mostra o gatilho no histórico do Actions.
 name: publish-site
+run-name: "publish-site (${{ inputs.trigger || github.event_name }}${{ inputs.match_ids && format(': {0}', inputs.match_ids) || '' }})"
 
 on:
   schedule:
@@ -19,6 +23,15 @@ on:
     inputs:
       season:
         description: "Temporada (vazio = a do arquivo)"
+        required: false
+        default: ""
+      trigger:
+        description: "Gatilho (manual ou match)"
+        type: choice
+        options: [manual, match]
+        default: manual
+      match_ids:
+        description: "IDs do football-data.org separados por vírgula (só com trigger=match)"
         required: false
         default: ""
 
@@ -46,6 +59,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
+      # Os inputs só entram por variável de ambiente e são conferidos antes de qualquer outro passo.
+      - name: Conferir os inputs
+        env:
+          TRIGGER: ${{ inputs.trigger }}
+          MATCH_IDS: ${{ inputs.match_ids }}
+        run: |
+          [[ "$TRIGGER" =~ ^(|manual|match)$ ]] || { echo "trigger inválido"; exit 1; }
+          [[ "$MATCH_IDS" =~ ^([0-9]{1,12}(,[0-9]{1,12}){0,19})?$ ]] || { echo "match_ids inválido"; exit 1; }
+          echo "gatilho: ${TRIGGER:-$GITHUB_EVENT_NAME}; jogos: ${MATCH_IDS:-nenhum}"
+
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
@@ -121,11 +144,15 @@ jobs:
             --site-dir _site --season "$SEASON" --seed "$SEED" --live-url "${live_url,,}"
 
       - name: Resumo (versões e SHA-256 dos JSON exportados)
+        env:
+          TRIGGER: ${{ inputs.trigger }}
+          MATCH_IDS: ${{ inputs.match_ids }}
         run: |
           predictions="_site/data/api/seasons/$SEASON/predictions.json"
           {
             echo "### publish-site"
             echo "- commit: $GITHUB_SHA"
+            echo "- gatilho: ${TRIGGER:-$GITHUB_EVENT_NAME}; jogos: ${MATCH_IDS:-nenhum}"
             echo "- temporada: $SEASON; semente: $SEED"
             echo "- simulações: atual $SIMULATIONS, histórico $HISTORY_SIMULATIONS, revisão $ROUND_REVIEW_SIMULATIONS"
             echo "- reference_date: $(jq -r '.reference_date' "$predictions")"

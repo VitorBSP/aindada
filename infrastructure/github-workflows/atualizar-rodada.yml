@@ -1,0 +1,69 @@
+# Atualiza o site depois de cada jogo (ADR-0009, Decisão 1).
+#
+# Dois disparos por dia. Cada um faz uma chamada ao football-data.org pelos jogos do dia em Brasília,
+# dorme até `início + 2 h 10` de cada grupo de jogos e, se o jogo acabou e o site ainda não o mostra
+# encerrado, pede um `publish-site` (a mesma publicação diária, com gate). Sem jogo, termina em segundos.
+#
+# Interruptores (configurados pelo dono do produto; ver docs/architecture/deploy.md):
+# - variável PUBLISH_ENABLED = 'true': sem ela o workflow não roda;
+# - variável MATCH_UPDATES: ausente ou `dry-run` (padrão) só registra no resumo o que faria; `on`
+#   dispara o publish-site; `off` impede o job de começar.
+name: atualizar-rodada
+
+on:
+  schedule:
+    # 12:37 e 18:37 em Brasília. Fora do minuto 0, em que a fila de agendamentos do GitHub atrasa.
+    - cron: "37 15 * * *"
+    - cron: "37 21 * * *"
+  workflow_dispatch:
+    inputs:
+      window:
+        description: "Janela (auto = pelo horário de Brasília)"
+        type: choice
+        options: [auto, tarde, noite]
+        default: auto
+
+permissions: {}
+
+concurrency:
+  group: atualizar-rodada-${{ github.event.schedule || 'manual' }}
+  cancel-in-progress: false
+
+env:
+  SEASON: "2026"
+  PYTHONUTF8: "1"
+
+jobs:
+  watch:
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      vars.PUBLISH_ENABLED == 'true' &&
+      vars.MATCH_UPDATES != 'off'
+    runs-on: ubuntu-latest
+    # Prazo interno do script: 5 h 50 a partir do início.
+    timeout-minutes: 360
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      # Único passo com o token do football-data.org e com o GITHUB_TOKEN (para `gh workflow run`).
+      # O script nunca imprime o token nem placares; o log tem IDs, horários e decisões.
+      - name: Acompanhar os jogos do dia
+        env:
+          FOOTBALL_DATA_ORG_TOKEN: ${{ secrets.FOOTBALL_DATA_ORG_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          MATCH_UPDATES: ${{ vars.MATCH_UPDATES }}
+          SCHEDULE: ${{ github.event.schedule }}
+          WINDOW_INPUT: ${{ inputs.window }}
+        run: |
+          site_url="https://${GITHUB_REPOSITORY%%/*}.github.io/${GITHUB_REPOSITORY#*/}/data/api/seasons/${SEASON}/predictions.json"
+          python -I infrastructure/scripts/match_updates.py \
+            --site-url "${site_url,,}" --summary "$GITHUB_STEP_SUMMARY"

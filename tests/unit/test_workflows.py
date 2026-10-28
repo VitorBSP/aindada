@@ -107,3 +107,58 @@ def test_schedule_avoids_minute_zero() -> None:
 
 def test_summary_lists_sha256_of_exported_json() -> None:
     assert "xargs sha256sum" in _text(PUBLISH)
+
+
+# --- ADR-0009: atualizar-rodada.yml e inputs do publish-site ---------------------------------------
+
+MATCH_UPDATES = ACTIVE / "atualizar-rodada.yml"
+
+
+def test_match_updates_crons_are_12_37_and_18_37_brasilia() -> None:
+    assert re.findall(r'cron:\s*"([^"]+)"', _text(MATCH_UPDATES)) == ["37 15 * * *", "37 21 * * *"]
+
+
+def test_match_updates_requires_publish_switch_and_not_off() -> None:
+    job = _text(MATCH_UPDATES).split("\n  watch:\n", 1)[1]
+    assert all(clause in job for clause in ("vars.PUBLISH_ENABLED == 'true'", "vars.MATCH_UPDATES != 'off'"))
+
+
+def test_match_updates_has_no_workflow_level_permissions() -> None:
+    assert "\npermissions: {}\n" in _text(MATCH_UPDATES)
+
+
+def test_match_updates_job_permissions_are_minimal() -> None:
+    assert "    permissions:\n      contents: read\n      actions: write\n    steps:" in _text(MATCH_UPDATES)
+
+
+def test_match_updates_job_fits_in_six_hours() -> None:
+    assert "timeout-minutes: 360" in _text(MATCH_UPDATES)
+
+
+def test_match_updates_uses_the_token_once() -> None:
+    assert _text(MATCH_UPDATES).count("secrets.FOOTBALL_DATA_ORG_TOKEN") == 1
+
+
+def test_match_updates_runs_script_isolated() -> None:
+    assert "python -I infrastructure/scripts/match_updates.py" in _text(MATCH_UPDATES)
+
+
+@pytest.mark.parametrize("workflow", WORKFLOWS, ids=lambda path: path.name)
+def test_inputs_never_interpolated_inside_run(workflow: Path) -> None:
+    """Inputs só entram nos scripts por variável de ambiente (ADR-0009, "Como publica")."""
+    run_blocks = re.findall(r"run: [|>]-?\n((?:\s{10,}.*\n?)+)|run: (.*)", _text(workflow))
+    code = "\n".join(block or line for block, line in run_blocks)
+    assert "${{ inputs." not in code
+
+
+def test_publish_site_has_trigger_and_match_ids_inputs() -> None:
+    publish = _text(PUBLISH)
+    assert all(name in publish for name in ("      trigger:\n", "      match_ids:\n", "run-name:"))
+
+
+def test_publish_site_checks_match_ids_with_a_regex() -> None:
+    assert '[[ "$MATCH_IDS" =~ ^([0-9]' in _text(PUBLISH)
+
+
+def test_publish_site_keeps_its_concurrency_group() -> None:
+    assert "concurrency:\n  group: publish-site\n  cancel-in-progress: false" in _text(PUBLISH)
