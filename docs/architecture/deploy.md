@@ -27,32 +27,50 @@ docker compose run --rm pipeline   # atualiza dados e gera novo snapshot
 
 ## Publicação no GitHub Pages (ADR-0008, passo 13) — runbook
 
-Estado em 2026-10-28: workflow pronto na branch `deploy/publish-site`, **não mergeado, nunca
-executado no GitHub, nada publicado**. Repositório `VitorBSP/aindada`, privado.
+Estado em 2026-10-28: workflow mergeado na `main` (`ea90959`), **nunca executado no GitHub, nada
+publicado**. Repositório `VitorBSP/aindada`, privado. Ajustes do parecer do 06 e do ajuste 3 do 00 na
+branch `deploy/ajustes-06`.
 
 ### Como funciona
 
 `.github/workflows/publish-site.yml` reconstrói tudo do zero a cada execução, num runner efêmero.
 **Não há estado entre execuções**: nem repositório privado de estado, nem `STATE_REPO_TOKEN`, nem
-SQLite em artefato ou cache (adendo à Decisão 3 do ADR-0008, a confirmar pelo 00).
+SQLite em artefato ou cache (adendo à Decisão 3 do ADR-0008, confirmado pelo 00 em `f0d6eca`).
 
 ```text
-checkout -> pip install -> pytest (sem dados) -> baixa Adão Duque v18 do Kaggle e confere SHA-256
+checkout -> pip install -> pytest (sem dados) -> SQLite isolado em $RUNNER_TEMP
+  -> baixa Adão Duque v18 do Kaggle e confere SHA-256
   -> ingest --fetch --season (FOOTBALL_DATA_ORG_TOKEN) -> validate
   -> simulate (1 snapshot por rodada, 10 mil; atual com 100 mil; semente 2026)
   -> review-rounds (20 mil, semente 2026) -> export-web -> _site/ = apps/web + export
-  -> publication-gate G1–G5 -> check_site_artifact.py -> upload-pages-artifact -> deploy-pages
+  -> publication-gate G1–G5 -> check_site_artifact.py -> resumo (versões, SHA-256)
+  -> visibilidade do repositório -> upload-pages-artifact -> deploy-pages
 ```
 
-- Gatilhos: `schedule` diário às 09:00 UTC (06:00 em Brasília, depois dos jogos da noite) e
-  `workflow_dispatch` (entrada opcional `season`). Só na `main`. Nunca em `pull_request` nem
-  `pull_request_target`.
+- Gatilhos: `schedule` diário às 09:17 UTC (06:17 em Brasília, depois dos jogos da noite; fora do
+  minuto 0, em que o GitHub costuma atrasar ou pular agendamentos) e `workflow_dispatch` (entrada
+  opcional `season`). Só na `main`. Nunca em `pull_request` nem `pull_request_target`.
 - **Interruptor `PUBLISH_ENABLED`** (variável do repositório):
   - ausente ou diferente de `true`: o agendamento não roda; o `workflow_dispatch` é um **ensaio**
     (reconstrói, passa no gate, não publica). Com o repositório privado, o ensaio envia o artefato do
     site (retenção de 1 dia) para conferência; com o repositório público, não envia nada, porque
     artefato de repositório público pode ser baixado por qualquer pessoa;
   - `true`: o agendamento roda, o artefato sobe e o job `deploy` publica.
+- Nada no workflow lê `github.event.repository.*`, que pode vir vazio no `schedule` (ajuste 3 do 00):
+  - a URL do site no ar para a checagem de não regressão é montada de `GITHUB_REPOSITORY`
+    (`https://<dono>.github.io/<nome>/data/api/seasons/<temporada>/predictions.json`, em minúsculas);
+  - "repositório privado" vem do passo `Visibilidade do repositório`, que consulta
+    `GET /repos/{dono}/{nome}` com o `GITHUB_TOKEN` (só leitura). Qualquer erro conta como público, e
+    o artefato não sobe sem `PUBLISH_ENABLED`.
+- O SQLite dos snapshots fica em `$RUNNER_TEMP/snapshots/snapshots.sqlite` (`BRASILEIRAO_SNAPSHOT_DB`),
+  e `data/snapshots/` é apagado antes da ingestão: nenhum snapshot dos testes entra no export.
+- Actions fixadas por SHA de commit, com a tag ao lado (conferidas com `git ls-remote` nos
+  repositórios do org `actions` em 2026-10-28): `checkout` v4.4.0, `setup-python` v5.6.0,
+  `upload-pages-artifact` v3.0.1 e `deploy-pages` v4.0.5. Para atualizar, trocar o SHA e o comentário
+  juntos nos dois diretórios de workflow.
+- O resumo da execução (`$GITHUB_STEP_SUMMARY`) registra commit, temporada, semente, número de
+  simulações, `reference_date`, `model_version`, `data_version` e o SHA-256 de cada JSON exportado
+  (ajuste 2 do 00).
 - Permissões: `contents: read` no workflow; `pages: write` e `id-token: write` só no job `deploy`.
   `persist-credentials: false` no checkout. `concurrency: publish-site` sem cancelar execução em
   andamento.
@@ -64,9 +82,11 @@ checkout -> pip install -> pytest (sem dados) -> baixa Adão Duque v18 do Kaggle
 - Artefato (G5): só `apps/web` versionado mais o export (`data/api/*.json`). O gate e
   `infrastructure/scripts/check_site_artifact.py` reprovam SQLite, CSV, `raw/`, `silver/`, `gold/`,
   escudos não livres, `model_version`/`data_version` divergentes entre `predictions`, `rounds` e
-  `metrics`, `rounds.data_until` diferente do snapshot, histórico com data posterior ao snapshot e
-  `reference_date` menor que a do site no ar. Se qualquer checagem falhar, nada é publicado e o site
-  anterior continua no ar.
+  `metrics`, `rounds.data_until` diferente do snapshot, semente de `predictions` e `rounds` diferente
+  de `SEED`, histórico com data posterior ao snapshot ou ponto sem `n_simulations` e `reference_date`
+  menor que a do site no ar. Os pontos do histórico não trazem semente no export; se trouxerem, ela
+  também é comparada. Testes sintéticos, sem rede, em `tests/unit/test_check_site_artifact.py`. Se
+  qualquer checagem falhar, nada é publicado e o site anterior continua no ar.
 - Insights: nenhum job aprova insight (D-026). O export publicado não tem `insights.json`, e a home
   aparece sem manchete. Publicar insights exige um fluxo editorial próprio (pendência do 08/04).
 
@@ -121,7 +141,14 @@ tornar o repositório público, escolher "GitHub Actions" como fonte do Pages e 
 
 - Em repositório público, o GitHub desativa workflows agendados após 60 dias sem atividade no
   repositório (a verificar). Execuções agendadas não contam como atividade; um commit conta. Se o
-  agendamento parar, o GitHub avisa por e-mail e basta reativar em Actions.
+  agendamento parar, o GitHub avisa por e-mail (a verificar) e basta reativar em Actions. Risco
+  aceito pelo 00 sem keepalive (R11), porque um keepalive exigiria `contents: write` ou
+  `actions: write` no workflow que usa o segredo.
+- Dependências Python não estão travadas com hashes: `pip install -e ".[sources,dev]"` resolve as
+  versões do `pyproject.toml` a cada execução, e uma versão nova pode mudar o resultado ou quebrar o
+  passo. Pendência do 07: um arquivo de lock com hashes (`pip-compile --generate-hashes` ou
+  `uv pip compile`) e `pip install --require-hashes`, que pede a ferramenta escolhida e o lock gerado
+  em Linux.
 - O endpoint de download do Kaggle não é documentado como API estável para anônimos (funcionou sem
   login em 2026-10-27). Se mudar ou exigir login, o passo falha e o site anterior fica no ar.
 - Execuções agendadas do GitHub podem atrasar ou ser puladas em horários de pico.
@@ -236,7 +263,9 @@ Mudanças necessárias (com os ajustes do 00 no ADR-0007 e do 06 no parecer de 2
    `<meta name="data-source" content="static">` lido por `fetchJson`, para pular as 5 chamadas
    `/api/*`. O arquivo é do 05; o contrato é do 04.
 6. **08**: o rodapé diz "Dados para pesquisa local, com licença em verificação". O texto precisa de
-   revisão antes de qualquer publicação.
+   revisão antes de qualquer publicação. *(Atualização de 2026-10-28: substituído pelos textos de
+   fonte, atribuição e licença de D-033, implementados pelo 05; o 00 registrou que D-033 cumpre a
+   pendência 4 do ADR-0008.)*
 7. **08/04**: em produção, a revisão editorial dos insights continua manual (CLI local ou
    `workflow_dispatch` com entradas), seguida de `insights-publish` e de um novo deploy.
 

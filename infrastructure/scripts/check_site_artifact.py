@@ -3,7 +3,9 @@
 - os JSON obrigatórios do export existem e são JSON válidos;
 - `model_version` igual em `predictions`, `rounds` e `metrics`; `data_version` igual em `predictions` e `rounds`;
 - `rounds.data_until` igual à `reference_date` do snapshot;
-- `probability-history` sem data posterior à do snapshot e com semente e número de simulações por ponto;
+- semente de `predictions` e `rounds` igual à esperada (`--seed`, opcional);
+- `probability-history` sem data posterior à do snapshot e com número de simulações em cada ponto (os pontos
+  não trazem semente no export; se um dia trouxerem, ela também é comparada com `--seed`);
 - nenhum dos escudos não livres no artefato (D-028/D-029);
 - `reference_date` não regride em relação ao site no ar (`--live-url`, opcional; sem resposta, a checagem é pulada).
 
@@ -44,7 +46,15 @@ def _live_reference_date(url: str) -> str | None:
     return str(value) if value else None
 
 
-def check(site_dir: Path, season: int, live_url: str | None) -> list[str]:
+def _seed_problems(seed: int, predictions: Any, rounds: Any, history: list[Any]) -> list[str]:
+    found = {"predictions": predictions.get("seed"), "rounds": rounds.get("seed")}
+    found.update(
+        {f"probability-history[{index}]": point["seed"] for index, point in enumerate(history) if "seed" in point}
+    )
+    return [f"semente de {name} é {value}, esperada {seed}" for name, value in found.items() if value != seed]
+
+
+def check(site_dir: Path, season: int, live_url: str | None, seed: int | None = None) -> list[str]:
     problems: list[str] = []
     api = site_dir / "data" / "api"
     _load(api / "seasons.json", problems)
@@ -72,6 +82,8 @@ def check(site_dir: Path, season: int, live_url: str | None) -> list[str]:
         problems.append("probability-history tem data posterior ao snapshot")
     elif any(not point.get("n_simulations") for point in history):
         problems.append("probability-history com ponto sem n_simulations")
+    if seed is not None:
+        problems.extend(_seed_problems(seed, predictions, rounds, history or []))
     crests = [path.as_posix() for name in NON_FREE_CRESTS for path in site_dir.rglob(name)]
     if crests:
         problems.append(f"escudos não livres no artefato: {crests}")
@@ -93,8 +105,9 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--site-dir", type=Path, required=True)
     parser.add_argument("--season", type=int, required=True)
     parser.add_argument("--live-url", default=None, help="predictions.json do site no ar")
+    parser.add_argument("--seed", type=int, default=None, help="semente usada no simulate e no review-rounds")
     arguments = parser.parse_args(argv)
-    problems = check(arguments.site_dir, arguments.season, arguments.live_url)
+    problems = check(arguments.site_dir, arguments.season, arguments.live_url, arguments.seed)
     for problem in problems:
         print(f"[artefato] {problem}")
     print(f"checagem do artefato: {'REPROVADA' if problems else 'aprovada'} ({len(problems)} achados)")
