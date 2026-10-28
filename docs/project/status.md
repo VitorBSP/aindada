@@ -2599,3 +2599,36 @@ Branch `api/current-round` (sobre `data/kickoff` do 01). Sem merge na `main`.
   - **07**: estender o `check_site_artifact.py` ao `current-round.json` e usar `source_match_id`/`kickoff_utc`;
   - **05**: o export real existe nesta branch; ler `current-round.json` e os campos novos do `predictions.json`;
   - **00**: decidir o caso da rodada 1 acima e o merge depois do 06.
+
+## Agente 05: aba da rodada, versão enxuta (ADR-0009, Decisão 3; D-037) (2026-10-28) — implementada contra fixture sintética, aguardando o export do 04
+
+- **O que mudou** (branch `web/aba-rodada`, sem merge):
+  - `apps/web/assets/current-round.js` (novo): junta `current-round.json` ao `predictions.json`, regra da aba
+    padrão, status dos jogos, tabela "O que mudou desde o início da rodada" com o limiar de ruído da D-037
+    (`n0` = `baseline.n_simulations`, `n1` = `predictions.n_simulations`), sem variação se o `model_version` difere;
+  - `app.js`: aba "Rodada atual"/"Última rodada" antes de Título, G4 e Rebaixamento (`#/inicio/rodada`);
+    `overdueWarning` passa a usar o dia de Brasília do `generated_at` (antes, o dia UTC: publicações depois das
+    21:00 marcariam jogos do próprio dia como atrasados) e só conta jogos `scheduled`;
+  - `styles.css`: grade de duas linhas até 560 px, `.visually-hidden`, linha do jogo; `index.html`: o script novo;
+  - `docs/architecture/frontend.md`: uma frase.
+- **Evidência:** Chrome headless (CDP), fuso do aparelho forçado em `Asia/Tokyo` e relógio fixado por estado:
+  rodada em andamento, rodada que começa hoje, última rodada, rodada 1 sem `baseline` e pré-temporada
+  (`round: null`, sem aba), em 375 e 1280 px, claro e escuro: 20 capturas, rolagem horizontal 0, nenhum erro de
+  JS (só os 404 já existentes das sondas `/api/...` do site estático). Extras: regra 2 da aba padrão (02/11 23:00 →
+  "Última rodada"; 03/11 00:30 → disputa em destaque), `model_version` diferente (nota da D-037, sem variação),
+  `#/inicio/rodada` sem rodada (cai na disputa em destaque). Export real atual (sem `current-round.json`): HTML de
+  `main` e da barra de referência idêntico ao do `main` (`02eb123`) em `#/`, `#/inicio/{titulo,g4,rebaixamento,rodada}`,
+  `#/classificacao`, `#/partidas` e `#/metodologia`, em 375 e 1280 px. `pytest` 566 passed, 1 skipped; `ruff` e
+  `mypy` sem erros. Fixtures sintéticas e capturas só no scratchpad (não versionadas).
+- **Premissas e limitações:**
+  - textos sem definição na D-037, a revisar pelo 08: título do grupo "Fora das datas da rodada" (jogos de
+    `rescheduled_match_ids`), "Remarcado e disputado em {dia}." (remarcado já encerrado), legenda da tabela
+    ("Embaixo de cada chance, a variação… "=" quando a diferença fica dentro do ruído…"), linha fina da rodada
+    sem `baseline` ("Cada placar entra depois do apito final, com atraso.", sem "As chances abaixo…");
+  - rodada 1 sem `baseline`: sem bloco "O que mudou" (pedido do 00); a lista "Maiores movimentos" da D-037 entrou;
+  - com nenhum jogo encerrado, a tabela mostra os valores de agora sem variação (mesmos resultados do início);
+  - "do/da {Clube}": só `chapecoense` usa "da";
+  - `kickoff_utc` ausente vira "a definir"; `current-round.json` com `model_version`/`data_version` diferentes do
+    `predictions.json` esconde a aba (tratado como erro de carga, D-037 item 3).
+- **Próximo responsável:** 04 (export `current-round.json` e campos `kickoff_utc`/`source_match_id`); depois o 05
+  repete a conferência com o export real e só então pede merge; 08 revisa os textos acima; 06 audita.

@@ -13,7 +13,7 @@ MVP estático em `apps/web` (ADR-0005). Rotas por hash:
 | `#/rodadas/comparar/{ids}` | comparativo de até 3 times numa métrica (título, G4, rebaixamento, posição, pontos, pontos projetados), com tabela de valores, e a tabela de todos os times em qualquer rodada escolhida |
 | `#/metodologia` | modelo, regras, validação, fontes, licença e limitações |
 
-Código da aba Rodada a rodada em `assets/rounds.js` e `assets/rounds.css` (`app.js` só delega a rota). Escudos opcionais lidos de `assets/crests/manifest.json`; sem manifest, só os nomes. Gráficos de séries usam no máximo 3 cores (`--title`, `--libertadores`, `--sudamericana`, validadas para daltonismo nos dois temas) e também diferenciam as séries por traço, marcador e rótulo.
+Código da aba Rodada a rodada em `assets/rounds.js` e `assets/rounds.css` (`app.js` só delega a rota). Aba da rodada da home (`#/inicio/rodada`, ADR-0009 Decisão 3, D-037 versão enxuta) em `assets/current-round.js`: lê `current-round.json` e `predictions.json`; sem o arquivo, com `round: null` ou com `model_version`/`data_version` diferentes do snapshot, a aba não aparece. O relógio do aparelho só escolhe a aba padrão e troca "a jogar" por "aguardando placar"; horários e dias sempre em `America/Sao_Paulo`. Escudos opcionais lidos de `assets/crests/manifest.json`; sem manifest, só os nomes. Gráficos de séries usam no máximo 3 cores (`--title`, `--libertadores`, `--sudamericana`, validadas para daltonismo nos dois temas) e também diferenciam as séries por traço, marcador e rótulo.
 
 Princípios: a data de referência e os jogos observados aparecem sempre; "0%" é explicado como
 "não ocorreu nas simulações"; faixas aparecem quando o resultado depende de torneios externos; há

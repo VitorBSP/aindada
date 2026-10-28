@@ -2,7 +2,7 @@
   "use strict";
 
   const SEASON = 2026;
-  const state = { snapshot: null, history: [], metrics: null, rounds: null, insights: [], crests: {}, apiMode: false, scenarioChoice: {}, historyMode: null };
+  const state = { snapshot: null, history: [], metrics: null, rounds: null, currentRound: null, insights: [], crests: {}, apiMode: false, scenarioChoice: {}, historyMode: null };
   const main = document.getElementById("main");
 
   const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (char) => (
@@ -178,8 +178,9 @@
   const matchName = (match) => `${escapeHtml(nameOf(match.home_id))} x ${escapeHtml(nameOf(match.away_id))}`;
 
   function overdueWarning() {
-    const generated = state.snapshot.generated_at.slice(0, 10);
-    const pending = state.snapshot.matches.filter((match) => match.status !== "finished" && !isPostponed(match) && match.match_date < generated);
+    const stamp = Date.parse(state.snapshot.generated_at);
+    const generated = Number.isNaN(stamp) ? state.snapshot.generated_at.slice(0, 10) : window.CurrentRound.brasiliaDay(stamp);
+    const pending = state.snapshot.matches.filter((match) => match.status === "scheduled" && !isPostponed(match) && match.match_date < generated);
     if (!pending.length) return "";
     const list = pending.map((match) => `${matchName(match)} (${formatShortDate(match.match_date)})`).join("; ");
     const count = pending.length === 1 ? "1 jogo recente ainda está" : `${pending.length} jogos recentes ainda estão`;
@@ -395,8 +396,14 @@
     return { headline, lede: `${settledText}${openText} <span class="lede-method">${method}</span>` };
   }
 
+  const ROUND_TAB = "rodada";
+
   function raceSwitch(selected, featured) {
-    const links = Object.entries(RACES).map(([id, race]) => `<a href="#/inicio/${id}" ${id === selected ? 'aria-current="page"' : ""}>${race.label}</a>`).join("");
+    const round = state.currentRound;
+    const roundLink = round ? `<a href="#/inicio/${ROUND_TAB}" ${selected === ROUND_TAB ? 'aria-current="page"' : ""}>${round.label}</a>` : "";
+    const links = roundLink + Object.entries(RACES).map(([id, race]) => `<a href="#/inicio/${id}" ${id === selected ? 'aria-current="page"' : ""}>${race.label}</a>`).join("");
+    const switchNav = `<nav class="segmented${round ? " has-round" : ""}" aria-label="${round ? "Escolha o que ver" : "Escolha a disputa"}">${links}</nav>`;
+    if (selected === ROUND_TAB) return `<div class="race-switch">${switchNav}</div>`;
     const previous = state.history[state.history.length - 2];
     const latest = state.history[state.history.length - 1];
     const curve = !reconstructionInfo() ? "" : sameModel(previous, latest) ? ", na curva recalculada com o mesmo modelo" : ", na curva recalculada";
@@ -404,7 +411,7 @@
       ? `a disputa que mais mudou desde ${formatDate(previous.reference_date)}${curve}`
       : "a disputa mais aberta agora";
     const hint = selected === featured.id ? `Em destaque nesta edição: ${why}.` : `<a href="#/inicio/${featured.id}">Voltar ao destaque da edição</a> (${RACES[featured.id].noun}, ${why}).`;
-    return `<div class="race-switch"><nav class="segmented" aria-label="Escolha a disputa">${links}</nav><p class="note">${hint}</p></div>`;
+    return `<div class="race-switch">${switchNav}<p class="note">${hint}</p></div>`;
   }
 
   function libertadoresRanges() {
@@ -423,9 +430,17 @@
       }).join("")}</div>`;
   }
 
+  function homeTab(requested, featured) {
+    if (requested === ROUND_TAB && state.currentRound) return ROUND_TAB;
+    if (RACES[requested]) return requested;
+    if (!requested && window.CurrentRound.opensByDefault(state.currentRound, Date.now())) return ROUND_TAB;
+    return featured.id;
+  }
+
   function renderHome(requested) {
     const featured = featuredRace();
-    const raceId = RACES[requested] ? requested : featured.id;
+    const tab = homeTab(requested, featured);
+    const raceId = tab === ROUND_TAB ? featured.id : tab;
     const race = RACES[raceId];
     const story = raceStory(raceId);
     const insights = currentInsights();
@@ -438,6 +453,11 @@
         ${insightLinks(lead)}
         ${secondary.length ? `<div class="highlights">${secondary.map(insightArticle).join("")}</div>` : ""}`
       : "";
+    if (tab === ROUND_TAB) {
+      const renderer = window.CurrentRound.createRenderer({ escapeHtml, pct, crest, clubLink, nameOf, formatDate });
+      main.innerHTML = `${leadBlock}${raceSwitch(ROUND_TAB, featured)}${renderer.render(state.currentRound, state.snapshot, Date.now(), overdueWarning(), Boolean(lead))}`;
+      return;
+    }
     const heading = lead ? `<h2 class="race-heading">${story.headline}</h2>` : `<h1>${story.headline}</h1>`;
     main.innerHTML = `
       ${leadBlock}
@@ -1076,6 +1096,11 @@
     state.metrics = await fetchJson("/models/metrics");
     state.rounds = await fetchJson(`/seasons/${SEASON}/rounds`);
     state.insights = (await fetchJson(`/seasons/${SEASON}/insights`)) || [];
+    try {
+      state.currentRound = window.CurrentRound.prepare(state.snapshot, await fetchJson(`/seasons/${SEASON}/current-round`));
+    } catch (error) {
+      state.currentRound = null;
+    }
     state.crests = await loadCrests();
     renderReferenceBar();
     route();
