@@ -1718,3 +1718,28 @@ commit `bbf2a92`), sem push e sem tocar `data/` da pasta principal.
     Atualizar o item 6 de `docs/architecture/deploy.md` quando o 05 implementar.
 - **Decisões pendentes do dono do produto**: só revisar D-033 depois, como em D-022 (Q18). As pendências 2
   (aceitar os riscos) e 6 (domínio) do ADR-0008 continuam só dele e não são cobertas por este texto.
+
+## Agente 05: implementação de D-033 (textos de fonte, atribuição e licença) (2026-10-28) — implementado, aguarda auditoria do 06
+
+- **O que mudou**: `apps/web/index.html` (rodapé: as duas atribuições exatas, aviso de projeto independente),
+  `apps/web/assets/app.js` (`renderMethodology`: lista de `data.sources`, versão composta inteira, aviso para dados
+  não publicáveis; `PUBLISHABLE_LICENSES`, `LICENSE_LABELS`, `SOURCE_LINKS`, `isPublishable`, `seasonRange`,
+  `sourceItem`) e `apps/web/assets/styles.css` (`code.data-version`). Trechos conforme a seção D-033 de
+  `docs/brand/BRAND_DECISIONS.md`, com um acréscimo: `dataSources(data)` monta um item legado a partir de
+  `data.source` quando o snapshot não tem `sources`, para snapshots antigos do export estático.
+- **Evidência**:
+  - G4: `check_g4_attribution` com o `predictions.json` de publicação da fumaça do 00/04 (scratchpad, fora do repo)
+    sobre o `index.html` novo: 0 achados; sobre o `index.html` do `origin/main`: 2 achados (as duas atribuições
+    ausentes). As atribuições exigidas pelo snapshot são iguais a `AdaoDuqueSource.attribution` e
+    `FootballDataOrgSource.attribution`. `publication-gate` completo (gold, `sources.json` e predictions da fumaça,
+    `--artifact-dir apps/web` da worktree): "gate de publicação: aprovado (0 achados)".
+  - Visual (Chrome headless, iframe de 375 px e 1280 px, temas claro e escuro, rotas metodologia e início, snapshot
+    com `sources` e cópia legada sem `sources`/`composition_mode`): sem rolagem horizontal, nenhum elemento além da
+    largura, console sem erros nem avisos nas 16 combinações. Snapshot de publicação não mostra o aviso de pesquisa;
+    o legado mostra. Capturas no scratchpad da sessão (`a05_d033/shots`).
+  - `pytest`: 481 passed; `ruff check src tests apps`: ok; `mypy src apps`: sem erros.
+- **Premissas e limitações**: navegação por teclado e leitor de tela (pronúncia do `lang="en"`) não foram testados;
+  contraste dos links do rodapé não foi medido (cores herdadas, sem mudança de token). No snapshot legado o item
+  diz "Temporadas usadas: temporadas não informadas" (texto do 08 para `seasons` ausente).
+- **Próximos responsáveis**: **06** auditar G4 e contraste dos links do rodapé; **00** atualizar o item 6 de
+  `docs/architecture/deploy.md` e registrar Q18; **08** revisar o texto do item legado se quiser.
