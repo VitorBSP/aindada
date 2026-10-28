@@ -29,6 +29,8 @@
   --draw: #6b6f76;
   --on-draw: #ffffff;
   --positive: #1f4f99;
+  --series-4: #a3307c;
+  --series-5: #3f7f3a;
   --focus: #17191c;
   --sans: "Inter Tight", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   --serif: Georgia, "Iowan Old Style", "Noto Serif", "Times New Roman", serif;
@@ -58,6 +60,8 @@
     --draw: #8d9198;
     --on-draw: #17191c;
     --positive: #8fb2ee;
+    --series-4: #e48cc4;
+    --series-5: #8fd18a;
     --focus: #f7f5ef;
     color-scheme: dark;
   }
@@ -84,6 +88,8 @@
   --draw: #8d9198;
   --on-draw: #17191c;
   --positive: #8fb2ee;
+  --series-4: #e48cc4;
+  --series-5: #8fd18a;
   --focus: #f7f5ef;
   color-scheme: dark;
 }
@@ -293,6 +299,10 @@ main > p.highlight-links { margin: -8px 0 24px; }
 .tabs a:hover { color: var(--ink); }
 .tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--signal); }
 .standings th.view-start, .standings td.view-start { border-left: 1px solid var(--rule-strong); padding-left: 12px; }
+.sort-button { font: inherit; font-size: 12px; font-weight: 600; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; white-space: nowrap; }
+.sort-button:hover { color: var(--ink); text-decoration: underline; text-decoration-color: var(--signal); text-underline-offset: 3px; }
+th[aria-sort="ascending"], th[aria-sort="descending"] { color: var(--ink); }
+.sort-mark { display: inline-block; min-width: 10px; margin-left: 2px; font-size: 9px; color: var(--signal); }
 .rank { font-size: 11px; color: var(--ink-faint); font-weight: 500; }
 .difficulty { display: inline-block; min-width: 36px; padding: 2px 6px; font-weight: 700; background: color-mix(in srgb, var(--danger) calc(var(--d) * 40%), transparent); }
 .upcoming { display: inline-flex; gap: 8px; }

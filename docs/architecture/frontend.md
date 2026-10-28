@@ -38,3 +38,5 @@ Verificação: capturas de tela em 1280 px e 375 px via Playwright, sem erros de
 rolagem horizontal.
 
 Escudos aparecem em todas as páginas (D-031): `crest()` em `app.js` lê `assets/crests/manifest.json`, com a mesma regra do marcador neutro de `rounds.js` (D-028/D-029).
+
+Tabela (`#/classificacao/{visão}`): todas as colunas, menos "Próximos jogos", ordenam ao clicar no cabeçalho (`aria-sort` no `th`); a ordem vale para a visão aberta. Rodada a rodada (`rounds.js`): comparativo com até 5 times (`SERIES`, tokens `--series-4` e `--series-5`) e dica própria nos gráficos de série, que mostra valor, jogo e placar de cada time na rodada (`view.matches`), por `pointermove`/`pointerdown`, com `touch-action: pan-y` para arrastar o dedo sem rolar a página na horizontal.

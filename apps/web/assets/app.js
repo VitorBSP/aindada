@@ -246,7 +246,7 @@
     botafogo: { fill: BLACK, center: WHITE },
     bragantino: { fill: WHITE, ring: "#d7192a", center: "#f6c400" },
     chapecoense: { split: ["#00843d", WHITE] },
-    corinthians: { split: [BLACK, WHITE], ring: "#d7192a" },
+    corinthians: { split: [BLACK, WHITE], ring: "#d7192a", ringWidth: 0.8 },
     coritiba: { split: [WHITE, "#00543c"] },
     cruzeiro: { fill: "#1b4da0" },
     flamengo: { split: ["#c8102e", BLACK] },
@@ -282,7 +282,10 @@
     if (spec.split) shapes += `<path d="M-${r},0A${r},${r} 0 0 1 ${r},0Z" fill="${spec.split[0]}"/><path d="M-${r},0A${r},${r} 0 0 0 ${r},0Z" fill="${spec.split[1]}"/>`;
     if (spec.diagonal) shapes += `<circle r="${r}" fill="${spec.diagonal[1]}"/><path d="M-${d},-${d}A${r},${r} 0 0 1 ${d},${d}Z" fill="${spec.diagonal[0]}"/>`;
     if (spec.hbands || spec.vbands) shapes += `<g clip-path="url(#dot-clip)">${bands(spec.hbands || spec.vbands, Boolean(spec.vbands))}</g>`;
-    if (spec.ring) shapes += `<circle r="${r - 0.8}" fill="none" stroke="${spec.ring}" stroke-width="1.6"/>`;
+    if (spec.ring) {
+      const ringWidth = spec.ringWidth || 1.6;
+      shapes += `<circle r="${r - ringWidth / 2}" fill="none" stroke="${spec.ring}" stroke-width="${ringWidth}"/>`;
+    }
     if (spec.center) shapes += `<circle r="${spec.ring ? 1.9 : 1.6}" fill="${spec.center}"/>`;
     return `${shapes}<circle class="dot-outline" r="${r - 0.2}" fill="none"/>`;
   }
@@ -325,7 +328,7 @@
     const others = contenders.length - groups.length;
     const description = groups.map((group) => `${group.team.name}: ${group.dots} pontos`).join("; ");
     const legend = groups.map((group) => `<li>${dotSwatch(group.team.club_id)}
-      ${clubLink(group.team.club_id)} <strong>${pct(group.team[race.key])}</strong></li>`).join("");
+      <a class="club-cell" href="#/clubes/${encodeURIComponent(group.team.club_id)}"><span>${escapeHtml(group.team.name)}</span></a> <strong>${pct(group.team[race.key])}</strong></li>`).join("");
     const simulations = state.snapshot.n_simulations.toLocaleString("pt-BR");
     const explanation = race.slots === 1
       ? `Quem termina campeão em cada uma das ${simulations} simulações, agrupadas em ${MOSAIC_DOTS.toLocaleString("pt-BR")} pontos.`
@@ -498,12 +501,14 @@
     titulo: {
       label: "Título",
       head: ["Título"],
+      sort: [(team) => team.title],
       cells: (team) => [probCell(team.title, "title")],
     },
     libertadores: {
       label: "Libertadores",
       scenarios: true,
       head: ["G4", "Liberta. grupos", "Liberta. total"],
+      sort: [(team) => team.top4, (team) => scenarioMid(team.libertadores_groups), (team) => scenarioMid(team.libertadores_total)],
       cells: (team) => [probCell(team.top4, "lib"), scenarioValue(team.libertadores_groups), scenarioValue(team.libertadores_total)],
       caption: "G4 = terminar entre os quatro primeiros. Liberta. grupos e total incluem as vagas que dependem de Libertadores, Sul-Americana e Copa do Brasil: sem cenário escolhido, mostramos a faixa entre todos os cenários.",
     },
@@ -511,6 +516,11 @@
       label: "Sul-Americana",
       scenarios: true,
       head: ["Corrida", "Sul-Americana", "Vale em todos os cenários"],
+      sort: [
+        { value: (team) => (team.sudamericana_race ? team.sudamericana_race.rank : 99), ascending: true },
+        (team) => scenarioMid(team.sudamericana),
+        (team) => (team.sudamericana_race ? team.sudamericana_race.all_scenarios : -1),
+      ],
       order: (team) => (team.sudamericana_race ? team.sudamericana_race.rank : team.current_position),
       cells: (team) => {
         const race = team.sudamericana_race;
@@ -523,11 +533,13 @@
     rebaixamento: {
       label: "Rebaixamento",
       head: ["Rebaix."],
+      sort: [(team) => team.relegation],
       cells: (team) => [probCell(team.relegation, "danger")],
     },
     forca: {
       label: "Força",
       head: ["Elo", "Ataque", "Defesa"],
+      sort: [(team) => team.ratings.elo, (team) => team.ratings.attack, (team) => team.ratings.defense],
       cells: (team) => [
         `${elo(team)} <span class="rank">${rankOf(team, (item) => item.ratings.elo)}º</span>`,
         `${signedPercent(team.ratings.attack)} <span class="rank">${rankOf(team, (item) => item.ratings.attack)}º</span>`,
@@ -538,6 +550,14 @@
     dificuldade: {
       label: "Dificuldade da tabela",
       head: ["Dificuldade", "Em casa", "Fora", "Pts esp. casa", "Pts esp. fora", "Próximos jogos"],
+      sort: [
+        (team) => (team.schedule ? team.schedule.difficulty : -1),
+        (team) => (team.schedule && team.schedule.difficulty_home !== null ? team.schedule.difficulty_home : -1),
+        (team) => (team.schedule && team.schedule.difficulty_away !== null ? team.schedule.difficulty_away : -1),
+        (team) => (team.schedule ? team.schedule.expected_points_home : -1),
+        (team) => (team.schedule ? team.schedule.expected_points_away : -1),
+        null,
+      ],
       order: (team) => (team.schedule ? team.schedule.difficulty_rank : team.current_position),
       cells: (team) => {
         const schedule = team.schedule;
@@ -554,6 +574,36 @@
       },
     },
   };
+  const standingOf = (team) => state.snapshot.standings.find((entry) => entry.club_id === team.club_id);
+  const FIXED_COLUMNS = [
+    { id: "pos", label: "#", value: (team) => team.current_position, ascending: true },
+    { id: "clube", label: "Clube", left: true, value: (team) => team.name, ascending: true },
+    { id: "pts", label: "Pts", value: (team) => standingOf(team).points },
+    { id: "j", label: "J", value: (team) => standingOf(team).played },
+    { id: "v", label: "V", value: (team) => standingOf(team).wins },
+    { id: "sg", label: "SG", value: (team) => standingOf(team).goal_difference },
+    { id: "proj", label: "Pts proj.", value: (team) => team.expected_points },
+    { id: "posmedia", label: "Pos. média", value: (team) => team.expected_position, ascending: true },
+  ];
+
+  function tableColumns(view) {
+    const extra = view.head.map((label, index) => {
+      const spec = view.sort ? view.sort[index] : null;
+      if (!spec) return { id: null, label };
+      const sorter = typeof spec === "function" ? { value: spec } : spec;
+      return { id: `v${index}`, label, value: sorter.value, ascending: Boolean(sorter.ascending) };
+    });
+    return [...FIXED_COLUMNS, ...extra];
+  }
+
+  function compareBy(column, direction) {
+    return (left, right) => {
+      const a = column.value(left), b = column.value(right);
+      const base = typeof a === "string" ? a.localeCompare(b, "pt-BR") : a - b;
+      return base * direction || left.current_position - right.current_position;
+    };
+  }
+
   const TABLE_GROUPS = [["Chances", ["titulo", "libertadores", "sul-americana", "rebaixamento"]], ["Clubes", ["forca", "dificuldade"]]];
   const UPCOMING_SHOWN = 5;
 
@@ -593,33 +643,60 @@
     const snapshot = state.snapshot;
     const viewId = TABLE_VIEWS[requested] ? requested : "titulo";
     const view = TABLE_VIEWS[viewId];
+    const columns = tableColumns(view);
+    const chosen = state.tableSort && state.tableSort.view === viewId ? columns.find((column) => column.id === state.tableSort.id) : null;
     const order = view.order || ((team) => team.current_position);
-    const teamsByPosition = [...snapshot.teams].sort((left, right) => order(left) - order(right) || left.current_position - right.current_position);
-    const rows = teamsByPosition.map((team) => {
+    const teams = chosen
+      ? [...snapshot.teams].sort(compareBy(chosen, state.tableSort.direction))
+      : [...snapshot.teams].sort((left, right) => order(left) - order(right) || left.current_position - right.current_position);
+    const fixedCount = FIXED_COLUMNS.length;
+    const lastIsUpcoming = viewId === "dificuldade";
+    const cellClass = (index) => `${index === fixedCount ? "view-start" : ""}${lastIsUpcoming && index === columns.length - 1 ? " left" : ""}`;
+    const rows = teams.map((team) => {
       const zone = team.current_position <= 5 ? "zone-lib" : team.current_position <= 11 ? "zone-sula" : team.current_position > 16 ? "zone-z4" : "";
-      const standing = snapshot.standings.find((entry) => entry.club_id === team.club_id);
+      const standing = standingOf(team);
       return `<tr class="${zone}">
         <td class="pos">${team.current_position}</td>
         <td class="left club">${clubLink(team.club_id)}</td>
         <td><strong>${standing.points}</strong></td><td>${standing.played}</td><td>${standing.wins}</td><td>${standing.goal_difference > 0 ? "+" : ""}${standing.goal_difference}</td>
         <td><strong>${num(team.expected_points)}</strong><div class="range" title="Faixa provável">${Math.round(team.points_interval_90[0])}–${Math.round(team.points_interval_90[1])}</div></td>
         <td>${num(team.expected_position)}</td>
-        ${view.cells(team).map((cell, index) => `<td class="${index === 0 ? "view-start" : ""}${viewId === "dificuldade" && index === view.head.length - 1 ? " left" : ""}">${cell}</td>`).join("")}
+        ${view.cells(team).map((cell, index) => `<td class="${cellClass(fixedCount + index)}">${cell}</td>`).join("")}
       </tr>`;
     }).join("");
-    const head = view.head.map((label, index) => `<th class="${index === 0 ? "view-start" : ""}${viewId === "dificuldade" && index === view.head.length - 1 ? " left" : ""}">${label}</th>`).join("");
+    const head = columns.map((column, index) => {
+      const classes = `${column.left ? "left " : ""}${cellClass(index)}`.trim();
+      if (!column.id) return `<th class="${classes}">${column.label}</th>`;
+      const active = chosen && chosen.id === column.id;
+      const ariaSort = active ? (state.tableSort.direction > 0 ? "ascending" : "descending") : "none";
+      const mark = active ? (state.tableSort.direction > 0 ? "▲" : "▼") : "";
+      return `<th class="${classes}" aria-sort="${ariaSort}"><button type="button" class="sort-button" data-sort="${column.id}">${column.label}<span class="sort-mark" aria-hidden="true">${mark}</span></button></th>`;
+    }).join("");
     main.innerHTML = `
       <span class="kicker">Tabela</span>
       <h1>Como está e como deve terminar</h1>
-      <p class="lede">A tabela real em ${formatDate(snapshot.reference_date)} ao lado do que as simulações projetam para a última rodada. Escolha o que ver nas últimas colunas.</p>
+      <p class="lede">A tabela real em ${formatDate(snapshot.reference_date)} ao lado do que as simulações projetam para a última rodada. Escolha o que ver nas últimas colunas e clique no nome de uma coluna para ordenar.</p>
       ${tableTabs(viewId)}
       ${view.scenarios ? scenarioPanel() : ""}
       ${viewId === "dificuldade" ? difficultyNote() : ""}
       <div class="table-scroll"><table class="standings">
-        <thead><tr><th>#</th><th class="left">Clube</th><th>Pts</th><th>J</th><th>V</th><th>SG</th><th>Pts proj.</th><th>Pos. média</th>${head}</tr></thead>
+        <thead><tr>${head}</tr></thead>
         <tbody>${rows}</tbody></table></div>
       <div class="legend"><span class="l-lib">G5 (Libertadores via Brasileirão)</span><span class="l-sula">faixa típica da Sul-Americana</span><span class="l-z4">Z4</span></div>
-      <p class="note">Pts proj. = média simulada de pontos no fim. Embaixo, a faixa provável, onde terminam 90% das simulações; nas temporadas passadas, a pontuação final ficou dentro dela menos vezes que isso (<a href="#/metodologia">Como calculamos</a>). Pos. média = posição final média nas simulações.${view.caption ? ` ${view.caption}` : ""}</p>`;
+      <p class="note">Pts proj. = média simulada de pontos no fim. Embaixo, a faixa provável, onde terminam 90% das simulações; nas temporadas passadas, a pontuação final ficou dentro dela menos vezes que isso (<a href="#/metodologia">Como calculamos</a>). Pos. média = posição final média nas simulações.${view.caption ? ` ${view.caption}` : ""}${chosen ? ` <button type="button" class="link-button" id="sort-reset">Voltar à ordem padrão</button>` : ""}</p>`;
+    main.querySelector("thead").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-sort]");
+      if (!button) return;
+      const column = columns.find((item) => item.id === button.dataset.sort);
+      const same = chosen && chosen.id === column.id;
+      const direction = same ? -state.tableSort.direction : (column.ascending ? 1 : -1);
+      state.tableSort = { view: viewId, id: column.id, direction };
+      renderStandings(viewId);
+      const again = main.querySelector(`[data-sort="${column.id}"]`);
+      if (again) again.focus();
+    });
+    const reset = document.getElementById("sort-reset");
+    if (reset) reset.addEventListener("click", () => { state.tableSort = null; renderStandings(viewId); });
     if (view.scenarios) bindScenarioPanel(() => renderStandings(viewId));
   }
 

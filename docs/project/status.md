@@ -2283,3 +2283,19 @@ Registrado pelo orquestrador a partir do relatório do 08.
   "mais estreita" (visto no export 0.2.0, 86,9%).
 - **Próximo responsável**: 06 revisa a entrega e a checagem do artefato; 00 decide o merge da branch
   `web/d035-faixa-provavel`; 08 avalia as duas ressalvas de texto acima.
+
+## Agente 08: legenda do mosaico, tabela ordenável e comparativo com 5 times (D-036, 2026-10-28)
+
+- **O que mudou**: `apps/web/assets/app.js`, `styles.css`, `rounds.js` e `rounds.css` (com aviso à sessão
+  "Instalação e testes do projeto", que liberou os arquivos). Legenda do mosaico sem escudo e aro do
+  Corinthians mais fino; tabela ordenável por qualquer coluna; comparativo com até 5 times; dica dos gráficos
+  rodada a rodada com jogo e placar de cada time.
+- **Evidência**: navegador do app em 1280 px e 375 px: ordenação conferida em Pts (nos dois sentidos), Em casa,
+  Clube e Elo; comparativo com 5 times e dica com os 5 jogos da rodada; página do time com o jogo da rodada; em
+  375 px sem rolagem horizontal e com a dica dentro da tela. Paleta de 5 séries validada (contraste e simulação
+  de daltonismo, ver D-036).
+- **Observação para quem cuida do servidor local**: a API em `127.0.0.1:8001` roda desde 26/10 sem recarregar
+  o código; o `response_model` antigo descarta `schedule`, `sudamericana_race` e os campos novos, por isso a
+  dificuldade da tabela aparece vazia por ela. Reiniciar o uvicorn resolve; o arquivo exportado e o snapshot
+  mais recente no banco já trazem os campos.
+

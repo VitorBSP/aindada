@@ -13,11 +13,13 @@
     points: { label: "Pontos", kind: "count" },
     expected_points: { label: "Pontos projetados", kind: "count" },
   };
-  /* Até 3 séries por gráfico: cores dos tokens validadas para daltonismo, e cada série também tem traço e marcador próprios. */
+  /* Até 5 séries por gráfico: cores dos tokens validadas para daltonismo, e cada série também tem traço e marcador próprios. */
   const SERIES = [
     { color: "var(--title)", dash: "", marker: "circle", name: "linha contínua, círculo" },
     { color: "var(--libertadores)", dash: "7 4", marker: "square", name: "linha tracejada, quadrado" },
     { color: "var(--sudamericana)", dash: "2 4", marker: "triangle", name: "linha pontilhada, triângulo" },
+    { color: "var(--series-4)", dash: "10 3 2 3", marker: "diamond", name: "traço e ponto, losango" },
+    { color: "var(--series-5)", dash: "4 2", marker: "cross", name: "tracejado curto, cruz" },
   ];
   const MAX_COMPARE = SERIES.length;
   /* Página do time: cada série tem significado fixo; queda usa --danger como no resto do site.
@@ -314,8 +316,21 @@
   function markerShape(kind, x, y, color) {
     if (kind === "square") return `<rect x="${x - 3.5}" y="${y - 3.5}" width="7" height="7" fill="${color}" class="marker"/>`;
     if (kind === "triangle") return `<path d="M${x},${y - 4.5}L${x + 4.5},${y + 3.5}L${x - 4.5},${y + 3.5}Z" fill="${color}" class="marker"/>`;
+    if (kind === "diamond") return `<path d="M${x},${y - 5}L${x + 5},${y}L${x},${y + 5}L${x - 5},${y}Z" fill="${color}" class="marker"/>`;
+    if (kind === "cross") return `<path d="M${x - 1.6},${y - 5}h3.2v3.4h3.4v3.2h-3.4v3.4h-3.2v-3.4h-3.4v-3.2h3.4Z" fill="${color}" class="marker"/>`;
     return `<circle cx="${x}" cy="${y}" r="4" fill="${color}" class="marker"/>`;
   }
+
+  /* Linhas do jogo de cada clube no intervalo da visão, para a dica do gráfico. Sem placar = "a jogar". */
+  function clubMatches(view, clubId) {
+    return (view.matches || []).filter((match) => match.home_id === clubId || match.away_id === clubId).map((match) => {
+      const played = match.home_goals !== null && match.home_goals !== undefined && match.away_goals !== null && match.away_goals !== undefined;
+      const score = played ? `${match.home_goals} × ${match.away_goals}` : "a jogar";
+      return `${clubShort(match.home_id)} ${score} ${clubShort(match.away_id)}`;
+    });
+  }
+
+  const chartTips = [];
 
   function seriesChart({ series, domain, invert = false, format, ariaLabel, guides = [], styles = SERIES }) {
     const views = review.rounds;
@@ -354,16 +369,28 @@
       return `<path d="${path}" fill="none" stroke="${style.color}" stroke-width="2" stroke-dasharray="${style.dash}" stroke-linejoin="round"/>${markers}${labelText}`;
     }).join("");
     const columnWidth = (width - left - right) / Math.max(views.length - 1, 1);
+    const sameClub = series.every((item) => item.club && item.club === series[0].club);
+    const tips = views.map((view, index) => {
+      const rows = series.map((item, seriesIndex) => {
+        const style = styles[seriesIndex % styles.length];
+        const value = item.values[index] === null || item.values[index] === undefined ? "–" : format(item.values[index]);
+        const games = item.club && !sameClub && view.round_number !== 0 ? clubMatches(view, item.club) : [];
+        return `<li><svg width="12" height="12" aria-hidden="true">${markerShape(style.marker, 6, 6, style.color)}</svg><strong>${escapeHtml(item.label)} ${escapeHtml(value)}</strong>${games.length ? `<span>${games.map(escapeHtml).join(" · ")}</span>` : item.club && !sameClub && view.round_number !== 0 ? "<span>sem jogo</span>" : ""}</li>`;
+      }).join("");
+      const shared = sameClub && view.round_number !== 0 ? clubMatches(view, series[0].club) : [];
+      return `<p class="chart-tip-title">${roundLabel(view)} · ${formatDate(view.reference_date)}</p>${shared.length ? `<p class="chart-tip-game">${shared.map(escapeHtml).join(" · ")}</p>` : ""}<ul>${rows}</ul>`;
+    });
+    const tipId = chartTips.push({ tips, x: views.map((view, index) => x(index)), width }) - 1;
     const hover = views.map((view, index) => {
       const lines = series.map((item) => `${item.label}: ${item.values[index] === null || item.values[index] === undefined ? "–" : format(item.values[index])}`).join(" · ");
-      return `<rect class="hit" x="${x(index) - columnWidth / 2}" y="${top}" width="${columnWidth}" height="${height - top - bottom}"><title>${roundLabel(view)} (${formatDate(view.reference_date)}): ${escapeHtml(lines)}</title></rect>`;
+      return `<rect class="hit" data-index="${index}" x="${x(index) - columnWidth / 2}" y="${top}" width="${columnWidth}" height="${height - top - bottom}"><title>${roundLabel(view)} (${formatDate(view.reference_date)}): ${escapeHtml(lines)}</title></rect>`;
     }).join("");
     const legend = series.map((item, seriesIndex) => {
       const style = styles[seriesIndex % styles.length];
       return `<span class="legend-item"><svg width="30" height="12" aria-hidden="true"><line x1="0" x2="30" y1="6" y2="6" stroke="${style.color}" stroke-width="2" stroke-dasharray="${style.dash}"/>${markerShape(style.marker, 15, 6, style.color)}</svg>${escapeHtml(item.label)}</span>`;
     }).join("");
-    return `<svg class="chart series-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(ariaLabel)}">${grid}${ticks}${lines}${hover}</svg>
-      <div class="series-legend">${legend}<span class="note">eixo: rodada · passe o mouse para ver os valores</span></div>`;
+    return `<div class="series-wrap" data-tip="${tipId}"><svg class="chart series-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(ariaLabel)}">${grid}${ticks}${lines}<line class="tip-rule" x1="0" x2="0" y1="${top}" y2="${height - bottom}" hidden/>${hover}</svg><div class="chart-tip" hidden></div></div>
+      <div class="series-legend">${legend}<span class="note">eixo: rodada · passe o mouse ou arraste o dedo no gráfico para ver valores, jogos e placares</span></div>`;
   }
 
   /* Afasta rótulos de fim de linha que ficariam sobrepostos, mantendo a ordem vertical. */
@@ -473,6 +500,7 @@
   }
 
   function renderTeam(clubId) {
+    chartTips.length = 0;
     const latest = latestView();
     const clubs = Object.keys(latest.teams).sort((left, right) => clubName(left).localeCompare(clubName(right), "pt-BR"));
     const picker = `<div class="club-picker">${clubs.map((club) =>
@@ -498,9 +526,9 @@
       <h2>Chances ao longo das rodadas</h2>
       ${seriesChart({
         series: [
-          { label: "Título", values: views.map((view) => view.teams[clubId].title) },
-          { label: "G4", values: views.map((view) => view.teams[clubId].top4) },
-          { label: "Rebaixamento", values: views.map((view) => view.teams[clubId].relegation) },
+          { label: "Título", club: clubId, values: views.map((view) => view.teams[clubId].title) },
+          { label: "G4", club: clubId, values: views.map((view) => view.teams[clubId].top4) },
+          { label: "Rebaixamento", club: clubId, values: views.map((view) => view.teams[clubId].relegation) },
         ],
         domain: [0, 1], format: shareFormat, styles: TEAM_SERIES, ariaLabel: `Chances de título, G4 e rebaixamento de ${clubName(clubId)} por rodada`,
         guides: [{ value: 0, label: "0%" }, { value: 0.5, label: "50%" }, { value: 1, label: "100%" }],
@@ -508,8 +536,8 @@
       <h2>Posição na tabela e projeção</h2>
       ${seriesChart({
         series: [
-          { label: "Na tabela", values: views.map((view) => hasTable(view) ? view.teams[clubId].position : null) },
-          { label: "Projeção final", values: views.map((view) => view.teams[clubId].expected_position) },
+          { label: "Na tabela", club: clubId, values: views.map((view) => hasTable(view) ? view.teams[clubId].position : null) },
+          { label: "Projeção final", club: clubId, values: views.map((view) => view.teams[clubId].expected_position) },
         ],
         domain: [1, 20], invert: true, format: positionFormat, ariaLabel: `Posição real e posição final projetada de ${clubName(clubId)} por rodada`,
         guides: [{ value: 1, label: "1º" }, { value: 4, label: "G4" }, { value: 16, label: "Z4" }, { value: 20, label: "20º" }],
@@ -521,6 +549,7 @@
       ${teamTable(clubId, metric)}
       <p class="note"><a href="#/rodadas/comparar/${encodeURIComponent(clubId)}">Comparar ${escapeHtml(clubName(clubId))} com outros times →</a></p>`;
     bindPicker("team-metric", (value) => { ui.teamMetric[clubId] = value; renderTeam(clubId); });
+    bindChartTips();
   }
 
   /* ---------- comparativo ---------- */
@@ -576,6 +605,7 @@
   }
 
   function renderCompare(parameter) {
+    chartTips.length = 0;
     const latest = latestView();
     const requested = (parameter || "").split(",").map(decodeURIComponent).filter((club) => latest.teams[club]);
     if (requested.length) ui.compare = requested.slice(0, MAX_COMPARE);
@@ -606,7 +636,7 @@
       <p class="note">${selected.length} de ${MAX_COMPARE} selecionados. Para trocar, desmarque um time e marque outro.</p>
       <h2>${escapeHtml(info.label)} rodada a rodada</h2>
       ${metricPicker(metric, COMPARE_METRICS, "compare-metric", "metric-picker-wide")}
-      ${seriesChart({ series: selected.map((club) => ({ label: clubShort(club), values: views.map((view) => compareValue(view, club, metric)) })), format, ariaLabel: `${info.label} por rodada: ${selected.map(clubName).join(", ")}`, ...chartOptions })}
+      ${seriesChart({ series: selected.map((club) => ({ label: clubShort(club), club, values: views.map((view) => compareValue(view, club, metric)) })), format, ariaLabel: `${info.label} por rodada: ${selected.map(clubName).join(", ")}`, ...chartOptions })}
       ${compareDataTable(selected, metric)}
       <h2>Como cada time estava na rodada</h2>
       <div class="round-nav">
@@ -631,10 +661,40 @@
     }));
     bindPicker("compare-metric", (value) => { ui.compareMetric = value; renderCompare(""); });
     document.getElementById("compare-round").addEventListener("change", (event) => { ui.compareRound = Number(event.target.value); renderCompare(""); });
+    bindChartTips();
     main.querySelectorAll("[data-compare-step]").forEach((button) => button.addEventListener("click", () => {
       const target = views[views.indexOf(roundView) + Number(button.dataset.compareStep)];
       if (target) { ui.compareRound = target.round_number; renderCompare(""); }
     }));
+  }
+
+  function bindChartTips() {
+    main.querySelectorAll(".series-wrap").forEach((wrap) => {
+      const data = chartTips[Number(wrap.dataset.tip)];
+      const svg = wrap.querySelector("svg");
+      const tip = wrap.querySelector(".chart-tip");
+      const rule = wrap.querySelector(".tip-rule");
+      const show = (event) => {
+        const box = svg.getBoundingClientRect();
+        const scale = box.width / data.width;
+        const localX = (event.clientX - box.left) / scale;
+        let index = 0;
+        data.x.forEach((value, candidate) => { if (Math.abs(value - localX) < Math.abs(data.x[index] - localX)) index = candidate; });
+        tip.innerHTML = data.tips[index];
+        tip.hidden = false;
+        rule.removeAttribute("hidden");
+        rule.setAttribute("x1", data.x[index]);
+        rule.setAttribute("x2", data.x[index]);
+        const pointX = data.x[index] * scale;
+        const tipWidth = tip.offsetWidth;
+        const placeLeft = pointX + 14 + tipWidth > wrap.clientWidth;
+        tip.style.left = `${Math.max(0, placeLeft ? pointX - 14 - tipWidth : pointX + 14)}px`;
+      };
+      const hide = () => { tip.hidden = true; rule.setAttribute("hidden", ""); };
+      svg.addEventListener("pointermove", show);
+      svg.addEventListener("pointerdown", show);
+      svg.addEventListener("pointerleave", hide);
+    });
   }
 
   function bindPicker(attribute, onChange) {
