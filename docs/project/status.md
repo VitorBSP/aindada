@@ -1954,3 +1954,23 @@ Registrado pelo orquestrador a partir do relatório do 06, que auditou sem edita
   - 01: conferência de 2026.
   - 08 ou dono: C6.
   - Dono: secret e C5.
+
+## Busca de marca no INPI, C6 (orquestrador, 2026-10-28)
+
+O 08 não conseguiu consultar o INPI, porque a busca exige sessão. O orquestrador fez a consulta no
+navegador embutido, em modo anônimo.
+
+- **Busca**: pePI, Marcas, pesquisa básica por radical, em 28/10/2026 às 02:28. Os termos "ainda da" e
+  "aindada" deram o mesmo resultado: 3 processos.
+  - **931297427**: "Ainda dá Tempo", prioridade 26/07/2023, registro em vigor, classe NCL(12) 16.
+    Titular: pessoa física.
+  - **931297460**: "Ainda dá Tempo", prioridade 26/07/2023, registro em vigor, classe **NCL(12) 41**
+    (educação, entretenimento e atividades esportivas e culturais). Titular: pessoa física.
+  - **941919234**: "Projeto: AINDA DÁ TEMPO", prioridade 17/11/2025, aguardando exame de mérito,
+    classe **NCL(12) 41**. Titular: empresa.
+- **Não encontrado**: nenhum registro de "Ainda dá" isolado nem de "AInda dá?".
+- **Web aberta** (busca do 08, 2026-10-28): nenhum uso de "Ainda dá"/"aindada" por terceiros em
+  esportes ou apps. WIPO não verificado (CAPTCHA).
+- **Leitura (não é parecer jurídico)**: há uma marca em vigor parecida na classe 41, a mesma de um site
+  de informação esportiva. "Ainda dá" é expressão comum, e as marcas encontradas têm o elemento
+  distintivo "Tempo". Publicar com o nome atual é decisão de risco do dono do produto (C6, Q19).
