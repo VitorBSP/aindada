@@ -1,5 +1,5 @@
 {
-  "model_version": "cmp-elo-ad-0.2.0",
+  "model_version": "cmp-elo-ad-0.3.0",
   "feature_set": "elo_attack_defense",
   "rating_params": {
     "elo": {
@@ -20,7 +20,7 @@
       "span_matches": 2
     }
   },
-  "dynamic_ratings_in_simulation": true,
+  "dynamic_ratings_in_simulation": false,
   "draw_inflation": false,
   "goal_dispersion": true,
   "simulation_uncertainty": {

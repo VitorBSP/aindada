@@ -1,7 +1,12 @@
 # Validação e backtesting (Agente 06)
 
 Relatório completo e reprodutível: `data/gold/backtest_report.json`, gerado por
-`python -m brasileirao.cli backtest` (dados do commit `d677143069202` do brasileirao-dataset).
+`python -m brasileirao.cli backtest --simulations 10000` (semente 7) sobre o gold de **publicação**
+do ADR-0008: `adaoduque_kaggle@kaggle-v18` (2003–2025) + `football_data_org@v4-20261027T205022Z`
+(2026), 9.545 jogos. Modelo `cmp-elo-ad-0.3.0`. As tabelas de partidas e de temporadas abaixo são
+desse relatório. As seções de 2026-10-26 e 2026-10-27 (etapa 2, deslocamento de data, dispersão)
+foram medidas sobre os dados anteriores (`brasileirao_dataset`, 2.000 simulações) e ficam como
+histórico. A comparação e as decisões novas estão em "Passo 11 do ADR-0008" (fim do arquivo).
 
 ## Desenho
 
@@ -28,7 +33,8 @@ Relatório completo e reprodutível: `data/gold/backtest_report.json`, gerado po
 | Forma (span em jogos) | 2, 3, 6, 12 | 2 |
 
 As diferenças entre combinações vizinhas são pequenas (até ~0,002 de log loss). Por isso o modelo é
-pouco sensível a esses parâmetros.
+pouco sensível a esses parâmetros. No gold de publicação a escolha é a mesma, com os mesmos log loss
+de validação até a 15ª casa (validação 2013–2018 tem os mesmos placares e datas nas duas fontes).
 
 ## Partidas — teste 2019–2025 (menor é melhor)
 
@@ -38,7 +44,7 @@ pouco sensível a esses parâmetros.
 | Poisson sem variáveis | 1,0601 | 0,6397 | 0,2207 |
 | Elo | 1,0220 | 0,6131 | 0,2078 |
 | Ataque/defesa | 1,0228 | 0,6135 | 0,2082 |
-| **Elo + ataque/defesa (escolhido)** | **1,0213** | **0,6126** | **0,2077** |
+| **Elo + ataque/defesa (escolhido)** | **1,0213** | **0,6126** | **0,2078** |
 | Elo + ataque/defesa + forma | 1,0208 | 0,6123 | 0,2076 |
 | Escolhido sem Dixon-Coles | 1,0212 | 0,6126 | 0,2077 |
 
@@ -60,12 +66,12 @@ Por temporada (modelo escolhido):
 | 2022 | 1,0253 | 0,6140 | 0,2067 |
 | 2023 | 1,0364 | 0,6221 | 0,2161 |
 | 2024 | 1,0235 | 0,6132 | 0,2096 |
-| 2025 | 1,0019 | 0,5993 | 0,2038 |
+| 2025 | 1,0020 | 0,5993 | 0,2038 |
 
-Calibração (erro de calibração esperado, 10 faixas): mandante 1,6 p.p., empate 1,2 p.p.,
+Calibração (erro de calibração esperado, 10 faixas): mandante 1,4 p.p., empate 1,2 p.p.,
 visitante 1,6 p.p.
 
-## Temporadas — snapshots históricos (rodadas 10, 19 e 28, 2.000 simulações)
+## Temporadas — snapshots históricos (rodadas 10, 19 e 28, 10.000 simulações)
 
 O estado de cada checkpoint é reconstruído do zero com `build_state_as_of`. A primeira versão
 reaproveitava o estado entre checkpoints e, com jogos adiados (2021, 2024), incluía partidas futuras.
@@ -75,18 +81,21 @@ teste.
 
 | Métrica (média) | Validação 2013–2018: dinâmico | Validação: fixo | Teste 2019–2025: dinâmico | Teste: fixo |
 |---|---|---|---|---|
-| Brier título (por clube) | 0,0164 | 0,0153 | 0,0288 | 0,0290 |
-| Brier G4 | 0,0550 | 0,0538 | 0,0684 | 0,0680 |
-| Brier rebaixamento | 0,0929 | 0,0940 | 0,0892 | 0,0907 |
-| Log loss da posição final | **2,261** | 2,268 | **2,214** | 2,237 |
-| Erro absoluto médio dos pontos finais | 4,70 | 4,70 | 5,11 | 5,12 |
-| Cobertura do intervalo de 90% dos pontos | **91,7%** | 86,7% | **86,9%** | 83,6% |
+| Brier título (por clube) | 0,0164 | 0,0154 | 0,0292 | 0,0294 |
+| Brier G4 | 0,0554 | 0,0538 | 0,0685 | 0,0683 |
+| Brier rebaixamento | 0,0934 | 0,0940 | 0,0897 | 0,0912 |
+| Log loss da posição final | 2,265 | **2,257** | **2,213** | 2,232 |
+| Erro absoluto médio dos pontos finais | 4,71 | 4,71 | 5,12 | 5,12 |
+| Cobertura do intervalo de 90% dos pontos | **91,7%** | 87,5% | **86,4%** | 83,3% |
 
-Leitura: a atualização dinâmica dentro da simulação melhora a distribuição de posições e a
-cobertura dos intervalos, nos dois períodos, sem piorar o erro dos pontos. As diferenças nos Brier
-de título e G4 são pequenas e mistas. Ela está ligada (`data/gold/model_config.json`). No teste, a
-cobertura fica abaixo de 90%, o que indica leve excesso de confiança. A propagação de incerteza
-foi avaliada na etapa 2 (abaixo).
+Leitura (gold de publicação, `cmp-elo-ad-0.3.0`): na validação, ratings **fixos** têm log loss de
+posição menor; a regra do código (menor log loss de posição na validação) os escolhe, e a média de
+seis sementes confirma o sinal (+0,0027 a favor dos fixos, erro-padrão 0,0016; ver "Passo 11").
+Estão em produção (`dynamic_ratings_in_simulation: false`). O custo é conhecido: os ratings
+dinâmicos cobrem melhor o intervalo de 90% nos dois períodos e têm log loss de posição menor no
+teste. Com os dados anteriores e 2.000 simulações a escolha era a oposta (dinâmico 2,261 × fixo
+2,268), o que mostra que a diferença está no nível do ruído de Monte Carlo. No teste, a cobertura
+fica abaixo de 90% nos dois modos, o que indica excesso de confiança.
 
 Limitação: o backtest de temporada avalia título, G4 e rebaixamento, que independem das regras
 continentais. Para temporadas antigas foram usadas as regras de desempate de 2026.
@@ -417,4 +426,97 @@ A causa é a ordem dos sorteios (`remaining` é ordenado por data e `match_id`),
 dados. Esse relatório **não** foi adotado: `data/gold/` ficou com o relatório dos dados do snapshot
 publicado, que reproduz exatamente as decisões anteriores. A cópia do rerun ficou fora do
 repositório. Antes do passo 11 do ADR-0008, as escolhas de temporada precisam de mais simulações (ou
-mais checkpoints) para que a decisão não dependa da ordem dos IDs (ver `status.md`).
+mais checkpoints) para que a decisão não dependa da ordem dos IDs (ver `status.md`). Feito no passo 11
+(seção abaixo): 10.000 simulações e seis sementes.
+
+## Passo 11 do ADR-0008: backtest sobre o gold de publicação (Agente 02, 2026-10-28)
+
+O `data/gold/backtest_report.json` versionado (que vira o `metrics.json` do site) ainda era o
+relatório sobre os dados do `brasileirao_dataset`. Ele foi refeito sobre o gold de publicação
+(Adão Duque v18 2003–2025 + football-data.org 2026, `sources.json` em `mode: publication`, 9.545
+jogos). Comandos, com `BRASILEIRAO_ROOT` apontando para uma cópia dos dados fora do repositório:
+
+- `python -m brasileirao.cli backtest --rules-season 2026 --simulations 2000` (mesmo número de
+  simulações do relatório anterior);
+- `python -m brasileirao.cli backtest --rules-season 2026 --simulations 10000` (relatório adotado);
+- seis sementes (7, 11, 13, 17, 19 e 23) com 10.000 simulações nos 18 checkpoints de validação,
+  fora do comando `backtest`, com `prepare_checkpoints` e `score_simulation_variants` e os
+  hiperparâmetros do relatório. A semente 7 reproduz exatamente os números do relatório de 10.000.
+
+### Comparação com o relatório anterior
+
+| Item | Anterior (`brasileirao_dataset`, 2.000) | Publicação, 2.000 | Publicação, 10.000 (adotado) |
+|---|---|---|---|
+| Hiperparâmetros dos ratings | K 10, mando 50, regr. 0,3; A/D 0,015 e 0,15; forma 2 | iguais | iguais |
+| Conjunto de variáveis | Elo + ataque/defesa | igual | igual |
+| Log loss de validação (escolhido) | 1,013239 | 1,013239 | 1,013239 |
+| Teste: log loss / Brier / RPS | 1,02133 / 0,61260 / 0,20775 | 1,02134 / 0,61261 / 0,20775 | 1,02134 / 0,61261 / 0,20775 |
+| Teste com dispersão: log loss / placar exato | 1,02093 / 2,73443 | 1,02093 / 2,73441 | 1,02093 / 2,73441 |
+| ECE mandante / empate / visitante (p.p.) | 1,55 / 1,17 / 1,57 | 1,44 / 1,17 / 1,56 | 1,44 / 1,17 / 1,56 |
+| Validação: log loss posição, dinâmico × fixo | **2,2614** × 2,2681 | 2,2708 × **2,2538** | 2,2651 × **2,2571** |
+| Ratings na simulação | dinâmicos | fixos | fixos |
+| Dispersão de gols (regra `select_goal_dispersion`) | adotada | rejeitada (2,2619 × 2,2538) | adotada (2,2561 × 2,2571) |
+| Inflação de empates / incerteza extra | não / nenhuma | não / nenhuma | não / nenhuma |
+| Configuração escolhida, validação: log loss posição / cobertura 90% / MAE pontos | 2,2612 / 91,7% / 4,70 | 2,2538 / 87,5% / 4,70 | 2,2561 / 87,2% / 4,70 |
+| Configuração escolhida, teste: log loss posição / cobertura 90% / MAE pontos | 2,2277 / 86,9% / 5,12 | 2,2323 / 83,6% / 5,12 | 2,2411 / 83,1% / 5,12 |
+| Configuração escolhida, teste: Brier título / G4 / rebaixamento | 0,0288 / 0,0688 / 0,0899 | 0,0293 / 0,0681 / 0,0909 | 0,0293 / 0,0688 / 0,0915 |
+
+Por que mudou:
+
+- **Partidas: nada relevante.** Os placares de 2003–2025 coincidem nas duas fontes. A diferença na
+  5ª casa vem das 138 datas de 2024–2025 que agora estão um dia antes (fuso de Brasília em vez de UTC).
+  É o mesmo efeito medido na seção "Deslocamento de data UTC" (+0,000006 de log loss). Uma
+  probabilidade de mandante que cruza o limite de uma faixa de calibração muda a contagem de duas
+  faixas (613 → 611 e 815 → 817 jogos), e o ECE do mandante cai 0,1 p.p.
+- **Temporadas: ruído de Monte Carlo.** Na validação (2013–2018), placares e datas são idênticos.
+  Só o `match_id` mudou, e os jogos restantes são ordenados por data e `match_id`
+  (`simulation/engine.py:57`). A ordem muda quais números aleatórios cada jogo recebe (N9). Com
+  2.000 simulações essa troca sozinha inverteu as três decisões de temporada.
+
+### Sensibilidade à semente (validação 2013–2018, 10.000 simulações por semente)
+
+| Semente | Dinâmico | Fixo | Dinâmico + dispersão | Fixo + dispersão |
+|---|---|---|---|---|
+| 7 | 2,26509 | 2,25711 | 2,25990 | 2,25608 |
+| 11 | 2,26466 | 2,26031 | 2,26507 | 2,25536 |
+| 13 | 2,26315 | 2,25759 | 2,26038 | 2,25874 |
+| 17 | 2,26362 | 2,26468 | 2,26670 | 2,26620 |
+| 19 | 2,26415 | 2,26371 | 2,26696 | 2,26155 |
+| 23 | 2,26029 | 2,26167 | 2,25987 | 2,26408 |
+| **Média (60.000)** | 2,26349 | **2,26085** | 2,26315 | **2,26033** |
+| Cobertura 90%, média | 91,9% | 87,4% | 91,9% | 87,3% |
+
+Diferenças pareadas de log loss de posição (média e erro-padrão entre sementes): dinâmico − fixo
+= +0,0027 (0,0016); fixo + dispersão − fixo = −0,0005 (0,0011); dinâmico + dispersão − dinâmico =
+−0,0003 (0,0013).
+
+### Decisões
+
+Regra fixada antes de ver as sementes: aplicar as mesmas regras do código à média das seis sementes.
+
+- **Ratings fixos na simulação** (`dynamic_ratings_in_simulation: false`). A média favorece os
+  fixos em 0,0027, 1,7 erro-padrão e acima da tolerância de 0,001. O relatório de 10.000 simulações
+  chega à mesma escolha.
+- **Dispersão de gols mantida** (`goal_dispersion: true`). As condições de partidas valem
+  (1X2 1,01324 → 1,01303; placar 2,72522 → 2,72375), e a posição não piora (−0,0005 com fixos).
+- **Sem inflação de empates e sem incerteza extra**, como antes. No relatório de 10.000, "sem
+  incerteza" (2,2561) empata com a força latente sd 0,05 (2,2566), e a parcimônia escolhe a mais
+  simples. A origem móvel escolheria sd 0,10 para 2026 e segue não adotada.
+- **Hiperparâmetros dos ratings e conjunto de variáveis: inalterados.**
+- **`MODEL_VERSION` = `cmp-elo-ad-0.3.0`.** Muda o comportamento da simulação (fixos em vez de
+  dinâmicos) e muda a base de dados (N9). O backtest rodou antes da troca da constante. Por isso o
+  rótulo `model_version` do relatório e do `model_config.json` foi trocado à mão, como no
+  `cmp-elo-ad-0.2.0`. Os números são do mesmo código.
+
+**Custo da escolha (para a revisão do 06 e do 00).** A diferença na validação está perto do ruído.
+Os ratings dinâmicos cobrem melhor o intervalo de 90% nos dois períodos (validação 91,9% × 87,4%;
+teste 86,4% × 83,3%) e têm log loss de posição menor no **teste** (2,2133 × 2,2321 na semente 7). A
+configuração em produção piora no teste em relação à anterior: log loss de posição 2,2277 → 2,2411
+e cobertura de 90% 86,9% → 83,1%. As métricas de partidas não mudam. Escolher dinâmicos olhando o
+teste violaria o protocolo. Se o 06 ou o 00 preferirem priorizar a cobertura, o caminho é mudar o
+critério antes de rodar de novo, por exemplo com a cobertura como restrição ou com mais
+checkpoints por temporada. Não é trocar o resultado à mão.
+
+Limitações: as sementes cobrem só a validação de dinâmico × fixo e da dispersão. A escolha da
+incerteza usa uma semente (7) com 10.000 simulações. O teste da configuração final não foi repetido
+com outras sementes.
