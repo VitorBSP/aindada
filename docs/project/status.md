@@ -2692,3 +2692,37 @@ Branch `api/current-round` (sobre `data/kickoff` do 01). Sem merge na `main`.
   - **07**, depois do 04: `check_site_artifact.py` com o `current-round.json`; depois do merge, ensaio
     de um dia de jogos com `MATCH_UPDATES` ausente, comparando o resumo com os horários reais;
   - **dono do produto**: nada agora. Depois do ensaio e dos pareceres, criar `MATCH_UPDATES = on`.
+
+## Agente 07: `check_site_artifact.py` com o `current-round.json` (ADR-0009; 2026-10-28) — entregue na branch `deploy/check-current-round`, aguarda auditoria do 06
+
+- **O que mudou:**
+  - `infrastructure/scripts/check_site_artifact.py`: reprova placar em jogo não `finished` no
+    `predictions.json` e checa o `current-round.json` (exigido quando o snapshot tem jogos):
+    `schema_version` em `("1.0",)`; `season`, `updated_at` (= `generated_at`), `model_version` e
+    `data_version` iguais aos do `predictions.json`; ids de `match_ids` e `rescheduled_match_ids` no
+    `predictions.json` e listas disjuntas; `baseline` (se não nulo) com o `model_version` do snapshot,
+    exatamente os clubes de `predictions.teams`, `reference_date < starts_on` e `title`/`top4`/`relegation`
+    iguais aos da visão do `rounds.json` com a mesma data. `round` nulo passa. A saída só tem ids,
+    datas e versões; a linha de resumo ganhou "rodada atual: N (estado)";
+  - `tests/unit/test_check_site_artifact.py`: export sintético com `current-round.json` e 30 casos
+    novos; `tests/unit/test_match_updates.py`: 2 casos com um `predictions.json` no formato 1.3;
+  - `docs/architecture/deploy.md`: regras novas do item G5.
+- **`match_updates.py` (sem mudança):** "já publicado" = `source_match_id` do `predictions.json` publicado
+  com status `finished`; jogo sem `source_match_id` é ignorado; o export do 04 traz o campo, então a
+  regra vale sem mudar o script. No export de fumaça, os 380 jogos de 2026 têm `source_match_id` do
+  football-data.org (fonte da temporada em `sources.json`), o mesmo id que o script lê da API.
+- **Evidência:**
+  - `pytest -q`: 740 passed, 1 skipped; `ruff check`/`ruff format --check`: ok; `mypy`: 51 arquivos, sem
+    erros; workflows não mudaram (actionlint não se aplica);
+  - fumaça: cópia nova do export de fumaça do 04, `export-web --season 2026` com o código desta branch
+    (`PYTHONPATH` na worktree, import confirmado), `_site` = `apps/web` da branch + export, e
+    `python -I check_site_artifact.py --site-dir _site --season 2026 --seed 2026`: "snapshot
+    2026-10-26 | modelo cmp-elo-ad-0.3.0 | pontos no histórico: 5 | visões por rodada: 33 | rodada
+    atual: 33 (in_progress)", aprovada, 0 achados (rodada 33: 10 jogos, 0 remarcados, baseline de
+    2026-10-26 com 20 clubes).
+- **Premissas e limitações:** valores do baseline comparados por igualdade exata (os dois vêm do mesmo
+  float serializado); com várias visões na mesma data, basta uma coincidir; `schema_version` novo do
+  `current-round.json` exige atualizar `CURRENT_ROUND_SCHEMA_VERSIONS`; se uma temporada vier de fonte
+  com outro id (Adão Duque), o "já publicado" não casa e o jogo é republicado (erro seguro).
+- **Próximo responsável:** **06** audita as regras e os testes; **00** decide o merge em `integ/rodada`
+  (o 07 não fez merge); **07** segue com o ensaio de um dia de jogos depois do merge na `main`.

@@ -365,3 +365,29 @@ def test_site_without_source_match_id_is_unknown() -> None:
 def test_site_statuses_by_source_match_id() -> None:
     document = {"synthetic": True, "matches": [{"source_match_id": "99", "status": "finished"}]}
     assert MU.site_statuses(document) == {"99": "finished"}
+
+
+def _export_document() -> dict[str, Any]:
+    """`predictions.json` sintético com os campos do schema 1.3: `match_id` interno, `source_match_id` da fonte."""
+    match = {"home_goals": None, "away_goals": None, "kickoff_utc": "2099-03-04T22:00:00Z"}
+    return {
+        "synthetic": True,
+        "schema_version": "1.3",
+        "matches": [
+            match | {"match_id": "2099-001", "source_match_id": "101", "status": "finished", "home_goals": 1},
+            match | {"match_id": "2099-002", "source_match_id": "102", "status": "scheduled"},
+            match | {"match_id": "2099-003", "source_match_id": "103", "status": "postponed"},
+            match | {"match_id": "2099-004", "source_match_id": None, "status": "scheduled", "kickoff_utc": None},
+        ],
+    }
+
+
+def test_site_statuses_from_export_use_source_match_id() -> None:
+    assert MU.site_statuses(_export_document()) == {"101": "finished", "102": "scheduled", "103": "postponed"}
+
+
+def test_api_finished_match_already_finished_on_site_is_not_published() -> None:
+    due = [MU.Check("101", NOW), MU.Check("102", NOW)]
+    api_status = {"101": "FINISHED", "102": "FINISHED"}
+    outcome = MU.evaluate(due, api_status, MU.site_statuses(_export_document()), NOW, DEADLINE)
+    assert outcome.publish == ("102",)

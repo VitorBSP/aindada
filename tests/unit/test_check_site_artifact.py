@@ -44,6 +44,66 @@ def _point(reference_date: str, reconstructed: Any = False, **extra: Any) -> dic
     return {key: value for key, value in point.items() if value is not None}
 
 
+PREDICTIONS_PATH = f"seasons/{SEASON}/predictions.json"
+ROUNDS_PATH = f"seasons/{SEASON}/rounds.json"
+CURRENT_ROUND_PATH = f"seasons/{SEASON}/current-round.json"
+GENERATED_AT = "2026-10-20T12:00:00+00:00"
+CLUBS = ("synthetic-a", "synthetic-b")
+
+
+def _match(match_id: str, status: str, **extra: Any) -> dict[str, Any]:
+    return {"match_id": match_id, "status": status, "home_goals": None, "away_goals": None} | extra
+
+
+def _view_values(title: float) -> dict[str, dict[str, float]]:
+    """Visão sintética: valores por clube com uma métrica extra (`points`) que o baseline não carrega."""
+    return {
+        club: {"title": title / (index + 1), "top4": 0.9, "relegation": 0.05, "points": 60.0}
+        for index, club in enumerate(CLUBS)
+    }
+
+
+def _baseline(**changes: Any) -> dict[str, Any]:
+    teams = {
+        club: {metric: values[metric] for metric in CHECKER.BASELINE_METRICS}
+        for club, values in _view_values(0.5).items()
+    }
+    baseline = {
+        "reference_date": "2026-10-13",
+        "model_version": MODEL_VERSION,
+        "n_simulations": 100,
+        "reconstructed": True,
+        "teams": teams,
+    }
+    return baseline | changes
+
+
+def _round_info(**changes: Any) -> dict[str, Any]:
+    info = {
+        "round_number": 1,
+        "state": "in_progress",
+        "starts_on": "2026-10-18",
+        "ends_on": "2026-10-21",
+        "match_ids": ["m1", "m2"],
+        "rescheduled_match_ids": ["m3"],
+        "baseline": _baseline(),
+    }
+    return info | changes
+
+
+def _current_round(**changes: Any) -> dict[str, Any]:
+    current = {
+        "synthetic": True,
+        "schema_version": "1.0",
+        "season": SEASON,
+        "updated_at": GENERATED_AT,
+        "model_version": MODEL_VERSION,
+        "data_version": "synthetic-data-1",
+        "round": _round_info(),
+    }
+    return current | changes
+
+
 def _documents() -> dict[str, Any]:
     """Export mínimo e sintético (não é dado real), com os campos que o script lê."""
     return {
@@ -55,22 +115,33 @@ def _documents() -> dict[str, Any]:
                 "synthetic": True,
             }
         ],
-        f"seasons/{SEASON}/predictions.json": {
+        PREDICTIONS_PATH: {
             "synthetic": True,
             "reference_date": "2026-10-20",
+            "generated_at": GENERATED_AT,
             "seed": SEED,
             "model": {"model_version": "synthetic-model-1"},
             "data": {"version": "synthetic-data-1"},
+            "teams": [{"club_id": club} for club in CLUBS],
+            "matches": [
+                _match("m1", "finished", home_goals=1, away_goals=0),
+                _match("m2", "scheduled"),
+                _match("m3", "postponed"),
+            ],
         },
         HISTORY_PATH: [_point("2026-10-13", reconstructed=True), _point("2026-10-20")],
-        f"seasons/{SEASON}/rounds.json": {
+        ROUNDS_PATH: {
             "synthetic": True,
             "model_version": "synthetic-model-1",
             "data_version": "synthetic-data-1",
             "data_until": "2026-10-20",
             "seed": SEED,
-            "rounds": [{"round": 1}],
+            "rounds": [
+                {"round_number": 0, "reference_date": "2026-10-13", "teams": _view_values(0.5)},
+                {"round_number": 1, "reference_date": "2026-10-20", "teams": _view_values(0.6)},
+            ],
         },
+        CURRENT_ROUND_PATH: _current_round(),
         "models/metrics.json": {"synthetic": True, "model_version": "synthetic-model-1"},
     }
 
@@ -287,3 +358,155 @@ def test_reconstructed_last_point_fails(tmp_path: Path) -> None:
     assert CHECKER.check(_site(tmp_path, **changes), SEASON, None) == [
         "último ponto de probability-history não tem reconstructed == false"
     ]
+
+
+def _with_round(**changes: Any) -> dict[str, Any]:
+    return {CURRENT_ROUND_PATH: _current_round(round=_round_info(**changes))}
+
+
+def _with_baseline(**changes: Any) -> dict[str, Any]:
+    return _with_round(baseline=_baseline(**changes))
+
+
+def _predictions(**changes: Any) -> dict[str, Any]:
+    return {PREDICTIONS_PATH: _documents()[PREDICTIONS_PATH] | changes}
+
+
+def test_missing_current_round_with_matches_fails(tmp_path: Path) -> None:
+    site_dir = _site(tmp_path)
+    current_path = site_dir / "data" / "api" / CURRENT_ROUND_PATH
+    current_path.unlink()
+    assert CHECKER.check(site_dir, SEASON, None) == [f"ausente: {current_path.as_posix()}"]
+
+
+def test_missing_current_round_without_matches_passes(tmp_path: Path) -> None:
+    site_dir = _site(tmp_path, **_predictions(matches=[]))
+    (site_dir / "data" / "api" / CURRENT_ROUND_PATH).unlink()
+    assert CHECKER.check(site_dir, SEASON, None) == []
+
+
+def test_invalid_current_round_json_fails(tmp_path: Path) -> None:
+    site_dir = _site(tmp_path)
+    (site_dir / "data" / "api" / CURRENT_ROUND_PATH).write_text("{", encoding="utf-8")
+    assert CHECKER.check(site_dir, SEASON, None)[0].startswith("JSON inválido")
+
+
+def test_null_round_passes(tmp_path: Path) -> None:
+    assert CHECKER.check(_site(tmp_path, **{CURRENT_ROUND_PATH: _current_round(round=None)}), SEASON, None) == []
+
+
+def test_null_baseline_passes(tmp_path: Path) -> None:
+    assert CHECKER.check(_site(tmp_path, **_with_round(baseline=None)), SEASON, None) == []
+
+
+@pytest.mark.parametrize("version", [None, "2.0", 1])
+def test_unknown_current_round_schema_version_fails(tmp_path: Path, version: Any) -> None:
+    changes = {CURRENT_ROUND_PATH: _current_round(schema_version=version)}
+    assert CHECKER.check(_site(tmp_path, **changes), SEASON, None) == [
+        f"current-round.schema_version {version!r} não suportado"
+    ]
+
+
+@pytest.mark.parametrize(
+    ("key", "value", "expected"),
+    [
+        ("updated_at", "2026-10-13T12:00:00+00:00", GENERATED_AT),
+        ("model_version", "synthetic-model-0", MODEL_VERSION),
+        ("data_version", "synthetic-data-0", "synthetic-data-1"),
+        ("season", SEASON - 1, SEASON),
+    ],
+)
+def test_current_round_versions_different_from_predictions_fail(
+    tmp_path: Path, key: str, value: Any, expected: Any
+) -> None:
+    changes = {CURRENT_ROUND_PATH: _current_round(**{key: value})}
+    assert CHECKER.check(_site(tmp_path, **changes), SEASON, None) == [
+        f"current-round.{key} {value} diferente de {expected} do predictions.json"
+    ]
+
+
+def test_current_round_with_unknown_match_fails(tmp_path: Path) -> None:
+    assert CHECKER.check(_site(tmp_path, **_with_round(match_ids=["m1", "m9"])), SEASON, None) == [
+        "current-round com jogos ausentes do predictions.json: ['m9']"
+    ]
+
+
+def test_current_round_with_unknown_rescheduled_match_fails(tmp_path: Path) -> None:
+    assert CHECKER.check(_site(tmp_path, **_with_round(rescheduled_match_ids=["m8"])), SEASON, None) == [
+        "current-round com jogos ausentes do predictions.json: ['m8']"
+    ]
+
+
+def test_current_round_with_overlapping_lists_fails(tmp_path: Path) -> None:
+    assert CHECKER.check(_site(tmp_path, **_with_round(rescheduled_match_ids=["m2", "m3"])), SEASON, None) == [
+        "current-round com jogos em match_ids e rescheduled_match_ids: ['m2']"
+    ]
+
+
+def test_current_round_without_lists_fails(tmp_path: Path) -> None:
+    assert CHECKER.check(_site(tmp_path, **_with_round(match_ids=None)), SEASON, None) == [
+        "current-round.round sem as listas match_ids e rescheduled_match_ids"
+    ]
+
+
+def test_baseline_with_other_model_version_fails(tmp_path: Path) -> None:
+    assert CHECKER.check(_site(tmp_path, **_with_baseline(model_version="synthetic-model-0")), SEASON, None) == [
+        f"current-round.baseline.model_version synthetic-model-0 diferente de {MODEL_VERSION}"
+    ]
+
+
+def test_baseline_with_missing_club_fails(tmp_path: Path) -> None:
+    teams = {CLUBS[0]: _baseline()["teams"][CLUBS[0]]}
+    assert CHECKER.check(_site(tmp_path, **_with_baseline(teams=teams)), SEASON, None)[0] == (
+        f"current-round.baseline com clubes diferentes do snapshot: faltam ['{CLUBS[1]}'], sobram []"
+    )
+
+
+def test_baseline_with_extra_club_fails(tmp_path: Path) -> None:
+    teams = _baseline()["teams"] | {"synthetic-z": {"title": 0.0, "top4": 0.0, "relegation": 1.0}}
+    assert CHECKER.check(_site(tmp_path, **_with_baseline(teams=teams)), SEASON, None)[0] == (
+        "current-round.baseline com clubes diferentes do snapshot: faltam [], sobram ['synthetic-z']"
+    )
+
+
+def test_baseline_not_before_starts_on_fails(tmp_path: Path) -> None:
+    changes = _with_round(starts_on="2026-10-13")
+    assert CHECKER.check(_site(tmp_path, **changes), SEASON, None) == [
+        "current-round.baseline.reference_date 2026-10-13 não é anterior a starts_on 2026-10-13"
+    ]
+
+
+def test_baseline_without_matching_view_fails(tmp_path: Path) -> None:
+    assert CHECKER.check(_site(tmp_path, **_with_baseline(reference_date="2026-10-06")), SEASON, None) == [
+        "current-round.baseline sem visão de 2026-10-06 no rounds.json"
+    ]
+
+
+@pytest.mark.parametrize("metric", CHECKER.BASELINE_METRICS)
+def test_baseline_value_different_from_view_fails(tmp_path: Path, metric: str) -> None:
+    teams = _baseline()["teams"]
+    teams[CLUBS[1]] = teams[CLUBS[1]] | {metric: 0.123}
+    assert CHECKER.check(_site(tmp_path, **_with_baseline(teams=teams)), SEASON, None) == [
+        "current-round.baseline diferente da visão de 2026-10-13 do rounds.json"
+    ]
+
+
+def test_baseline_from_other_view_fails(tmp_path: Path) -> None:
+    changes = _with_round(starts_on="2026-10-21", baseline=_baseline(reference_date="2026-10-20"))
+    assert CHECKER.check(_site(tmp_path, **changes), SEASON, None) == [
+        "current-round.baseline diferente da visão de 2026-10-20 do rounds.json"
+    ]
+
+
+@pytest.mark.parametrize("status", ["scheduled", "postponed", "cancelled"])
+def test_score_in_unfinished_match_fails(tmp_path: Path, status: str) -> None:
+    matches = [_match("m1", "finished", home_goals=1, away_goals=0), _match("m2", status, home_goals=0)]
+    changes = _predictions(matches=matches) | _with_round(rescheduled_match_ids=[])
+    assert CHECKER.check(_site(tmp_path, **changes), SEASON, None) == [
+        "predictions.json com placar em jogo não finished: ['m2']"
+    ]
+
+
+def test_current_round_summary_is_printed(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    CHECKER.check(_site(tmp_path), SEASON, None)
+    assert "rodada atual: 1 (in_progress)" in capsys.readouterr().out

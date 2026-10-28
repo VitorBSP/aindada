@@ -90,7 +90,14 @@ checkout -> pip install -> pytest (sem dados) -> SQLite isolado em $RUNNER_TEMP
   `history_mode` (`reconstructed` ou `recorded`) para a temporada, ponto do histórico sem
   `generated_at` com fuso, sem `model_version` ou sem `reconstructed` booleano, histórico com
   `model_version` diferente do de `predictions` (o workflow reconstrói tudo, então a curva publicada
-  é de um único modelo) e último ponto com `reconstructed` diferente de `false`. Testes sintéticos, sem rede, em `tests/unit/test_check_site_artifact.py`. Se
+  é de um único modelo) e último ponto com `reconstructed` diferente de `false`. Pelo ADR-0009, reprova
+  ainda placar em jogo sem status `finished` no `predictions.json` e, no `current-round.json` (exigido
+  quando o snapshot tem jogos): `schema_version` desconhecido; `updated_at`, `model_version`,
+  `data_version` ou `season` diferentes dos do `predictions.json`; id de `match_ids` ou
+  `rescheduled_match_ids` fora do `predictions.json` ou nas duas listas; `baseline` com outro
+  `model_version`, clubes diferentes dos do snapshot, data não anterior a `starts_on` ou valores de
+  `title`/`top4`/`relegation` diferentes da visão do `rounds.json` com a mesma `reference_date`
+  (`round` e `baseline` nulos passam). Testes sintéticos, sem rede, em `tests/unit/test_check_site_artifact.py`. Se
   qualquer checagem falhar, nada é publicado e o site anterior continua no ar.
 - Insights: nenhum job aprova insight (D-026). O export publicado não tem `insights.json`, e a home
   aparece sem manchete. Publicar insights exige um fluxo editorial próprio (pendência do 08/04).
