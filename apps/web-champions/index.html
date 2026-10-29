@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AInda dá? · Champions League</title>
+  <meta name="description" content="Chances de cada clube na Champions League: fase de liga, playoff, mata-mata e título, com 100 mil simulações.">
+  <meta name="theme-color" content="#fafaf7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#17191c" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="assets/brand/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/inter-tight-latin.woff" as="font" type="font/woff" crossorigin>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Pular para o conteúdo</a>
+  <header class="top">
+    <div class="wrap leagues" role="navigation" aria-label="Competições" id="leagues">
+      <a href="../">Brasileirão Série A</a>
+      <a href="../serie-b/">Série B</a>
+      <a href="../premier-league/" data-league="premier-league">Premier League</a>
+      <a href="../la-liga/" data-league="la-liga">LaLiga</a>
+      <a href="../champions-league/" data-league="champions-league">Champions League</a>
+    </div>
+    <div class="wrap top-inner">
+      <a class="brand" href="./" aria-label="AInda dá?, início desta liga">
+        <img class="logo-light" src="assets/brand/ainda-da-assinatura-compacta.svg" alt="AInda dá?" width="168" height="32">
+        <img class="logo-dark" src="assets/brand/ainda-da-assinatura-compacta-reversa.svg" alt="AInda dá?" width="168" height="32">
+        <span class="league-tag" id="league-tag"></span>
+      </a>
+      <nav aria-label="Seções">
+        <a href="#caminho">Caminho até a final</a>
+        <a href="#tabela">Fase de liga</a>
+        <a href="#jogos">Próxima rodada</a>
+        <a href="#metodo">Como calculamos</a>
+      </nav>
+    </div>
+  </header>
+  <main id="main" class="wrap" tabindex="-1">
+    <p class="loading">Carregando as simulações…</p>
+    <noscript>Esta página precisa de JavaScript para mostrar as chances.</noscript>
+  </main>
+  <footer class="wrap foot">
+    <p><strong>AInda dá?</strong> Chance não é certeza. Os números vêm de um modelo estatístico e mudam a cada atualização. "Não dá mais" só aparece quando a matemática fecha a porta.</p>
+    <p id="credits"></p>
+    <p>O AInda dá? é um projeto independente. Não tem relação com as ligas, as federações nem os clubes.</p>
+  </footer>
+  <script src="app.js"></script>
+</body>
+</html>

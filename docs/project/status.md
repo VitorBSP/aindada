@@ -2936,3 +2936,42 @@ Registrado pelo orquestrador (00), que executou as partes de 01, 03, 02, 04/05, 
     - link do seletor quebrado se uma liga sair do artefato;
     - jogo em andamento aparece na próxima rodada com a chance de antes do jogo.
   - **Evidência final**: `pytest -q` com 802 passando; ruff, format e mypy sem achados; gates da PL e da LaLiga com 0 achados.
+
+## Champions League (ADR-0012; 2026-10-29)
+
+Registrado pelo orquestrador (00), que executou as partes de 01, 03, 02, 04/05 e 07 seguindo os contratos.
+
+- **O que mudou:**
+  - `src/brasileirao/europe/`: `sources.py` (parser das copas), `ingest.py`, `ratings.py` (Elo único),
+    `simulation.py` (fase de liga e mata-mata), `forecast.py`, `validation.py`, `gate.py`, `cli.py`;
+  - `data/reference/clubs_europe.csv` (304 clubes) e `europe_source_pins.json` (48 arquivos);
+  - `data/gold/champions_model_config.json` e `champions_tuning_report.json` (só agregados);
+  - `apps/web-champions/` em `/champions-league/`;
+  - seletor (D-039) com a Champions em todos os sites;
+  - a API local monta `/champions-league/`;
+  - `publish-site.yml` (as duas cópias) com ingestão, previsão, gate e fallback da Champions;
+  - `leagues/sources.py` passa a ignorar jogo "[cancelled]" do openfootball;
+  - testes: `tests/unit/test_champions.py` (11).
+- **Evidência:**
+  - ingestão real: 16.413 jogos e Champions com 54 de 144 jogos;
+  - log loss no teste de 0,919, contra 1,015 da taxa base;
+  - previsão com 100 mil simulações em cerca de 13 s;
+  - gate e `gate --standalone` com 0 achados;
+  - página conferida no navegador (36 clubes, rodada 4, sem erro de console);
+  - `pytest -q`: 814 passaram; ruff, format e mypy (81 arquivos) sem achados; actionlint sem achados.
+- **Próximo:**
+  - **06** audita;
+  - **03** confere o Art. 21;
+  - **dono do produto** autoriza o push.
+- **Auditoria do 06 (ADR-0012)**: commit aprovado; push e deploy condicionados a M1 e M2, ambos resolvidos.
+  - **M1** (mata-mata real sem trava): `ensure_league_phase_only` faz a previsão falhar quando existe jogo da Champions fora da fase de liga. O workflow então mantém a versão no ar até o mata-mata real ser modelado. Teste novo.
+  - **M2** (coluna Playoff mostrava "fora" para quem já garantiu o top 8): agora mostra "já nas oitavas" ou "eliminado".
+  - **Baixos resolvidos:**
+    - siglas repetidas (Bayern BAY, Bodø/Glimt BOD; 36 siglas únicas na edição);
+    - Champions montada na API local mesmo sem o app das ligas;
+    - arredondamento (1,86) em `validation.md`.
+  - **Baixos registrados:**
+    - mando da volta pela posição herdada e Art. 21 (o 03 confere no texto oficial);
+    - tabela atual só por pontos, saldo e gols;
+    - cerca de 10 chamadas por minuto (o retry em 429 cobre).
+  - **Evidência final**: `pytest -q` com 815 passando; ruff, format e mypy sem achados; gate com 0 achados.

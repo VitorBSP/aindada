@@ -13,6 +13,7 @@
 | 7 | Frontend Next.js/TypeScript, PostgreSQL, deploy público após revisão | ⏳ deploy: ADR-0007 aceito (2026-10-28, GitHub Pages estático); publicação aprovada com condições pelo 00 e pelo 06; primeira publicação pendente das ações do dono e da conferência do 06 no site no ar. Next.js e PostgreSQL ⏳ |
 | 8 | Série B: fontes licenciadas (Wikipédia + openfootball), regras com playoffs, simulação e site próprio em `/serie-b/` (ADR-0010) | ⏳ implementado e validado localmente (2026-10-29); parecer do 06 e deploy pendentes |
 | 9 | Ligas europeias: Premier League e LaLiga (ADR-0011); Champions League em seguida | ⏳ PL e LaLiga implementadas e validadas localmente (2026-10-29); auditoria do 06, publicação e Champions pendentes |
+| 10 | Champions League: Elo entre ligas, fase de liga e mata-mata (ADR-0012) | ⏳ implementada e validada localmente (2026-10-29); auditoria do 06 e publicação pendentes |
 
 ## Trilha de marca (Agente 08, paralela às fases técnicas)
 

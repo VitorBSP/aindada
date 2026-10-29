@@ -101,3 +101,13 @@ que seguem empatados).
   critérios de confronto direto valem para a classificação final e entram em toda simulação (achado M1 do 06).
 - Zonas exibidas: título, top 4 e rebaixamento. "Top 4" é posição; a vaga extra pelo desempenho europeu do
   país não é modelada.
+
+## Champions League 2026/27 (ADR-0012)
+
+Regulamento da UEFA 2026/27 (documents.uefa.com). Art. 18 (fase de liga): pontos, saldo, gols, gols fora,
+vitórias, vitórias fora, pontos, saldo e gols dos adversários, pontos disciplinares e coeficiente; sem confronto
+direto; os dois últimos viram sorteio. Art. 19 (mata-mata): playoff 9/10 x 23/24, 11/12 x 21/22, 13/14 x 19/20,
+15/16 x 17/18; oitavas 1/2, 3/4, 5/6 e 7/8 contra os vencedores das seções IV, III, II e I; quartas A x D e B x C
+em cada lado; o melhor colocado decide em casa e quem elimina herda a posição. Onde a UEFA sorteia, a simulação
+sorteia com chances iguais. Agregado sem gol fora, prorrogação e pênaltis; final em jogo único (pendência do 03:
+conferir o Art. 21 no texto oficial).

@@ -664,3 +664,31 @@ Teste por checkpoint (variante escolhida, 2.000 simulações):
 Limitações: na LaLiga o intervalo de 90% cobre 85–88% (estreito); o backtest por temporada ordena com os
 critérios da Série A (só empates exatos mudam) e não mede rebaixamento (o helper conta 4 rebaixados);
 ratings fixos no que falta da temporada.
+
+## Champions League (ADR-0012, 2026-10-29)
+
+Modelo `champions-0.1.0+cmp-elo-ad-0.3.0`: Elo único entre ligas e modelo de gols `elo_only` com dispersão,
+treinado só com jogos das copas europeias das 4 temporadas anteriores. Escolha na validação (Champions 2023/24),
+teste só relatado (2024/25 e 2025/26). Relatório: `data/gold/champions_tuning_report.json`
+(`python -m brasileirao.europe.cli tune`).
+
+| Jogos da Champions | Taxa base | Modelo |
+|---|---|---|
+| Validação 2023/24 (125) | 1,0459 | 0,9286 |
+| **Teste 2024/25–2025/26 (378)** | 1,0145 | **0,9186** (RPS 0,2021 contra 0,2374) |
+
+Temporadas (corte depois das rodadas 4 e 6 da fase de liga, 20 mil simulações; referência = Brier de prever só a
+proporção):
+
+| Temporada | Rodada | Top 8 | Playoff | Eliminado | Quartas | Semi | Log loss do campeão (uniforme 3,58) |
+|---|---|---|---|---|---|---|---|
+| 2024/25 | 4 | 0,136 (0,173) | 0,183 (0,247) | 0,053 (0,222) | 0,154 (0,173) | 0,084 (0,099) | 3,64 |
+| 2024/25 | 6 | 0,061 (0,173) | 0,079 (0,247) | 0,017 (0,222) | 0,128 (0,173) | 0,074 (0,099) | 3,75 |
+| 2025/26 | 4 | 0,121 (0,173) | 0,257 (0,247) | 0,141 (0,222) | 0,086 (0,173) | 0,058 (0,099) | 1,86 |
+| 2025/26 | 6 | 0,126 (0,173) | 0,277 (0,247) | 0,155 (0,222) | 0,083 (0,173) | 0,050 (0,099) | 1,96 |
+
+Leitura: o modelo ganha da referência em quase tudo; em 2025/26 a faixa do playoff ficou pior que a referência,
+numa fase de liga muito embolada (do 5º ao 8º com 16 pontos; Real Madrid 9º e Inter 10º). O campeão é um evento
+por temporada: duas temporadas não medem esse número (2024/25 pior que o chute uniforme, 2025/26 bem melhor).
+Limitações: parâmetros na borda da grade com superfície plana; clubes de fora das 7 ligas medidos só pelos jogos
+europeus; EL e Conference de 2025/26 ausentes; ratings fixos no resto da competição.

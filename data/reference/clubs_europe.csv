@@ -1,0 +1,305 @@
+club_id,display_name,short_name,state,aliases,country
+arm-alashkert,FC Alashkert,ALA,AR,,ARM
+arm-noah,FC Noah,NOA,AR,,ARM
+arm-pyunik,Pyunik FC,PYU,AR,,ARM
+aut-austria-wien,Austria Wien,AUS,AU,,AUT
+aut-lask,LASK Linz,LIN,AU,LASK|fd:2016,AUT
+aut-rapid-wien,Rapid Wien,RAP,AU,,AUT
+aut-red-bull-salzburg,FC Red Bull Salzburg,RBS,AU,RB Salzburg|fd:1877,AUT
+aut-sturm-graz,SK Sturm Graz,STU,AU,Sturm Graz|fd:2021,AUT
+aze-qarabag-agdam,Qarabağ Ağdam FK,QAR,AZ,Qarabağ FK|fd:611,AZE
+aze-sabah,Sabah FK,SAB,AZ,fd:10233,AZE
+bel-brugge,Club Brugge KV,BRU,BE,fd:851,BEL
+bel-cercle-brugge,Cercle Brugge,CER,BE,,BEL
+bel-kaa-gent,KAA Gent,KAA,BE,,BEL
+bel-krc-genk,KRC Genk,KRC,BE,,BEL
+bel-royal-antwerp,Royal Antwerp FC,ROY,BE,,BEL
+bel-rsc-anderlecht,RSC Anderlecht,RSC,BE,,BEL
+bel-union-saint-gilloise,Royale Union Saint-Gilloise,USG,BE,Union Saint-Gilloise|fd:3929,BEL
+bih-borac-banja-luka,Borac Banja Luka,BOR,BI,,BIH
+bih-zrinjski-mostar,Zrinjski Mostar,ZRI,BI,,BIH
+blr-dinamo-minsk,Dinamo Minsk,DIN,BL,,BLR
+bul-cska-sofia,CSKA Sofia,CSK,BU,,BUL
+bul-ludogorets-razgrad,PFC Ludogorets Razgrad,LUD,BU,,BUL
+cro-dinamo-zagreb,GNK Dinamo Zagreb,DIN,CR,Dinamo Zagreb|fd:755,CRO
+cyp-aek-larnaca,AEK Larnaca,AEK,CY,,CYP
+cyp-anorthosis-famagusta,Anorthosis Famagusta,ANO,CY,,CYP
+cyp-apoel-nikosia,APOEL Nikosia,APO,CY,,CYP
+cyp-apollon-limassol,Apollon Limassol,APO,CY,,CYP
+cyp-aris-limassol,Aris Limassol,ARI,CY,,CYP
+cyp-omonia-nikosia,Omonia Nikosia,OMO,CY,,CYP
+cyp-paphos,Paphos FC,AEP,CY,fd:11034,CYP
+cze-1-slovacko,1. FC Slovácko,1SL,CZ,,CZE
+cze-jablonec,FK Jablonec,JAB,CZ,,CZE
+cze-mlada-boleslav,FK Mladá Boleslav,MLA,CZ,,CZE
+cze-slavia-praha,SK Slavia Praha,SLP,CZ,Slavia Praha|fd:930,CZE
+cze-sparta-praha,AC Sparta Praha,SPP,CZ,fd:907,CZE
+cze-viktoria-plzen,Viktoria Plzeň,VIK,CZ,,CZE
+den-brndby,Brøndby IF,BRN,DE,,DEN
+den-kbenhavn,FC København,KOB,DE,fd:1876,DEN
+den-midtjylland,FC Midtjylland,MID,DE,,DEN
+den-nordsjlland,FC Nordsjælland,NOR,DE,,DEN
+den-randers,Randers FC,RAN,DE,,DEN
+den-silkeborg,Silkeborg IF,SIL,DE,,DEN
+eng-arsenal,Arsenal FC,ARS,EN,Arsenal|fd:57,ENG
+eng-aston-villa,Aston Villa FC,AVL,EN,Aston Villa|fd:58,ENG
+eng-bournemouth,AFC Bournemouth,BOU,EN,Bournemouth|fd:1044,ENG
+eng-brentford,Brentford FC,BRE,EN,Brentford|fd:402,ENG
+eng-brighton-hove-albion,Brighton & Hove Albion FC,BHA,EN,Brighton & Hove Albion|fd:397,ENG
+eng-burnley,Burnley FC,BUR,EN,Burnley|fd:328,ENG
+eng-chelsea,Chelsea FC,CHE,EN,fd:61,ENG
+eng-coventry-city,Coventry City FC,COV,EN,fd:1076,ENG
+eng-crystal-palace,Crystal Palace FC,CRY,EN,Crystal Palace|fd:354,ENG
+eng-everton,Everton FC,EVE,EN,Everton|fd:62,ENG
+eng-fulham,Fulham FC,FUL,EN,Fulham|fd:63,ENG
+eng-hull-city,Hull City AFC,HUL,EN,fd:322,ENG
+eng-ipswich-town,Ipswich Town FC,IPS,EN,fd:349,ENG
+eng-leeds-united,Leeds United FC,LEE,EN,Leeds United|fd:341,ENG
+eng-leicester-city,Leicester City FC,LEI,EN,Leicester City,ENG
+eng-liverpool,Liverpool FC,LIV,EN,Liverpool|fd:64,ENG
+eng-luton-town,Luton Town FC,LUT,EN,,ENG
+eng-manchester-city,Manchester City FC,MCI,EN,Manchester City|fd:65,ENG
+eng-manchester-united,Manchester United FC,MUN,EN,Manchester United|fd:66,ENG
+eng-newcastle-united,Newcastle United FC,NEW,EN,Newcastle United|fd:67,ENG
+eng-norwich-city,Norwich City FC,NOR,EN,,ENG
+eng-nottingham-forest,Nottingham Forest FC,NOT,EN,Nottingham Forest|fd:351,ENG
+eng-sheffield-united,Sheffield United FC,SHE,EN,,ENG
+eng-southampton,Southampton FC,SOU,EN,,ENG
+eng-sunderland,Sunderland AFC,SUN,EN,Sunderland|fd:71,ENG
+eng-tottenham-hotspur,Tottenham Hotspur FC,TOT,EN,Tottenham Hotspur|fd:73,ENG
+eng-watford,Watford FC,WAT,EN,,ENG
+eng-west-ham-united,West Ham United FC,WHU,EN,West Ham United|fd:563,ENG
+eng-wolverhampton-wanderers,Wolverhampton Wanderers FC,WOL,EN,Wolverhampton Wanderers|fd:76,ENG
+esp-almeria,UD Almería,ALM,ES,,ESP
+esp-athletic,Athletic Club,ATH,ES,fd:77,ESP
+esp-atletico-madrid,Club Atlético de Madrid,ATL,ES,Atlético Madrid|Atlético de Madrid|fd:78,ESP
+esp-barcelona,FC Barcelona,FCB,ES,Barcelona|fd:81,ESP
+esp-ca-osasuna,CA Osasuna,OSA,ES,fd:79,ESP
+esp-cadiz,Cádiz CF,CAD,ES,,ESP
+esp-celta,RC Celta de Vigo,CEL,ES,RC Celta|fd:558,ESP
+esp-deportivo-alaves,Deportivo Alavés,ALA,ES,fd:263,ESP
+esp-deportivo-la-coruna,RC Deportivo La Coruña,DEP,ES,fd:560,ESP
+esp-elche,Elche CF,ELC,ES,fd:285,ESP
+esp-espanyol,RCD Espanyol de Barcelona,ESP,ES,RCD Espanyol|fd:80,ESP
+esp-getafe,Getafe CF,GET,ES,fd:82,ESP
+esp-girona,Girona FC,GIR,ES,fd:298,ESP
+esp-granada,Granada CF,GRA,ES,,ESP
+esp-las-palmas,UD Las Palmas,LAS,ES,,ESP
+esp-leganes,CD Leganés,LEG,ES,,ESP
+esp-levante,Levante UD,LEV,ES,fd:88,ESP
+esp-malaga,Málaga CF,MAL,ES,fd:84,ESP
+esp-mallorca,RCD Mallorca,MAL,ES,fd:89,ESP
+esp-rayo-vallecano,Rayo Vallecano de Madrid,RAY,ES,Rayo Vallecano|fd:87,ESP
+esp-real-betis,Real Betis Balompié,BET,ES,Real Betis|fd:90,ESP
+esp-real-madrid-c-f,Real Madrid CF,RMA,ES,Real Madrid|Real Madrid C.F.|fd:86,ESP
+esp-real-oviedo,Real Oviedo,OVI,ES,fd:1048,ESP
+esp-real-racing-santander,Real Racing Club de Santander,SAN,ES,fd:5335,ESP
+esp-real-sociedad,Real Sociedad de Fútbol,RSO,ES,Real Sociedad|fd:92,ESP
+esp-real-valladolid,Real Valladolid CF,REA,ES,,ESP
+esp-sevilla,Sevilla FC,SEV,ES,Sevilla|fd:559,ESP
+esp-valencia,Valencia CF,VAL,ES,fd:95,ESP
+esp-villarreal,Villarreal CF,VIL,ES,Villarreal|fd:94,ESP
+est-flora,FC Flora,FLO,ES,,EST
+fin-hjk-helsinki,HJK Helsinki,HJK,FI,,FIN
+fra-ajaccio,AC Ajaccio,AJA,FR,,FRA
+fra-angers-sco,Angers SCO,ANG,FR,fd:532,FRA
+fra-auxerre,AJ Auxerre,AJA,FR,Auxerre|fd:519,FRA
+fra-clermont-foot-63,Clermont Foot 63,CLE,FR,,FRA
+fra-es-troyes,ES Troyes AC,ETR,FR,fd:531,FRA
+fra-estac-troyes,ESTAC Troyes,EST,FR,,FRA
+fra-girondins-bordeaux,Girondins Bordeaux,GIR,FR,,FRA
+fra-le-havre,Le Havre AC,HAC,FR,Le Havre|fd:533,FRA
+fra-le-mans,Le Mans FC,LMF,FR,fd:535,FRA
+fra-lens,Racing Club de Lens,RCL,FR,Lens|RC Lens|fd:546,FRA
+fra-lille,Lille OSC,LIL,FR,Lille|fd:521,FRA
+fra-lorient,FC Lorient,FCL,FR,fd:525,FRA
+fra-metz,FC Metz,FCM,FR,fd:545,FRA
+fra-monaco,AS Monaco FC,ASM,FR,AS Monaco|fd:548,FRA
+fra-montpellier-hsc,Montpellier HSC,MON,FR,,FRA
+fra-nantes,FC Nantes,NAN,FR,fd:543,FRA
+fra-nice,OGC Nice,NIC,FR,fd:522,FRA
+fra-olympique-lyonnais,Olympique Lyonnais,LYO,FR,fd:523,FRA
+fra-olympique-marseille,Olympique de Marseille,MAR,FR,Olympique Marseille|fd:516,FRA
+fra-paris,Paris FC,PFC,FR,fd:1045,FRA
+fra-paris-saint-germain,Paris Saint-Germain FC,PSG,FR,Paris Saint-Germain|fd:524,FRA
+fra-rennes,Stade Rennais FC 1901,REN,FR,Rennes|Stade Rennais|fd:529,FRA
+fra-saint-etienne,AS Saint-Étienne,SAI,FR,,FRA
+fra-stade-brestois,Stade Brestois 29,BRE,FR,Stade Brestois|fd:512,FRA
+fra-stade-reims,Stade de Reims,STA,FR,,FRA
+fra-strasbourg-alsace,RC Strasbourg Alsace,RC ,FR,RC Strasbourg|fd:576,FRA
+fra-toulouse,Toulouse FC,TOU,FR,fd:511,FRA
+fro-ki-klaksvik,KÍ Klaksvík,KIK,FR,,FRO
+ger-07-elversberg,SV 07 Elversberg,ELV,GE,fd:719,GER
+ger-1-fsv-mainz,1. FSV Mainz 05,M05,GE,fd:15,GER
+ger-1-koln,1. FC Köln,KOE,GE,fd:1,GER
+ger-arminia-bielefeld,Arminia Bielefeld,ARM,GE,,GER
+ger-augsburg,FC Augsburg,FCA,GE,fd:16,GER
+ger-bayer-leverkusen,Bayer 04 Leverkusen,B04,GE,Bayer Leverkusen|fd:3,GER
+ger-bayern-munchen,FC Bayern München,BAY,GE,Bayern München|fd:5,GER
+ger-bochum,VfL Bochum 1848,BOC,GE,,GER
+ger-borussia-dortmund,Borussia Dortmund,BVB,GE,fd:4,GER
+ger-borussia-m-gladbach,Borussia Mönchengladbach,BMG,GE,Borussia M'gladbach|fd:18,GER
+ger-darmstadt-98,SV Darmstadt 98,DAR,GE,,GER
+ger-eintracht-frankfurt,Eintracht Frankfurt,SGE,GE,fd:19,GER
+ger-freiburg,SC Freiburg,SCF,GE,fd:17,GER
+ger-hamburger,Hamburger SV,HSV,GE,fd:7,GER
+ger-heidenheim,1. FC Heidenheim 1846,HEI,GE,Heidenheim|fd:44,GER
+ger-hertha-bsc,Hertha BSC,HER,GE,,GER
+ger-hoffenheim,TSG 1899 Hoffenheim,TSG,GE,1899 Hoffenheim|fd:2,GER
+ger-holstein-kiel,Holstein Kiel,HOL,GE,,GER
+ger-paderborn-07,SC Paderborn 07,SCP,GE,fd:29,GER
+ger-rb-leipzig,RB Leipzig,RBL,GE,fd:721,GER
+ger-schalke,FC Schalke 04,S04,GE,fd:6,GER
+ger-spvgg-greuther-furth-1903,SpVgg Greuther Fürth 1903,SPV,GE,,GER
+ger-st-pauli,FC St. Pauli 1910,STP,GE,St. Pauli|fd:20,GER
+ger-stuttgart,VfB Stuttgart,VFB,GE,fd:10,GER
+ger-union-berlin,1. FC Union Berlin,UNB,GE,Union Berlin|fd:28,GER
+ger-werder-bremen,SV Werder Bremen,SVW,GE,Werder Bremen|fd:12,GER
+ger-wolfsburg,VfL Wolfsburg,WOB,GE,Wolfsburg|fd:11,GER
+gib-lincoln-red-imps,Lincoln Red Imps,LIN,GI,,GIB
+gre-aek-athen,PAE AEK,AEK,GR,AEK Athen|fd:1899,GRE
+gre-olympiakos-piraeus,PAE Olympiakos SFP,OLY,GR,Olympiakos Piraeus|fd:654,GRE
+gre-panathinaikos,Panathinaikos,PAN,GR,,GRE
+gre-paok-saloniki,PAOK Saloniki,PAO,GR,,GRE
+hun-ferencvarosi-tc,Ferencvárosi TC,FER,HU,,HUN
+irl-shamrock-rovers,Shamrock Rovers,SHA,IR,,IRL
+isl-breiablik,Breiðablik,BRE,IS,,ISL
+isl-vikingur-reykjavik,Víkingur Reykjavík,VIK,IS,,ISL
+isr-hapoel-be-er-sheva,Hapoel Be'er Sheva,HAP,IS,,ISR
+isr-maccabi-haifa,Maccabi Haifa,MAC,IS,,ISR
+isr-maccabi-tel-aviv,Maccabi Tel Aviv,MAC,IS,,ISR
+ita-atalanta,Atalanta BC,ATA,IT,Atalanta|fd:102,ITA
+ita-bologna,Bologna FC 1909,BOL,IT,Bologna|fd:103,ITA
+ita-cagliari,Cagliari Calcio,CAG,IT,Cagliari|fd:104,ITA
+ita-como,Como 1907,COM,IT,Como|fd:7397,ITA
+ita-cremonese,US Cremonese,CRE,IT,Cremonese|fd:457,ITA
+ita-empoli,Empoli FC,EMP,IT,,ITA
+ita-fiorentina,ACF Fiorentina,FIO,IT,Fiorentina|fd:99,ITA
+ita-frosinone,Frosinone Calcio,FRO,IT,fd:470,ITA
+ita-genoa,Genoa CFC,GEN,IT,Genoa|fd:107,ITA
+ita-hellas-verona,Hellas Verona FC,HVE,IT,Hellas Verona|fd:450,ITA
+ita-internazionale-milano,FC Internazionale Milano,INT,IT,Inter|fd:108,ITA
+ita-juventus,Juventus FC,JUV,IT,Juventus|fd:109,ITA
+ita-lazio,SS Lazio,LAZ,IT,Lazio|Lazio Roma|fd:110,ITA
+ita-lecce,US Lecce,USL,IT,Lecce|fd:5890,ITA
+ita-milan,AC Milan,MIL,IT,Milan|fd:98,ITA
+ita-monza,AC Monza,MON,IT,fd:5911,ITA
+ita-napoli,SSC Napoli,NAP,IT,Napoli|fd:113,ITA
+ita-parma,Parma Calcio 1913,PAR,IT,Parma|fd:112,ITA
+ita-pisa,AC Pisa 1909,PIS,IT,Pisa|fd:487,ITA
+ita-roma,AS Roma,ROM,IT,fd:100,ITA
+ita-sassuolo,US Sassuolo Calcio,SAS,IT,Sassuolo|fd:471,ITA
+ita-spezia,Spezia Calcio,SPE,IT,,ITA
+ita-torino,Torino FC,TOR,IT,Torino|fd:586,ITA
+ita-uc-sampdoria,UC Sampdoria,UCS,IT,,ITA
+ita-udinese,Udinese Calcio,UDI,IT,Udinese|fd:115,ITA
+ita-us-salernitana-1919,US Salernitana 1919,USS,IT,,ITA
+ita-venezia,Venezia FC,VEN,IT,fd:454,ITA
+kaz-astana,FK Astana,AST,KA,,KAZ
+kaz-kairat,FK Kairat,KAI,KA,fd:10601,KAZ
+kos-kf-ballkani,KF Ballkani,KFB,KO,,KOS
+lie-vaduz,FC Vaduz,VAD,LI,,LIE
+ltu-zalgiris,FK Žalgiris,ZAL,LT,,LTU
+lva-rfs,FK RFS,RFS,LV,,LVA
+mda-cs-petrocub,CS Petrocub,CSP,MD,,MDA
+mda-sheriff,FC Sheriff,SHE,MD,,MDA
+ned-ado-den-haag,ADO Den Haag,ADO,NE,fd:680,NED
+ned-ajax,AFC Ajax,AJA,NE,fd:678,NED
+ned-almere-city,Almere City FC,ALM,NE,,NED
+ned-az,AZ,AZ,NE,AZ Alkmaar|fd:682,NED
+ned-cambuur,SC Cambuur,CAM,NE,,NED
+ned-cambuur-leeuwarden,SC Cambuur-Leeuwarden,CAM,NE,fd:1909,NED
+ned-emmen,FC Emmen,EMM,NE,,NED
+ned-feyenoord-rotterdam,Feyenoord Rotterdam,FEY,NE,Feyenoord|fd:675,NED
+ned-fortuna-sittard,Fortuna Sittard,SIT,NE,fd:1920,NED
+ned-go-ahead-eagles,Go Ahead Eagles,GOA,NE,fd:718,NED
+ned-groningen,FC Groningen,GRO,NE,fd:677,NED
+ned-heerenveen,SC Heerenveen,HEE,NE,sc Heerenveen|fd:673,NED
+ned-heracles-almelo,Heracles Almelo,HER,NE,fd:671,NED
+ned-nac-breda,NAC Breda,NAC,NE,fd:681,NED
+ned-nec,NEC,NEC,NE,NEC Nijmegen|fd:1915,NED
+ned-pec-zwolle,PEC Zwolle,ZWO,NE,fd:684,NED
+ned-psv,PSV,PSV,NE,PSV Eindhoven|fd:674,NED
+ned-rkc-waalwijk,RKC Waalwijk,RKC,NE,,NED
+ned-sbv-excelsior,SBV Excelsior,EXC,NE,fd:670,NED
+ned-sparta-rotterdam,Sparta Rotterdam,SPA,NE,fd:6806,NED
+ned-telstar-1963,Telstar 1963,TEL,NE,fd:1912,NED
+ned-twente-65,FC Twente '65,TWE,NE,FC Twente|fd:666,NED
+ned-utrecht,FC Utrecht,UTR,NE,fd:676,NED
+ned-vitesse,SBV Vitesse,VIT,NE,Vitesse,NED
+ned-volendam,FC Volendam,VOL,NE,fd:1919,NED
+ned-willem-ii,Willem II Tilburg,WII,NE,Willem II|fd:672,NED
+nir-larne,Larne FC,LAR,NI,,NIR
+nor-bod-glimt,FK Bodø/Glimt,BOD,NO,fd:5721,NOR
+nor-molde,Molde FK,MOL,NO,,NOR
+nor-viking,Viking FK,VIK,NO,fd:5720,NOR
+pol-jagiellonia-biaystok,Jagiellonia Białystok,JAG,PO,,POL
+pol-lech-poznan,Lech Poznań,LEC,PO,,POL
+pol-legia-warszawa,Legia Warszawa,LEG,PO,,POL
+pol-rakow-czestochowa,Raków Częstochowa,RAK,PO,,POL
+por-academico-viseu,Académico de Viseu FC,ACV,PO,fd:5527,POR
+por-alverca,FC Alverca,ALV,PO,fd:7822,POR
+por-arouca,FC Arouca,FCA,PO,fd:712,POR
+por-avs,AVS,AVS,PO,fd:10340,POR
+por-belenenses,Belenenses SAD,BEL,PO,,POR
+por-boavista,Boavista FC,BOA,PO,Boavista,POR
+por-casa-pia,Casa Pia AC,CAS,PO,fd:6618,POR
+por-cs-maritimo,CS Marítimo,CSM,PO,fd:5575,POR
+por-estrela-da-amadora,CF Estrela da Amadora,AMA,PO,fd:9136,POR
+por-famalicao,FC Famalicão,FAM,PO,fd:5531,POR
+por-farense,SC Farense,FAR,PO,,POR
+por-gd-chaves,GD Chaves,GDC,PO,,POR
+por-gd-estoril-praia,GD Estoril Praia,EST,PO,GD Estoril|fd:582,POR
+por-gil-vicente,Gil Vicente FC,GIL,PO,Gil Vicente|fd:5533,POR
+por-moreirense,Moreirense FC,MOR,PO,fd:583,POR
+por-nacional,CD Nacional,CDN,PO,fd:5529,POR
+por-pacos-ferreira,Paços de Ferreira,PAC,PO,,POR
+por-portimonense,Portimonense SC,POR,PO,,POR
+por-porto,FC Porto,FCP,PO,fd:503,POR
+por-rio-ave,Rio Ave FC,RIO,PO,fd:496,POR
+por-santa-clara,CD Santa Clara,CD ,PO,fd:5530,POR
+por-sport-lisboa-e-benfica,Sport Lisboa e Benfica,BEN,PO,SL Benfica|fd:1903,POR
+por-sporting-clube-braga,Sporting Clube de Braga,SCB,PO,Sporting Braga|fd:5613,POR
+por-sporting-clube-portugal,Sporting Clube de Portugal,SPO,PO,Sporting CP|fd:498,POR
+por-tondela,CD Tondela,TON,PO,fd:1049,POR
+por-vitoria-guimaraes,Vitória SC,GUI,PO,Vitória Guimarães|fd:5543,POR
+por-vizela,FC Vizela,VIZ,PO,,POR
+rou-cfr-cluj,CFR Cluj,CFR,RO,,ROU
+rou-fcsb,FCSB,FCS,RO,,ROU
+rus-lokomotiv-moskva,Lokomotiv Moskva,LOK,RU,,RUS
+rus-spartak-moskva,Spartak Moskva,SPA,RU,,RUS
+rus-zenit-st-petersburg,Zenit St. Petersburg,ZEN,RU,,RUS
+sco-aberdeen,Aberdeen FC,ABE,SC,,SCO
+sco-celtic,Celtic FC,CEL,SC,fd:732,SCO
+sco-heart-of-midlothian,Heart of Midlothian,HEA,SC,,SCO
+sco-rangers,Rangers FC,RAN,SC,,SCO
+srb-crvena-zvezda,FK Crvena Zvezda,CRV,SR,Crvena Zvezda|fd:7283,SRB
+srb-cukaricki,FK Čukarički,CUK,SR,,SRB
+srb-partizan,Partizan,PAR,SR,,SRB
+srb-tsc-backa-topola,TSC Bačka Topola,TSC,SR,,SRB
+sui-basel-1893,FC Basel 1893,BAS,SU,,SUI
+sui-bsc-young-boys,BSC Young Boys,YOB,SU,fd:1871,SUI
+sui-lugano,FC Lugano,LUG,SU,,SUI
+sui-servette,Servette FC,SER,SU,,SUI
+sui-st-gallen,FC St. Gallen,STG,SU,,SUI
+sui-zurich,FC Zürich,ZUR,SU,,SUI
+svk-slovan-bratislava,ŠK Slovan Bratislava,SBA,SV,Slovan Bratislava|fd:7509,SVK
+svk-spartak-trnava,Spartak Trnava,SPA,SV,,SVK
+svn-celje,NK Celje,CEL,SV,,SVN
+svn-ns-mura,NŠ Mura,NSM,SV,,SVN
+svn-olimpija-ljubljana,Olimpija Ljubljana,OLI,SV,,SVN
+swe-djurgardens,Djurgårdens IF,DJU,SW,,SWE
+swe-elfsborg,IF Elfsborg,ELF,SW,,SWE
+swe-hacken,BK Häcken,HAC,SW,,SWE
+swe-malmo-ff,Malmö FF,MAL,SW,,SWE
+tur-besiktas,Beşiktaş,BES,TU,,TUR
+tur-fenerbahce,Fenerbahçe SK,FEN,TU,Fenerbahçe|fd:613,TUR
+tur-galatasaray,Galatasaray SK,GAL,TU,Galatasaray|fd:610,TUR
+tur-istanbul-basaksehir,İstanbul Başakşehir,IST,TU,,TUR
+tur-sivasspor,Sivasspor,SIV,TU,,TUR
+tur-trabzonspor,Trabzonspor,TRA,TU,,TUR
+ukr-dinamo-kiev,Dinamo Kiev,DIN,UK,,UKR
+ukr-dnipro-1,SK Dnipro-1,DNI,UK,,UKR
+ukr-shakhtar-donetsk,FK Shakhtar Donetsk,SHD,UK,Shakhtar Donetsk|fd:1887,UKR
+ukr-zorya-lugansk,Zorya Lugansk,ZOR,UK,,UKR
+wal-the-new-saints,The New Saints,THE,WA,,WAL

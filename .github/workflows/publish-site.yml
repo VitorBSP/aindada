@@ -200,8 +200,14 @@ jobs:
               echo "::warning::$league: ingestão falhou"
             fi
           done
+          sleep 7
+          if python -m brasileirao.europe.cli ingest --fetch; then
+            touch "$RUNNER_TEMP/ingest-ok-champions-league"
+          else
+            echo "::warning::champions-league: ingestão falhou"
+          fi
 
-      - name: Ligas europeias — previsão e gate
+      - name: Ligas europeias e Champions — previsão e gate
         id: leagues
         continue-on-error: true
         run: |
@@ -225,6 +231,26 @@ jobs:
               echo "::warning::$league: previsão ou gate falhou"
             fi
           done
+          # Champions League (ADR-0012): mesmo desenho, com app e CLI próprios.
+          if [ -f "$RUNNER_TEMP/ingest-ok-champions-league" ]; then
+            site="$RUNNER_TEMP/site-champions-league"
+            live_url="https://${GITHUB_REPOSITORY%%/*}.github.io/${GITHUB_REPOSITORY#*/}/champions-league/data/forecast.json"
+            if (
+              set -e
+              python -m brasileirao.europe.cli forecast --simulations "$SIMULATIONS" --seed "$SEED"
+              rm -rf "$site"
+              cp -r apps/web-champions "$site"
+              rm -rf "$site/data"
+              python -m brasileirao.europe.cli export-web --target "$site/data"
+              live_date="$(curl -fsS "${live_url,,}" 2>/dev/null | jq -r '.reference_date // empty' 2>/dev/null || true)"
+              [ -n "$live_date" ] || echo "::warning::champions-league: sem forecast.json no ar; checagem de não regressão pulada"
+              python -m brasileirao.europe.cli gate --site-dir "$site" ${live_date:+--live-reference-date "$live_date"}
+            ); then
+              touch "$RUNNER_TEMP/league-ok-champions-league"
+            else
+              echo "::warning::champions-league: previsão ou gate falhou"
+            fi
+          fi
 
       # Liga que falhou: o forecast.json no ar só volta com o app novo se passar no gate --standalone.
       - name: Ligas europeias — incluir no artefato
@@ -247,6 +273,21 @@ jobs:
               echo "::warning::$league falhou e não há versão válida no ar; o site sai sem /$league"
             fi
           done
+          if [ -f "$RUNNER_TEMP/league-ok-champions-league" ]; then
+            cp -r "$RUNNER_TEMP/site-champions-league" _site/champions-league
+            echo "champions-league: previsão nova"
+          else
+            live_url="https://${GITHUB_REPOSITORY%%/*}.github.io/${GITHUB_REPOSITORY#*/}/champions-league/data/forecast.json"
+            cp -r apps/web-champions _site/champions-league
+            rm -rf _site/champions-league/data
+            mkdir -p _site/champions-league/data
+            if curl -fsS "${live_url,,}" -o _site/champions-league/data/forecast.json               && python -m brasileirao.europe.cli gate --standalone --site-dir _site/champions-league; then
+              echo "::warning::champions-league falhou; mantido o forecast.json do site no ar"
+            else
+              rm -rf _site/champions-league
+              echo "::warning::champions-league falhou e não há versão válida no ar; o site sai sem /champions-league"
+            fi
+          fi
 
       - name: Resumo (versões e SHA-256 dos JSON exportados)
         env:
@@ -269,7 +310,7 @@ jobs:
             else
               echo "- Série B: fora do artefato"
             fi
-            for league in premier-league la-liga; do
+            for league in premier-league la-liga champions-league; do
               if [ -f "_site/$league/data/forecast.json" ]; then
                 echo "- $league: referência $(jq -r '.reference_date' "_site/$league/data/forecast.json"), dados $(jq -r '.data_version' "_site/$league/data/forecast.json")"
               else
@@ -280,7 +321,7 @@ jobs:
             echo "SHA-256 dos JSON exportados:"
             echo ""
             echo '```text'
-            (cd _site && find data serie-b/data premier-league/data la-liga/data -name '*.json' -type f 2>/dev/null | sort | xargs sha256sum)
+            (cd _site && find data serie-b/data premier-league/data la-liga/data champions-league/data -name '*.json' -type f 2>/dev/null | sort | xargs sha256sum)
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 

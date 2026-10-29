@@ -46,6 +46,8 @@ VERSUS_PATTERN = re.compile(
     rf"(?:\s+(?P<home_goals>\d+)-(?P<away_goals>\d+)(?:\s+\(\d+-\d+\))?)?(?:\s+(?P<note>\[[a-z ]+\]))?\s*(?:@.*)?$"
 )
 KNOWN_NOTES = frozenset({"", "[awarded]"})
+# Jogo cancelado não foi disputado: sai da lista (nunca vira placar).
+SKIPPED_NOTES = frozenset({"[cancelled]"})
 
 
 class SourceFormatError(ValueError):
@@ -108,6 +110,8 @@ def parse_openfootball(text: str, season: int) -> list[FixtureRow]:
         if fixture is None or current_date is None:
             raise SourceFormatError(f"{season}: linha não reconhecida: {stripped!r}")
         note = (fixture.group("note") or "").strip()
+        if note in SKIPPED_NOTES:
+            continue
         if note not in KNOWN_NOTES:
             raise SourceFormatError(f"{season}: anotação desconhecida {note!r}")
         has_score = fixture.group("home_goals") is not None

@@ -1,0 +1,12 @@
+{
+  "model_version": "champions-0.1.0+cmp-elo-ad-0.3.0",
+  "elo": {
+    "k_factor": 30.0,
+    "home_advantage": 100.0,
+    "season_regression": 0.05,
+    "newcomer_offset": 150.0,
+    "unknown_offset": 200.0,
+    "initial_rating": 1500.0
+  },
+  "goal_dispersion": true
+}

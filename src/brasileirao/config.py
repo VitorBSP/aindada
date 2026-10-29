@@ -102,6 +102,18 @@ class ProjectPaths:
         return self.reference / "league_source_pins.json"
 
     @property
+    def europe_source_pins(self) -> Path:
+        return self.reference / "europe_source_pins.json"
+
+    @property
+    def europe_clubs_reference(self) -> Path:
+        return self.reference / "clubs_europe.csv"
+
+    @property
+    def champions_web_app(self) -> Path:
+        return self.root / "apps" / "web-champions"
+
+    @property
     def league_web_app(self) -> Path:
         """App único das ligas europeias; cada liga é publicada em `/<código>/` com o seu `data/forecast.json`."""
         return self.root / "apps" / "web-ligas"

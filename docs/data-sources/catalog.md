@@ -322,3 +322,15 @@ Até haver decisão, 2026 segue com a ordem imputada (ADR-0010, Decisão 1).
 - Descartado: `jalapic/engsoccerdata` (sem licença declarada; termina em 2022).
 - Cadastros: `data/reference/clubs_premier_league.csv` (42 clubes, 66 grafias) e `clubs_la_liga.csv` (34 clubes,
   50 grafias), cruzando as duas fontes pelos jogos em comum.
+
+## Champions League (ADR-0012, 2026-10-29)
+
+- openfootball (CC0): `deutschland` (`c34532ab6950`), `italy` (`48954d163c31`), `europe` (`63df627f3c87`;
+  França, Holanda, Portugal) e `champions-league` (`abfaeddc2ee3`; Champions, Liga Europa e Conference), além de
+  `england` e `espana` (commits do ADR-0011). 48 arquivos de 2021/22 a 2025/26, SHA-256 em
+  `data/reference/europe_source_pins.json`. EL e Conference de 2025/26 não existem no repositório.
+- football-data.org: `CL`, `PL`, `PD`, `BL1`, `SA`, `FL1`, `DED`, `PPL`, só a temporada corrente.
+- Formato das copas: "Casa (PAÍS) v Fora (PAÍS) placar", com "a.e.t." (120 minutos; o primeiro par entre
+  parênteses é o placar dos 90) e "pen.". "[awarded]" e "[cancelled]" ficam fora.
+- Cadastro `data/reference/clubs_europe.csv`: 304 clubes, 48 países; aliases `fd:<id>` para o football-data.org.
+- Composição real (2026-10-29): 16.413 jogos de 10 competições; Champions 2026/27 com 54 de 144 jogos encerrados.

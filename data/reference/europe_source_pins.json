@@ -1,0 +1,458 @@
+{
+ "current_season": 2026,
+ "first_season": 2021,
+ "football_data": {
+  "CL": null,
+  "PL": "ENG",
+  "PD": "ESP",
+  "BL1": "GER",
+  "SA": "ITA",
+  "FL1": "FRA",
+  "DED": "NED",
+  "PPL": "POR"
+ },
+ "timezones": {
+  "ENG": "Europe/London",
+  "ESP": "Europe/Madrid",
+  "GER": "Europe/Berlin",
+  "ITA": "Europe/Rome",
+  "FRA": "Europe/Paris",
+  "NED": "Europe/Amsterdam",
+  "POR": "Europe/Lisbon",
+  "CL": "Europe/Paris"
+ },
+ "openfootball": [
+  {
+   "repo": "england",
+   "commit": "9ee7a0c351805c99cc334478a9bf04b7d0432fec",
+   "path": "2021-22/1-premierleague.txt",
+   "season": 2021,
+   "kind": "domestic",
+   "tag": "ENG",
+   "sha256": "592df232fbc7c2f36ec3e643eef608f77fcbf7d8da0706c94c99248d60b932b3"
+  },
+  {
+   "repo": "espana",
+   "commit": "80035a93dd4920985af52aa097a54a6fb888563b",
+   "path": "2021-22/1-liga.txt",
+   "season": 2021,
+   "kind": "domestic",
+   "tag": "ESP",
+   "sha256": "bf303f9b6800ad3600693f46e657c61908e1d717669aecfd0906a3aa4210122b"
+  },
+  {
+   "repo": "deutschland",
+   "commit": "c34532ab6950aa0089ef1c736ffdb8c818c3356f",
+   "path": "2021-22/1-bundesliga.txt",
+   "season": 2021,
+   "kind": "domestic",
+   "tag": "GER",
+   "sha256": "46032813d658fb2003281e1e2d05cfb68716c1d7c79aca009f2758b49243887c"
+  },
+  {
+   "repo": "italy",
+   "commit": "48954d163c312aa705efacb64f771267031fe6eb",
+   "path": "2021-22/1-seriea.txt",
+   "season": 2021,
+   "kind": "domestic",
+   "tag": "ITA",
+   "sha256": "5102980f4c6b04189c57358da2243c8d8f2d0f27f53581c45363c7879d28c1ef"
+  },
+  {
+   "repo": "europe",
+   "commit": "63df627f3c87ce71708f016522ea236cf74332c3",
+   "path": "france/2021-22_fr1.txt",
+   "season": 2021,
+   "kind": "domestic",
+   "tag": "FRA",
+   "sha256": "a534c4c765b3dfcaed072e6f2bd32513f542f2c84fb61ce44ad24c067ed7984f"
+  },
+  {
+   "repo": "europe",
+   "commit": "63df627f3c87ce71708f016522ea236cf74332c3",
+   "path": "netherlands/2021-22_nl1.txt",
+   "season": 2021,
+   "kind": "domestic",
+   "tag": "NED",
+   "sha256": "d201613dcf5ff7ef3b1ede7c23ec7815ff3ad8c04d196c0fb047b54e37faef8f"
+  },
+  {
+   "repo": "europe",
+   "commit": "63df627f3c87ce71708f016522ea236cf74332c3",
+   "path": "portugal/2021-22_pt1.txt",
+   "season": 2021,
+   "kind": "domestic",
+   "tag": "POR",
+   "sha256": "5e5593b409d4b4ca31782960897b4e40917cc55370101cd68fea1af51a2a3b1c"
+  },
+  {
+   "repo": "champions-league",
+   "commit": "abfaeddc2ee3d14f99ecc163c9ddb46cb4d67cef",
+   "path": "2021-22/cl.txt",
+   "season": 2021,
+   "kind": "cup",
+   "tag": "CL",
+   "sha256": "36241f4479aa9efda62c62318366bbf36f84cc8719f6387c5747cb5dea7ec519"
+  },
+  {
+   "repo": "champions-league",
+   "commit": "abfaeddc2ee3d14f99ecc163c9ddb46cb4d67cef",
+   "path": "2021-22/el.txt",
+   "season": 2021,
+   "kind": "cup",
+   "tag": "EL",
+   "sha256": "0bd953fd4927f096a8e4162c414b639801d4c5d33b49cba33ac54fcf565bf788"
+  },
+  {
+   "repo": "champions-league",
+   "commit": "abfaeddc2ee3d14f99ecc163c9ddb46cb4d67cef",
+   "path": "2021-22/conf.txt",
+   "season": 2021,
+   "kind": "cup",
+   "tag": "CONF",
+   "sha256": "5537cd70cc73898f2c44c1c512be6cd7abfc147df1aa6716a41a2a66dbc4aff1"
+  },
+  {
+   "repo": "england",
+   "commit": "9ee7a0c351805c99cc334478a9bf04b7d0432fec",
+   "path": "2022-23/1-premierleague.txt",
+   "season": 2022,
+   "kind": "domestic",
+   "tag": "ENG",
+   "sha256": "c85a2f8ac64975435b8359eb923eaa09e48f33d47672c8b32d2c6e99a8cec5f0"
+  },
+  {
+   "repo": "espana",
+   "commit": "80035a93dd4920985af52aa097a54a6fb888563b",
+   "path": "2022-23/1-liga.txt",
+   "season": 2022,
+   "kind": "domestic",
+   "tag": "ESP",
+   "sha256": "96f29c344e6d257f20b673c004ff5b279332336b7ad4fac3dc68549151a67480"
+  },
+  {
+   "repo": "deutschland",
+   "commit": "c34532ab6950aa0089ef1c736ffdb8c818c3356f",
+   "path": "2022-23/1-bundesliga.txt",
+   "season": 2022,
+   "kind": "domestic",
+   "tag": "GER",
+   "sha256": "69af1fbc06a5cde9a203fe70e142f627f9ac36ef7e03768d52d11acb2145b737"
+  },
+  {
+   "repo": "italy",
+   "commit": "48954d163c312aa705efacb64f771267031fe6eb",
+   "path": "2022-23/1-seriea.txt",
+   "season": 2022,
+   "kind": "domestic",
+   "tag": "ITA",
+   "sha256": "a62e782eeff447946ad0f9c48ed4f32eafb240f5a0a96b6fec03df67a84529d5"
+  },
+  {
+   "repo": "europe",
+   "commit": "63df627f3c87ce71708f016522ea236cf74332c3",
+   "path": "france/2022-23_fr1.txt",
+   "season": 2022,
+   "kind": "domestic",
+   "tag": "FRA",
+   "sha256": "bfb04c9b90a8aff058e7631d740f5c9c4d968025a1c14d752c6261cbfd1828aa"
+  },
+  {
+   "repo": "europe",
+   "commit": "63df627f3c87ce71708f016522ea236cf74332c3",
+   "path": "netherlands/2022-23_nl1.txt",
+   "season": 2022,
+   "kind": "domestic",
+   "tag": "NED",
+   "sha256": "06f98c12ae5154d547aebb7bf61984e082bbfef5aab7d3b8ea4bad4145735341"
+  },
+  {
+   "repo": "europe",
+   "commit": "63df627f3c87ce71708f016522ea236cf74332c3",
+   "path": "portugal/2022-23_pt1.txt",
+   "season": 2022,
+   "kind": "domestic",
+   "tag": "POR",
+   "sha256": "fa7d1938a28199b2e714437769c4f56ac28f184e0f1ebdfd2603683c1a850a34"
+  },
+  {
+   "repo": "champions-league",
+   "commit": "abfaeddc2ee3d14f99ecc163c9ddb46cb4d67cef",
+   "path": "2022-23/cl.txt",
+   "season": 2022,
+   "kind": "cup",
+   "tag": "CL",
+   "sha256": "bf9cd05939b055f12ee9b095bec1c20a0922277bef8940172218548de2e7b93a"
+  },
+  {
+   "repo": "champions-league",
+   "commit": "abfaeddc2ee3d14f99ecc163c9ddb46cb4d67cef",
+   "path": "2022-23/el.txt",
+   "season": 2022,
+   "kind": "cup",
+   "tag": "EL",
+   "sha256": "e71450d2a60478dbcb253ce4eef1f95c262caafaaa715735f9d838bb2920311a"
+  },
+  {
+   "repo": "champions-league",
+   "commit": "abfaeddc2ee3d14f99ecc163c9ddb46cb4d67cef",
+   "path": "2022-23/conf.txt",
+   "season": 2022,
+   "kind": "cup",
+   "tag": "CONF",
+   "sha256": "a40da4aab99944bdcd2976f9419ea817badb5dfc8f165d18242945109532b555"
+  },
+  {
+   "repo": "england",
+   "commit": "9ee7a0c351805c99cc334478a9bf04b7d0432fec",
+   "path": "2023-24/1-premierleague.txt",
+   "season": 2023,
+   "kind": "domestic",
+   "tag": "ENG",
+   "sha256": "0bfb4a7fffe0b1bf7318955686eafeb28fc9676346ae433259e7409d69551450"
+  },
+  {
+   "repo": "espana",
+   "commit": "80035a93dd4920985af52aa097a54a6fb888563b",
+   "path": "2023-24/1-liga.txt",
+   "season": 2023,
+   "kind": "domestic",
+   "tag": "ESP",
+   "sha256": "d76af43f3d344065510393ad175927e8054c255953ab1de86dbfe50d929e3d50"
+  },
+  {
+   "repo": "deutschland",
+   "commit": "c34532ab6950aa0089ef1c736ffdb8c818c3356f",
+   "path": "2023-24/1-bundesliga.txt",
+   "season": 2023,
+   "kind": "domestic",
+   "tag": "GER",
+   "sha256": "77093efd6edf1090b9638f266e970236a7cc3f7ea5864f4cd8785bbbe4e91e64"
+  },
+  {
+   "repo": "italy",
+   "commit": "48954d163c312aa705efacb64f771267031fe6eb",
+   "path": "2023-24/1-seriea.txt",
+   "season": 2023,
+   "kind": "domestic",
+   "tag": "ITA",
+   "sha256": "c638a06f138285d65ce9ba8ac5cc1e89a32caa1912e68811ea9e592d61485227"
+  },
+  {
+   "repo": "europe",
+   "commit": "63df627f3c87ce71708f016522ea236cf74332c3",
+   "path": "france/2023-24_fr1.txt",
+   "season": 2023,
+   "kind": "domestic",
+   "tag": "FRA",
+   "sha256": "c4a6995827f65e7c1d36bdc528d5cea284684f27d1fa8f5e5c88fd7d373f8ca9"
+  },
+  {
+   "repo": "europe",
+   "commit": "63df627f3c87ce71708f016522ea236cf74332c3",
+   "path": "netherlands/2023-24_nl1.txt",
+   "season": 2023,
+   "kind": "domestic",
+   "tag": "NED",
+   "sha256": "2bde6d0ca60ea6c321f359d1042ce20643880ccfb86a4d7c47f993ec546ba227"
+  },
+  {
+   "repo": "europe",
+   "commit": "63df627f3c87ce71708f016522ea236cf74332c3",
+   "path": "portugal/2023-24_pt1.txt",
+   "season": 2023,
+   "kind": "domestic",
+   "tag": "POR",
+   "sha256": "7f19ddec6033a465ffa1e76b70103aea3005b63c0d27e3f723d0924c814da511"
+  },
+  {
+   "repo": "champions-league",
+   "commit": "abfaeddc2ee3d14f99ecc163c9ddb46cb4d67cef",
+   "path": "2023-24/cl.txt",
+   "season": 2023,
+   "kind": "cup",
+   "tag": "CL",
+   "sha256": "5872bee720b32410f28c5272fb7fe7b07aa0f66bcb31ffe157893d75c14c47c5"
+  },
+  {
+   "repo": "champions-league",
+   "commit": "abfaeddc2ee3d14f99ecc163c9ddb46cb4d67cef",
+   "path": "2023-24/el.txt",
+   "season": 2023,
+   "kind": "cup",
+   "tag": "EL",
+   "sha256": "2655fbfb3b636e3584664531463719711e79ea58a17cb27543a9521bfc1c1818"
+  },
+  {
+   "repo": "champions-league",
+   "commit": "abfaeddc2ee3d14f99ecc163c9ddb46cb4d67cef",
+   "path": "2023-24/conf.txt",
+   "season": 2023,
+   "kind": "cup",
+   "tag": "CONF",
+   "sha256": "d7030d077ffe5f4d8ddc6eae3e50b846b9409bd085593fde08342ddbae80f909"
+  },
+  {
+   "repo": "england",
+   "commit": "9ee7a0c351805c99cc334478a9bf04b7d0432fec",
+   "path": "2024-25/1-premierleague.txt",
+   "season": 2024,
+   "kind": "domestic",
+   "tag": "ENG",
+   "sha256": "e39716b01af0c8654a9fae7b5555e6b02f506ea05239e0d0eef41936ba80e1e3"
+  },
+  {
+   "repo": "espana",
+   "commit": "80035a93dd4920985af52aa097a54a6fb888563b",
+   "path": "2024-25/1-liga.txt",
+   "season": 2024,
+   "kind": "domestic",
+   "tag": "ESP",
+   "sha256": "4d882637dbcab8c99ff87dc16b7033acbaaeaa6ae91cc304cf19e0395852665f"
+  },
+  {
+   "repo": "deutschland",
+   "commit": "c34532ab6950aa0089ef1c736ffdb8c818c3356f",
+   "path": "2024-25/1-bundesliga.txt",
+   "season": 2024,
+   "kind": "domestic",
+   "tag": "GER",
+   "sha256": "ec0f75ef3eb01eee6f2176998a05fbfce35cf6a5a82203fce676c7024b84bd3d"
+  },
+  {
+   "repo": "italy",
+   "commit": "48954d163c312aa705efacb64f771267031fe6eb",
+   "path": "2024-25/1-seriea.txt",
+   "season": 2024,
+   "kind": "domestic",
+   "tag": "ITA",
+   "sha256": "e8eaa0bfed869b661ee86df792c0d53b336ca4c9f2a9c27306fb6b4897b0fc0e"
+  },
+  {
+   "repo": "europe",
+   "commit": "63df627f3c87ce71708f016522ea236cf74332c3",
+   "path": "france/2024-25_fr1.txt",
+   "season": 2024,
+   "kind": "domestic",
+   "tag": "FRA",
+   "sha256": "169b86f635d04fefb786cf8e644e57d21bbd5c1dcc36ca1f1469560c699af19b"
+  },
+  {
+   "repo": "europe",
+   "commit": "63df627f3c87ce71708f016522ea236cf74332c3",
+   "path": "netherlands/2024-25_nl1.txt",
+   "season": 2024,
+   "kind": "domestic",
+   "tag": "NED",
+   "sha256": "fe1b42aa86ef00a313e1108a8e6faef9fdd7f26ab612f56f4ed5c08a3b78e041"
+  },
+  {
+   "repo": "europe",
+   "commit": "63df627f3c87ce71708f016522ea236cf74332c3",
+   "path": "portugal/2024-25_pt1.txt",
+   "season": 2024,
+   "kind": "domestic",
+   "tag": "POR",
+   "sha256": "3bb1acda8822a01e1aef1e70f03607650b97fb6722fd0d777f2ef9bf6544ed6c"
+  },
+  {
+   "repo": "champions-league",
+   "commit": "abfaeddc2ee3d14f99ecc163c9ddb46cb4d67cef",
+   "path": "2024-25/cl.txt",
+   "season": 2024,
+   "kind": "cup",
+   "tag": "CL",
+   "sha256": "c2692b22af02c5df4587b69c5f430aebf7d936845b5337aee462ce8e649eb1b5"
+  },
+  {
+   "repo": "champions-league",
+   "commit": "abfaeddc2ee3d14f99ecc163c9ddb46cb4d67cef",
+   "path": "2024-25/el.txt",
+   "season": 2024,
+   "kind": "cup",
+   "tag": "EL",
+   "sha256": "4f004729005e45fb26e5a4adff614d5c6081564e504137705cceaa15a9213bd9"
+  },
+  {
+   "repo": "champions-league",
+   "commit": "abfaeddc2ee3d14f99ecc163c9ddb46cb4d67cef",
+   "path": "2024-25/conf.txt",
+   "season": 2024,
+   "kind": "cup",
+   "tag": "CONF",
+   "sha256": "b2534794b2e8f70ed8734c2fd7baf9dc0f500c0ab9dd4fc575d82815340574d7"
+  },
+  {
+   "repo": "england",
+   "commit": "9ee7a0c351805c99cc334478a9bf04b7d0432fec",
+   "path": "2025-26/1-premierleague.txt",
+   "season": 2025,
+   "kind": "domestic",
+   "tag": "ENG",
+   "sha256": "38c1de56c9e9b6662c7efc1420b7e1fe00dddbb502fe72d8f759e773ba3c093b"
+  },
+  {
+   "repo": "espana",
+   "commit": "80035a93dd4920985af52aa097a54a6fb888563b",
+   "path": "2025-26/1-liga.txt",
+   "season": 2025,
+   "kind": "domestic",
+   "tag": "ESP",
+   "sha256": "baf2a9ae42c4c6a919eb39aa2476f1d44b9d3b18050adfc6386d36ef2a98e956"
+  },
+  {
+   "repo": "deutschland",
+   "commit": "c34532ab6950aa0089ef1c736ffdb8c818c3356f",
+   "path": "2025-26/1-bundesliga.txt",
+   "season": 2025,
+   "kind": "domestic",
+   "tag": "GER",
+   "sha256": "c1858a191c8dddf7cc04014c29c63f401b400af0be4d20329d85af893a6b7e56"
+  },
+  {
+   "repo": "italy",
+   "commit": "48954d163c312aa705efacb64f771267031fe6eb",
+   "path": "2025-26/1-seriea.txt",
+   "season": 2025,
+   "kind": "domestic",
+   "tag": "ITA",
+   "sha256": "a746c3bb7c1c3a90fa54c50d52b7dd3b5ad5f5c440ebcadb044bbc8554c93a82"
+  },
+  {
+   "repo": "europe",
+   "commit": "63df627f3c87ce71708f016522ea236cf74332c3",
+   "path": "france/2025-26_fr1.txt",
+   "season": 2025,
+   "kind": "domestic",
+   "tag": "FRA",
+   "sha256": "d173d6d5e41ca1f42c1b6b0b4b65fd7eabdd49130867c47dfd3ad2007869d347"
+  },
+  {
+   "repo": "europe",
+   "commit": "63df627f3c87ce71708f016522ea236cf74332c3",
+   "path": "netherlands/2025-26_nl1.txt",
+   "season": 2025,
+   "kind": "domestic",
+   "tag": "NED",
+   "sha256": "50216d5c06514cb255141be5f27f247a47a63a6a981ca98e54edd365b55d2387"
+  },
+  {
+   "repo": "europe",
+   "commit": "63df627f3c87ce71708f016522ea236cf74332c3",
+   "path": "portugal/2025-26_pt1.txt",
+   "season": 2025,
+   "kind": "domestic",
+   "tag": "POR",
+   "sha256": "967a4cde722b5598a5c28da8efa65a0ab28da9b1778cee74455b463216dd1adb"
+  },
+  {
+   "repo": "champions-league",
+   "commit": "abfaeddc2ee3d14f99ecc163c9ddb46cb4d67cef",
+   "path": "2025-26/cl.txt",
+   "season": 2025,
+   "kind": "cup",
+   "tag": "CL",
+   "sha256": "2b1877308587ff1004c21b8e961b9050b8754f968244e0635eb005040fd9d5cb"
+  }
+ ]
+}
