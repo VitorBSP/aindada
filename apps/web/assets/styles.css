@@ -108,6 +108,12 @@ a:hover { text-decoration-color: var(--signal); }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 .wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
 .skip-link { position: absolute; left: -999px; }
+
+/* Seletor de competições (D-039): uma linha acima do cabeçalho, igual nos sites de cada competição. */
+.leagues { display: flex; flex-wrap: wrap; gap: 2px 18px; padding-top: 8px; padding-bottom: 6px; font-size: 14px; border-bottom: 1px solid var(--rule); }
+.leagues a { text-decoration: none; color: var(--ink-soft); padding: 2px 0; border-bottom: 2px solid transparent; font-weight: 500; }
+.leagues a:hover { color: var(--ink); }
+.leagues a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--signal); font-weight: 650; }
 .skip-link:focus { left: 16px; top: 8px; background: var(--surface); padding: 8px; z-index: 10; }
 
 /* Cabeçalho */

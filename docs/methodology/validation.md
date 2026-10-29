@@ -634,3 +634,33 @@ que o problema sumiu.
 Backtest exibido no site (só 2023–2025, porque 2020–2022 entraram na calibração): log loss 1,0365 contra
 1,0521 da taxa base em 1.140 jogos; na rodada 33, Brier de "4 primeiros" 0,089 e de rebaixamento 0,069
 (chute fixo 0,16), cobertura 0,92.
+
+## Premier League e LaLiga (ADR-0011, 2026-10-29)
+
+Modelo `ligas-0.1.0+cmp-elo-ad-0.3.0`. Protocolo do ADR-0006: validação 2020/21–2022/23, teste só relatado
+2023/24–2025/26 (`python -m brasileirao.leagues.cli <liga> tune`; relatórios
+`data/gold/league_tuning_report_<liga>.json`). A primeira temporada do histórico só aquece os ratings.
+
+| Liga | Log loss validação (Série A / calibrados) | Teste (Série A / calibrados) | Taxa base no teste | RPS teste (taxa base) |
+|---|---|---|---|---|
+| Premier League | 0,9877 / 0,9874 | **0,9821** / 0,9810 | 1,0729 | 0,2012 (0,2323) |
+| LaLiga | 1,0003 / 0,9994 | **0,9683** / 0,9680 | 1,0652 | 0,1933 (0,2253) |
+
+Os calibrados ganharam por menos que a tolerância de parcimônia (0,001) na validação, então ficam os
+parâmetros da Série A nas duas ligas. Incerteza da simulação escolhida pelo log loss da posição na validação:
+força latente 0,1 na PL (1,8326 contra 1,8906 sem incerteza) e 0,025 na LaLiga (1,9023 contra 1,9070).
+
+Teste por checkpoint (variante escolhida, 2.000 simulações):
+
+| Liga | Rodada | Brier título | Brier top 4 | Log loss da posição | MAE pontos | Cobertura IC 90% |
+|---|---|---|---|---|---|---|
+| PL | 10 | 0,020 | 0,068 | 2,369 | 7,39 | 0,90 |
+| PL | 19 | 0,013 | 0,037 | 2,014 | 5,34 | 0,88 |
+| PL | 28 | 0,014 | 0,040 | 1,896 | 3,79 | 0,92 |
+| LaLiga | 10 | 0,026 | 0,018 | 2,155 | 5,34 | 0,87 |
+| LaLiga | 19 | 0,021 | 0,024 | 2,148 | 4,92 | 0,85 |
+| LaLiga | 28 | 0,002 | 0,027 | 1,832 | 3,58 | 0,88 |
+
+Limitações: na LaLiga o intervalo de 90% cobre 85–88% (estreito); o backtest por temporada ordena com os
+critérios da Série A (só empates exatos mudam) e não mede rebaixamento (o helper conta 4 rebaixados);
+ratings fixos no que falta da temporada.

@@ -42,9 +42,15 @@ data/gold/*
 !data/gold/serie_b_backtest_report.json
 !data/gold/serie_b_model_config.json
 !data/gold/serie_b_tuning_report.json
+# Ligas europeias (ADR-0011): hiperparâmetros e métricas agregadas.
+!data/gold/league_model_config_*.json
+!data/gold/league_tuning_report_*.json
 # Série B: raw, silver e previsão (placares derivados das fontes); export gerado só no workflow.
 data/serie_b/
 apps/web-serie-b/data/
+# Ligas europeias: raw, silver e previsão; export gerado só no workflow.
+data/leagues/
+apps/web-ligas/data/
 # Snapshots (SQLite) persistem fora do git (ADR-0007, item 4).
 data/snapshots/
 *.sqlite

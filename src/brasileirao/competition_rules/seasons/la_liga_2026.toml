@@ -1,0 +1,43 @@
+[competition]
+code = "la-liga"
+season = 2026
+season_label = "2026/27"
+name = "LaLiga 2026/27"
+n_clubs = 20
+points_win = 3
+points_draw = 1
+timezone = "Europe/Madrid"
+regulation_title = "RFEF, Bases de competición del Campeonato Nacional de Liga de Primera y Segunda División 2026/27, Art. 8.7 (descenso) y Art. 10 (empate)"
+regulation_url = "https://rfef.es/sites/default/files/2026-06/1._CNL_Primera_y_Segunda_Division.pdf"
+regulation_date = "2026-06"
+regulation_note = "Fair play (juego limpio) sem fonte de dados: simulado como sorteio, como o jogo em campo neutro."
+
+[tiebreakers]
+# Art. 10. Dois clubes: saldo entre eles, saldo geral, gols pró, juego limpio, campo neutro. Mais de dois:
+# pontos entre eles (mini-tabela) e, para quem seguir empatado, saldo entre eles, saldo geral, gols pró,
+# juego limpio, campo neutro. Entre dois clubes, "pontos entre eles" nunca contradiz o saldo entre eles,
+# então a mesma ordem vale para os dois casos.
+order = ["points", "h2h_points", "h2h_goal_difference", "goal_difference", "goals_for", "draw_lot"]
+lot_note = "Sem dados de fair play (juego limpio): esse critério e o jogo em campo neutro viram sorteio."
+
+[[zones]]
+id = "title"
+label = "Título"
+first = 1
+last = 1
+kind = "title"
+
+[[zones]]
+id = "top4"
+label = "Top 4"
+first = 1
+last = 4
+kind = "up"
+note = "Os 4 primeiros vão à Liga dos Campeões; o 5º pode ganhar vaga extra pelo desempenho europeu da Espanha. Mostramos só a posição."
+
+[[zones]]
+id = "relegation"
+label = "Rebaixamento"
+first = 18
+last = 20
+kind = "down"

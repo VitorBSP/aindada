@@ -2889,3 +2889,50 @@ Registrado pelo orquestrador (00), que executou as partes de 02, 08 e 01 seguind
 - **07, actionlint 1.7.7**: release oficial; SHA-256 `7f12f180…` conferido contra o arquivo de checksums da release; baixado no scratchpad com autorização do dono. Rodado com `-shellcheck=` nos workflows de `.github/workflows/` e de `infrastructure/github-workflows/`: exit 0 nos dois. Shellcheck não rodou.
 - **Decisões do dono (chat, 2026-10-29)**: manter a ordem imputada de 2026, sem adotar as páginas de clube da Wikipédia em inglês.
 - **Evidência final**: `pytest -q` com 781 passando; ruff, format e mypy (61 arquivos) sem achados; `serie_b.cli gate` com 0 achados; página sem erro de console.
+
+## Seletor de competições e ligas europeias (ADR-0011; 2026-10-29)
+
+Registrado pelo orquestrador (00), que executou as partes de 01, 03, 02, 04/05, 07 e 08 seguindo os contratos.
+
+- **O que mudou:**
+  - seletor de competições (D-039) em `apps/web/index.html` (Série A), `apps/web-serie-b/` e `apps/web-ligas/`;
+  - `src/brasileirao/leagues/`: `ranking.py` (desempate configurável), `simulator.py`, `rules.py`, `sources.py`
+    (openfootball e football-data.org), `ingest.py` (composição e conferência), `forecast.py`, `schema.py`,
+    `validation.py`, `gate.py`, `cli.py`;
+  - regulamentos `premier_league_2026.toml` e `la_liga_2026.toml`; cadastros de clubes; `league_source_pins.json`;
+  - `config.py` ganhou só caminhos;
+  - `data/gold/league_model_config_*.json` e `league_tuning_report_*.json` (só agregados);
+  - `apps/web-ligas/` (app único, publicado em `/premier-league/` e `/la-liga/`);
+  - `publish-site.yml` (as duas cópias): passos de ingestão (com token), previsão/gate (sem token) e
+    inclusão no artefato, com falha isolada por liga. O teste do token passou a exigir que ele só apareça
+    nos dois passos de ingestão;
+  - testes: `tests/unit/test_leagues.py` (17) e 3 casos em `test_workflows.py`.
+- **Evidência:**
+  - `leagues.cli <liga> ingest --fetch --conference`: PL com 6.460 jogos (17 temporadas) e LaLiga com 5.700
+    (15); conferência 2023/24–2025/26 com 1.140 de 1.140 jogos iguais em cada liga;
+  - `tune`: log loss no teste de 0,9821 (PL) e 0,9683 (LaLiga) contra 1,0729 e 1,0652 da taxa base;
+  - `forecast` com 100 mil simulações e `gate`: aprovado, 0 achados nas duas;
+  - páginas conferidas no navegador num artefato combinado (Série A, Série B, PL, LaLiga), sem erro de console;
+  - `pytest -q`: 801 passaram; ruff, format e mypy (72 arquivos) sem achados; actionlint sem achados.
+- **Premissas e limitações:**
+  - procedência do openfootball não informada (risco aceito), mitigada pela conferência;
+  - na PL, o C.17 é aplicado a todos os empates;
+  - fair play da LaLiga vira sorteio;
+  - cobertura do IC 90% de 85–88% na LaLiga.
+- **Próximo:**
+  - **06** audita;
+  - **03** confere o Handbook da PL 2026/27;
+  - **00 e dono** decidem o desenho da Champions League (seção final do ADR-0011).
+- **Auditoria do 06 (ADR-0011)**: commit aprovado; push e deploy condicionados ao M1, sem nada bloqueante.
+  - **M1** (tabela atual da LaLiga aplicava o Art. 10 em plena temporada): resolvido. Com a temporada em andamento, a tabela atual usa só pontos, saldo e gols; o confronto direto continua em toda simulação. Teste novo; o Deportivo volta ao 11º, à frente do Osasuna.
+  - **Baixos resolvidos:**
+    - aviso de sorteio próprio de cada liga (`lot_note` no TOML; a PL não tem fair play);
+    - `model_version_base` corrigido no código e nos 4 JSON de `data/gold/league_*` (só o metadado; nenhum número mudou);
+    - leitura do Art. 10 (b) registrada em `competition-rules.md`.
+  - **Baixos registrados, sem mudança:**
+    - `[awarded]` do openfootball entra como placar;
+    - intervalo entre as chamadas das duas ligas (o retry em 429 cobre);
+    - força 0,1 da PL no limite da grade (o 02 amplia na próxima calibração);
+    - link do seletor quebrado se uma liga sair do artefato;
+    - jogo em andamento aparece na próxima rodada com a chance de antes do jogo.
+  - **Evidência final**: `pytest -q` com 802 passando; ruff, format e mypy sem achados; gates da PL e da LaLiga com 0 achados.

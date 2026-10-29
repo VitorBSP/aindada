@@ -308,3 +308,17 @@ Registrados em `data/reference/known_exceptions.csv` e reportados em `data/gold/
 | Wikipédia (en), "2026 <clube> season" | 11 dos 20 clubes têm página com `Football box` (data e rodada estruturadas): Goiás, Ceará, Athletic, Avaí, Fortaleza, Vila Nova, CRB, América-MG, Juventude, Náutico e Sport. Cobre cerca de 308 dos 380 jogos; os 72 entre os outros 9 clubes ficam sem data | **proposta, não adotada**: parcial, 11 páginas editadas à parte (mais superfície para erro e vandalismo). Decisão do 00/dono |
 
 Até haver decisão, 2026 segue com a ordem imputada (ADR-0010, Decisão 1).
+
+## Ligas europeias (ADR-0011, 2026-10-29)
+
+| Fonte (`source_name`) | Conteúdo | Cobertura | Acesso | Licença | Papel |
+|---|---|---|---|---|---|
+| [openfootball/england](https://github.com/openfootball/england) e [openfootball/espana](https://github.com/openfootball/espana) (`openfootball`) | Football.TXT: rodada, data, hora, placar (formatos "Casa 2-1 Fora" e "Casa v Fora 2-1") | PL 2000/01+ (usamos 2010/11–2025/26); LaLiga 2012/13+ | raw do GitHub nos commits `9ee7a0c35180` (england) e `80035a93dd49` (espana), SHA-256 por temporada em `data/reference/league_source_pins.json` | `licensed_with_attribution`: CC0-1.0 declarada; procedência não informada (risco aceito pelo dono) | **Publicação**: histórico |
+| [football-data.org](https://www.football-data.org) (`football_data_org`), competições `PL` e `PD` | partidas, rodada, status, horário, placar | plano gratuito: temporada corrente e as três anteriores (2022/23 e antes: 403) | mesma chave; adaptador próprio com as mesmas regras (`leagues/sources.py`) | igual à Série A (ADR-0008) | **Publicação** 2026/27; 2023/24–2025/26 só conferência |
+
+- **Conferência** (`ingest --conference`, 2026-10-29): PL e LaLiga, 2023/24, 2024/25 e 2025/26: 380 de 380
+  jogos iguais em data (fuso da liga) e placar em cada temporada; 0 jogos só numa fonte.
+- A temporada corrente do openfootball está atrasada (PL: 50 placares contra 80 na API em 29/10) e não é usada.
+- Descartado: `jalapic/engsoccerdata` (sem licença declarada; termina em 2022).
+- Cadastros: `data/reference/clubs_premier_league.csv` (42 clubes, 66 grafias) e `clubs_la_liga.csv` (34 clubes,
+  50 grafias), cruzando as duas fontes pelos jogos em comum.

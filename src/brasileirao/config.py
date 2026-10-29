@@ -93,6 +93,19 @@ class ProjectPaths:
     def serie_b_web_static_data(self) -> Path:
         return self.root / "apps" / "web-serie-b" / "data"
 
+    def league_data(self, code: str) -> Path:
+        """Raw, silver e previsão de uma liga europeia (ADR-0011); fora do git."""
+        return Path(os.environ.get("BRASILEIRAO_LEAGUES_DIR", self.data / "leagues")) / code
+
+    @property
+    def league_source_pins(self) -> Path:
+        return self.reference / "league_source_pins.json"
+
+    @property
+    def league_web_app(self) -> Path:
+        """App único das ligas europeias; cada liga é publicada em `/<código>/` com o seu `data/forecast.json`."""
+        return self.root / "apps" / "web-ligas"
+
 
 @dataclass(frozen=True)
 class EloParams:

@@ -1,0 +1,70 @@
+{
+  "premier-league": {
+    "football_data_code": "PL",
+    "clubs_file": "clubs_premier_league.csv",
+    "current_season": 2026,
+    "conference_seasons": [
+      2023,
+      2024,
+      2025
+    ],
+    "openfootball": {
+      "repo": "england",
+      "path": "1-premierleague.txt",
+      "commit": "9ee7a0c351805c99cc334478a9bf04b7d0432fec",
+      "commit_date": "2026-10-15T14:42:31Z",
+      "first_season": 2010,
+      "sha256": {
+        "2010-11_1-premierleague.txt": "676573313526484ccfa63da2c618a3c1c4e87f4f1870f66294c06845d4192f3b",
+        "2011-12_1-premierleague.txt": "fcd336da7961ac675639b35df9354351e591747ee16f375fe2008b2423bc0bb5",
+        "2012-13_1-premierleague.txt": "6751b13d79d21f887a60b1d3ffee765c40382c4366a39229cecc4f05ce351198",
+        "2013-14_1-premierleague.txt": "331824e65125a38d9f7818308fdef6e665329ff3cff692b6290b0087c1a6d0de",
+        "2014-15_1-premierleague.txt": "94114132eb20e9affe1645906e19dc6ddb58681945abc0f80fe3e8aa32ba5824",
+        "2015-16_1-premierleague.txt": "5f150bc89de4bf39527716999396994d02f0ac1d8fa8978b3d513e7e3262a27a",
+        "2016-17_1-premierleague.txt": "6d66020cb09c03c15abdc005e8832c83ca89697ae0dfa3b44859369fdf2883af",
+        "2017-18_1-premierleague.txt": "c20171e80a6dd35d1177c11166a7be402daa58bfa3fd5689f76e2705ecfb74b7",
+        "2018-19_1-premierleague.txt": "58db3b0250ae01086f0f1df7a38e1315fc933423da53de94fdd36c7b977ca877",
+        "2019-20_1-premierleague.txt": "fdc8300c09e0700faa0c517ff408bc630b8b6a77b6f1aa68e5858f9adae6f72d",
+        "2020-21_1-premierleague.txt": "2123fa19c676d0194c69380dceb61f9413bfe6b89eb6c538cd269d8d856ba255",
+        "2021-22_1-premierleague.txt": "592df232fbc7c2f36ec3e643eef608f77fcbf7d8da0706c94c99248d60b932b3",
+        "2022-23_1-premierleague.txt": "c85a2f8ac64975435b8359eb923eaa09e48f33d47672c8b32d2c6e99a8cec5f0",
+        "2023-24_1-premierleague.txt": "0bfb4a7fffe0b1bf7318955686eafeb28fc9676346ae433259e7409d69551450",
+        "2024-25_1-premierleague.txt": "e39716b01af0c8654a9fae7b5555e6b02f506ea05239e0d0eef41936ba80e1e3",
+        "2025-26_1-premierleague.txt": "38c1de56c9e9b6662c7efc1420b7e1fe00dddbb502fe72d8f759e773ba3c093b"
+      }
+    }
+  },
+  "la-liga": {
+    "football_data_code": "PD",
+    "clubs_file": "clubs_la_liga.csv",
+    "current_season": 2026,
+    "conference_seasons": [
+      2023,
+      2024,
+      2025
+    ],
+    "openfootball": {
+      "repo": "espana",
+      "path": "1-liga.txt",
+      "commit": "80035a93dd4920985af52aa097a54a6fb888563b",
+      "commit_date": "2026-10-15T14:37:57Z",
+      "first_season": 2012,
+      "sha256": {
+        "2012-13_1-liga.txt": "cb7d1494ada5b0f56e2251d1d9a5fb791734e20e45d9b7a6222ceca79cff1c2b",
+        "2013-14_1-liga.txt": "5de825d0f8febed9ff13e09c3935cea79414c0c29df3e21ddf44641c31a728c0",
+        "2014-15_1-liga.txt": "39dec8ba23cf29e53839708ba5bc74d598a54d169b866cb8e5d4e3d157c67cc0",
+        "2015-16_1-liga.txt": "608792677494688b0ffa15a64823c6c5e287d5cbf85f94230adfab3c19340355",
+        "2016-17_1-liga.txt": "454baaf709f5a77775c1e168c62d31f6940054e4727d63669d6b4dcb65ac2d50",
+        "2017-18_1-liga.txt": "a03549e0390eb28ccd649f3d14d4bdc193c798c1df0c93a7db3a251f194a9b44",
+        "2018-19_1-liga.txt": "01121b41832cdd3349771de9e2bfc8c656b35961555f1198254f0648253a14fc",
+        "2019-20_1-liga.txt": "0923ab019bf02832b5922780c396c08d1fd0c9cc6bf104174b7250f3927a759a",
+        "2020-21_1-liga.txt": "1e1aab72bce76ade31c5b1359eac26b00d0d51bb6342585c96e1b5ad3f7b9bb9",
+        "2021-22_1-liga.txt": "bf303f9b6800ad3600693f46e657c61908e1d717669aecfd0906a3aa4210122b",
+        "2022-23_1-liga.txt": "96f29c344e6d257f20b673c004ff5b279332336b7ad4fac3dc68549151a67480",
+        "2023-24_1-liga.txt": "d76af43f3d344065510393ad175927e8054c255953ab1de86dbfe50d929e3d50",
+        "2024-25_1-liga.txt": "4d882637dbcab8c99ff87dc16b7033acbaaeaa6ae91cc304cf19e0395852665f",
+        "2025-26_1-liga.txt": "baf2a9ae42c4c6a919eb39aa2476f1d44b9d3b18050adfc6386d36ef2a98e956"
+      }
+    }
+  }
+}

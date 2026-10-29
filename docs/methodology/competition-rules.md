@@ -77,3 +77,27 @@ Fonte: [REC Brasileiro Série B 2026](https://stcbfsiteprdimgbrs.blob.core.windo
   e depois a melhor posição na classificação final. Não há pênaltis nem final entre os vencedores.
 - Simulação: `serie_b/playoffs.py` sorteia os dois jogos de cada grupo com o modelo de gols e os ratings
   da data de referência.
+
+## Premier League e LaLiga 2026/27 (ADR-0011)
+
+Versionados em `competition_rules/seasons/premier_league_2026.toml` e `la_liga_2026.toml`; desempate em
+`leagues/ranking.py` (critérios de tabela no campeonato inteiro; confronto direto recalculado entre os clubes
+que seguem empatados).
+
+- **Premier League** (Handbook, C.4–C.7 e C.17; texto conferido no
+  [explicativo oficial](https://www.premierleague.com/en/news/4183163), que cita o Handbook 2024-25): pontos,
+  saldo, gols pró; depois pontos no confronto direto e gols como visitante no confronto direto; por fim jogo
+  extra em campo neutro (simulado como sorteio). Em rigor, o C.17 só vale quando título, vaga ou queda dependem
+  do empate; aplicá-lo sempre não muda nenhuma zona. Rebaixam 3. Pendência do 03: conferir no Handbook 2026/27.
+- **LaLiga** ([RFEF, bases 2026/27](https://rfef.es/sites/default/files/2026-06/1._CNL_Primera_y_Segunda_Division.pdf),
+  Art. 8.7 e 10): pontos; dois clubes: saldo entre eles, saldo geral, gols pró, juego limpio, campo neutro;
+  três ou mais: pontos entre eles (mini-tabela) e, para quem segue empatado, saldo entre eles, saldo geral,
+  gols pró, juego limpio, campo neutro. Entre dois clubes, os pontos entre eles nunca contradizem o saldo
+  entre eles, então uma ordem só serve aos dois casos. Juego limpio sem dados: sorteio. Rebaixam 18º–20º.
+- **Leitura do Art. 10 (b), três ou mais clubes**: "diferencia de goles ... entre ellos" é calculada só entre
+  os clubes que seguem empatados depois da mini-tabela (achado do 06, 2026-10-29). A RFEF não detalha; é
+  a leitura adotada até uma consulta.
+- **Tabela atual** (temporada em andamento): só pontos, saldo e gols pró, como a PL faz pelo C.4–C.7; os
+  critérios de confronto direto valem para a classificação final e entram em toda simulação (achado M1 do 06).
+- Zonas exibidas: título, top 4 e rebaixamento. "Top 4" é posição; a vaga extra pelo desempenho europeu do
+  país não é modelada.

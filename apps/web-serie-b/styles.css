@@ -93,7 +93,11 @@ a { color: inherit; text-underline-offset: 3px; }
 .top nav { display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: 14px; font-weight: 500; }
 .top nav a { text-decoration: none; color: var(--ink-soft); padding: 4px 0; }
 .top nav a:hover { color: var(--ink); }
-.top nav .switch { color: var(--ink); font-weight: 650; }
+/* Seletor de competições (D-039): uma linha acima do cabeçalho, igual nos sites de cada competição. */
+.leagues { display: flex; flex-wrap: wrap; gap: 2px 18px; padding-top: 8px; padding-bottom: 6px; font-size: 14px; border-bottom: 1px solid var(--rule); }
+.leagues a { text-decoration: none; color: var(--ink-soft); padding: 2px 0; border-bottom: 2px solid transparent; font-weight: 500; }
+.leagues a:hover { color: var(--ink); }
+.leagues a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--signal); font-weight: 650; }
 
 main.wrap { padding-top: 28px; padding-bottom: 48px; min-height: 60vh; }
 .loading { color: var(--ink-soft); }

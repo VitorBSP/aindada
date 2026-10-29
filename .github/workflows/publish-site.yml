@@ -184,6 +184,70 @@ jobs:
             echo "::warning::Série B falhou e não há versão válida no ar; o site sai sem /serie-b"
           fi
 
+      # Ligas europeias (ADR-0011): histórico do openfootball fixado por commit e temporada corrente do
+      # football-data.org (mesma chave da Série A, só neste passo de ingestão). Cada liga falha sozinha,
+      # sem bloquear a Série A, a Série B nem a outra liga.
+      - name: Ingestão das ligas europeias
+        id: leagues_ingest
+        continue-on-error: true
+        env:
+          FOOTBALL_DATA_ORG_TOKEN: ${{ secrets.FOOTBALL_DATA_ORG_TOKEN }}
+        run: |
+          for league in premier-league la-liga; do
+            if python -m brasileirao.leagues.cli "$league" ingest --fetch; then
+              touch "$RUNNER_TEMP/ingest-ok-$league"
+            else
+              echo "::warning::$league: ingestão falhou"
+            fi
+          done
+
+      - name: Ligas europeias — previsão e gate
+        id: leagues
+        continue-on-error: true
+        run: |
+          for league in premier-league la-liga; do
+            [ -f "$RUNNER_TEMP/ingest-ok-$league" ] || continue
+            site="$RUNNER_TEMP/site-$league"
+            live_url="https://${GITHUB_REPOSITORY%%/*}.github.io/${GITHUB_REPOSITORY#*/}/$league/data/forecast.json"
+            if (
+              set -e
+              python -m brasileirao.leagues.cli "$league" forecast --simulations "$SIMULATIONS" --seed "$SEED"
+              rm -rf "$site"
+              cp -r apps/web-ligas "$site"
+              rm -rf "$site/data"
+              python -m brasileirao.leagues.cli "$league" export-web --target "$site/data"
+              live_date="$(curl -fsS "${live_url,,}" 2>/dev/null | jq -r '.reference_date // empty' 2>/dev/null || true)"
+              [ -n "$live_date" ] || echo "::warning::$league: sem forecast.json no ar; checagem de não regressão pulada"
+              python -m brasileirao.leagues.cli "$league" gate --site-dir "$site" ${live_date:+--live-reference-date "$live_date"}
+            ); then
+              touch "$RUNNER_TEMP/league-ok-$league"
+            else
+              echo "::warning::$league: previsão ou gate falhou"
+            fi
+          done
+
+      # Liga que falhou: o forecast.json no ar só volta com o app novo se passar no gate --standalone.
+      - name: Ligas europeias — incluir no artefato
+        run: |
+          for league in premier-league la-liga; do
+            if [ -f "$RUNNER_TEMP/league-ok-$league" ]; then
+              cp -r "$RUNNER_TEMP/site-$league" "_site/$league"
+              echo "$league: previsão nova"
+              continue
+            fi
+            live_url="https://${GITHUB_REPOSITORY%%/*}.github.io/${GITHUB_REPOSITORY#*/}/$league/data/forecast.json"
+            cp -r apps/web-ligas "_site/$league"
+            rm -rf "_site/$league/data"
+            mkdir -p "_site/$league/data"
+            if curl -fsS "${live_url,,}" -o "_site/$league/data/forecast.json" \
+              && python -m brasileirao.leagues.cli "$league" gate --standalone --site-dir "_site/$league"; then
+              echo "::warning::$league falhou; mantido o forecast.json do site no ar"
+            else
+              rm -rf "_site/$league"
+              echo "::warning::$league falhou e não há versão válida no ar; o site sai sem /$league"
+            fi
+          done
+
       - name: Resumo (versões e SHA-256 dos JSON exportados)
         env:
           TRIGGER: ${{ inputs.trigger }}
@@ -205,11 +269,18 @@ jobs:
             else
               echo "- Série B: fora do artefato"
             fi
+            for league in premier-league la-liga; do
+              if [ -f "_site/$league/data/forecast.json" ]; then
+                echo "- $league: referência $(jq -r '.reference_date' "_site/$league/data/forecast.json"), dados $(jq -r '.data_version' "_site/$league/data/forecast.json")"
+              else
+                echo "- $league: fora do artefato"
+              fi
+            done
             echo ""
             echo "SHA-256 dos JSON exportados:"
             echo ""
             echo '```text'
-            (cd _site && find data serie-b/data -name '*.json' -type f 2>/dev/null | sort | xargs sha256sum)
+            (cd _site && find data serie-b/data premier-league/data la-liga/data -name '*.json' -type f 2>/dev/null | sort | xargs sha256sum)
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 

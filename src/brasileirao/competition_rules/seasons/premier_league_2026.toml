@@ -1,0 +1,41 @@
+[competition]
+code = "premier-league"
+season = 2026
+season_label = "2026/27"
+name = "Premier League 2026/27"
+n_clubs = 20
+points_win = 3
+points_draw = 1
+timezone = "Europe/London"
+regulation_title = "Premier League Handbook, Section C (League Table), Rules C.4–C.7 e C.17"
+regulation_url = "https://www.premierleague.com/en/news/4183163"
+regulation_date = "2024-12-04"
+regulation_note = "Texto das regras conferido no explicativo oficial da liga (cita o Handbook 2024-25); confirmar contra o Handbook 2026/27 (pendência do 03)."
+
+[tiebreakers]
+# C.4 pontos, C.5 saldo, C.6 gols pró; C.17.1 pontos no confronto direto; C.17.2 gols como visitante no
+# confronto direto; C.17.3 jogo extra em campo neutro (simulado como sorteio).
+order = ["points", "goal_difference", "goals_for", "h2h_points", "h2h_away_goals", "draw_lot"]
+lot_note = "Empate total no fim da temporada vira sorteio no lugar do jogo extra em campo neutro (C.17.3)."
+
+[[zones]]
+id = "title"
+label = "Título"
+first = 1
+last = 1
+kind = "title"
+
+[[zones]]
+id = "top4"
+label = "Top 4"
+first = 1
+last = 4
+kind = "up"
+note = "Os 4 primeiros vão à Liga dos Campeões; o 5º pode ganhar vaga extra pelo desempenho europeu da Inglaterra. Mostramos só a posição."
+
+[[zones]]
+id = "relegation"
+label = "Rebaixamento"
+first = 18
+last = 20
+kind = "down"

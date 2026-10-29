@@ -56,8 +56,11 @@ def test_publish_runs_gate_with_explicit_season() -> None:
     assert 'publication-gate --season "$SEASON"' in _text(PUBLISH)
 
 
-def test_token_is_scoped_to_the_ingest_step() -> None:
-    assert _text(PUBLISH).count("secrets.FOOTBALL_DATA_ORG_TOKEN") == 1
+def test_token_is_scoped_to_ingest_steps() -> None:
+    """ADR-0008, cláusula 6.1, generalizada no ADR-0011: o token só aparece em passos de ingestão."""
+    steps = _text(PUBLISH).split("      - name: ")
+    with_token = [step.splitlines()[0] for step in steps if "secrets.FOOTBALL_DATA_ORG_TOKEN" in step]
+    assert with_token == ["Ingestão de publicação", "Ingestão das ligas europeias"]
 
 
 @pytest.mark.parametrize("workflow", WORKFLOWS, ids=lambda path: path.name)
@@ -184,3 +187,23 @@ def test_serie_b_steps_come_after_the_serie_a_artifact_check() -> None:
 def test_serie_b_ingest_uses_no_secret() -> None:
     step = _text(PUBLISH).split("id: serie_b", 1)[1].split("- name:", 1)[0]
     assert "secrets." not in step
+
+
+# --- ADR-0011: ligas europeias no mesmo artefato do Pages -------------------------------------------
+
+
+def test_league_failures_never_block_the_rest() -> None:
+    text = _text(PUBLISH)
+    ingest = re.search(r"id: leagues_ingest\n\s+continue-on-error: true", text)
+    forecast = re.search(r"id: leagues\n\s+continue-on-error: true", text)
+    assert ingest is not None and forecast is not None
+
+
+def test_league_forecast_step_uses_no_secret() -> None:
+    step = _text(PUBLISH).split("id: leagues\n", 1)[1].split("- name:", 1)[0]
+    assert "secrets." not in step
+
+
+def test_league_fallback_runs_the_standalone_gate() -> None:
+    step = _text(PUBLISH).split("Ligas europeias — incluir no artefato", 1)[1].split("- name:", 1)[0]
+    assert 'brasileirao.leagues.cli "$league" gate --standalone' in step
