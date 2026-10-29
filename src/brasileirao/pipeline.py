@@ -36,7 +36,7 @@ from brasileirao.data_pipeline.validation import (
     load_known_exceptions,
     run_quality_checks,
 )
-from brasileirao.frame_values import as_int, as_timestamp
+from brasileirao.frame_values import as_int, as_timestamp, optional_int
 from brasileirao.logging_utils import get_logger
 from brasileirao.prediction.goals_model import GoalsModel, outcome_probabilities, top_scores, total_goals_at_least
 from brasileirao.prediction.schedule import build_schedules
@@ -361,7 +361,7 @@ def _match_predictions(
         predictions.append(
             MatchPrediction(
                 match_id=str(match.match_id),
-                round=None if pd.isna(match.round) else as_int(match.round),
+                round=optional_int(match.round),
                 match_date=as_timestamp(match.match_date).date().isoformat(),
                 home_id=str(match.home_id),
                 away_id=str(match.away_id),
@@ -391,7 +391,7 @@ def _match_predictions(
             predictions.append(
                 MatchPrediction(
                     match_id=str(match.match_id),
-                    round=None if pd.isna(match.round) else as_int(match.round),
+                    round=optional_int(match.round),
                     match_date=as_timestamp(match.match_date).date().isoformat(),
                     home_id=str(match.home_id),
                     away_id=str(match.away_id),

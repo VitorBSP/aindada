@@ -28,7 +28,7 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 
-from brasileirao.frame_values import as_int, as_timestamp
+from brasileirao.frame_values import as_timestamp, optional_int
 from brasileirao.prediction.goals_model import GoalsModel
 from brasileirao.ratings.history import ClubRating, RatingState, average_rating, match_features
 
@@ -173,7 +173,7 @@ def build_schedules(
     for position, row in enumerate(rows):
         home_id, away_id = str(row.home_id), str(row.away_id)
         match_id = str(row.match_id)
-        round_number = None if pd.isna(row.round) else as_int(row.round)
+        round_number = optional_int(row.round)
         match_date = as_timestamp(row.match_date).date().isoformat()
         p_home, p_draw, p_away = (float(value) for value in outcome[position])
         for club_id, opponent_id, venue, p_win, p_loss, expected, average_points in (

@@ -13,7 +13,7 @@ import pandas as pd
 from brasileirao.config import MODEL_VERSION, ModelTrainingConfig
 from brasileirao.contracts import MatchStatus
 from brasileirao.data_pipeline.clubs import ClubRegistry
-from brasileirao.frame_values import as_int, as_timestamp
+from brasileirao.frame_values import as_timestamp, optional_int
 from brasileirao.leagues.rules import LeagueRules, Zone
 from brasileirao.leagues.schema import ClinchState, LeagueForecast, MatchForecast, SourceCredit, TeamForecast, ZoneInfo
 from brasileirao.leagues.simulator import LeagueSimulator
@@ -157,7 +157,7 @@ def build_forecast(
             remaining.append(
                 MatchForecast(
                     match_id=str(match.match_id),
-                    round=None if pd.isna(match.round) else as_int(match.round),
+                    round=optional_int(match.round),
                     match_date=as_timestamp(match.match_date).date().isoformat(),
                     kickoff_utc=None if kickoff is None or pd.isna(kickoff) else str(kickoff),
                     status=status if status != MatchStatus.FINISHED.value else MatchStatus.SCHEDULED.value,

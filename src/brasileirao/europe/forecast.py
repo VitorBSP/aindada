@@ -15,7 +15,7 @@ from brasileirao.config import MODEL_VERSION
 from brasileirao.data_pipeline.clubs import ClubRegistry
 from brasileirao.europe.ratings import CUP_COMPETITIONS, GlobalElo, GlobalEloParams
 from brasileirao.europe.simulation import STAGES, ChampionsSimulator, split_league_phase
-from brasileirao.frame_values import as_int, as_timestamp
+from brasileirao.frame_values import as_int, as_timestamp, optional_int
 from brasileirao.leagues.forecast import zone_clinch
 from brasileirao.leagues.rules import Zone
 from brasileirao.leagues.schema import ClinchState, SourceCredit
@@ -197,7 +197,7 @@ def build_forecast(
         remaining.append(
             ChampionsMatch(
                 match_id=str(match.match_id),
-                round=None if pd.isna(match.round) else as_int(match.round),
+                round=optional_int(match.round),
                 match_date=as_timestamp(match.match_date).date().isoformat(),
                 kickoff_utc=kickoff,
                 home_id=str(match.home_id),
