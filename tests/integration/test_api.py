@@ -108,3 +108,8 @@ def test_current_round_follows_contract_version(client: TestClient) -> None:
 
 def test_current_round_unknown_season_404(client: TestClient) -> None:
     assert client.get("/api/seasons/1999/current-round").status_code == 404
+
+
+def test_serie_b_site_is_mounted_before_serie_a(client: TestClient) -> None:
+    response = client.get("/serie-b/")
+    assert response.status_code == 200 and "Série B" in response.text

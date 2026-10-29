@@ -30,6 +30,22 @@ from brasileirao.storage.schema import (
 from brasileirao.storage.snapshots import SnapshotStore
 
 WEB_DIR = Path(__file__).resolve().parents[1] / "web"
+SERIE_B_DIR = Path(__file__).resolve().parents[1] / "web-serie-b"
+LEAGUE_CODES = ("premier-league", "la-liga")
+
+
+def mount_competition_sites(app: FastAPI) -> None:
+    """Mesmo desenho do artefato do Pages (ADR-0010, ADR-0011): `/serie-b/` e `/<liga>/`, com o
+    `forecast.json` local de cada um. Os caminhos mais específicos vêm antes do `/` da Série A."""
+    if SERIE_B_DIR.exists():
+        app.mount("/serie-b", StaticFiles(directory=SERIE_B_DIR, html=True), name="serie-b")
+    if not PATHS.league_web_app.exists():
+        return
+    for code in LEAGUE_CODES:
+        forecast_dir = PATHS.league_data(code) / "forecast"
+        if forecast_dir.exists():
+            app.mount(f"/{code}/data", StaticFiles(directory=forecast_dir), name=f"{code}-data")
+        app.mount(f"/{code}", StaticFiles(directory=PATHS.league_web_app, html=True), name=code)
 
 
 class SeasonInfo(BaseModel):
@@ -162,6 +178,7 @@ def create_app(
         report.get("season_simulation", {}).pop("records", None)
         return report
 
+    mount_competition_sites(app)
     if WEB_DIR.exists():
         app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
     return app
