@@ -208,3 +208,16 @@ td.pts { font-weight: 800; }
   .top { position: static; }
   h2 { margin-top: 44px; }
 }
+
+/* Como o Elo é calculado e abas por competição (D-040). */
+.formula { font-family: var(--sans); font-size: 15px; background: var(--surface); border-left: 3px solid var(--rule); padding: 8px 12px; overflow-x: auto; }
+.elo-title { font-size: 18px; margin: 28px 0 8px; }
+.method-tabs { display: flex; flex-wrap: wrap; gap: 4px 18px; border-bottom: 1px solid var(--rule); margin: 8px 0 14px; }
+.method-tabs button { font: inherit; font-size: 15px; background: none; border: 0; border-bottom: 2px solid transparent; padding: 6px 0; color: var(--ink-soft); cursor: pointer; }
+.method-tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--signal); font-weight: 650; }
+.method-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin: 0 0 12px; }
+.method-facts div { border-top: 3px solid var(--ink); padding-top: 6px; }
+.method-facts dt { font-size: 13px; color: var(--ink-soft); }
+.method-facts dd { margin: 2px 0 0; font-weight: 650; }
+.method-list { font-family: var(--serif); font-size: 16px; padding-left: 20px; }
+.method-list li { margin: 4px 0; }

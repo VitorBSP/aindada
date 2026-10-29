@@ -1046,7 +1046,10 @@
         <li>Os gols simulados não geram cartões; os critérios de cartões usam apenas jogos já disputados.</li>
         <li>${fixedRatings ? "A força de cada clube fica fixa na data de referência durante toda a simulação: uma sequência de vitórias simuladas não deixa o time mais forte nas rodadas seguintes." : "As probabilidades dos jogos usam a força na data de referência; dentro das simulações, a força evolui."}</li>
         <li>Percentuais muito pequenos ou muito grandes ainda são incertos: "0%" significa que o desfecho não ocorreu em nenhuma simulação, não que seja impossível.</li>
-      </ul>`;
+      </ul>
+      <h2>Elo e diferenças entre competições</h2>
+      <div id="metodo-elo"></div>`;
+    if (window.AIndaDaMetodo) window.AIndaDaMetodo.render(document.getElementById("metodo-elo"), "serie-a");
   }
 
   let lastSection = null;

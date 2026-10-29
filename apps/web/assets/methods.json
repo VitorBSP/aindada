@@ -1,0 +1,122 @@
+{
+ "schema_version": "1.0",
+ "competitions": [
+  {
+   "id": "serie-a",
+   "name": "Brasileirão Série A",
+   "path": "",
+   "data": "Adão Duque (Kaggle v18, 2003–2025) e football-data.org (temporada atual).",
+   "elo": {
+    "k_factor": 10.0,
+    "home_advantage": 50.0,
+    "season_regression": 0.3,
+    "newcomer": "clube que sobe entra com a média de quem saiu da divisão"
+   },
+   "extras": [
+    "Ataque e defesa de cada clube (taxa 0,015)",
+    "Forma recente (2 jogos)",
+    "Sem variação extra de força entre simulações"
+   ],
+   "rules": "Regulamento da CBF: pontos, vitórias, saldo, gols, confronto direto; vagas na Libertadores e na Sul-Americana em faixa quando dependem de outras copas.",
+   "validation": {
+    "seasons": "2019–2025",
+    "n_matches": 2660,
+    "log_loss": 1.021336959285107,
+    "base_rate": 1.0609695269681347
+   }
+  },
+  {
+   "id": "serie-b",
+   "name": "Série B",
+   "path": "serie-b/",
+   "data": "openfootball (2018–2024), Wikipédia em português (2025 e temporada atual).",
+   "elo": {
+    "k_factor": 10.0,
+    "home_advantage": 50.0,
+    "season_regression": 0.15,
+    "newcomer": "clube que chega entra com a média de quem saiu da divisão"
+   },
+   "extras": [
+    "Ataque e defesa (taxa 0,03)",
+    "A ordem dos jogos de 2026 é aproximada: a fonte não traz datas",
+    "Sem variação extra de força entre simulações"
+   ],
+   "rules": "Regulamento da CBF: 2 sobem direto, 3º a 6º jogam playoff de ida e volta, 4 caem.",
+   "validation": {
+    "seasons": "2023–2025",
+    "n_matches": 1140,
+    "log_loss": 1.036513709957343,
+    "base_rate": 1.0521459578749177
+   }
+  },
+  {
+   "id": "premier-league",
+   "name": "Premier League",
+   "path": "premier-league/",
+   "data": "openfootball (histórico) e football-data.org (temporada atual).",
+   "elo": {
+    "k_factor": 10.0,
+    "home_advantage": 50.0,
+    "season_regression": 0.3,
+    "newcomer": "clube que sobe entra com a média de quem saiu da liga"
+   },
+   "extras": [
+    "Ataque e defesa (taxa 0,015)",
+    "Cada simulação sorteia uma variação de força de cada clube (desvio 0,1 na escala dos gols)"
+   ],
+   "rules": "Handbook da Premier League: pontos, saldo, gols, confronto direto.",
+   "validation": {
+    "seasons": "2023/24–2025/26",
+    "n_matches": 1140,
+    "log_loss": 0.9821071834242491,
+    "base_rate": 1.0729485259717586
+   }
+  },
+  {
+   "id": "la-liga",
+   "name": "LaLiga",
+   "path": "la-liga/",
+   "data": "openfootball (histórico) e football-data.org (temporada atual).",
+   "elo": {
+    "k_factor": 10.0,
+    "home_advantage": 50.0,
+    "season_regression": 0.3,
+    "newcomer": "clube que sobe entra com a média de quem saiu da liga"
+   },
+   "extras": [
+    "Ataque e defesa (taxa 0,015)",
+    "Cada simulação sorteia uma variação de força de cada clube (desvio 0,025 na escala dos gols)"
+   ],
+   "rules": "RFEF, Art. 10: pontos e depois confronto direto (mini-tabela), saldo, gols.",
+   "validation": {
+    "seasons": "2023/24–2025/26",
+    "n_matches": 1140,
+    "log_loss": 0.9683040001309947,
+    "base_rate": 1.065233301551091
+   }
+  },
+  {
+   "id": "champions-league",
+   "name": "Champions League",
+   "path": "champions-league/",
+   "data": "openfootball (7 ligas e as 3 copas europeias, 2021/22–2025/26) e football-data.org (temporada atual).",
+   "elo": {
+    "k_factor": 30.0,
+    "home_advantage": 100.0,
+    "season_regression": 0.05,
+    "newcomer": "clube novo de liga entra 150 pontos abaixo da média do país; de país sem outro clube conhecido, 200 abaixo de 1500"
+   },
+   "extras": [
+    "Elo único para todos os clubes: as ligas ordenam cada país e as copas europeias ligam os países",
+    "Modelo de gols treinado só com jogos europeus; final em campo neutro"
+   ],
+   "rules": "UEFA, Art. 18 (fase de liga, sem confronto direto) e Art. 19 (mata-mata com chaveamento fixo).",
+   "validation": {
+    "seasons": "2024/25–2025/26",
+    "n_matches": 378,
+    "log_loss": 0.9186103005635383,
+    "base_rate": 1.0145180732367232
+   }
+  }
+ ]
+}

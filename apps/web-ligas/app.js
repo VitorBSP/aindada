@@ -182,6 +182,7 @@
         <p>Regulamento: <a href="${escapeHtml(data.regulation.url)}">${escapeHtml(data.regulation.title)}</a>.${data.regulation.note ? ` ${escapeHtml(data.regulation.note)}` : ""} Fontes:</p>
         <ul>${sources}</ul>
         <p class="meta">Modelo ${escapeHtml(data.model_version)} · dados ${escapeHtml(data.data_version)} · semente ${data.seed} · gerado em ${new Date(data.generated_at).toLocaleString("pt-BR")}</p>
+        <div id="metodo-elo"></div>
       </section>`;
   }
 
@@ -193,6 +194,7 @@
       if (link.dataset.league === data.competition) link.setAttribute("aria-current", "page");
     });
     main.innerHTML = [hero(data), table(data), nextRound(data, byId), method(data)].join("");
+    if (window.AIndaDaMetodo) window.AIndaDaMetodo.render(document.getElementById("metodo-elo"), data.competition);
     document.getElementById("credits").innerHTML = `Fontes: ${data.sources
       .map((source) => `<a href="${escapeHtml(source.origin)}">${escapeHtml(source.attribution || source.source_name)}</a>`)
       .join("; ")}.`;

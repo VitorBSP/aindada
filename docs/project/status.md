@@ -2975,3 +2975,15 @@ Registrado pelo orquestrador (00), que executou as partes de 01, 03, 02, 04/05 e
     - tabela atual só por pontos, saldo e gols;
     - cerca de 10 chamadas por minuto (o retry em 429 cobre).
   - **Evidência final**: `pytest -q` com 815 passando; ruff, format e mypy sem achados; gate com 0 achados.
+
+## Elo explicado e abas por competição (D-040) e CI com o pandas-stubs novo (2026-10-29)
+
+- **CI:** o `pandas-stubs` 3.1.0.261029, lançado em 2026-10-29, mudou a tipagem de `pd.isna`. O mypy do CI passou a
+  falhar em 5 pontos (inclusive em código antigo da Série A), a partir do commit `35fadd6`. O novo `optional_int` em
+  `frame_values.py` corrige os 5, com teste, e o `.venv` local foi atualizado para as mesmas versões do CI.
+- **D-040:**
+  - `src/brasileirao/methods.py` gera `apps/web/assets/methods.json` a partir das configurações e relatórios versionados;
+  - `apps/web/assets/methods.js` mostra a explicação do Elo e as abas nos 5 sites;
+  - `tests/unit/test_methods.py` reprova arquivo desatualizado.
+- **Evidência:** as 5 páginas foram conferidas no navegador num artefato combinado, com a aba da página atual aberta e os
+  links entre competições funcionando; os testes passam (contagem no commit).
