@@ -83,8 +83,8 @@ class ModelConfig:
     goal_dispersion: bool = False
 
 
-def load_model_config(gold_dir: Path = PATHS.gold) -> ModelConfig:
-    config_path = gold_dir / "model_config.json"
+def load_model_config(gold_dir: Path = PATHS.gold, file_name: str = "model_config.json") -> ModelConfig:
+    config_path = gold_dir / file_name
     if not config_path.exists():
         LOGGER.warning("model_config_missing_using_defaults", extra={"path": str(config_path)})
         return ModelConfig("elo_only", RatingParams(), True)

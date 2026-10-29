@@ -608,3 +608,29 @@ de partidas e a previsão começam em 2019. Quem não jogou a Série B no ano an
 Série A e promovidos da Série C) começa com a força média de quem deixou a divisão, o que tende a
 subestimar os rebaixados da A no início da temporada. O W.O. de 2019 (Cuiabá 3 x 0 Figueirense) entra
 nos ratings como placar. Parecer do 06: aprovado com condições, resolvidas (status.md).
+
+### Série B: hiperparâmetros próprios (`serie-b-0.2.0`, 2026-10-29)
+
+Protocolo do ADR-0006: escolha nas temporadas de validação 2020–2022 e teste só relatado em 2023–2025
+(`python -m brasileirao.serie_b.cli tune`, 3 min; relatório `data/gold/serie_b_tuning_report.json`,
+configuração `data/gold/serie_b_model_config.json`).
+
+| Parâmetros | Log loss validação | Log loss teste |
+|---|---|---|
+| Série A (`cmp-elo-ad-0.3.0`) | 1,0486 | 1,0369 |
+| **Série B calibrados** (adotados) | **1,0474** | **1,0365** |
+
+Mudanças: regressão do Elo entre temporadas 0,30 → 0,15; aprendizado de ataque/defesa 0,015 → 0,03 e
+regressão 0,15 → 0,50; janela da forma 2 → 12 jogos. K = 10 e mando 50 iguais. O ganho no teste é
+pequeno (0,0004), mas a escolha seguiu a regra fixada antes de rodar.
+
+Incerteza da simulação (mesma grade da Série A, checkpoints nas rodadas 19, 28 e 33, 2.000
+simulações): na validação, sem incerteza teve o menor log loss da posição (2,0711; força 0,1: 2,0798),
+então fica sem incerteza extra. No teste, com a variante escolhida, a cobertura do intervalo de 90% é
+0,93 (rodada 19), 0,92 (28) e 0,92 (33). A sub-cobertura de 0,84 da versão 0.1.0 na rodada 19 foi medida
+em 2021–2025, e estes números em 2023–2025: as bases diferem, então a comparação é indicativa, não prova
+que o problema sumiu.
+
+Backtest exibido no site (só 2023–2025, porque 2020–2022 entraram na calibração): log loss 1,0365 contra
+1,0521 da taxa base em 1.140 jogos; na rodada 33, Brier de "4 primeiros" 0,089 e de rebaixamento 0,069
+(chute fixo 0,16), cobertura 0,92.

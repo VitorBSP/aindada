@@ -13,16 +13,24 @@ from brasileirao.config import PATHS, SimulationConfig
 from brasileirao.contracts import BRASILIA_TIMEZONE
 from brasileirao.data_pipeline.clubs import load_club_registry
 from brasileirao.logging_utils import configure_logging, get_logger
-from brasileirao.pipeline import load_model_config
+from brasileirao.pipeline import ModelConfig, load_model_config
 from brasileirao.serie_b.backtest import backtest_summary, run_backtest
-from brasileirao.serie_b.forecast import build_forecast
+from brasileirao.serie_b.forecast import SERIE_B_MODEL_CONFIG, SERIE_B_MODEL_VERSION, build_forecast
 from brasileirao.serie_b.gate import check_artifact, summary_line
 from brasileirao.serie_b.ingest import compose, load_pins, read_silver, write_silver
 from brasileirao.serie_b.rules import load_serie_b_rules
 from brasileirao.serie_b.sources import fetch_openfootball, fetch_wikipedia
+from brasileirao.serie_b.tuning import run_tuning
 
 LOGGER = get_logger(__name__)
 BACKTEST_REPORT = PATHS.gold / "serie_b_backtest_report.json"
+TUNING_REPORT = PATHS.gold / "serie_b_tuning_report.json"
+
+
+def _model_config() -> ModelConfig:
+    if not (PATHS.gold / SERIE_B_MODEL_CONFIG).exists():
+        raise SystemExit(f"{SERIE_B_MODEL_CONFIG} ausente: rode `tune` antes")
+    return load_model_config(PATHS.gold, SERIE_B_MODEL_CONFIG)
 
 
 def _raw_dir() -> Path:
@@ -63,12 +71,28 @@ def command_ingest(arguments: argparse.Namespace) -> None:
 def command_backtest(arguments: argparse.Namespace) -> None:
     matches_data, _ = read_silver(_silver_dir())
     report = run_backtest(
-        matches_data, load_serie_b_rules(arguments.season), load_model_config(), n_simulations=arguments.simulations
+        matches_data, load_serie_b_rules(arguments.season), _model_config(), n_simulations=arguments.simulations
     )
     BACKTEST_REPORT.parent.mkdir(parents=True, exist_ok=True)
     BACKTEST_REPORT.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     summary = backtest_summary(report)
     print(json.dumps(summary, ensure_ascii=False, indent=2))
+
+
+def command_tune(arguments: argparse.Namespace) -> None:
+    matches_data, _ = read_silver(_silver_dir())
+    report = run_tuning(
+        matches_data, load_serie_b_rules(arguments.season), load_model_config(), n_simulations=arguments.simulations
+    )
+    TUNING_REPORT.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    config = {"model_version": SERIE_B_MODEL_VERSION, **report["model_config"]}
+    (PATHS.gold / SERIE_B_MODEL_CONFIG).write_text(
+        json.dumps(config, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    print(
+        f"ratings: {report['chosen_rating_params']}; incerteza: {report['chosen_uncertainty']}; "
+        f"config em {PATHS.gold / SERIE_B_MODEL_CONFIG}"
+    )
 
 
 def command_forecast(arguments: argparse.Namespace) -> None:
@@ -81,7 +105,7 @@ def command_forecast(arguments: argparse.Namespace) -> None:
         sources,
         load_serie_b_rules(arguments.season),
         load_club_registry(PATHS.serie_b_clubs_reference),
-        load_model_config(),
+        _model_config(),
         arguments.simulations,
         arguments.seed,
         summary,
@@ -121,7 +145,12 @@ def build_parser() -> argparse.ArgumentParser:
     ingest.add_argument("--fetch", action="store_true", help="baixa as fontes; sem ela, usa o raw existente")
     ingest.set_defaults(handler=command_ingest)
 
-    backtest = commands.add_parser("backtest", help="backtesting temporal 2021–2025")
+    tune = commands.add_parser("tune", help="calibra os hiperparâmetros na Série B (validação 2020–2022)")
+    tune.add_argument("--season", type=int, default=2026)
+    tune.add_argument("--simulations", type=int, default=2000)
+    tune.set_defaults(handler=command_tune)
+
+    backtest = commands.add_parser("backtest", help="backtesting temporal 2023–2025")
     backtest.add_argument("--season", type=int, default=2026)
     backtest.add_argument("--simulations", type=int, default=2000)
     backtest.set_defaults(handler=command_backtest)

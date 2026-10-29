@@ -2854,3 +2854,38 @@ os contratos. Nenhum subagente executou nada. O desenho e as limitações estão
   - gate: 0 achados, e `gate --standalone` também 0;
   - `pytest -q`: 779 passaram; ruff, format e mypy sem achados.
 - **Reauditoria do 06** (mesma data): **aprovado para o commit e o deploy**. Repetiu pytest (779), ruff, format, mypy, `gate` e `gate --standalone` (0 achados) e o C4 do delta. Risco residual do regex de `adjust_points` com sinal "+" corrigido pelo orquestrador, com teste. Pendentes: actionlint antes do push (não instalado nesta máquina) e a primeira execução com `workflow_dispatch`, conferida pelo 07 no resumo (linha da Série B e `outcome` do passo).
+
+## Pendências do ADR-0010 (2026-10-29, segunda rodada)
+
+Registrado pelo orquestrador (00), que executou as partes de 02, 08 e 01 seguindo os contratos.
+
+- **O que mudou:**
+  - **02:** `serie_b/tuning.py` e o comando `serie_b.cli tune`; o modelo passa a `serie-b-0.2.0` com
+    `data/gold/serie_b_model_config.json` (versionado, só hiperparâmetros) e
+    `data/gold/serie_b_tuning_report.json` (só agregados). `forecast` e `backtest` exigem essa
+    configuração. O backtest do site passa a 2023–2025. `pipeline.load_model_config` ganhou o parâmetro
+    opcional `file_name`, e a Série A não muda;
+  - **08:** D-038 (layout próprio só da Série B; regras de tipografia, cor funcional e voz mantidas; sem
+    cor de destaque própria). `apps/web-serie-b`: sobretítulo em serifa itálica cinza, sem maiúsculas
+    espaçadas, barra 1X2 na convenção da Série A (o vermelho-sinal saiu do dado), "sobe em N% das
+    simulações", "não dá mais", "não cai mais", "subiu" e "caiu" só com certeza aritmética, e método
+    atualizado;
+  - **01:** catálogo com a CBF `blocked` (termos de uso) e a proposta das páginas de clube da Wikipédia
+    em inglês, que não foi adotada.
+- **Evidência:**
+  - `tune`: os parâmetros da Série B foram escolhidos na validação; sem incerteza extra;
+  - `backtest`: log loss 1,0365 contra 1,0521;
+  - `forecast` com 100 mil simulações e `gate`: aprovado, 0 achados;
+  - página conferida no navegador, sem erro de console;
+  - pytest, ruff e mypy: ver a auditoria abaixo.
+- **Próximo:**
+  - **06** audita esta rodada;
+  - **00 e dono** decidem a proposta de datas do 01;
+  - **07** roda o actionlint.
+- **Auditoria do 06 (segunda rodada)**: aprovado para commit e push, sem achados bloqueantes ou médios. Os três baixos foram resolvidos pelo orquestrador:
+  - a cobertura de 0,84 e a de agora usam bases diferentes, e o texto passou a dizer isso;
+  - "não dá mais" no acesso direto virou "só pelo playoff" quando o clube ainda pode chegar ao 6º;
+  - o gate confere o `model_version` do backtest exibido, com teste.
+- **07, actionlint 1.7.7**: release oficial; SHA-256 `7f12f180…` conferido contra o arquivo de checksums da release; baixado no scratchpad com autorização do dono. Rodado com `-shellcheck=` nos workflows de `.github/workflows/` e de `infrastructure/github-workflows/`: exit 0 nos dois. Shellcheck não rodou.
+- **Decisões do dono (chat, 2026-10-29)**: manter a ordem imputada de 2026, sem adotar as páginas de clube da Wikipédia em inglês.
+- **Evidência final**: `pytest -q` com 781 passando; ruff, format e mypy (61 arquivos) sem achados; `serie_b.cli gate` com 0 achados; página sem erro de console.

@@ -298,3 +298,13 @@ Registrados em `data/reference/known_exceptions.csv` e reportados em `data/gold/
 - football-data.org: a Série B (`BSB`) devolve 403 no plano gratuito (2026-10-29); não é fonte da Série B.
 - Conferência: os 57 placares de 2025 em comum entre openfootball e Wikipédia são iguais.
 - Raw, silver e previsão ficam em `data/serie_b/` (fora do git).
+
+### Fonte de datas e rodadas de 2026 (pendência do 01 no ADR-0010, 2026-10-29)
+
+| Candidata | Resultado | Situação |
+|---|---|---|
+| CBF, tabela da Série B (`cbf.com.br/futebol-brasileiro/tabelas/...`) | Site acessível (200; a falha de TLS de 27/10 não se repetiu). Os [termos de uso](https://www.cbf.com.br/termos-de-uso) proíbem "copiar, reproduzir e alterar, total ou parcialmente, qualquer dado, informação, conteúdo" do site | **`blocked`**: não pode ser fonte, nem para datas |
+| Wikipédia (pt), páginas de temporada de clube | Só existe a do Flamengo em 2026 | sem cobertura |
+| Wikipédia (en), "2026 <clube> season" | 11 dos 20 clubes têm página com `Football box` (data e rodada estruturadas): Goiás, Ceará, Athletic, Avaí, Fortaleza, Vila Nova, CRB, América-MG, Juventude, Náutico e Sport. Cobre cerca de 308 dos 380 jogos; os 72 entre os outros 9 clubes ficam sem data | **proposta, não adotada**: parcial, 11 páginas editadas à parte (mais superfície para erro e vandalismo). Decisão do 00/dono |
+
+Até haver decisão, 2026 segue com a ordem imputada (ADR-0010, Decisão 1).

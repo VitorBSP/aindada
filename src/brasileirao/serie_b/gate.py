@@ -48,6 +48,10 @@ def check_forecast_core(forecast: SerieBForecast, today: date) -> list[str]:
         findings.append(f"schema_version {forecast.schema_version} != {SERIE_B_SCHEMA_VERSION}")
     if date.fromisoformat(forecast.reference_date) > today:
         findings.append(f"reference_date {forecast.reference_date} no futuro (hoje: {today})")
+    if forecast.backtest is not None and forecast.backtest.get("model_version") != forecast.model_version:
+        findings.append(
+            f"backtest de {forecast.backtest.get('model_version')} exibido com o modelo {forecast.model_version}"
+        )
     n_clubs = len(forecast.teams)
     rules = forecast.rules
     playoff_slots = max(worse for _, worse in rules["playoff_groups"]) - int(rules["direct_promotion"])

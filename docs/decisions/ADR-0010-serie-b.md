@@ -78,10 +78,14 @@ com aviso (mesmo comportamento da Série A 2026).
 
 ## Decisão 3 — Modelo e simulação (Agente 02)
 
-- **Mesmo modelo e mesmos hiperparâmetros da Série A** (`data/gold/model_config.json`,
-  `cmp-elo-ad-0.3.0`: Elo + ataque/defesa, dispersão de gols, ratings fixos na simulação). Versão
-  `serie-b-0.1.0+cmp-elo-ad-0.3.0`. Ratings só com jogos da Série B; treino do modelo de gols a partir de
-  2019 (2018 é aquecimento).
+- **Mesmo modelo da Série A** (`cmp-elo-ad-0.3.0`: Elo + ataque/defesa, dispersão de gols, ratings fixos na
+  simulação), com **hiperparâmetros calibrados na própria Série B** desde 2026-10-29
+  (`data/gold/serie_b_model_config.json`, versão `serie-b-0.2.0+cmp-elo-ad-0.3.0`; a 0.1.0 usava os da
+  Série A). Calibração em `serie_b/tuning.py` (`serie_b.cli tune`): busca coordenada da Série A escolhida
+  em 2020–2022 e só relatada em 2023–2025; incerteza da simulação escolhida na mesma grade da Série A
+  (nenhuma variante melhorou a validação: fica sem incerteza extra). Ratings só com jogos da Série B;
+  treino do modelo de gols a partir de 2019 (2018 é aquecimento). O backtest exibido no site usa só
+  2023–2025.
 - Restante da temporada: um lote só (sem datas), com ratings fixos.
 - Playoffs: placares sorteados do mesmo modelo, com os ratings da data de referência; semente própria
   `(seed, 3)`.
@@ -121,10 +125,17 @@ da paleta aprovada (D-005); layout próprio. Sem escudos (procedência não veri
 
 ## Pendências
 
-- **06**: parecer sobre fontes, imputação da ordem de 2026, gate e workflow, antes do deploy.
-- **08**: revisar os textos da página; decidir se a Série B terá cor de destaque própria.
-- **01**: fonte com datas e rodadas de 2026 (por exemplo, a tabela oficial da CBF, com os termos conferidos)
-  para substituir a ordem imputada; reler os termos no início de cada temporada.
-- **03**: regulamento de 2027 quando sair.
-- **02**: avaliar hiperparâmetros próprios da Série B (hoje herdados da Série A) e a cobertura do
-  intervalo de 90% no meio da temporada (0,84 na rodada 19).
+Situação em 2026-10-29 (segunda rodada de trabalho):
+
+- **06**: parecer dado (aprovado depois das condições M1–M4). Nova auditoria para a rodada abaixo.
+- **08**: **feito.** Textos revisados contra o guia de conteúdo e a D-025, e cor própria decidida (não
+  terá): D-038 em `docs/brand/BRAND_DECISIONS.md`.
+- **02**: **feito.** Hiperparâmetros próprios adotados pelo protocolo (log loss de validação 1,0474 contra
+  1,0486; teste 1,0365 contra 1,0369). A cobertura de 0,84 na rodada 19 (medida em 2021–2025) não aparece no teste
+  2023–2025, com os novos parâmetros, fica em 0,93, 0,92 e 0,92 nas rodadas 19, 28 e 33. Detalhe em
+  `docs/methodology/validation.md`.
+- **01**: **investigado, sem fonte adotada.** A tabela da CBF é `blocked` pelos termos de uso; a
+  alternativa (páginas de temporada de clube da Wikipédia em inglês, cerca de 81% dos jogos) é proposta
+  ao 00 e ao dono no catálogo e recusada pelo dono em 2026-10-29. Segue a ordem imputada. Reler os termos no início de cada temporada.
+- **03**: regulamento de 2027 quando a CBF publicar (não há como antecipar).
+- **07**: **feito.** actionlint 1.7.7 sem achados nos workflows (shellcheck não executado).

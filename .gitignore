@@ -40,6 +40,8 @@ data/gold/*
 !data/gold/backtest_report.json
 # Série B (ADR-0010): métricas agregadas do backtest, sem clubes nem jogos.
 !data/gold/serie_b_backtest_report.json
+!data/gold/serie_b_model_config.json
+!data/gold/serie_b_tuning_report.json
 # Série B: raw, silver e previsão (placares derivados das fontes); export gerado só no workflow.
 data/serie_b/
 apps/web-serie-b/data/

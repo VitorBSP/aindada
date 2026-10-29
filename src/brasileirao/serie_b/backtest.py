@@ -1,8 +1,8 @@
-"""Backtesting temporal da Série B com os hiperparâmetros da Série A (ADR-0010, Decisão 3).
+"""Backtesting temporal da Série B com os hiperparâmetros calibrados nela (ADR-0010, Decisão 3).
 
 Partidas: walk-forward por temporada contra a taxa base. Temporadas: checkpoints em rodadas fixas,
-pontuando "4 primeiros" (acesso direto em 2021–2025) e rebaixamento. 2025 usa as datas do calendário
-do openfootball (aproximadas).
+pontuando "4 primeiros" (acesso direto em 2021–2025) e rebaixamento. Só 2023–2025: 2020–2022 foram usadas
+na calibração (`tuning.py`). 2025 usa as datas do calendário do openfootball (aproximadas).
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ from brasileirao.validation.backtest import (
     walk_forward_predictions,
 )
 
-TEST_SEASONS = (2021, 2022, 2023, 2024, 2025)
+TEST_SEASONS = (2023, 2024, 2025)
 CHECKPOINT_ROUNDS = (19, 28, 33)
 SEASON_METRICS = ("top4_brier", "relegation_brier", "position_log_loss", "points_mae", "points_interval_90_coverage")
 

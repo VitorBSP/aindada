@@ -1,10 +1,8 @@
 {
-  "model_version": "serie-b-0.1.0+cmp-elo-ad-0.3.0",
-  "generated_at": "2026-10-29T05:49:01.560701+00:00",
+  "model_version": "serie-b-0.2.0+cmp-elo-ad-0.3.0",
+  "generated_at": "2026-10-29T13:22:30.932148+00:00",
   "feature_set": "elo_attack_defense",
   "test_seasons": [
-    2021,
-    2022,
     2023,
     2024,
     2025
@@ -15,37 +13,33 @@
   },
   "match_level": {
     "base_rate": {
-      "n_matches": 1900,
-      "log_loss": 1.0544784985706177,
-      "brier": 0.6362674876885195,
-      "rps": 0.21422301285010772,
-      "home_goal_deviance": 1.0277656583300139,
-      "away_goal_deviance": 1.1045998098851784,
-      "score_log_loss": 2.6874674782701513,
-      "total_goals_log_loss": 1.7825978583690343,
+      "n_matches": 1140,
+      "log_loss": 1.0521459578749177,
+      "brier": 0.6344315263670872,
+      "rps": 0.21540676297835232,
+      "home_goal_deviance": 1.0142784609574282,
+      "away_goal_deviance": 1.1081274056310844,
+      "score_log_loss": 2.6793933810085373,
+      "total_goals_log_loss": 1.7641377687385573,
       "by_season": {
-        "2021": 1.0753399332376903,
-        "2022": 1.0406146859906462,
         "2023": 1.062797342118813,
         "2024": 1.0324483174950498,
         "2025": 1.0611922140108894
       }
     },
     "elo_attack_defense": {
-      "n_matches": 1900,
-      "log_loss": 1.0404062670993357,
-      "brier": 0.6263636513432949,
-      "rps": 0.20955726047065767,
-      "home_goal_deviance": 0.9976778582039467,
-      "away_goal_deviance": 1.0997118990407766,
-      "score_log_loss": 2.5955233318689444,
-      "total_goals_log_loss": 1.7119150282822748,
+      "n_matches": 1140,
+      "log_loss": 1.036513709957343,
+      "brier": 0.6232578901393142,
+      "rps": 0.2102558908530655,
+      "home_goal_deviance": 0.9822018315351048,
+      "away_goal_deviance": 1.1030491209098643,
+      "score_log_loss": 2.6057853612155086,
+      "total_goals_log_loss": 1.711267517057602,
       "by_season": {
-        "2021": 1.0644185805369575,
-        "2022": 1.0270565096600017,
-        "2023": 1.045323432471426,
-        "2024": 1.0136444807717873,
-        "2025": 1.0515883320565056
+        "2023": 1.0446700836182652,
+        "2024": 1.0130265231029365,
+        "2025": 1.0518445231508269
       }
     }
   },
@@ -59,28 +53,28 @@
     "seed": 7,
     "by_round": {
       "19": {
-        "top4_brier": 0.105756805,
-        "relegation_brier": 0.09653621500000001,
-        "position_log_loss": 2.4817265567534443,
-        "points_mae": 5.047320000000001,
-        "points_interval_90_coverage": 0.8399999999999999
+        "top4_brier": 0.14310438333333333,
+        "relegation_brier": 0.08521780000000001,
+        "position_log_loss": 2.4386924962836267,
+        "points_mae": 4.795716666666666,
+        "points_interval_90_coverage": 0.9333333333333332
       },
       "28": {
-        "top4_brier": 0.10314192000000003,
-        "relegation_brier": 0.08512201,
-        "position_log_loss": 2.179382938350863,
-        "points_mae": 3.8979950000000003,
-        "points_interval_90_coverage": 0.86
+        "top4_brier": 0.15375018333333332,
+        "relegation_brier": 0.08135159166666665,
+        "position_log_loss": 2.1740465334174117,
+        "points_mae": 3.8073750000000004,
+        "points_interval_90_coverage": 0.9166666666666666
       },
       "33": {
-        "top4_brier": 0.06317413499999999,
-        "relegation_brier": 0.054746249999999996,
-        "position_log_loss": 1.7265576776510039,
-        "points_mae": 2.318405,
-        "points_interval_90_coverage": 0.9299999999999999
+        "top4_brier": 0.08859130833333334,
+        "relegation_brier": 0.06898676666666666,
+        "position_log_loss": 1.7645185805146204,
+        "points_mae": 2.501583333333333,
+        "points_interval_90_coverage": 0.9166666666666666
       }
     },
     "climatology_brier_top4_or_bottom4": 0.16000000000000003,
-    "n_checkpoints": 15
+    "n_checkpoints": 9
   }
 }

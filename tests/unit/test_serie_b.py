@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import replace
 from datetime import date, timedelta
 from pathlib import Path
@@ -12,7 +13,7 @@ import pytest
 
 from brasileirao.config import RatingParams
 from brasileirao.data_pipeline.clubs import ClubRegistry
-from brasileirao.pipeline import ModelConfig
+from brasileirao.pipeline import ModelConfig, load_model_config
 from brasileirao.prediction.goals_model import GoalsModel
 from brasileirao.serie_b.forecast import build_forecast, clinched_flags
 from brasileirao.serie_b.gate import check_artifact, check_forecast
@@ -31,6 +32,7 @@ from brasileirao.serie_b.sources import (
     parse_wikipedia_matrix,
     parse_wikipedia_standings,
 )
+from brasileirao.validation.report import rating_params_to_dict
 
 TODAY = date(2100, 1, 1)
 
@@ -364,3 +366,22 @@ def test_standalone_gate_rejects_json_outside_schema(tmp_path: Path) -> None:
     (tmp_path / "data").mkdir()
     (tmp_path / "data" / "forecast.json").write_text('{"schema_version": "0.9"}', encoding="utf-8")
     assert any("fora do esquema" in finding for finding in check_artifact(tmp_path, None, TODAY))
+
+
+def test_serie_b_model_config_is_read_from_its_own_file(tmp_path: Path) -> None:
+    params = RatingParams()
+    payload = {
+        "feature_set": "elo_attack_defense",
+        "rating_params": rating_params_to_dict(params),
+        "dynamic_ratings_in_simulation": False,
+        "goal_dispersion": True,
+        "simulation_uncertainty": {"coefficient_draws": False, "strength_sd": 0.0},
+    }
+    (tmp_path / "serie_b_model_config.json").write_text(json.dumps(payload), encoding="utf-8")
+    assert load_model_config(tmp_path, "serie_b_model_config.json").goal_dispersion is True
+
+
+def test_gate_rejects_backtest_from_another_model(synthetic_forecast_inputs: tuple) -> None:
+    forecast, sources = synthetic_forecast_inputs
+    mismatched = forecast.model_copy(update={"backtest": {"model_version": "serie-b-0.0.1"}})
+    assert any("backtest de" in finding for finding in check_forecast(mismatched, sources, TODAY))

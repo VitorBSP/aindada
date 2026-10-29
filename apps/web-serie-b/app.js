@@ -10,15 +10,18 @@
   const number = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
   const decimal = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 
-  // 0% e 100% só quando a aritmética decide (clinched); simulação nunca vira certeza.
-  function pct(value, decided) {
-    if (decided === 1) return "100%";
-    if (decided === 0) return "0%";
+  // Certeza só quando a aritmética decide (clinched); simulação nunca vira certeza (CONTENT_GUIDELINES).
+  function pct(value, decided, done = { yes: "100%", no: "não dá mais" }) {
+    if (decided === 1) return done.yes;
+    if (decided === 0) return done.no;
     if (value < 0.001) return "<0,1%";
     if (value > 0.999) return ">99,9%";
     if (value < 0.01 || value > 0.99) return number.format(Math.round(value * 1000) / 10) + "%";
     return Math.round(value * 100) + "%";
   }
+
+  const PROMOTION_DONE = { yes: "subiu", no: "não dá mais" };
+  const RELEGATION_DONE = { yes: "caiu", no: "não cai mais" };
 
   function formatDate(iso) {
     const [year, month, day] = iso.split("-").map(Number);
@@ -35,6 +38,11 @@
     return null;
   }
 
+  // Fora do top 2 ainda pode subir pelo playoff: "não dá mais" só quando nem o 6º lugar é possível.
+  function directDone(team) {
+    return { yes: "subiu", no: team.clinched.out_of_top6 ? "não dá mais" : "só pelo playoff" };
+  }
+
   function decidedDirect(team) {
     if (team.clinched.promoted_direct) return 1;
     if (team.clinched.out_of_top2) return 0;
@@ -47,13 +55,11 @@
     return null;
   }
 
-  function zoneList(teams, valueOf, decidedOf, doneLabel) {
+  function zoneList(teams, valueOf, decidedOf, doneOf) {
     return `<ol>${teams
       .map((team) => {
         const decided = decidedOf(team);
-        const value = decided === 1 && doneLabel
-          ? `<span class="value done">${doneLabel}</span>`
-          : `<span class="value">${pct(valueOf(team), decided)}</span>`;
+        const value = `<span class="value${decided === null ? "" : " done"}">${pct(valueOf(team), decided, doneOf(team))}</span>`;
         return `<li>${badge(team)}<span class="name">${escapeHtml(team.name)}</span>${value}</li>`;
       })
       .join("")}</ol>`;
@@ -74,12 +80,12 @@
       <section aria-labelledby="titulo">
         <p class="kicker">Série B ${data.season} · ${roundsLeft === 1 ? "falta 1 rodada" : `faltam ${roundsLeft} rodadas`}</p>
         <h1 id="titulo">Quatro sobem, quatro caem. Quem ainda dá?</h1>
-        <p class="lede">Dois sobem direto. Do 3º ao 6º, playoff em ida e volta vale mais duas vagas na Série A de ${data.season + 1}. ${escapeHtml(leader.name)} é quem está mais perto: ${pct(leader.promotion, decidedPromotion(leader))} de chance de subir.${dropLine}</p>
+        <p class="lede">Dois sobem direto. Do 3º ao 6º, playoff em ida e volta vale mais duas vagas na Série A de ${data.season + 1}. ${escapeHtml(leader.name)} ${decidedPromotion(leader) === 1 ? "já subiu." : `é quem está mais perto: sobe em ${pct(leader.promotion)} das simulações.`}${dropLine}</p>
         <p class="meta">Resultados até ${formatDate(data.reference_date)} · ${data.n_simulations.toLocaleString("pt-BR")} simulações do que falta e dos playoffs</p>
         <div class="zones">
-          <div class="zone up"><h3>Sobe direto</h3><p class="zone-sub">chance de terminar em 1º ou 2º</p>${zoneList(byDirect, (team) => team.promotion_direct, decidedDirect, "subiu")}</div>
-          <div class="zone mid"><h3>Vai ao playoff</h3><p class="zone-sub">chance de terminar entre 3º e 6º</p>${zoneList(byPlayoff, (team) => team.playoff, (team) => (team.clinched.out_of_top6 ? 0 : null), "")}</div>
-          <div class="zone down"><h3>Cai</h3><p class="zone-sub">chance de terminar entre 17º e 20º</p>${zoneList(byDrop, (team) => team.relegation, decidedRelegation, "caiu")}</div>
+          <div class="zone up"><h3>Sobe direto</h3><p class="zone-sub">% das simulações em que termina em 1º ou 2º</p>${zoneList(byDirect, (team) => team.promotion_direct, decidedDirect, directDone)}</div>
+          <div class="zone mid"><h3>Vai ao playoff</h3><p class="zone-sub">% das simulações em que termina entre 3º e 6º</p>${zoneList(byPlayoff, (team) => team.playoff, (team) => (team.clinched.out_of_top6 ? 0 : null), () => PROMOTION_DONE)}</div>
+          <div class="zone down"><h3>Cai</h3><p class="zone-sub">% das simulações em que termina entre 17º e 20º</p>${zoneList(byDrop, (team) => team.relegation, decidedRelegation, () => RELEGATION_DONE)}</div>
         </div>
       </section>`;
   }
@@ -90,7 +96,7 @@
       .map((team) => {
         const lost = Math.max(team.playoff - team.promotion_playoff, 0);
         const width = (value) => `${(value * 100).toFixed(2)}%`;
-        const label = `${team.name}: ${pct(team.promotion_direct, decidedDirect(team))} direto, ${pct(team.promotion_playoff)} pelo playoff`;
+        const label = `${team.name}: ${pct(team.promotion_direct, decidedDirect(team), directDone(team))} direto, ${pct(team.promotion_playoff)} pelo playoff`;
         return `<li>
           ${badge(team)}<span class="club">${escapeHtml(team.name)}</span>
           <span class="stack" role="img" aria-label="${escapeHtml(label)}">
@@ -98,7 +104,7 @@
             <span class="via-playoff" style="width:${width(team.promotion_playoff)}"></span>
             <span class="lost-playoff" style="width:${width(lost)}"></span>
           </span>
-          <span class="total">${pct(team.promotion, decidedPromotion(team))}</span>
+          <span class="total">${pct(team.promotion, decidedPromotion(team), PROMOTION_DONE)}</span>
         </li>`;
       })
       .join("");
@@ -148,7 +154,7 @@
         const decided = decidedRelegation(team);
         const gone = decided === 1;
         return `<li class="${gone ? "gone" : ""}">${badge(team)}<span class="name">${escapeHtml(team.name)}</span>
-          <span class="pct">${gone ? "caiu" : pct(team.relegation, decided)}</span>
+          <span class="pct">${pct(team.relegation, decided, RELEGATION_DONE)}</span>
           <span class="meter" aria-hidden="true"><span style="width:${(team.relegation * 100).toFixed(1)}%"></span></span></li>`;
       })
       .join("");
@@ -176,8 +182,8 @@
           <td class="pts">${team.points}</td><td>${team.played}</td><td>${team.wins}</td><td>${team.draws}</td><td>${team.losses}</td>
           <td>${team.goals_for - team.goals_against > 0 ? "+" : ""}${team.goals_for - team.goals_against}</td>
           <td>${number.format(team.expected_points)}</td>
-          <td>${pct(team.promotion, decidedPromotion(team))}</td>
-          <td>${pct(team.relegation, decidedRelegation(team))}</td>
+          <td>${pct(team.promotion, decidedPromotion(team), PROMOTION_DONE)}</td>
+          <td>${pct(team.relegation, decidedRelegation(team), RELEGATION_DONE)}</td>
           <td class="left"><span class="heat" role="img" aria-label="Distribuição da posição final de ${escapeHtml(team.name)}">${heat}</span></td>
         </tr>`;
       })
@@ -235,7 +241,7 @@
     return `
       <section id="metodo" class="prose" aria-labelledby="metodo-titulo">
         <h2 id="metodo-titulo">Como calculamos</h2>
-        <p>É o mesmo modelo da Série A do AInda dá?, com os mesmos parâmetros: força de cada clube (Elo, ataque e defesa) reconstruída jogo a jogo desde 2018, um modelo de gols treinado só com temporadas anteriores e ${data.n_simulations.toLocaleString("pt-BR")} simulações do que falta. Cada simulação termina a tabela com os critérios do regulamento e depois disputa os dois playoffs, ida e volta.</p>
+        <p>É o mesmo modelo da Série A do AInda dá?, com parâmetros calibrados nos jogos da própria Série B: força de cada clube (Elo, ataque e defesa) reconstruída jogo a jogo desde 2018, um modelo de gols treinado só com temporadas anteriores e ${data.n_simulations.toLocaleString("pt-BR")} simulações do que falta. Cada simulação termina a tabela com os critérios do regulamento e depois disputa os dois playoffs, ida e volta.</p>
         ${facts}
         <p>Limitações que você precisa saber:</p>
         <ul>${data.warnings.map((warning) => `<li>${escapeHtml(warning)}</li>`).join("")}

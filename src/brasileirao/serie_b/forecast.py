@@ -30,7 +30,9 @@ from brasileirao.simulation.summary import position_distribution
 
 IntArray = npt.NDArray[np.int64]
 
-SERIE_B_MODEL_VERSION = f"serie-b-0.1.0+{MODEL_VERSION}"
+# 0.2.0: hiperparâmetros calibrados na própria Série B (data/gold/serie_b_model_config.json).
+SERIE_B_MODEL_VERSION = f"serie-b-0.2.0+{MODEL_VERSION}"
+SERIE_B_MODEL_CONFIG = "serie_b_model_config.json"
 SERIE_B_TRAINING = ModelTrainingConfig(first_training_season=2019)
 PLAYOFF_SEED_STREAM = 3
 GROUP_LABELS = ("A", "B", "C", "D")
