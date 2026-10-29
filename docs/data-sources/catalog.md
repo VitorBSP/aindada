@@ -285,3 +285,16 @@ Registrados em `data/reference/known_exceptions.csv` e reportados em `data/gold/
 6. W.O. (`AWARDED` no football-data.org) só entra com o placar decidido registrado em
    `known_exceptions.csv` (`code=awarded`, `source_name`, `source_match_id`, `home_goals`,
    `away_goals` e a evidência na nota).
+
+## Série B (ADR-0010, 2026-10-29)
+
+| Fonte (`source_name`) | Conteúdo | Cobertura | Acesso | Licença | Papel |
+|---|---|---|---|---|---|
+| [Wikipédia (pt)](https://pt.wikipedia.org/wiki/Campeonato_Brasileiro_de_Futebol_de_2026_-_S%C3%A9rie_B) (`wikipedia_pt`) | Matriz de confrontos (módulo `sports results`): placar por mandante x visitante, campo `update` | 2025 (revisão fixada `73254466`) e temporada corrente (revisão mais recente na ingestão) | API do MediaWiki (`action=query&prop=revisions`), 1 chamada por temporada; adaptador `serie_b.sources.fetch_wikipedia` | `licensed_with_attribution`: CC BY-SA 4.0 (rodapé conferido em 2026-10-29). Sem data nem rodada | **Publicação Série B**: resultados de 2025 e 2026 |
+| [openfootball/south-america](https://github.com/openfootball/south-america) (`openfootball`) | `brazil/YYYY_br2.txt` (Football.TXT): rodada, data, hora, placar | 2018–2024 completos; 2025 só calendário (57 de 380 placares) | raw do GitHub no commit fixado `f51b2dcf5e0f`, SHA-256 em `data/reference/serie_b_source_pins.json` | `licensed_with_attribution`: CC0-1.0 declarada; procedência dos resultados não informada (risco aceito pelo dono) | **Publicação Série B**: 2018–2024 e datas de 2025 |
+
+- Composição, data de corte e ordem imputada de 2026: ADR-0010, Decisão 1. Cadastro de clubes próprio:
+  `data/reference/clubs_serie_b.csv`.
+- football-data.org: a Série B (`BSB`) devolve 403 no plano gratuito (2026-10-29); não é fonte da Série B.
+- Conferência: os 57 placares de 2025 em comum entre openfootball e Wikipédia são iguais.
+- Raw, silver e previsão ficam em `data/serie_b/` (fora do git).

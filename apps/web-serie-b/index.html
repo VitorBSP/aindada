@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AInda dá? Série B · Quem sobe e quem cai</title>
+  <meta name="description" content="Chances de acesso direto, playoff e rebaixamento na Série B 2026, com 100 mil simulações do que falta do campeonato e dos playoffs.">
+  <meta name="theme-color" content="#fafaf7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#17191c" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="assets/brand/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/inter-tight-latin.woff" as="font" type="font/woff" crossorigin>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Pular para o conteúdo</a>
+  <header class="top">
+    <div class="wrap top-inner">
+      <a class="brand" href="./" aria-label="AInda dá? Série B, início">
+        <img class="logo-light" src="assets/brand/ainda-da-assinatura-compacta.svg" alt="AInda dá?" width="168" height="32">
+        <img class="logo-dark" src="assets/brand/ainda-da-assinatura-compacta-reversa.svg" alt="AInda dá?" width="168" height="32">
+        <span class="league-tag">Série B</span>
+      </a>
+      <nav aria-label="Seções">
+        <a href="#corrida">Acesso</a>
+        <a href="#playoff">Playoff</a>
+        <a href="#queda">Rebaixamento</a>
+        <a href="#tabela">Tabela</a>
+        <a href="#jogos">Jogos</a>
+        <a href="#metodo">Como calculamos</a>
+        <a class="switch" href="../">Série A →</a>
+      </nav>
+    </div>
+  </header>
+  <main id="main" class="wrap" tabindex="-1">
+    <p class="loading" id="loading">Carregando as simulações…</p>
+    <noscript>Esta página precisa de JavaScript para mostrar as chances.</noscript>
+  </main>
+  <footer class="wrap foot">
+    <p><strong>AInda dá? Série B.</strong> Chance não é certeza. Os números vêm de um modelo estatístico e mudam a cada atualização. "Não dá mais" só aparece quando a matemática fecha a porta.</p>
+    <p id="credits">Fontes: Wikipédia em português (CC BY-SA 4.0) e openfootball (CC0).</p>
+    <p>O AInda dá? é um projeto independente. Não é um site oficial e não tem relação com a CBF nem com os clubes.</p>
+  </footer>
+  <script src="app.js"></script>
+</body>
+</html>

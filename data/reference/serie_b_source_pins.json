@@ -1,0 +1,21 @@
+{
+  "openfootball": {
+    "commit": "f51b2dcf5e0fab9f0abd5206ab8c24a413e67277",
+    "commit_date": "2026-10-20T11:43:55Z",
+    "seasons": [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025],
+    "sha256": {
+      "2018_br2.txt": "55a1b9fcfd1c813c168cb63360f984e331411163c8e8c3a06840e49832670417",
+      "2019_br2.txt": "1714dafdbcac6437bee144384a47ee3245e3c72a807d8c156c5b6d0e4c2a0cc0",
+      "2020_br2.txt": "015102ba2b425ce3347d0249d14046f48fbfe744ca18f3bc8e48d55abdd24ba7",
+      "2021_br2.txt": "04896f07c7d81407aef4a54d1ce8ec480cbb00841cd2d7f0789ad1184cbfb3b1",
+      "2022_br2.txt": "e676f5108bd16e59f58029bfe8999d651b81b68c4f986ed492c2481e5744aa49",
+      "2023_br2.txt": "402e790d426b4ed425282793f4da973b077e1bdaef5256dc4c7f7337d594b175",
+      "2024_br2.txt": "43bf980a4482cdd3b70bf28cbaa61d8e4d827b0ac8e9ac330029ab2f83ba9fb5",
+      "2025_br2.txt": "d502dff49e466bccda0b5c87b47d95fa9ce739cf25a1cacfc47cad8ea8888720"
+    }
+  },
+  "wikipedia_pt": {
+    "closed_seasons": {"2025": 73254466},
+    "current_season": 2026
+  }
+}

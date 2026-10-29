@@ -2782,3 +2782,75 @@ Registrado pelo orquestrador a partir do relatório do 06, que auditou sem edita
   520 px (G4 em 2 × 2), sem rolagem horizontal.
 - **Observação**: a API local em 127.0.0.1:8001 foi religada com o código atual (venv do projeto); ela só entrega
   snapshots publicáveis (ADR-0008), então o site usa o JSON estático até haver um.
+
+## Série B: fontes, regras com playoffs, simulação e site em `/serie-b/` (ADR-0010; 2026-10-29)
+
+Registrado pelo orquestrador (00), que implementou na sessão as partes de 01, 03, 02, 04/05 e 07 seguindo
+os contratos. Nenhum subagente executou nada. O desenho e as limitações estão no ADR-0010.
+
+- **O que mudou:**
+  - fontes e composição: `src/brasileirao/serie_b/` (`sources.py`, `ingest.py`),
+    `data/reference/clubs_serie_b.csv` e `data/reference/serie_b_source_pins.json`;
+  - regras: `competition_rules/seasons/serie_b_2026.toml` e `serie_b/rules.py`;
+  - modelo: `serie_b/playoffs.py`, `forecast.py` e `backtest.py`;
+  - export, gate e CLI: `schema.py`, `gate.py` e `cli.py` (`python -m brasileirao.serie_b.cli ingest|backtest|forecast|export-web|gate`);
+  - `config.py` ganhou só caminhos novos;
+  - site: `apps/web-serie-b/` (página única com o mesmo nome e a mesma paleta aprovados);
+  - workflow: `publish-site.yml` (as duas cópias), com os passos da Série B depois das checagens da Série A e `continue-on-error`;
+  - `.gitignore`: `data/serie_b/` e `apps/web-serie-b/data/` ignorados; exceção para `data/gold/serie_b_backtest_report.json`;
+  - testes: `tests/unit/test_serie_b.py` (34, sintéticos) e 4 casos em `test_workflows.py`;
+  - docs: ADR-0010, catálogo, regras, validação e roadmap (fase 8).
+- **Evidência:**
+  - `serie_b.cli ingest --fetch`: 3.420 jogos (9 temporadas); 2026 com 350 encerrados, 30 sem placar e
+    corte em 2026-10-27; conferência de 2025 com 57 jogos e 0 divergências;
+  - backtest: log loss 1,0404 contra 1,0545 da taxa base (2021–2025);
+  - `forecast` com 100 mil simulações e semente 2026 em 11 s; `gate`: aprovado, 0 achados;
+  - interface conferida no navegador a 375 px (sem rolagem horizontal, sem erro de console);
+  - `pytest -q`: 779 passaram; `ruff check`, `ruff format --check` e `mypy` (60 arquivos) sem achados;
+  - YAML do workflow válido; **actionlint não executado** (não instalado nesta máquina).
+- **Premissas e limitações:** a Wikipédia não traz data nem rodada, então a ordem de 2026 é imputada e o
+  restante da temporada é simulado com ratings fixos, num lote só. A procedência dos resultados do
+  openfootball é de segunda mão (risco aceito pelo dono). Não há cartões. Os hiperparâmetros vêm da Série A.
+- **Próximo responsável:**
+  - **06**: parecer (fontes, imputação, playoffs, gate, workflow) antes do deploy;
+  - **08**: textos da página e, se for o caso, cor própria da Série B;
+  - **01**: fonte de datas de 2026;
+  - **07**: acompanhar a primeira execução com `/serie-b`;
+  - **dono do produto**: autorizar o push e a execução do `publish-site`.
+
+### Auditoria do 06 (subagente, sem edição) e resolução das condições, 2026-10-29
+
+- **Veredito do 06**: aprovado com condições; nada bloqueante. Checagens reproduzidas pelo 06: pytest 768,
+  ruff, format, mypy, `serie_b.cli gate` (0 achados), C4 do delta (`git check-ignore` em `data/serie_b/` e
+  `apps/web-serie-b/data/`; relatório de backtest sem `club_id`).
+- **Resolvido pelo orquestrador:**
+  - **M1** (Wikipédia sem conferência; data de corte sem limite):
+    - a ingestão confere a matriz contra a predefinição de classificação (V/E/D/GP/GC por clube e mesmo `update`);
+    - falha com ajuste de pontos;
+    - a data de corte não pode passar da data da coleta;
+    - o gate reprova `reference_date` no futuro ou posterior à coleta.
+  - **M2**: o gate confere todas as marcações aritméticas (`promoted_direct`, `top6`, `out_of_top2`,
+    `out_of_top6`, `relegated`, `safe`) contra as simulações.
+  - **M3**: o `forecast.json` antigo só volta ao ar se passar no `gate --standalone` com o app novo; senão
+    `/serie-b` sai do artefato.
+  - **M4**: texto do método corrigido (vale para todo clube que não jogou a B no ano anterior) e limitação
+    registrada no ADR-0010 e em validation.md.
+  - **Baixos**:
+    - B1: divergência na conferência de 2025 faz a ingestão falhar;
+    - B5: testes do mando, de `clinched_flags` positivo, do gate e da conferência;
+    - B6: atribuição "colaboradores da Wikipédia" com links das licenças e "melhor posição na
+      classificação final";
+    - B7: aviso quando não há forecast no ar.
+  - O próprio gate pegou um erro meu na soma de playoff (esperava 6 em vez de 4), corrigido.
+- **Ficam registrados, sem mudança:**
+  - B2: pins conferidos só no fetch, e o workflow sempre faz fetch;
+  - B3: backtest por temporada desde 2018;
+  - B4: W.O. nos ratings;
+  - B8: valores fixos residuais;
+  - actionlint não executado nesta máquina;
+  - falha de teste da Série B bloqueia a Série A pelo `pytest` do workflow (aceito).
+- **Evidência:**
+  - `serie_b.cli ingest --fetch`: conferência de 2026 ok, matriz igual à classificação;
+  - gate: 0 achados, e `gate --standalone` também 0;
+  - `pytest -q`: 779 passaram; ruff, format e mypy sem achados.
+- **Reauditoria do 06** (mesma data): **aprovado para o commit e o deploy**. Repetiu pytest (779), ruff, format, mypy, `gate` e `gate --standalone` (0 achados) e o C4 do delta. Risco residual do regex de `adjust_points` com sinal "+" corrigido pelo orquestrador, com teste. Pendentes: actionlint antes do push (não instalado nesta máquina) e a primeira execução com `workflow_dispatch`, conferida pelo 07 no resumo (linha da Série B e `outcome` do passo).

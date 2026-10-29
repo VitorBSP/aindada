@@ -162,3 +162,25 @@ def test_publish_site_checks_match_ids_with_a_regex() -> None:
 
 def test_publish_site_keeps_its_concurrency_group() -> None:
     assert "concurrency:\n  group: publish-site\n  cancel-in-progress: false" in _text(PUBLISH)
+
+
+# --- ADR-0010: Série B no mesmo artefato do Pages ----------------------------------------------------
+
+
+def test_serie_b_failure_never_blocks_serie_a() -> None:
+    assert re.search(r"id: serie_b\n\s+continue-on-error: true", _text(PUBLISH)) is not None
+
+
+def test_serie_b_runs_its_gate_before_entering_the_artifact() -> None:
+    text = _text(PUBLISH)
+    assert text.index("brasileirao.serie_b.cli gate") < text.index('cp -r "$RUNNER_TEMP/serie-b" _site/serie-b')
+
+
+def test_serie_b_steps_come_after_the_serie_a_artifact_check() -> None:
+    text = _text(PUBLISH)
+    assert text.index("check_site_artifact.py") < text.index("brasileirao.serie_b.cli ingest")
+
+
+def test_serie_b_ingest_uses_no_secret() -> None:
+    step = _text(PUBLISH).split("id: serie_b", 1)[1].split("- name:", 1)[0]
+    assert "secrets." not in step

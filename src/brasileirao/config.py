@@ -76,6 +76,23 @@ class ProjectPaths:
     def insight_criteria(self) -> Path:
         return self.root / "docs" / "storytelling" / "contracts" / "insight-criteria.toml"
 
+    @property
+    def serie_b_data(self) -> Path:
+        """Raw, silver e snapshot da Série B (ADR-0010); fora do git como `data/raw/` e `data/silver/`."""
+        return Path(os.environ.get("BRASILEIRAO_SERIE_B_DIR", self.data / "serie_b"))
+
+    @property
+    def serie_b_clubs_reference(self) -> Path:
+        return self.reference / "clubs_serie_b.csv"
+
+    @property
+    def serie_b_source_pins(self) -> Path:
+        return self.reference / "serie_b_source_pins.json"
+
+    @property
+    def serie_b_web_static_data(self) -> Path:
+        return self.root / "apps" / "web-serie-b" / "data"
+
 
 @dataclass(frozen=True)
 class EloParams:

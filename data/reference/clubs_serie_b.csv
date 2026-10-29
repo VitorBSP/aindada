@@ -1,0 +1,52 @@
+club_id,display_name,short_name,state,aliases
+abc,ABC,ABC,RN,ABC RN
+amazonas,Amazonas,AMA,AM,Amazonas FC AM
+america-mg,América-MG,AME,MG,América MG
+athletic-mg,Athletic,ATH,MG,Athletic MG
+athletico-pr,Athletico-PR,CAP,PR,Athletico Paranaense
+atletico-go,Atlético-GO,ACG,GO,Atlético Goianiense
+avai,Avaí,AVA,SC,Avaí SC
+bahia,Bahia,BAH,BA,Bahia BA
+boa-esporte,Boa Esporte,BOA,MG,Boa Esporte MG
+botafogo,Botafogo,BOT,RJ,Botafogo RJ
+botafogo-sp,Botafogo-SP,BFS,SP,Botafogo SP
+bragantino,Red Bull Bragantino,RBB,SP,CA Bragantino|Bragantino
+brasil-pelotas,Brasil de Pelotas,BRP,RS,Brasil de Pelotas RS
+brusque,Brusque,BRU,SC,Brusque SC
+crb,CRB,CRB,AL,CR Brasil AL
+csa,CSA,CSA,AL,CSA AL
+ceara,Ceará,CEA,CE,Ceará CE
+chapecoense,Chapecoense,CHA,SC,
+confianca,Confiança,CON,SE,Confiança SE
+coritiba,Coritiba,CFC,PR,Coritiba PR
+criciuma,Criciúma,CRI,SC,Criciúma SC
+cruzeiro,Cruzeiro,CRU,MG,
+cuiaba,Cuiabá,CUI,MT,Cuiabá MT
+ferroviaria,Ferroviária,FER,SP,Ferroviária SP
+figueirense,Figueirense,FIG,SC,Figueirense SC
+fortaleza,Fortaleza,FOR,CE,Fortaleza CE
+goias,Goiás,GOI,GO,Goiás GO
+gremio,Grêmio,GRE,RS,Grêmio Porto Alegre
+guarani,Guarani,GUA,SP,Guarani SP
+ituano,Ituano,ITU,SP,Ituano SP
+juventude,Juventude,JUV,RS,Juventude RS
+londrina,Londrina,LON,PR,Londrina PR
+mirassol,Mirassol,MIR,SP,Mirassol SP
+nautico,Náutico,NAU,PE,Náutico PE
+novorizontino,Novorizontino,NOV,SP,Grêmio Novorizontino SP|Grêmio Novorizontino
+oeste,Oeste,OES,SP,Oeste SP
+operario-pr,Operário-PR,OPE,PR,Operário Ferroviário PR
+parana,Paraná,PAR,PR,Paraná Clube
+paysandu,Paysandu,PAY,PA,Paysandu PA
+ponte-preta,Ponte Preta,PON,SP,
+remo,Remo,REM,PA,Remo PA
+sampaio-correa,Sampaio Corrêa,SAM,MA,Sampaio Corrêa MA
+santos,Santos,SAN,SP,Santos FC
+sao-bento,São Bento,SBT,SP,São Bento SP
+sao-bernardo,São Bernardo,SBE,SP,
+sport,Sport,SPT,PE,Sport Recife PE
+tombense,Tombense,TOM,MG,Tombense MG
+vasco,Vasco da Gama,VAS,RJ,Vasco da Gama RJ
+vila-nova,Vila Nova,VIL,GO,Vila Nova GO|Vila Nova-GO
+vitoria,Vitória,VIT,BA,Vitória BA
+volta-redonda,Volta Redonda,VRE,RJ,Volta Redonda RJ

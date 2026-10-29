@@ -1,0 +1,29 @@
+[competition]
+season = 2026
+name = "Campeonato Brasileiro Série B 2026"
+n_clubs = 20
+points_win = 3
+points_draw = 1
+regulation_title = "Regulamento Específico da Competição — Brasileiro Série B 2026"
+regulation_url = "https://stcbfsiteprdimgbrs.blob.core.windows.net/img-site/cdn/REC_Brasileiro_Serie_B_2026_85d55b9f72.pdf"
+regulation_date = "2026-02-06"
+regulation_articles = "Art. 4º (título), 5º (acesso e descenso), 11 (formato), 12 (desempate), 13 (playoffs)"
+
+[tiebreakers]
+# Art. 12. Confronto direto = placar agregado dos dois jogos (§ 1º), só entre dois clubes (§ 2º).
+order = ["points", "wins", "goal_difference", "goals_for", "head_to_head", "fewer_red_cards", "fewer_yellow_cards", "draw_lot"]
+head_to_head_max_clubs = 2
+
+[promotion]
+# Art. 5º: os dois primeiros sobem direto.
+direct_count = 2
+
+[playoffs]
+# Art. 13: grupo A = 3º x 6º, grupo B = 4º x 5º, ida e volta, começando com zero ponto (§ 1º).
+# Volta na casa do 3º e do 4º (§ 2º). Vence quem somar mais pontos (§ 3º); empate: saldo de gols e
+# depois a melhor posição na classificação final (§ 4º). Não há pênaltis nem final.
+groups = [[3, 6], [4, 5]]
+
+[relegation]
+# Art. 5º
+count = 4

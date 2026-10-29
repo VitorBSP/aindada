@@ -573,3 +573,38 @@ cada execução do `publish-site.yml`, com `simulate --history-from-round 1`. Po
 |---|---|---|---|---|
 | — | — | `cmp-elo-ad-0.2.0` (vigente em 2026-10-28) | linha de base do registro | sim, a cada execução |
 | 2026-10-28 | `cmp-elo-ad-0.2.0` | `cmp-elo-ad-0.3.0` | backtest sobre o gold de publicação (passo 11 do ADR-0008); ratings fixos na simulação (validação, média de 6 sementes) | sim, a curva inteira muda na execução seguinte |
+
+## Série B (ADR-0010, 2026-10-29)
+
+Modelo `serie-b-0.1.0+cmp-elo-ad-0.3.0`: o modelo e os hiperparâmetros da Série A, sem ajuste próprio.
+Ratings só com jogos da Série B desde 2018; modelo de gols treinado com as temporadas anteriores à de
+teste, a partir de 2019. Relatório: `data/gold/serie_b_backtest_report.json`
+(`python -m brasileirao.serie_b.cli backtest`, 28 s).
+
+Partidas, walk-forward 2021–2025 (1.900 jogos):
+
+| Modelo | Log loss | Brier | RPS | Log loss do placar |
+|---|---|---|---|---|
+| Taxa base | 1,0545 | 0,6363 | 0,2142 | 2,6875 |
+| `elo_attack_defense` | **1,0404** | **0,6264** | **0,2096** | **2,5955** |
+
+Log loss por temporada (modelo x taxa base): 2021 1,0644 x 1,0753; 2022 1,0271 x 1,0406;
+2023 1,0453 x 1,0628; 2024 1,0136 x 1,0324; 2025 1,0516 x 1,0612. O modelo ganha em todas. O ganho é
+menor que na Série A, o que é coerente com uma divisão mais equilibrada.
+
+Temporadas, checkpoints nas rodadas 19, 28 e 33 de 2021–2025 (2.000 simulações, semente 7, ratings
+fixos). "4 primeiros" era o acesso nessas temporadas; o chute fixo dá Brier 0,16:
+
+| Rodada | Brier 4 primeiros | Brier rebaixamento | Log loss da posição | MAE dos pontos | Cobertura do IC 90% |
+|---|---|---|---|---|---|
+| 19 | 0,1058 | 0,0965 | 2,4817 | 5,05 | 0,84 |
+| 28 | 0,1031 | 0,0851 | 2,1794 | 3,90 | 0,86 |
+| 33 | 0,0632 | 0,0547 | 1,7266 | 2,32 | 0,93 |
+
+Limitações: datas de 2025 vêm do calendário do openfootball (aproximadas); 2026 não pode ser testado
+(ordem imputada); o intervalo de 90% é estreito no meio da temporada (0,84 na rodada 19); o backtest por
+temporada treina a partir de 2018 (`prepare_checkpoints` fixa 2006 como primeira temporada), enquanto o
+de partidas e a previsão começam em 2019. Quem não jogou a Série B no ano anterior (rebaixados da
+Série A e promovidos da Série C) começa com a força média de quem deixou a divisão, o que tende a
+subestimar os rebaixados da A no início da temporada. O W.O. de 2019 (Cuiabá 3 x 0 Figueirense) entra
+nos ratings como placar. Parecer do 06: aprovado com condições, resolvidas (status.md).

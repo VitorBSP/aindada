@@ -11,6 +11,7 @@
 | 5 | Etapa 2 do modelo: modelagem de empates, ρ por temporada, incerteza de parâmetros, cobertura de 90% | ⏳ |
 | 6 | Etapa 3: classificador multiclasse calibrado, benchmark de odds (Football-Data.co.uk), blending só com ganho validado | ⏳ |
 | 7 | Frontend Next.js/TypeScript, PostgreSQL, deploy público após revisão | ⏳ deploy: ADR-0007 aceito (2026-10-28, GitHub Pages estático); publicação aprovada com condições pelo 00 e pelo 06; primeira publicação pendente das ações do dono e da conferência do 06 no site no ar. Next.js e PostgreSQL ⏳ |
+| 8 | Série B: fontes licenciadas (Wikipédia + openfootball), regras com playoffs, simulação e site próprio em `/serie-b/` (ADR-0010) | ⏳ implementado e validado localmente (2026-10-29); parecer do 06 e deploy pendentes |
 
 ## Trilha de marca (Agente 08, paralela às fases técnicas)
 

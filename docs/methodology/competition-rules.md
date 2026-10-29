@@ -60,3 +60,20 @@ cenário. Quando um torneio terminar, basta preencher `libertadores_champion`, `
 ou `cup_champion`/`cup_runner_up` no arquivo da temporada.
 
 Fontes da situação externa: listadas em `[external].sources` no arquivo da temporada.
+
+## Série B 2026 (ADR-0010)
+
+Fonte: [REC Brasileiro Série B 2026](https://stcbfsiteprdimgbrs.blob.core.windows.net/img-site/cdn/REC_Brasileiro_Serie_B_2026_85d55b9f72.pdf)
+(CBF, 2026-02-06), lido em 2026-10-29. Versionado em `competition_rules/seasons/serie_b_2026.toml`.
+
+- **Art. 11**: pontos corridos, turno e returno, 38 rodadas.
+- **Art. 12**: desempate por vitórias, saldo, gols pró, confronto direto (agregado de 180 minutos, só
+  entre dois clubes), cartões vermelhos, amarelos, sorteio. É a mesma ordem da Série A; o confronto
+  direto por agregado dá o mesmo resultado que "pontos e depois saldo" entre dois clubes. Sem fonte de
+  cartões: os critérios 5 e 6 viram sorteio, com aviso.
+- **Art. 5º**: os 2 primeiros sobem; os 4 últimos caem para a Série C.
+- **Art. 13**: playoffs com o 3º x 6º (grupo A) e o 4º x 5º (grupo B), ida e volta, começando com zero ponto;
+  volta na casa do 3º e do 4º; sobe quem somar mais pontos; empate em pontos: saldo de gols nos dois jogos
+  e depois a melhor posição na classificação final. Não há pênaltis nem final entre os vencedores.
+- Simulação: `serie_b/playoffs.py` sorteia os dois jogos de cada grupo com o modelo de gols e os ratings
+  da data de referência.

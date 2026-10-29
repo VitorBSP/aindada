@@ -143,6 +143,47 @@ jobs:
           python -I infrastructure/scripts/check_site_artifact.py \
             --site-dir _site --season "$SEASON" --seed "$SEED" --live-url "${live_url,,}"
 
+      # Série B (ADR-0010): pipeline e site próprios em _site/serie-b. Fontes sem segredo (openfootball
+      # fixado por commit e Wikipédia). Uma falha aqui não bloqueia a Série A: o passo seguinte mantém o
+      # forecast.json que já está no ar.
+      - name: Série B — ingestão, previsão e gate
+        id: serie_b
+        continue-on-error: true
+        run: |
+          python -m brasileirao.serie_b.cli ingest --fetch
+          python -m brasileirao.serie_b.cli forecast --simulations "$SIMULATIONS" --seed "$SEED"
+          rm -rf "$RUNNER_TEMP/serie-b"
+          cp -r apps/web-serie-b "$RUNNER_TEMP/serie-b"
+          rm -rf "$RUNNER_TEMP/serie-b/data"
+          python -m brasileirao.serie_b.cli export-web --target "$RUNNER_TEMP/serie-b/data"
+          live_url="https://${GITHUB_REPOSITORY%%/*}.github.io/${GITHUB_REPOSITORY#*/}/serie-b/data/forecast.json"
+          live_date="$(curl -fsS "${live_url,,}" 2>/dev/null | jq -r '.reference_date // empty' 2>/dev/null || true)"
+          [ -n "$live_date" ] || echo "::warning::Série B: sem forecast.json no ar; checagem de não regressão pulada"
+          python -m brasileirao.serie_b.cli gate --site-dir "$RUNNER_TEMP/serie-b" ${live_date:+--live-reference-date "$live_date"}
+
+      - name: Série B — incluir no artefato
+        env:
+          SERIE_B_OUTCOME: ${{ steps.serie_b.outcome }}
+        run: |
+          if [ "$SERIE_B_OUTCOME" = "success" ]; then
+            cp -r "$RUNNER_TEMP/serie-b" _site/serie-b
+            echo "Série B: previsão nova"
+            exit 0
+          fi
+          live_url="https://${GITHUB_REPOSITORY%%/*}.github.io/${GITHUB_REPOSITORY#*/}/serie-b/data/forecast.json"
+          cp -r apps/web-serie-b _site/serie-b
+          rm -rf _site/serie-b/data
+          mkdir -p _site/serie-b/data
+          # O forecast.json antigo só volta ao ar se passar no gate do próprio forecast com o app novo
+          # (esquema, somas, aritmética); senão /serie-b sai do artefato.
+          if curl -fsS "${live_url,,}" -o _site/serie-b/data/forecast.json \
+            && python -m brasileirao.serie_b.cli gate --standalone --site-dir _site/serie-b; then
+            echo "::warning::Série B falhou; mantido o forecast.json do site no ar"
+          else
+            rm -rf _site/serie-b
+            echo "::warning::Série B falhou e não há versão válida no ar; o site sai sem /serie-b"
+          fi
+
       - name: Resumo (versões e SHA-256 dos JSON exportados)
         env:
           TRIGGER: ${{ inputs.trigger }}
@@ -159,11 +200,16 @@ jobs:
             echo "- model_version: $(jq -r '.model.model_version' "$predictions")"
             echo "- data_version: $(jq -r '.data.version' "$predictions")"
             echo "- publicação ligada: ${{ vars.PUBLISH_ENABLED == 'true' }}"
+            if [ -f _site/serie-b/data/forecast.json ]; then
+              echo "- Série B: referência $(jq -r '.reference_date' _site/serie-b/data/forecast.json), dados $(jq -r '.data_version' _site/serie-b/data/forecast.json), passo ${{ steps.serie_b.outcome }}"
+            else
+              echo "- Série B: fora do artefato"
+            fi
             echo ""
             echo "SHA-256 dos JSON exportados:"
             echo ""
             echo '```text'
-            (cd _site && find data -name '*.json' -type f | sort | xargs sha256sum)
+            (cd _site && find data serie-b/data -name '*.json' -type f 2>/dev/null | sort | xargs sha256sum)
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
