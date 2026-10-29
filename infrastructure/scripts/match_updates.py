@@ -17,6 +17,7 @@ têm IDs, horários e decisões, nunca placares nem o token.
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import os
 import subprocess
@@ -220,7 +221,7 @@ def run(
         if now - fetched_at >= REUSE_FETCH:
             try:
                 latest = {match.source_id: match.status for match in fetch_matches(day)}
-            except (OSError, ValueError, KeyError):
+            except (OSError, ValueError, KeyError, http.client.HTTPException):
                 latest = None
             fetched_at = now
         needs_site = latest is not None and any(latest.get(check.source_id) == "FINISHED" for check in due)
@@ -259,7 +260,7 @@ def fetch_site_statuses(url: str) -> dict[str, str] | None:
     try:
         with urllib.request.urlopen(url, timeout=TIMEOUT_SECONDS) as response:
             return site_statuses(json.loads(response.read()))
-    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, ValueError):
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, ValueError, http.client.HTTPException):
         return None
 
 

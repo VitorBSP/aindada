@@ -2726,3 +2726,49 @@ Branch `api/current-round` (sobre `data/kickoff` do 01). Sem merge na `main`.
   com outro id (Adão Duque), o "já publicado" não casa e o jogo é republicado (erro seguro).
 - **Próximo responsável:** **06** audita as regras e os testes; **00** decide o merge em `integ/rodada`
   (o 07 não fez merge); **07** segue com o ensaio de um dia de jogos depois do merge na `main`.
+
+## Auditoria do Agente 06 do ADR-0009 (integ/rodada c71fca3), 2026-10-29
+
+Registrado pelo orquestrador a partir do relatório do 06, que auditou sem editar arquivos.
+
+- **Veredito**: aprovado com condições.
+- **Evidência**:
+  - **Checagens**: pytest 740 passed / 1 skipped; ruff e format ok; mypy sem erro em 53 arquivos;
+    actionlint 0 erros (sem shellcheck).
+  - **Export reproduzido** com o código da branch (raw v4-20261027T205022Z, semente 2026,
+    100k/10k/20k):
+    - publication-gate aprovado (0 achados) e check_site_artifact aprovado (0 achados);
+    - rodada atual 33 in_progress, baseline 2026-10-26 igual ao rounds.json.
+  - **Sem regressão contra o main** na mesma semente: as chances são idênticas, com diferenças de no
+    máximo 3e-12. As únicas mudanças são as esperadas:
+    - schema 1.3;
+    - `kickoff_utc` e `source_match_id` nos jogos;
+    - um jogo `postponed` preservado;
+    - o current-round.json novo.
+  - **Datas**: as 41 datas que avançam um dia foram reproduzidas (rodada 21 adiada; rodadas 35 a 38,
+    10 jogos cada; quarta e sábado).
+  - **Placar parcial**: nenhum (IN_PLAY → scheduled; 0 placares fora de finished).
+  - **C4**: sem achados.
+  - **`source_match_id` público**: aceito. É ID opaco da fonte atribuída (ADR-0009) e fica fora do
+    git.
+- **Condições, resolvidas pelo orquestrador nesta branch**:
+  - **C1**: o aviso de atraso em `apps/web/assets/current-round.js` dizia "em geral de 30 minutos a 1
+    hora", o que é falso com `MATCH_UPDATES` em dry-run e não foi medido. Agora diz "na atualização
+    seguinte do site […]. Isso pode levar algumas horas.". O 08 revê o texto depois do dry-run.
+  - **C2**: a regex do trigger no `publish-site` passou a `^(manual|match)?$`, portável e com a mesma
+    semântica. As duas cópias do workflow foram atualizadas.
+- **Menor resolvido**: `http.client.HTTPException` agora é capturada em `match_updates.py`, nas duas
+  consultas.
+- **Pendentes, não bloqueiam**:
+  - possível dispatch duplicado tarde/noite com `on`;
+  - `overdueWarning` usa `window.CurrentRound` sem checar se o script carregou.
+- **Dry-run de um dia, a observar**:
+  - horário real dos crons;
+  - plano com `início + 2h10`;
+  - **atraso do FINISHED na fonte** (medida principal): primeiro "publicar" de cada jogo contra o
+    apito final real;
+  - nenhum `trigger=match` disparado;
+  - logs sem placar e sem token;
+  - o diário das 06:17 do dia seguinte passa no "Conferir os inputs".
+- **Próximo**: o 07 acompanha o dry-run. Depois, o 00 e o 06 dão o parecer para ligar
+  `MATCH_UPDATES=on`.

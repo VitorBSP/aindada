@@ -236,7 +236,7 @@
       const stamp = info.updatedAt;
       const when = stamp === null ? "" : `<p class="note round-updated"><strong>Atualizado às ${brasiliaClock(stamp)} de ${escapeHtml(shortWeekdayDay(stamp))} (horário de Brasília).</strong></p>`;
       const detail = info.inProgress
-        ? "O site não acompanha os jogos ao vivo. Cada placar entra aqui depois do apito final, em geral de 30 minutos a 1 hora depois, quando a fonte de dados registra o resultado e as simulações são refeitas. Recarregue a página para ver a atualização mais recente."
+        ? "O site não acompanha os jogos ao vivo. Cada placar entra aqui depois do apito final, na atualização seguinte do site, quando a fonte de dados registra o resultado e as simulações são refeitas. Isso pode levar algumas horas. Recarregue a página para ver a atualização mais recente."
         : "Esta rodada não muda mais, a não ser que a fonte corrija um placar.";
       return `${when}<p class="note">${detail}</p>`;
     }
