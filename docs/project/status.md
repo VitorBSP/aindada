@@ -2772,3 +2772,13 @@ Registrado pelo orquestrador a partir do relatório do 06, que auditou sem edita
   - o diário das 06:17 do dia seguinte passa no "Conferir os inputs".
 - **Próximo**: o 07 acompanha o dry-run. Depois, o 00 e o 06 dão o parecer para ligar
   `MATCH_UPDATES=on`.
+
+## Agente 08: mosaico em bolinhas de 1%, quadros de 100 (D-037, 2026-10-29)
+
+- **O que mudou**: `apps/web/assets/app.js` (`raceMosaic` e `allocateDots` passam a usar 1 bolinha = 1 ponto
+  percentual, 100 por vaga, em quadros de 10 × 10) e `styles.css`. Uma versão com uma linha por clube foi testada
+  e descartada a pedido do dono do produto.
+- **Evidência**: capturas do Edge headless em 1280 px (rebaixamento: 4 quadros, 400 bolinhas; título: 1 quadro) e
+  520 px (G4 em 2 × 2), sem rolagem horizontal.
+- **Observação**: a API local em 127.0.0.1:8001 foi religada com o código atual (venv do projeto); ela só entrega
+  snapshots publicáveis (ADR-0008), então o site usa o JSON estático até haver um.

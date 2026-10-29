@@ -252,18 +252,24 @@ details.warning p { margin: 8px 0 0; }
 
 /* Mosaico do título */
 .mosaic { margin: 8px 0 28px; }
-.mosaic-chart { width: 100%; max-width: 760px; height: auto; display: block; }
-.mosaic-legend { list-style: none; padding: 0; margin: 10px 0 4px; display: flex; flex-wrap: wrap; gap: 4px 22px; font-size: 15px; }
-.mosaic-legend a { text-decoration: none; font-weight: 600; }
-.mosaic-legend a:hover { text-decoration: underline; }
 .mosaic-swatch { display: inline-block; flex: none; width: 14px; height: 14px; margin-right: 6px; overflow: visible; }
-.dot-outline { stroke: color-mix(in srgb, var(--ink) 35%, transparent); stroke-width: 0.6; }
+.mosaic-chart { width: 100%; height: auto; display: block; max-width: 760px; }
+.mosaic-chart.mosaic-blocks-1 { max-width: 240px; }
+.mosaic-chart.mosaic-blocks-2 { max-width: 420px; }
+.mosaic-legend { list-style: none; padding: 0; margin: 12px 0 4px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 22px; font-size: 15px; }
+.mosaic-legend li { display: flex; align-items: center; gap: 2px; overflow-wrap: normal; min-width: 0; }
+.mosaic-legend a { text-decoration: none; font-weight: 600; min-width: 0; }
+.mosaic-legend a:hover { text-decoration: underline; }
+.mosaic-legend .club-cell span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mosaic-legend strong { margin-left: auto; padding: 0 12px 0 8px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .mosaic figcaption .note { margin: 4px 0 0; }
+main p.mosaic-key { display: flex; align-items: center; gap: 8px; font-family: var(--sans); font-size: 14px; color: var(--ink-soft); margin: 0 0 10px; }
+.mosaic-key strong { color: var(--ink); font-family: var(--serif); font-style: italic; font-weight: 400; font-size: 16px; }
 
 /* Anotações e rótulos diretos nos gráficos */
 .annotation path { stroke: var(--ink-soft); stroke-width: 1; }
 .annotation circle { fill: var(--paper); stroke: var(--ink); stroke-width: 1.5; }
-.chart .annotation text, .mosaic-chart .annotation text { font-family: var(--serif); font-style: italic; font-size: 12.5px; fill: var(--ink-soft); }
+.chart .annotation text { font-family: var(--serif); font-style: italic; font-size: 12.5px; fill: var(--ink-soft); }
 .chart .series-end { font-family: var(--sans); font-size: 12px; font-weight: 650; }
 
 /* Destaques editoriais (insights publicados) */
@@ -310,12 +316,6 @@ main .round-match p.rm-meta { grid-area: meta; margin: 4px 0 0; font-family: var
 .round-changes .range { display: block; }
 .race-heading { border-top: 0; margin-top: 8px; padding-top: 0; font-size: 26px; }
 .lede-method { color: var(--ink-faint); font-size: 16px; }
-.mosaic-labels text { font-family: var(--sans); font-size: 12px; font-weight: 700; fill: var(--ink-soft); }
-.mosaic-legend { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
-.mosaic-legend li { display: flex; align-items: center; gap: 2px; overflow-wrap: normal; min-width: 0; }
-.mosaic-legend .club-cell span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mosaic-legend .club-cell { min-width: 0; }
-.mosaic-legend strong { margin-left: auto; padding: 0 12px 0 8px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 
 .table-tabs { display: flex; flex-wrap: wrap; gap: 4px 36px; margin: 8px 0 14px; border-bottom: 1px solid var(--rule); }
 .tabs { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 18px; }

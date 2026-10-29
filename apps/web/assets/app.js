@@ -220,9 +220,9 @@
     </section>`;
   }
 
-  const MOSAIC_DOTS = 1000;
-  const MOSAIC_COLUMNS = 50;
-  const MOSAIC_LABEL_MIN_DOTS = 40;
+  const BLOCK_SIDE = 10;
+  const BLOCK_DOTS = BLOCK_SIDE * BLOCK_SIDE;
+  const NARROW_LAYOUT = 560;
 
   const RACES = {
     titulo: { key: "title", label: "Título", noun: "título", slots: 1, color: "var(--title)" },
@@ -231,8 +231,9 @@
   };
   const RACE_MOVEMENT_THRESHOLD = 0.05;
 
-  function allocateDots(shares, total) {
-    const allocated = shares.map((item) => ({ ...item, dots: Math.floor(item.share * total), rest: item.share * total - Math.floor(item.share * total) }));
+  /* Uma bolinha por ponto percentual; o maior resto fecha exatamente 100 por vaga da disputa. */
+  function allocateDots(teams, key, total) {
+    const allocated = teams.map((team) => ({ team, dots: Math.floor(team[key] * 100), rest: team[key] * 100 - Math.floor(team[key] * 100) }));
     let missing = total - allocated.reduce((sum, item) => sum + item.dots, 0);
     [...allocated].sort((left, right) => right.rest - left.rest).forEach((item) => { if (missing > 0) { item.dots += 1; missing -= 1; } });
     return allocated.filter((item) => item.dots > 0);
@@ -298,47 +299,44 @@
   function raceMosaic(race) {
     const contenders = raceTeams(race);
     if (!contenders.length) return "";
-    const groups = allocateDots(contenders.map((team) => ({ team, share: team[race.key] / race.slots })), MOSAIC_DOTS);
-    const perDot = state.snapshot.n_simulations * race.slots / MOSAIC_DOTS;
-    const cell = 10, rows = MOSAIC_DOTS / MOSAIC_COLUMNS, top = 26, bottom = 30;
-    const width = MOSAIC_COLUMNS * cell, height = top + rows * cell + bottom;
+    const total = race.slots * BLOCK_DOTS;
+    const groups = allocateDots(contenders, race.key, total);
+    const blocksPerRow = main.clientWidth < NARROW_LAYOUT ? Math.min(2, race.slots) : race.slots;
+    const pitch = 10, size = 8, gap = 14;
+    const blockSize = BLOCK_SIDE * pitch;
+    const blockRows = Math.ceil(race.slots / blocksPerRow);
+    const width = blocksPerRow * blockSize + (blocksPerRow - 1) * gap;
+    const height = blockRows * blockSize + (blockRows - 1) * gap;
+    const position = (index) => {
+      const block = Math.floor(index / BLOCK_DOTS), inside = index % BLOCK_DOTS;
+      const left = (block % blocksPerRow) * (blockSize + gap), top = Math.floor(block / blocksPerRow) * (blockSize + gap);
+      return [left + (inside % BLOCK_SIDE) * pitch + (pitch - size) / 2, top + Math.floor(inside / BLOCK_SIDE) * pitch + (pitch - size) / 2];
+    };
     let index = 0;
-    let labelEnd = -Infinity;
-    const labels = [];
-    const size = 7.6;
     const dots = groups.map((group) => {
-      const startColumn = Math.floor(index / rows);
-      const circles = [];
       const href = `#${dotId(group.team.club_id)}`;
+      const uses = [];
       for (let count = 0; count < group.dots; count += 1, index += 1) {
-        const column = Math.floor(index / rows), row = index % rows;
-        circles.push(`<use href="${href}" x="${column * cell + (cell - size) / 2}" y="${top + row * cell + (cell - size) / 2}" width="${size}" height="${size}"/>`);
+        const [x, y] = position(index);
+        uses.push(`<use href="${href}" x="${x}" y="${y}" width="${size}" height="${size}"/>`);
       }
-      const labelX = startColumn * cell + 1;
-      if (group.dots >= MOSAIC_LABEL_MIN_DOTS && labelX > labelEnd + 6) {
-        labels.push(`<text x="${labelX}" y="${top - 9}">${escapeHtml(group.team.short_name)}</text>`);
-        labelEnd = labelX + group.team.short_name.length * 9;
-      }
-      return `<g>${circles.join("")}</g>`;
+      return uses.join("");
     }).join("");
-    const unit = race.slots === 1 ? "simulações" : `vagas de ${race.noun}`;
-    const lastX = width - cell / 2, lastY = top + rows * cell - cell / 2;
-    const annotation = `<g class="annotation" aria-hidden="true">
-      <path d="M${lastX},${lastY + 6} q2,12 -16,16" fill="none"/>
-      <text x="${lastX - 20}" y="${height - 6}" text-anchor="end">cada ponto, ${perDot.toLocaleString("pt-BR")} ${unit}</text></g>`;
-    const others = contenders.length - groups.length;
-    const description = groups.map((group) => `${group.team.name}: ${group.dots} pontos`).join("; ");
     const legend = groups.map((group) => `<li>${dotSwatch(group.team.club_id)}
       <a class="club-cell" href="#/clubes/${encodeURIComponent(group.team.club_id)}"><span>${escapeHtml(group.team.name)}</span></a> <strong>${pct(group.team[race.key])}</strong></li>`).join("");
+    const hidden = contenders.length - groups.length;
+    const key = race.slots > 1
+      ? `cada quadro de 100 bolinhas, 100% · ${race.slots} clubes ${race.key === "relegation" ? "caem" : "terminam no G4"} em cada simulação, então o mosaico tem ${race.slots} quadros: ${total}%`
+      : "o quadro todo, 100%: um campeão em cada simulação";
+    const description = groups.map((group) => `${group.team.name}: ${group.dots} bolinhas`).join("; ");
     const simulations = state.snapshot.n_simulations.toLocaleString("pt-BR");
-    const explanation = race.slots === 1
-      ? `Quem termina campeão em cada uma das ${simulations} simulações, agrupadas em ${MOSAIC_DOTS.toLocaleString("pt-BR")} pontos.`
-      : `Em cada simulação, ${race.slots} clubes terminam no ${race.noun}: são ${(state.snapshot.n_simulations * race.slots).toLocaleString("pt-BR")} vagas no total, agrupadas em ${MOSAIC_DOTS.toLocaleString("pt-BR")} pontos. Ao lado do clube, a chance dele.`;
     return `<figure class="mosaic">
-      <svg class="mosaic-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Mosaico de ${escapeHtml(race.noun)} em ${MOSAIC_DOTS.toLocaleString("pt-BR")} pontos, cada um igual a ${perDot.toLocaleString("pt-BR")} ${unit}. ${escapeHtml(description)}.">${dotDefs(groups.map((group) => group.team.club_id))}<g class="mosaic-labels">${labels.join("")}</g>${dots}${annotation}</svg>
+      <p class="mosaic-key"><svg class="mosaic-swatch" viewBox="-${DOT_RADIUS} -${DOT_RADIUS} ${DOT_RADIUS * 2} ${DOT_RADIUS * 2}" aria-hidden="true"><circle r="${DOT_RADIUS - 0.4}" fill="currentColor"/></svg>
+        <span><strong>cada bolinha, 1%</strong> de chance · ${key}</span></p>
+      <svg class="mosaic-chart mosaic-blocks-${blocksPerRow}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Mosaico de ${escapeHtml(race.noun)} com ${total} bolinhas de 1%. ${escapeHtml(description)}.">${dotDefs(groups.map((group) => group.team.club_id))}${dots}</svg>
       <figcaption>
         <ul class="mosaic-legend">${legend}</ul>
-        <p class="note">${explanation}${others > 0 ? ` ${others} clube(s) com chance menor que um ponto não aparecem.` : ""}</p>
+        <p class="note">Chance em ${simulations} simulações do resto do campeonato, em bolinhas de 1 ponto percentual (arredondadas para fechar ${total}).${hidden > 0 ? ` ${hidden} clube(s) com menos de meio ponto não aparecem.` : ""}</p>
       </figcaption>
     </figure>`;
   }

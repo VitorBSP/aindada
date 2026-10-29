@@ -153,12 +153,10 @@ Implementada em `apps/web/` (tokens no topo de `assets/styles.css`). Princípios
 - **Tema escuro:** fundo tinta `#17191C`, texto papel; assinatura reversa no cabeçalho.
 - **Voz:** sobretítulo + manchete curta (formato ilustrativo: "Clube A na frente. Clube B: ainda
   dá."); números em negrito no texto; "não dá mais" só com certeza matemática.
-- **Mosaico de pontos (D-030, D-031):** imagem-assinatura da home. 1.000 pontos em 50 colunas, preenchidos
-  por coluna, um grupo por clube (maior resto para fechar exatamente 1.000). Cada ponto é a bolinha
-  do clube nas cores dele (D-032), com contorno fino; a mesma bolinha aparece na legenda. Sigla do
-  clube acima de grupos com 40 pontos ou mais. Cores de clube aparecem só como dado, nunca na marca. Em disputas com várias vagas, os pontos
-  são vagas (4 por simulação). Nota manuscrita em serifa itálica ("cada ponto, N simulações" ou "N
-  vagas"); legenda em grade com escudo, link e chance. Sem animação.
+- **Mosaico da disputa (D-030, D-032, D-037):** imagem-assinatura da home. Uma bolinha por ponto percentual de
+  chance, 100 por vaga da disputa, em quadros de 10 × 10 lado a lado (2 × 2 no celular), preenchidos linha a linha,
+  clube após clube (maior resto para fechar o total). Cada bolinha leva o desenho do clube (D-032). Legenda acima
+  ("cada bolinha, 1% de chance · cada quadro de 100 bolinhas, 100%") e legenda dos clubes abaixo, sem escudo.
 - **Home por disputa (D-031):** seletor segmentado Título · G4 · Rebaixamento. A edição destaca a
   disputa que mais mudou desde a atualização anterior (ou a mais aberta) e diz por quê.
 - **Escudos (D-031):** em todas as listas de clubes, a 18–22 px; 26 px na faixa de troca de clube e
