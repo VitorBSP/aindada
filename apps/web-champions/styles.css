@@ -234,3 +234,21 @@ td.zone-cell { font-weight: 650; }
 .method-facts dd { margin: 2px 0 0; font-weight: 650; }
 .method-list { font-family: var(--serif); font-size: 16px; padding-left: 20px; }
 .method-list li { margin: 4px 0; }
+.elo-examples-title { font-size: 16px; margin: 22px 0 8px; }
+.elo-examples-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px 32px; }
+.elo-example { border-top: 1px solid var(--rule-strong, var(--ink)); padding-top: 10px; min-width: 0; }
+.elo-example h5 { font-size: 17px; margin: 0 0 6px; line-height: 1.3; }
+.elo-match-title { font-size: 16px; margin: 18px 0 6px; }
+.elo-details { margin: 6px 0 10px; font-family: var(--sans); font-size: 14px; }
+.elo-details summary { cursor: pointer; font-weight: 600; }
+main .elo-details p { font-family: var(--sans); font-size: 14px; }
+.elo-table { font-size: 13px; margin: 6px 0; }
+.elo-table td, .elo-table th { padding: 4px 6px; }
+.elo-venue { color: var(--ink-faint); font-size: 12px; }
+.elo-up { color: var(--positive, var(--up, #1f4f99)); font-weight: 600; }
+.elo-down { color: var(--danger, var(--down, #b3261e)); font-weight: 600; }
+.elo-country { font-size: 13px; font-weight: 500; color: var(--ink-faint); }
+main .elo-example p { font-family: var(--serif); font-size: 16px; line-height: 1.5; margin: 0 0 8px; }
+main .elo-example p.formula { font-family: var(--sans); font-size: 14px; }
+.elo-steps { font-family: var(--sans); font-size: 14px; line-height: 1.5; padding-left: 20px; margin: 0 0 8px; }
+.elo-steps li { margin: 3px 0; overflow-wrap: anywhere; }

@@ -24,6 +24,14 @@ from brasileirao.europe.ratings import GlobalEloParams
 from brasileirao.europe.validation import TEST_SEASONS, match_report, season_backtest, tune
 from brasileirao.leagues.sources import MIN_SECONDS_BETWEEN_CALLS, fetch_football_data
 from brasileirao.logging_utils import configure_logging
+from brasileirao.ratings.examples import (
+    EXAMPLES_FILE_NAME,
+    champions_examples,
+    copy_examples,
+    display_names,
+    info_from_forecast,
+    write_examples,
+)
 
 CODE = "champions-league"
 MODEL_CONFIG = PATHS.gold / "champions_model_config.json"
@@ -127,12 +135,15 @@ def command_forecast(arguments: argparse.Namespace) -> None:
     matches_data, sources = read_silver(_data_dir() / "silver")
     pins = load_europe_pins(PATHS.europe_source_pins)
     report = json.loads(TUNING_REPORT.read_text(encoding="utf-8")) if TUNING_REPORT.exists() else None
+    registry = load_club_registry(PATHS.europe_clubs_reference)
+    countries = _countries()
+    params = _params()
     forecast = build_forecast(
         matches_data,
         sources,
-        load_club_registry(PATHS.europe_clubs_reference),
-        _countries(),
-        _params(),
+        registry,
+        countries,
+        params,
         pins.current_season,
         arguments.simulations,
         arguments.seed,
@@ -142,6 +153,14 @@ def command_forecast(arguments: argparse.Namespace) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(forecast.model_dump_json(indent=1) + "\n", encoding="utf-8")
     print(f"previsão em {target} ({forecast.n_simulations} simulações, semente {forecast.seed})")
+    examples_path = target.parent / EXAMPLES_FILE_NAME
+    if write_examples(
+        examples_path,
+        lambda: champions_examples(
+            info_from_forecast(CODE, forecast), matches_data, params, countries, display_names(registry)
+        ),
+    ):
+        print(f"exemplos do Elo em {examples_path}")
 
 
 def command_export_web(arguments: argparse.Namespace) -> None:
@@ -149,6 +168,8 @@ def command_export_web(arguments: argparse.Namespace) -> None:
     target_dir.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(_data_dir() / "forecast" / "forecast.json", target_dir / "forecast.json")
     print(f"exportado em {target_dir / 'forecast.json'}")
+    if copy_examples(_data_dir() / "forecast", target_dir):
+        print(f"exportado em {target_dir / EXAMPLES_FILE_NAME}")
 
 
 def command_gate(arguments: argparse.Namespace) -> None:

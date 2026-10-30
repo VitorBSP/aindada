@@ -11,10 +11,12 @@ from typing import Any
 
 from brasileirao.contracts import BRASILIA_TIMEZONE, PUBLISHABLE_LICENSE_STATUSES, AllowedUse, LicenseStatus
 from brasileirao.europe.forecast import CHAMPIONS_SCHEMA_VERSION, ChampionsForecast
+from brasileirao.ratings.examples import EXAMPLES_FILE_NAME, check_examples_file
 
 TOLERANCE = 1e-6
 STAGE_TOTALS = {"round_of_16": 16.0, "quarter_finals": 8.0, "semi_finals": 4.0, "final": 2.0, "winner": 1.0}
 FORBIDDEN_DIRS = ("raw", "silver", "gold", "snapshots", "editorial")
+ALLOWED_DATA_FILES = frozenset({"forecast.json", EXAMPLES_FILE_NAME})
 
 
 def check_forecast_core(forecast: ChampionsForecast, today: date) -> list[str]:
@@ -98,9 +100,12 @@ def check_artifact(
             findings.append(f"pasta data/{forbidden} no artefato")
     if live_reference_date is not None and date.fromisoformat(forecast.reference_date) < live_reference_date:
         findings.append(f"reference_date {forecast.reference_date} anterior à do site no ar ({live_reference_date})")
-    extra = sorted(path.name for path in (site_dir / "data").iterdir() if path.name != "forecast.json")
+    extra = sorted(path.name for path in (site_dir / "data").iterdir() if path.name not in ALLOWED_DATA_FILES)
     if extra:
         findings.append(f"arquivos inesperados em data/: {extra}")
+    findings.extend(
+        check_examples_file(site_dir / "data" / EXAMPLES_FILE_NAME, "champions-league", forecast.reference_date)
+    )
     return findings
 
 

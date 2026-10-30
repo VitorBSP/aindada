@@ -47,9 +47,17 @@ from brasileirao.insights.editorial import (
 )
 from brasileirao.insights.generator import generate
 from brasileirao.logging_utils import configure_logging, get_logger
-from brasileirao.pipeline import export_static_api, run_round_review, run_season_snapshots
+from brasileirao.pipeline import export_static_api, load_model_config, run_round_review, run_season_snapshots
 from brasileirao.provenance import ProvenanceError
 from brasileirao.publication_gate import GateInputs, run_publication_gate
+from brasileirao.ratings.examples import (
+    BRAZIL_TIEBREAK,
+    EXAMPLES_FILE_NAME,
+    competition_info,
+    display_names,
+    league_examples,
+    write_examples,
+)
 from brasileirao.storage.snapshots import SnapshotStore
 from brasileirao.validation.report import run_backtest_report
 
@@ -221,7 +229,32 @@ def _export_publication(store: SnapshotStore, arguments: argparse.Namespace) -> 
 
 
 def command_export_web(arguments: argparse.Namespace) -> None:
-    for path in export_static_api(SnapshotStore(PATHS.snapshots_db), arguments.season):
+    store = SnapshotStore(PATHS.snapshots_db)
+    for path in export_static_api(store, arguments.season):
+        print(f"exportado: {path}")
+    _export_elo_examples(store, arguments.season)
+
+
+def _export_elo_examples(store: SnapshotStore, season: int) -> None:
+    """Exemplos do Elo ("Como calculamos") com a data de referência e as versões do snapshot exportado."""
+    snapshot = store.latest(season)
+    if snapshot is None:
+        return
+    info = competition_info(
+        "serie-a", season, snapshot.reference_date, snapshot.data.version, snapshot.model.model_version
+    )
+    rating_params = load_model_config().rating_params
+    path = PATHS.web_static_data / EXAMPLES_FILE_NAME
+    if write_examples(
+        path,
+        lambda: league_examples(
+            info,
+            read_matches(PATHS.gold / "matches_model.csv"),
+            rating_params,
+            display_names(load_club_registry()),
+            BRAZIL_TIEBREAK,
+        ),
+    ):
         print(f"exportado: {path}")
 
 

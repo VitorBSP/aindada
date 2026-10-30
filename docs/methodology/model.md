@@ -14,6 +14,41 @@ Política de jogos simultâneos: todas as partidas de uma data usam o estado da 
 atualizações são somadas ao fim da data. O resultado independe da ordem de processamento
 (teste `test_simultaneous_matches_independent_of_processing_order`).
 
+### Exemplos do Elo com dados reais (`ratings/examples.py`)
+
+Para a seção "Como calculamos", cada competição publica `data/elo-examples.json` (esquema 2.0) com **um confronto
+direto** entre os dois clubes do par de `EXAMPLE_CLUBS`: o mais recente até a data de referência, na temporada atual
+ou, se não houver, na anterior (na Champions, só jogos da própria Champions). O arquivo traz:
+
+- `match`: a conta passo a passo do confronto (`variação = K × M × (resultado − esperado)`);
+- para cada lado, `previous_season` (a temporada anterior à atual) e `ledger`, que explica o Elo antes do jogo:
+  - `seasons`: cada temporada do clube na competição, com `entry_elo + net = end_elo` e `newcomer_rule` quando ele
+    entrou como clube novo;
+  - `current`: a entrada da temporada do confronto (regressão: `1500 + (fim − média) × (1 − regressão)` nas ligas e
+    `média do país + (fim − média do país) × (1 − regressão)` na Champions, ou a regra de clube novo), os jogos até a
+    véspera com a variação de cada um e `entry.after + net_until = elo_before_match`;
+  - `weights`: Elo ≈ 1500 + (entrada da última chegada como clube novo − 1500) × (1 − r)^anos + Σ saldo da temporada
+    × (1 − r)^anos. A entrada como clube novo substitui o rating, então o que veio antes dela não conta. Nas ligas, a
+    média da divisão fica em 1500 a cada virada (soma zero e clube novo com a média de quem saiu), e a decomposição
+    fecha com o motor com diferença abaixo de 0,01 ponto. Na Champions, a regressão vai para a média de cada país,
+    que se move, e a diferença fica em alguns pontos.
+
+Notas de implementação:
+
+- Os números saem de subclasses instrumentadas do motor (`TracedRatingEngine`, `TracedGlobalElo`), que só registram o
+  estado antes e depois de cada passo. Cada variação é refeita com `ratings/elo.py`. Os saldos são `fim − entrada`
+  (subtração exata entre valores próximos) e são conferidos com a soma jogo a jogo. Divergência levanta
+  `ExampleMismatchError`: o arquivo não é gravado e a previsão segue.
+- Os testes com dados sintéticos (`tests/unit/test_elo_examples.py`) conferem:
+  - o estado final igual ao de `build_state_as_of` e do `GlobalElo`;
+  - a variação do confronto igual à mudança do Elo no motor sem instrumentação;
+  - `entry_elo + net = end_elo` e `entry.after + net_until = elo_before_match` sem tolerância.
+- Data de referência e versões de dados e modelo são as do forecast (ou snapshot) publicado no mesmo site.
+- Na Série B de 2026, a fonte não traz datas nem rodadas: o confronto e os jogos até a véspera seguem a ordem
+  aproximada usada pelo motor (`date_is_approximate: true`, `round: null`).
+- São números de clubes reais: o arquivo fica só nas pastas de dados ignoradas pelo git (decisão B1), nunca em
+  `methods.json`.
+
 ## Modelo de gols
 
 - **Modelo A (em produção)**: duas regressões de Poisson (scikit-learn, α = 1e-3).

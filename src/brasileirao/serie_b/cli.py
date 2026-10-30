@@ -14,6 +14,15 @@ from brasileirao.contracts import BRASILIA_TIMEZONE
 from brasileirao.data_pipeline.clubs import load_club_registry
 from brasileirao.logging_utils import configure_logging, get_logger
 from brasileirao.pipeline import ModelConfig, load_model_config
+from brasileirao.ratings.examples import (
+    BRAZIL_TIEBREAK,
+    EXAMPLES_FILE_NAME,
+    copy_examples,
+    display_names,
+    info_from_forecast,
+    league_examples,
+    write_examples,
+)
 from brasileirao.serie_b.backtest import backtest_summary, run_backtest
 from brasileirao.serie_b.forecast import SERIE_B_MODEL_CONFIG, SERIE_B_MODEL_VERSION, build_forecast
 from brasileirao.serie_b.gate import check_artifact, summary_line
@@ -100,12 +109,14 @@ def command_forecast(arguments: argparse.Namespace) -> None:
     summary = None
     if BACKTEST_REPORT.exists():
         summary = backtest_summary(json.loads(BACKTEST_REPORT.read_text(encoding="utf-8")))
+    registry = load_club_registry(PATHS.serie_b_clubs_reference)
+    model_config = _model_config()
     forecast = build_forecast(
         matches_data,
         sources,
         load_serie_b_rules(arguments.season),
-        load_club_registry(PATHS.serie_b_clubs_reference),
-        _model_config(),
+        registry,
+        model_config,
         arguments.simulations,
         arguments.seed,
         summary,
@@ -114,6 +125,18 @@ def command_forecast(arguments: argparse.Namespace) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(forecast.model_dump_json(indent=1) + "\n", encoding="utf-8")
     print(f"previsão gravada em {target} ({forecast.n_simulations} simulações, semente {forecast.seed})")
+    examples_path = target.parent / EXAMPLES_FILE_NAME
+    if write_examples(
+        examples_path,
+        lambda: league_examples(
+            info_from_forecast("serie-b", forecast),
+            matches_data,
+            model_config.rating_params,
+            display_names(registry),
+            BRAZIL_TIEBREAK,
+        ),
+    ):
+        print(f"exemplos do Elo em {examples_path}")
 
 
 def command_export_web(arguments: argparse.Namespace) -> None:
@@ -121,6 +144,8 @@ def command_export_web(arguments: argparse.Namespace) -> None:
     target_dir.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(_forecast_path(), target_dir / "forecast.json")
     print(f"exportado em {target_dir / 'forecast.json'}")
+    if copy_examples(_forecast_path().parent, target_dir):
+        print(f"exportado em {target_dir / EXAMPLES_FILE_NAME}")
 
 
 def command_gate(arguments: argparse.Namespace) -> None:

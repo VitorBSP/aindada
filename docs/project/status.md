@@ -2987,3 +2987,92 @@ Registrado pelo orquestrador (00), que executou as partes de 01, 03, 02, 04/05 e
   - `tests/unit/test_methods.py` reprova arquivo desatualizado.
 - **Evidência:** as 5 páginas foram conferidas no navegador num artefato combinado, com a aba da página atual aberta e os
   links entre competições funcionando; os testes passam (contagem no commit).
+
+## Agente 02: exemplos do Elo com dados reais em "Como calculamos" (2026-10-29) — entregue, sem commit; aguarda 08, 07 e 06
+
+- **Pedido do dono do produto:** exemplos de como o Elo é calculado e atualizado, com dois clubes populares de
+  desempenho díspar na temporada anterior, em cada competição.
+- **O que mudou:**
+  - `src/brasileirao/ratings/examples.py` (novo): reproduz o estado do motor com subclasses instrumentadas de
+    `RatingEngine` e `GlobalElo` e gera, por competição, a virada de temporada (regressão ou regra de clube novo), a
+    trajetória da temporada anterior e o último jogo até a data de referência, com a conta conferida contra o motor;
+  - um `elo-examples.json` por site, só com a competição daquele site, ao lado do `forecast.json`:
+    `data/` na raiz (Série A), `serie-b/data/`, `premier-league/data/`, `la-liga/data/` e `champions-league/data/`;
+  - geração no `forecast` da Série B, das ligas e da Champions e no `export-web` da Série A
+    (`src/brasileirao/cli.py`, do 00); cópia no `export-web` de cada competição;
+  - os gates `serie_b/gate.py`, `leagues/gate.py` e `europe/gate.py` aceitam `elo-examples.json` em `data/` e
+    reprovam o arquivo se ele for de outra competição ou de outra data de referência que o `forecast.json`;
+  - clubes fixados em `EXAMPLE_CLUBS`: Série A, Internacional e Flamengo; Série B, Sport (rebaixado da Série A, mostra a
+    regra de clube novo) e Goiás; Premier League, Liverpool e Manchester United; LaLiga, Barcelona e Sevilla;
+    Champions, Bayern de Munique e Liverpool (no lugar de PSG e Manchester City, que tiveram trajetórias de Elo
+    parecidas na temporada anterior);
+  - `docs/methodology/model.md`: subseção sobre os exemplos.
+  - `methods.py`, `methods.json`, `methods.js` e os `app.js` não foram tocados.
+- **Evidência:**
+  - `pytest -q`: todos passam, inclusive os 27 de `tests/unit/test_elo_examples.py` (sintéticos); ruff, format e mypy
+    sem achados;
+  - com os dados locais, os 5 arquivos foram gerados, `export-web --target` e `gate` de Série B, Premier League,
+    LaLiga e Champions rodaram num artefato de ensaio com 0 achados, e a API local serve os 5 caminhos com HTTP 200.
+- **Premissas e limitações:**
+  - Série B de 2026 sem datas nem rodadas na fonte: o jogo do exemplo segue a ordem aproximada do motor
+    (`date_is_approximate`);
+  - clube vindo de outra divisão não tem trajetória anterior no motor da competição (`previous_season: null`): a Série
+    B não usa jogos da Série A, por isso o rebaixado entra com a mesma regra de quem sobe da Série C;
+  - posição final calculada pelos critérios da competição (Série A e B: pontos, vitórias, saldo, gols e confronto
+    direto); na Champions não há posição nem pontos, porque a temporada mistura liga nacional e copas;
+  - falha nos exemplos não derruba a previsão: o arquivo não é gravado e a interface precisa tratar a ausência
+    (inclusive no fallback do workflow, que só recupera o `forecast.json` no ar).
+- **Próximo:**
+  - **08**: interface em `methods.js`, lendo `data/elo-examples.json` relativo à página;
+  - **07**: o `publish-site.yml` não precisou de mudança (os passos de `forecast` e `export-web` de cada competição já
+    geram e copiam); revisar e decidir se o fallback deve recuperar também o `elo-examples.json` no ar;
+  - **06**: auditar os gates novos e a conferência contra o motor;
+  - **00**: revisar a mudança em `cli.py` (`_export_elo_examples`).
+
+## Agente 08: exemplos do Elo na interface (D-041, 2026-10-29)
+
+- **O que mudou**: `apps/web/assets/methods.js` lê `data/elo-examples.json` (schema 2.0) do site de cada aba, sob
+  demanda, e mostra o confronto direto do par: para cada lado, temporada anterior, virada de temporada, saldo até o
+  jogo (lista recolhível) e peso de cada temporada (recolhível); depois a conta do jogo. Estilos dos exemplos em
+  `apps/web/assets/styles.css`, `apps/web-serie-b/styles.css`, `apps/web-ligas/styles.css` e
+  `apps/web-champions/styles.css`, com valores de reserva para tokens que esses sites não definem. Aviso prévio à
+  sessão "Versão série B", que liberou `methods.js`.
+- **Evidência**: API local em 127.0.0.1:8001 servindo os cinco `elo-examples.json`; no navegador do app, as cinco
+  abas mostram o confronto, os dois históricos e a conta; na Série A a soma ponderada fecha com o Elo exato antes do
+  jogo; sem erros no console. Sem arquivo, a aba fica só com a explicação, como antes.
+
+## Agente 02: exemplos do Elo como confronto direto e histórico do número (2026-10-29) — entregue, sem commit; aguarda 08 e 06
+
+- **Pedido** (aprovado pelo dono do produto, decisão editorial do 08): mostrar de onde vem o Elo de cada clube antes do
+  jogo do exemplo, com um confronto direto por competição.
+- **O que mudou:**
+  - `src/brasileirao/ratings/examples.py`, esquema 2.0 do `elo-examples.json`:
+    - `EXAMPLE_CLUBS` virou pares;
+    - o exemplo é o confronto mais recente entre os dois (na temporada atual ou na anterior; na Champions, só jogos
+      da Champions);
+    - cada lado traz `previous_season` e `ledger` (`seasons`, `current`, `weights`);
+  - os gates continuam aceitando o arquivo, agora com `schema_version` 2.0;
+  - `docs/methodology/model.md` foi atualizado.
+- **Pares:**
+  - Série A: Internacional e Flamengo;
+  - Série B: Sport e Goiás;
+  - Premier League: Liverpool e Manchester United (o confronto é da temporada anterior: ainda não se enfrentaram na
+    atual);
+  - LaLiga: Barcelona e Sevilla;
+  - Champions: Manchester City e Paris Saint-Germain (confronto entre países na fase de liga atual, entre o finalista
+    e um eliminado nas oitavas da edição anterior).
+- **Evidência:**
+  - `pytest -q`: todos passam, inclusive os 44 de `tests/unit/test_elo_examples.py` (sintéticos); ruff, format e mypy
+    sem achados;
+  - com os dados locais, os 5 arquivos foram gerados, e `export-web --target` mais `gate` de Série B, Premier League,
+    LaLiga e Champions deram 0 achados no artefato de ensaio;
+  - nas ligas, a decomposição por pesos fecha com o Elo do motor (diferença abaixo de 0,01); na Champions, fica em
+    alguns pontos, pela média de cada país.
+- **Premissas e limitações:**
+  - na Série B de 2026, datas e ordem são aproximadas;
+  - o clube que entra como novo perde o histórico anterior no motor da competição;
+  - se não houver confronto na temporada atual nem na anterior, o arquivo da competição não é gravado (aviso no log).
+- **Próximo:**
+  - **08/05**: interface em `methods.js`;
+  - **06**: auditar;
+  - **07**: nada muda no workflow.

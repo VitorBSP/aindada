@@ -20,6 +20,14 @@ from brasileirao.leagues.sources import fetch_football_data, fetch_openfootball
 from brasileirao.leagues.validation import backtest_summary, run_tuning
 from brasileirao.logging_utils import configure_logging
 from brasileirao.pipeline import ModelConfig, load_model_config
+from brasileirao.ratings.examples import (
+    EXAMPLES_FILE_NAME,
+    copy_examples,
+    display_names,
+    info_from_forecast,
+    league_examples,
+    write_examples,
+)
 
 LEAGUES = ("premier-league", "la-liga")
 
@@ -101,12 +109,15 @@ def command_forecast(arguments: argparse.Namespace) -> None:
     matches_data, sources = read_silver(PATHS.league_data(pins.code) / "silver")
     report_path = _tuning_report(pins.code)
     summary = backtest_summary(json.loads(report_path.read_text(encoding="utf-8"))) if report_path.exists() else None
+    rules = _rules(pins)
+    registry = load_club_registry(PATHS.reference / pins.clubs_file)
+    model_config = _model_config(pins.code)
     forecast = build_forecast(
         matches_data,
         sources,
-        _rules(pins),
-        load_club_registry(PATHS.reference / pins.clubs_file),
-        _model_config(pins.code),
+        rules,
+        registry,
+        model_config,
         arguments.simulations,
         arguments.seed,
         pins.history_seasons[0],
@@ -116,13 +127,28 @@ def command_forecast(arguments: argparse.Namespace) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(forecast.model_dump_json(indent=1) + "\n", encoding="utf-8")
     print(f"{pins.code}: previsão em {target} ({forecast.n_simulations} simulações, semente {forecast.seed})")
+    examples_path = target.parent / EXAMPLES_FILE_NAME
+    if write_examples(
+        examples_path,
+        lambda: league_examples(
+            info_from_forecast(pins.code, forecast),
+            matches_data,
+            model_config.rating_params,
+            display_names(registry),
+            rules.tiebreak_order,
+        ),
+    ):
+        print(f"{pins.code}: exemplos do Elo em {examples_path}")
 
 
 def command_export_web(arguments: argparse.Namespace) -> None:
     target_dir = Path(arguments.target)
     target_dir.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(PATHS.league_data(arguments.league) / "forecast" / "forecast.json", target_dir / "forecast.json")
+    forecast_dir = PATHS.league_data(arguments.league) / "forecast"
+    shutil.copyfile(forecast_dir / "forecast.json", target_dir / "forecast.json")
     print(f"exportado em {target_dir / 'forecast.json'}")
+    if copy_examples(forecast_dir, target_dir):
+        print(f"exportado em {target_dir / EXAMPLES_FILE_NAME}")
 
 
 def command_gate(arguments: argparse.Namespace) -> None:
