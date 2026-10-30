@@ -1,0 +1,1456 @@
+{
+  "model_version": "lol-0.1.0",
+  "generated_at": "2026-10-30T05:52:11.132748+00:00",
+  "protocol": "escolha na validação (eventos encerrados após o primeiro); teste = séries jogadas do evento atual",
+  "validation_events": [
+    "2025 League of Legends World Championship",
+    "2026 Mid-Season Invitational"
+  ],
+  "test_event": "2026 League of Legends World Championship",
+  "chosen": {
+    "k_league": 24.0,
+    "k_team": 8.0,
+    "team_regression": 1.0
+  },
+  "validation": {
+    "maps": 155,
+    "series": 61,
+    "map_log_loss": 0.6321020193327425,
+    "series_log_loss": 0.6681506793942088,
+    "coin_log_loss": 0.6931471805599453
+  },
+  "test": {
+    "maps": 61,
+    "series": 34,
+    "map_log_loss": 0.6551204138746586,
+    "series_log_loss": 0.6494126665035636,
+    "coin_log_loss": 0.6931471805599453
+  },
+  "candidates": [
+    {
+      "k_league": 4.0,
+      "k_team": 0.0,
+      "team_regression": 0.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6608426890651484,
+        "series_log_loss": 0.6477974866743594,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.665118863449008,
+        "series_log_loss": 0.6493675776992368,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 4.0,
+      "k_team": 0.0,
+      "team_regression": 0.5,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6608426890651484,
+        "series_log_loss": 0.6477974866743594,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.665118863449008,
+        "series_log_loss": 0.6493675776992368,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 4.0,
+      "k_team": 0.0,
+      "team_regression": 1.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6608426890651484,
+        "series_log_loss": 0.6477974866743594,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.665118863449008,
+        "series_log_loss": 0.6493675776992368,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 4.0,
+      "k_team": 8.0,
+      "team_regression": 0.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6541740480858925,
+        "series_log_loss": 0.6530281056430903,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6628215386321358,
+        "series_log_loss": 0.6549959832360682,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 4.0,
+      "k_team": 8.0,
+      "team_regression": 0.5,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6563582756168642,
+        "series_log_loss": 0.6516505773772567,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6632066433980374,
+        "series_log_loss": 0.6543299866677758,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 4.0,
+      "k_team": 8.0,
+      "team_regression": 1.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6590109481281065,
+        "series_log_loss": 0.6514073356245864,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.664071869124647,
+        "series_log_loss": 0.6544914721445291,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 4.0,
+      "k_team": 16.0,
+      "team_regression": 0.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6514944649171808,
+        "series_log_loss": 0.663977743185772,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6662394282704602,
+        "series_log_loss": 0.6689376633565007,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 4.0,
+      "k_team": 16.0,
+      "team_regression": 0.5,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6542582489797479,
+        "series_log_loss": 0.6589312762653273,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.66546931524216,
+        "series_log_loss": 0.6654420776059496,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 4.0,
+      "k_team": 16.0,
+      "team_regression": 1.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6584465459385057,
+        "series_log_loss": 0.6572648632748553,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6660335890000826,
+        "series_log_loss": 0.6642423582865005,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 4.0,
+      "k_team": 24.0,
+      "team_regression": 0.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6509495985549237,
+        "series_log_loss": 0.6772085427074237,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6724458517916787,
+        "series_log_loss": 0.686816922499637,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 4.0,
+      "k_team": 24.0,
+      "team_regression": 0.5,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6535848919731501,
+        "series_log_loss": 0.6679297926781671,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6702052317087415,
+        "series_log_loss": 0.6801850158443805,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 4.0,
+      "k_team": 24.0,
+      "team_regression": 1.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6587964633350649,
+        "series_log_loss": 0.6646646445591263,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6702172868104131,
+        "series_log_loss": 0.6774350625694044,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 4.0,
+      "k_team": 32.0,
+      "team_regression": 0.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6516273883873145,
+        "series_log_loss": 0.6913696897651401,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6802253779733085,
+        "series_log_loss": 0.7069136743845457,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 4.0,
+      "k_team": 32.0,
+      "team_regression": 0.5,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6537776652574988,
+        "series_log_loss": 0.6777731394455926,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6765803552656245,
+        "series_log_loss": 0.6973689365932025,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 4.0,
+      "k_team": 32.0,
+      "team_regression": 1.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6597902978811893,
+        "series_log_loss": 0.6730766832774806,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6761067902068693,
+        "series_log_loss": 0.6933057129605062,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 8.0,
+      "k_team": 0.0,
+      "team_regression": 0.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6450426120342526,
+        "series_log_loss": 0.635930446050456,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6554864891087084,
+        "series_log_loss": 0.6358336891728549,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 8.0,
+      "k_team": 0.0,
+      "team_regression": 0.5,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6450426120342526,
+        "series_log_loss": 0.635930446050456,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6554864891087084,
+        "series_log_loss": 0.6358336891728549,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 8.0,
+      "k_team": 0.0,
+      "team_regression": 1.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6450426120342526,
+        "series_log_loss": 0.635930446050456,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6554864891087084,
+        "series_log_loss": 0.6358336891728549,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 8.0,
+      "k_team": 8.0,
+      "team_regression": 0.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6419897183468164,
+        "series_log_loss": 0.6466312794410125,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6558479626797357,
+        "series_log_loss": 0.6457422036791468,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 8.0,
+      "k_team": 8.0,
+      "team_regression": 0.5,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6430709159601522,
+        "series_log_loss": 0.6436009922436321,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6551991993466599,
+        "series_log_loss": 0.6436270726648793,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 8.0,
+      "k_team": 8.0,
+      "team_regression": 1.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.64447955550114,
+        "series_log_loss": 0.6413120113265051,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6549080365710057,
+        "series_log_loss": 0.642121527649444,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 8.0,
+      "k_team": 16.0,
+      "team_regression": 0.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6416698139729504,
+        "series_log_loss": 0.6604135084184393,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6610786545350643,
+        "series_log_loss": 0.6624719865053068,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 8.0,
+      "k_team": 16.0,
+      "team_regression": 0.5,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6427844377800699,
+        "series_log_loss": 0.6532218428004413,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6586998878304161,
+        "series_log_loss": 0.6567710515467454,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 8.0,
+      "k_team": 16.0,
+      "team_regression": 1.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6449389989158115,
+        "series_log_loss": 0.6483584265503443,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.657366956384042,
+        "series_log_loss": 0.6528636928441065,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 8.0,
+      "k_team": 24.0,
+      "team_regression": 0.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6428158003533176,
+        "series_log_loss": 0.6753578046320101,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6687801587152261,
+        "series_log_loss": 0.6826245182367208,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 8.0,
+      "k_team": 24.0,
+      "team_regression": 0.5,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6434901171894878,
+        "series_log_loss": 0.663778292329771,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.664492497283861,
+        "series_log_loss": 0.6731701159261786,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 8.0,
+      "k_team": 24.0,
+      "team_regression": 1.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6461228801864628,
+        "series_log_loss": 0.6565465784466868,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6620310796402296,
+        "series_log_loss": 0.6668664883842537,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 8.0,
+      "k_team": 32.0,
+      "team_regression": 0.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6447920548607277,
+        "series_log_loss": 0.6907166781285601,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6778504395401315,
+        "series_log_loss": 0.7046810219536953,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 8.0,
+      "k_team": 32.0,
+      "team_regression": 0.5,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6447742321403207,
+        "series_log_loss": 0.674734103702229,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6717925044806481,
+        "series_log_loss": 0.6917467321214947,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 8.0,
+      "k_team": 32.0,
+      "team_regression": 1.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6477983538917028,
+        "series_log_loss": 0.6654581276481255,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6683583444260704,
+        "series_log_loss": 0.6833655631121572,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 16.0,
+      "k_team": 0.0,
+      "team_regression": 0.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6334166137868967,
+        "series_log_loss": 0.6445232153089221,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6515850661197267,
+        "series_log_loss": 0.632944569923366,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 16.0,
+      "k_team": 0.0,
+      "team_regression": 0.5,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6334166137868967,
+        "series_log_loss": 0.6445232153089221,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6515850661197267,
+        "series_log_loss": 0.632944569923366,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 16.0,
+      "k_team": 0.0,
+      "team_regression": 1.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6334166137868967,
+        "series_log_loss": 0.6445232153089221,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6515850661197267,
+        "series_log_loss": 0.632944569923366,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 16.0,
+      "k_team": 8.0,
+      "team_regression": 0.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6327845484690424,
+        "series_log_loss": 0.6560626615417334,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6541274256649409,
+        "series_log_loss": 0.6458985735613287,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 16.0,
+      "k_team": 8.0,
+      "team_regression": 0.5,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6329018230855755,
+        "series_log_loss": 0.652373724510268,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.652754237417569,
+        "series_log_loss": 0.6431121421724285,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 16.0,
+      "k_team": 8.0,
+      "team_regression": 1.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6332018334321892,
+        "series_log_loss": 0.6490627443492676,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6516574841532907,
+        "series_log_loss": 0.6407983255469103,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 16.0,
+      "k_team": 16.0,
+      "team_regression": 0.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6341290760485644,
+        "series_log_loss": 0.6699279429606425,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.661296952778898,
+        "series_log_loss": 0.6654177664607416,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 16.0,
+      "k_team": 16.0,
+      "team_regression": 0.5,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6337054682415313,
+        "series_log_loss": 0.6618758100282346,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6576457314015808,
+        "series_log_loss": 0.6584648296984782,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 16.0,
+      "k_team": 16.0,
+      "team_regression": 1.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6339103442676687,
+        "series_log_loss": 0.6551336559339294,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6548554439132249,
+        "series_log_loss": 0.653005529720544,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 16.0,
+      "k_team": 24.0,
+      "team_regression": 0.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6365430726493155,
+        "series_log_loss": 0.684826604425031,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6708222587642765,
+        "series_log_loss": 0.6882906799268548,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 16.0,
+      "k_team": 24.0,
+      "team_regression": 0.5,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6352611435557771,
+        "series_log_loss": 0.6722082671855367,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6647588198640835,
+        "series_log_loss": 0.6769231685306,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 16.0,
+      "k_team": 24.0,
+      "team_regression": 1.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6352480401963251,
+        "series_log_loss": 0.6622469751521795,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6602535953316037,
+        "series_log_loss": 0.6682898592137675,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 16.0,
+      "k_team": 32.0,
+      "team_regression": 0.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6395615457640863,
+        "series_log_loss": 0.7001984561220629,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6815629465719332,
+        "series_log_loss": 0.7128953215021051,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 16.0,
+      "k_team": 32.0,
+      "team_regression": 0.5,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6372328242397297,
+        "series_log_loss": 0.6829104245996146,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6732834754009203,
+        "series_log_loss": 0.6973728820194445,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 16.0,
+      "k_team": 32.0,
+      "team_regression": 1.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6369941050742045,
+        "series_log_loss": 0.6700075930261951,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6672785227618939,
+        "series_log_loss": 0.6858793069263052,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 24.0,
+      "k_team": 0.0,
+      "team_regression": 0.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6323235587220729,
+        "series_log_loss": 0.6645135121260445,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6541077015324362,
+        "series_log_loss": 0.6398598761993872,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 24.0,
+      "k_team": 0.0,
+      "team_regression": 0.5,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6323235587220729,
+        "series_log_loss": 0.6645135121260445,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6541077015324362,
+        "series_log_loss": 0.6398598761993872,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 24.0,
+      "k_team": 0.0,
+      "team_regression": 1.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6323235587220729,
+        "series_log_loss": 0.6645135121260445,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6541077015324362,
+        "series_log_loss": 0.6398598761993872,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 24.0,
+      "k_team": 8.0,
+      "team_regression": 0.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6324575039522488,
+        "series_log_loss": 0.6746944336836388,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6582026532330858,
+        "series_log_loss": 0.654639384204116,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 24.0,
+      "k_team": 8.0,
+      "team_regression": 0.5,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6322237434939516,
+        "series_log_loss": 0.6713105774717929,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.656530062392145,
+        "series_log_loss": 0.6517997595940845,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 24.0,
+      "k_team": 8.0,
+      "team_regression": 1.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6321020193327425,
+        "series_log_loss": 0.6681506793942088,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6551204138746586,
+        "series_log_loss": 0.6494126665035636,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 24.0,
+      "k_team": 16.0,
+      "team_regression": 0.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6342703719648245,
+        "series_log_loss": 0.6873782528927527,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6669487162524361,
+        "series_log_loss": 0.6763190392395573,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 24.0,
+      "k_team": 16.0,
+      "team_regression": 0.5,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6332453942184052,
+        "series_log_loss": 0.6797856668826969,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6627058968524336,
+        "series_log_loss": 0.6690756473156149,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 24.0,
+      "k_team": 16.0,
+      "team_regression": 1.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6326398841908945,
+        "series_log_loss": 0.6730445308705825,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6593066299934257,
+        "series_log_loss": 0.6633126051355115,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 24.0,
+      "k_team": 24.0,
+      "team_regression": 0.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6370289114676353,
+        "series_log_loss": 0.7013557703733293,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6779891464278145,
+        "series_log_loss": 0.7014395258775368,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 24.0,
+      "k_team": 24.0,
+      "team_regression": 0.5,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6349046468219872,
+        "series_log_loss": 0.6891428966272092,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6710735806201695,
+        "series_log_loss": 0.6894717219908669,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 24.0,
+      "k_team": 24.0,
+      "team_regression": 1.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6336861679019192,
+        "series_log_loss": 0.6787870147651387,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6657089999246876,
+        "series_log_loss": 0.6802665422496968,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 24.0,
+      "k_team": 32.0,
+      "team_regression": 0.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6403599308578357,
+        "series_log_loss": 0.7160805299180889,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6901093987252653,
+        "series_log_loss": 0.7281758642513786,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 24.0,
+      "k_team": 32.0,
+      "team_regression": 0.5,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6369292088711196,
+        "series_log_loss": 0.6989589452162982,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6807849615857681,
+        "series_log_loss": 0.7117795511884469,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 24.0,
+      "k_team": 32.0,
+      "team_regression": 1.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.635069669136174,
+        "series_log_loss": 0.6850761843819579,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6737357891036831,
+        "series_log_loss": 0.6994857699384034,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 32.0,
+      "k_team": 0.0,
+      "team_regression": 0.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6357484733833585,
+        "series_log_loss": 0.687151412547945,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.658516020211765,
+        "series_log_loss": 0.6493807765192591,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 32.0,
+      "k_team": 0.0,
+      "team_regression": 0.5,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6357484733833585,
+        "series_log_loss": 0.687151412547945,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.658516020211765,
+        "series_log_loss": 0.6493807765192591,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 32.0,
+      "k_team": 0.0,
+      "team_regression": 1.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6357484733833585,
+        "series_log_loss": 0.687151412547945,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.658516020211765,
+        "series_log_loss": 0.6493807765192591,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 32.0,
+      "k_team": 8.0,
+      "team_regression": 0.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6361980763878882,
+        "series_log_loss": 0.6961003801352438,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6642558696365276,
+        "series_log_loss": 0.666079350351935,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 32.0,
+      "k_team": 8.0,
+      "team_regression": 0.5,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6358413571005088,
+        "series_log_loss": 0.6932125767975629,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6623259668963727,
+        "series_log_loss": 0.6631652008453555,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 32.0,
+      "k_team": 8.0,
+      "team_regression": 1.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6355571150767605,
+        "series_log_loss": 0.6904693401180805,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6606638512398098,
+        "series_log_loss": 0.6607129621701229,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 32.0,
+      "k_team": 16.0,
+      "team_regression": 0.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6381488010884965,
+        "series_log_loss": 0.7077363829677588,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6746073745128967,
+        "series_log_loss": 0.6899728407009669,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 32.0,
+      "k_team": 16.0,
+      "team_regression": 0.5,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6368832731503806,
+        "series_log_loss": 0.7008651608405514,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.669888795092256,
+        "series_log_loss": 0.6824752279922448,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 32.0,
+      "k_team": 16.0,
+      "team_regression": 1.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6359162354551413,
+        "series_log_loss": 0.6945981979960865,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6660398228002159,
+        "series_log_loss": 0.6765132460232892,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 32.0,
+      "k_team": 24.0,
+      "team_regression": 0.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6409990895300616,
+        "series_log_loss": 0.720902566047783,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6871286834006477,
+        "series_log_loss": 0.7173147741260287,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 32.0,
+      "k_team": 24.0,
+      "team_regression": 0.5,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6384779248445598,
+        "series_log_loss": 0.7093885248471544,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6795936529926976,
+        "series_log_loss": 0.704938969371875,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 32.0,
+      "k_team": 24.0,
+      "team_regression": 1.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6366462763607755,
+        "series_log_loss": 0.6992840059898664,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6736694955894555,
+        "series_log_loss": 0.6954596198346037,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 32.0,
+      "k_team": 32.0,
+      "team_regression": 0.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6444527860496814,
+        "series_log_loss": 0.7350843632498487,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.7005572347749321,
+        "series_log_loss": 0.746100859487664,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 32.0,
+      "k_team": 32.0,
+      "team_regression": 0.5,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6404238259306866,
+        "series_log_loss": 0.718445727733985,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6905629143629062,
+        "series_log_loss": 0.7292446088265122,
+        "coin_log_loss": 0.6931471805599453
+      }
+    },
+    {
+      "k_league": 32.0,
+      "k_team": 32.0,
+      "team_regression": 1.0,
+      "validation": {
+        "maps": 155,
+        "series": 61,
+        "map_log_loss": 0.6376482050285637,
+        "series_log_loss": 0.704382475419091,
+        "coin_log_loss": 0.6931471805599453
+      },
+      "test": {
+        "maps": 61,
+        "series": 34,
+        "map_log_loss": 0.6829383117344138,
+        "series_log_loss": 0.7167135423560663,
+        "coin_log_loss": 0.6931471805599453
+      }
+    }
+  ]
+}

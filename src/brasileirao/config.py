@@ -102,6 +102,23 @@ class ProjectPaths:
         return self.reference / "league_source_pins.json"
 
     @property
+    def esports_data(self) -> Path:
+        """Raw e previsão do Mundial de LoL (ADR-0013); fora do git."""
+        return Path(os.environ.get("BRASILEIRAO_ESPORTS_DIR", self.data / "esports"))
+
+    @property
+    def lol_source_pins(self) -> Path:
+        return self.reference / "lol_source_pins.json"
+
+    @property
+    def lol_teams_reference(self) -> Path:
+        return self.reference / "lol_teams.csv"
+
+    @property
+    def lol_web_app(self) -> Path:
+        return self.root / "apps" / "web-lol"
+
+    @property
     def europe_source_pins(self) -> Path:
         return self.reference / "europe_source_pins.json"
 

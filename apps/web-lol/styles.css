@@ -1,0 +1,254 @@
+/* AInda dá? Champions League (ADR-0012). Mesmos tokens e regras das ligas (D-038, D-039). */
+
+@font-face {
+  font-family: "Inter Tight";
+  src: url("assets/inter-tight-latin.woff") format("woff");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+:root {
+  --paper: #fafaf7;
+  --surface: #ffffff;
+  --ink: #17191c;
+  --ink-soft: #4a4e55;
+  --ink-faint: #6b6f76;
+  --rule: #e2e1db;
+  --signal: #d9381e;
+  --up: #1f4f99;
+  --up-mid: #6f92cc;
+  --up-soft: #e3ebf7;
+  --down: #b3261e;
+  --down-soft: #f8e1df;
+  --neutral-bar: #ecebe5;
+  --draw: #6b6f76;
+  --focus: #17191c;
+  --sans: "Inter Tight", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --serif: Georgia, "Iowan Old Style", "Noto Serif", "Times New Roman", serif;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #17191c;
+    --surface: #1d2024;
+    --ink: #f7f5ef;
+    --ink-soft: #b9bbbf;
+    --ink-faint: #8d9198;
+    --rule: #30343a;
+    --signal: #ff6a4d;
+    --up: #8fb2ee;
+    --up-mid: #4f6d9e;
+    --up-soft: #1b2840;
+    --down: #f08a82;
+    --down-soft: #3d1c1a;
+    --neutral-bar: #2a2e33;
+    --draw: #8d9198;
+    --focus: #f7f5ef;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #17191c;
+  --surface: #1d2024;
+  --ink: #f7f5ef;
+  --ink-soft: #b9bbbf;
+  --ink-faint: #8d9198;
+  --rule: #30343a;
+  --signal: #ff6a4d;
+  --up: #8fb2ee;
+  --up-mid: #4f6d9e;
+  --up-soft: #1b2840;
+  --down: #f08a82;
+  --down-soft: #3d1c1a;
+  --neutral-bar: #2a2e33;
+  --draw: #8d9198;
+  --focus: #f7f5ef;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.5 var(--sans); font-feature-settings: "tnum" 1; }
+a { color: inherit; text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+.skip-link { position: absolute; left: -999px; }
+.skip-link:focus { left: 16px; top: 8px; background: var(--surface); padding: 8px; z-index: 10; }
+
+/* Topo */
+.top { position: sticky; top: 0; z-index: 5; background: var(--paper); border-bottom: 1px solid var(--rule); }
+.top-inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 20px; padding-top: 12px; padding-bottom: 10px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
+.brand img { height: 32px; width: auto; display: block; }
+.brand .logo-dark { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .brand .logo-light { display: none; }
+  :root:not([data-theme="light"]) .brand .logo-dark { display: block; }
+}
+:root[data-theme="dark"] .brand .logo-light { display: none; }
+:root[data-theme="dark"] .brand .logo-dark { display: block; }
+.league-tag { font-weight: 750; font-size: 14px; border: 2px solid var(--ink); padding: 1px 7px; border-radius: 4px; }
+.top nav { display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: 14px; font-weight: 500; }
+.top nav a { text-decoration: none; color: var(--ink-soft); padding: 4px 0; }
+.top nav a:hover { color: var(--ink); }
+/* Seletor de competições (D-039): uma linha acima do cabeçalho, igual nos sites de cada competição. */
+.leagues { display: flex; flex-wrap: wrap; gap: 2px 18px; padding-top: 8px; padding-bottom: 6px; font-size: 14px; border-bottom: 1px solid var(--rule); }
+.leagues a { text-decoration: none; color: var(--ink-soft); padding: 2px 0; border-bottom: 2px solid transparent; font-weight: 500; }
+.leagues a:hover { color: var(--ink); }
+.leagues a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--signal); font-weight: 650; }
+
+main.wrap { padding-top: 28px; padding-bottom: 48px; min-height: 60vh; }
+.loading { color: var(--ink-soft); }
+section { scroll-margin-top: 110px; }
+h1 { font-size: clamp(30px, 5vw, 52px); line-height: 1.04; letter-spacing: -0.03em; margin: 0 0 12px; max-width: 18ch; }
+h2 { font-size: 24px; letter-spacing: -0.015em; line-height: 1.15; margin: 56px 0 6px; }
+.kicker { font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--ink-faint); margin: 0 0 8px; }
+.lede, .prose p { font-family: var(--serif); font-size: 18px; line-height: 1.55; max-width: 62ch; color: var(--ink); }
+.meta { font-size: 13px; color: var(--ink-faint); margin: 4px 0 0; }
+.section-note { font-size: 14px; color: var(--ink-soft); max-width: 64ch; margin: 0 0 16px; }
+
+/* Zonas do topo */
+.zones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 24px; }
+.zone { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px 12px; min-width: 0; }
+.zone h3 { margin: 0 0 2px; font-size: 16px; font-weight: 700; }
+.zone .zone-sub { margin: 0 0 10px; font-size: 13px; color: var(--ink-faint); }
+.zone.up { border-top: 5px solid var(--up); }
+.zone.mid { border-top: 5px solid var(--up-mid); }
+.zone.down { border-top: 5px solid var(--down); }
+.zone ol { list-style: none; margin: 0; padding: 0; }
+.zone li { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid var(--rule); }
+.zone li:first-child { border-top: 0; }
+.zone .name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zone .value { font-weight: 750; font-size: 18px; }
+.zone .value.done { font-size: 14px; }
+
+.badge { flex: none; display: inline-grid; place-items: center; width: 34px; height: 24px; border-radius: 5px; font-size: 11px; font-weight: 800; letter-spacing: 0.03em; color: var(--paper); background: var(--ink); }
+
+/* Escada do acesso */
+.ladder { list-style: none; margin: 0; padding: 0; }
+.ladder li { display: grid; grid-template-columns: 34px minmax(80px, 150px) 1fr 58px; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid var(--rule); }
+.ladder .club { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stack { display: flex; height: 22px; border-radius: 4px; overflow: hidden; background: var(--neutral-bar); }
+.stack span { display: block; height: 100%; }
+.stack .direct { background: var(--up); }
+.stack .via-playoff { background: var(--up-mid); }
+.stack .lost-playoff { background: var(--up-soft); }
+.ladder .total { text-align: right; font-weight: 750; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ink-soft); margin: 10px 0 14px; padding: 0; list-style: none; }
+.legend li { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { display: inline-block; width: 14px; height: 14px; border-radius: 3px; }
+
+/* Playoff */
+.playoff-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.tie { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 16px; }
+.tie h3 { margin: 0 0 12px; font-size: 15px; font-weight: 650; color: var(--ink-soft); }
+.tie .side { display: flex; align-items: center; gap: 10px; }
+.tie .side .name { flex: 1; font-weight: 650; font-size: 17px; }
+.tie .side .pct { font-weight: 800; font-size: 22px; }
+.tie .vs { font-size: 12px; color: var(--ink-faint); margin: 6px 0 6px 44px; }
+.tie .split { display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin: 12px 0 8px; background: var(--neutral-bar); }
+.tie .split span:first-child { background: var(--up); }
+.tie .split span:last-child { background: var(--up-mid); }
+.tie p { margin: 0; font-size: 13px; color: var(--ink-faint); }
+
+/* Rebaixamento */
+.drop { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.drop li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; background: var(--surface); border: 1px solid var(--rule); }
+.drop li.gone { background: var(--down-soft); border-color: transparent; }
+.drop .name { flex: 1; font-weight: 600; min-width: 0; }
+.drop .pct { font-weight: 800; color: var(--down); }
+.drop .meter { flex-basis: 100%; height: 5px; background: var(--neutral-bar); border-radius: 3px; overflow: hidden; }
+.drop .meter span { display: block; height: 100%; background: var(--down); }
+.drop li { flex-wrap: wrap; }
+
+/* Tabela */
+.table-scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { padding: 8px 8px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+th { font-size: 13px; color: var(--ink-faint); font-weight: 650; background: var(--surface); }
+td.left, th.left { text-align: left; }
+tr.cut-direct td { border-bottom: 2px solid var(--up); }
+tr.cut-playoff td { border-bottom: 2px solid var(--up-mid); }
+tr.cut-safe td { border-bottom: 2px solid var(--down); }
+td .club-cell { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+td.pts { font-weight: 800; }
+.heat { display: grid; grid-template-columns: repeat(20, 9px); gap: 1px; }
+.heat i { display: block; height: 18px; border-radius: 1px; background: var(--ink); }
+
+/* Jogos */
+.matches { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px; }
+.matches li { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; }
+.matches .teams { display: flex; justify-content: space-between; gap: 8px; font-weight: 650; font-size: 15px; }
+.matches .bar { display: flex; height: 8px; margin: 8px 0 4px; border-radius: 4px; overflow: hidden; }
+/* Mesma convenção da Série A (apps/web .triple): mandante em tinta, empate em cinza, visitante em azul. */
+.matches .bar { gap: 2px; }
+.matches .bar .h { background: var(--ink); }
+.matches .bar .d { background: var(--draw); }
+.matches .bar .a { background: var(--up); }
+.matches .nums { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-soft); }
+
+/* Método */
+.facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin: 16px 0; }
+.fact { border-top: 3px solid var(--ink); padding-top: 8px; }
+.fact strong { display: block; font-size: 22px; }
+.fact span { font-size: 13px; color: var(--ink-soft); }
+.prose ul { font-family: var(--serif); font-size: 16px; max-width: 64ch; padding-left: 20px; }
+.prose li { margin: 6px 0; }
+
+.foot { border-top: 1px solid var(--rule); padding-top: 18px; padding-bottom: 40px; font-size: 13px; color: var(--ink-soft); }
+.foot p { max-width: 80ch; }
+
+@media (max-width: 760px) {
+  .zones, .playoff-grid { grid-template-columns: minmax(0, 1fr); }
+  .ladder li { grid-template-columns: 34px minmax(0, 1fr) 52px; }
+  .ladder .total { grid-column: 3; grid-row: 1; }
+  .ladder .stack { grid-column: 1 / -1; grid-row: 2; }
+  .top { position: static; }
+  h2 { margin-top: 44px; }
+}
+
+/* Ligas europeias (ADR-0011) */
+.zone.title { border-top: 5px solid var(--ink); }
+.round-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 0 0 10px; }
+.round-head h3 { margin: 0; font-size: 17px; }
+.matches .when { font-size: 13px; color: var(--ink-faint); margin-bottom: 4px; }
+td.zone-cell { font-weight: 650; }
+
+/* Champions League: caminho até a final */
+.path td.stage { font-weight: 650; }
+.path td.stage.strong { background: var(--up-soft); }
+.country { font-size: 11px; color: var(--ink-faint); margin-left: 4px; }
+.heat-36 { grid-template-columns: repeat(36, 5px); }
+
+/* Como o Elo é calculado e abas por competição (D-040). */
+.formula { font-family: var(--sans); font-size: 15px; background: var(--surface); border-left: 3px solid var(--rule); padding: 8px 12px; overflow-x: auto; }
+.elo-title { font-size: 18px; margin: 28px 0 8px; }
+.method-tabs { display: flex; flex-wrap: wrap; gap: 4px 18px; border-bottom: 1px solid var(--rule); margin: 8px 0 14px; }
+.method-tabs button { font: inherit; font-size: 15px; background: none; border: 0; border-bottom: 2px solid transparent; padding: 6px 0; color: var(--ink-soft); cursor: pointer; }
+.method-tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--signal); font-weight: 650; }
+.method-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin: 0 0 12px; }
+.method-facts div { border-top: 3px solid var(--ink); padding-top: 6px; }
+.method-facts dt { font-size: 13px; color: var(--ink-soft); }
+.method-facts dd { margin: 2px 0 0; font-weight: 650; }
+.method-list { font-family: var(--serif); font-size: 16px; padding-left: 20px; }
+.method-list li { margin: 4px 0; }
+.elo-examples-title { font-size: 16px; margin: 22px 0 8px; }
+.elo-examples-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px 32px; }
+.elo-example { border-top: 1px solid var(--rule-strong, var(--ink)); padding-top: 10px; min-width: 0; }
+.elo-example h5 { font-size: 17px; margin: 0 0 6px; line-height: 1.3; }
+.elo-match-title { font-size: 16px; margin: 18px 0 6px; }
+.elo-details { margin: 6px 0 10px; font-family: var(--sans); font-size: 14px; }
+.elo-details summary { cursor: pointer; font-weight: 600; }
+main .elo-details p { font-family: var(--sans); font-size: 14px; }
+.elo-table { font-size: 13px; margin: 6px 0; }
+.elo-table td, .elo-table th { padding: 4px 6px; }
+.elo-venue { color: var(--ink-faint); font-size: 12px; }
+.elo-up { color: var(--positive, var(--up, #1f4f99)); font-weight: 600; }
+.elo-down { color: var(--danger, var(--down, #b3261e)); font-weight: 600; }
+.elo-country { font-size: 13px; font-weight: 500; color: var(--ink-faint); }
+main .elo-example p { font-family: var(--serif); font-size: 16px; line-height: 1.5; margin: 0 0 8px; }
+main .elo-example p.formula { font-family: var(--sans); font-size: 14px; }
+.elo-steps { font-family: var(--sans); font-size: 14px; line-height: 1.5; padding-left: 20px; margin: 0 0 8px; }
+.elo-steps li { margin: 3px 0; overflow-wrap: anywhere; }

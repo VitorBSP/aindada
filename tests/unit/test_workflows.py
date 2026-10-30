@@ -207,3 +207,27 @@ def test_league_forecast_step_uses_no_secret() -> None:
 def test_league_fallback_runs_the_standalone_gate() -> None:
     step = _text(PUBLISH).split("Ligas europeias — incluir no artefato", 1)[1].split("- name:", 1)[0]
     assert 'brasileirao.leagues.cli "$league" gate --standalone' in step
+
+
+# --- ADR-0013: Mundial de LoL no mesmo artefato do Pages ---------------------------------------------
+
+
+def test_lol_failure_never_blocks_the_rest() -> None:
+    assert re.search(r"id: lol\n\s+continue-on-error: true", _text(PUBLISH)) is not None
+
+
+def test_lol_step_uses_no_secret() -> None:
+    step = _text(PUBLISH).split("id: lol\n", 1)[1].split("- name:", 1)[0]
+    assert "secrets." not in step
+
+
+def test_lol_runs_its_gate_before_entering_the_artifact() -> None:
+    text = _text(PUBLISH)
+    assert text.index("brasileirao.esports.cli gate") < text.index(
+        'cp -r "$RUNNER_TEMP/site-mundial-lol" _site/mundial-lol'
+    )
+
+
+def test_lol_fallback_runs_the_gate() -> None:
+    step = _text(PUBLISH).split("Mundial de LoL — incluir no artefato", 1)[1].split("- name:", 1)[0]
+    assert "brasileirao.esports.cli gate --site-dir _site/mundial-lol" in step

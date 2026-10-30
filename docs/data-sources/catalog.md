@@ -334,3 +334,19 @@ Até haver decisão, 2026 segue com a ordem imputada (ADR-0010, Decisão 1).
   parênteses é o placar dos 90) e "pen.". "[awarded]" e "[cancelled]" ficam fora.
 - Cadastro `data/reference/clubs_europe.csv`: 304 clubes, 48 países; aliases `fd:<id>` para o football-data.org.
 - Composição real (2026-10-29): 16.413 jogos de 10 competições; Champions 2026/27 com 54 de 144 jogos encerrados.
+
+## Mundial de LoL (ADR-0013, 2026-10-30)
+
+- Wikipédia em inglês (CC BY-SA 4.0), API MediaWiki com `User-Agent` identificado: "2025 Mid-Season
+  Invitational" (revisão 1379718514), "2025 League of Legends World Championship" (1382338587), "2026
+  Mid-Season Invitational" (1381839964) e "2026 League of Legends World Championship" (revisão mais recente a
+  cada coleta; 1382756938 em 30/10). Revisões fixadas em `data/reference/lol_source_pins.json`; manifesto com
+  SHA-256 por artigo em `data/esports/raw/` (fora do git). Uso: só resultados, com atribuição no site.
+- Formato: modelo `{{Esports match}}` (`team1`, `team2`, `team1score`, `team2score`, `date`, `year`, `mapN`);
+  seção = título de nível 2 + subtítulo (ex.: "Swiss stage / Round 4").
+- Cadastro revisado `data/reference/lol_teams.csv`: 27 times, liga e grafias.
+- Descartados: Leaguepedia/Fandom (Termos proíbem acesso automatizado sem permissão escrita); Oracle's Elixir
+  adiado (cota do Google Drive esgotada no download aprovado).
+- Política de fãs da Riot ("Legal Jibber Jabber"): aviso obrigatório, sem logos, não comercial, revogável; risco
+  aceito pelo dono do produto em 30/10/2026.
+- Composição real (2026-10-30): 126 séries; Mundial 2026 com 34 de 46 séries listadas jogadas.

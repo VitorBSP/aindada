@@ -289,6 +289,48 @@ jobs:
             fi
           fi
 
+      # Mundial de LoL (ADR-0013): artigos da Wikipédia em inglês (eventos encerrados fixados por revisão,
+      # o atual na revisão mais recente). Sem segredo. Falha sozinho, sem bloquear as outras competições.
+      - name: Mundial de LoL — ingestão, previsão e gate
+        id: lol
+        continue-on-error: true
+        run: |
+          site="$RUNNER_TEMP/site-mundial-lol"
+          live_url="https://${GITHUB_REPOSITORY%%/*}.github.io/${GITHUB_REPOSITORY#*/}/mundial-lol/data/forecast.json"
+          # Encadeado com &&: dentro de `if ( ... )` o bash ignora o `set -e`.
+          live_date="$(curl -fsS "${live_url,,}" 2>/dev/null | jq -r '.reference_date // empty' 2>/dev/null || true)"
+          [ -n "$live_date" ] || echo "::warning::mundial-lol: sem forecast.json no ar; checagem de não regressão pulada"
+          if python -m brasileirao.esports.cli ingest --fetch \
+            && python -m brasileirao.esports.cli forecast --simulations "$SIMULATIONS" --seed "$SEED" \
+            && rm -rf "$site" \
+            && cp -r apps/web-lol "$site" \
+            && rm -rf "$site/data" \
+            && python -m brasileirao.esports.cli export-web --target "$site/data" \
+            && python -m brasileirao.esports.cli gate --site-dir "$site" ${live_date:+--live-reference-date "$live_date"}; then
+            touch "$RUNNER_TEMP/lol-ok"
+          else
+            echo "::warning::mundial-lol: ingestão, previsão ou gate falhou"
+          fi
+
+      - name: Mundial de LoL — incluir no artefato
+        run: |
+          if [ -f "$RUNNER_TEMP/lol-ok" ]; then
+            cp -r "$RUNNER_TEMP/site-mundial-lol" _site/mundial-lol
+            echo "mundial-lol: previsão nova"
+            exit 0
+          fi
+          live_url="https://${GITHUB_REPOSITORY%%/*}.github.io/${GITHUB_REPOSITORY#*/}/mundial-lol/data/forecast.json"
+          cp -r apps/web-lol _site/mundial-lol
+          rm -rf _site/mundial-lol/data
+          mkdir -p _site/mundial-lol/data
+          if curl -fsS "${live_url,,}" -o _site/mundial-lol/data/forecast.json \
+            && python -m brasileirao.esports.cli gate --site-dir _site/mundial-lol; then
+            echo "::warning::mundial-lol falhou; mantido o forecast.json do site no ar"
+          else
+            rm -rf _site/mundial-lol
+            echo "::warning::mundial-lol falhou e não há versão válida no ar; o site sai sem /mundial-lol"
+          fi
+
       - name: Resumo (versões e SHA-256 dos JSON exportados)
         env:
           TRIGGER: ${{ inputs.trigger }}
@@ -310,7 +352,7 @@ jobs:
             else
               echo "- Série B: fora do artefato"
             fi
-            for league in premier-league la-liga champions-league; do
+            for league in premier-league la-liga champions-league mundial-lol; do
               if [ -f "_site/$league/data/forecast.json" ]; then
                 echo "- $league: referência $(jq -r '.reference_date' "_site/$league/data/forecast.json"), dados $(jq -r '.data_version' "_site/$league/data/forecast.json")"
               else
@@ -321,7 +363,7 @@ jobs:
             echo "SHA-256 dos JSON exportados:"
             echo ""
             echo '```text'
-            (cd _site && find data serie-b/data premier-league/data la-liga/data champions-league/data -name '*.json' -type f 2>/dev/null | sort | xargs sha256sum)
+            (cd _site && find data serie-b/data premier-league/data la-liga/data champions-league/data mundial-lol/data -name '*.json' -type f 2>/dev/null | sort | xargs sha256sum)
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 

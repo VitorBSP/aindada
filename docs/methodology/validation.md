@@ -692,3 +692,20 @@ numa fase de liga muito embolada (do 5º ao 8º com 16 pontos; Real Madrid 9º e
 por temporada: duas temporadas não medem esse número (2024/25 pior que o chute uniforme, 2025/26 bem melhor).
 Limitações: parâmetros na borda da grade com superfície plana; clubes de fora das 7 ligas medidos só pelos jogos
 europeus; EL e Conference de 2025/26 ausentes; ratings fixos no resto da competição.
+
+## Mundial de LoL (ADR-0013, 2026-10-30)
+
+Elo em dois níveis (liga + time), só com eventos internacionais. Escolha na validação (Mundial 2025 e MSI 2026),
+teste nas séries já jogadas do Mundial 2026 (até 29/10). Log loss (menor é melhor; moeda = 0,693):
+
+| Conjunto | Mapas | Séries | Por mapa | Por série |
+|---|---|---|---|---|
+| Validação (escolhido: `k_league` 24, `k_team` 8, regressão 1,0) | 155 | 61 | 0,632 | 0,668 |
+| Teste, Mundial 2026 | 61 | 34 | 0,655 | 0,649 |
+| Teste, só liga (`k_team` 0) | 61 | 34 | 0,654 | 0,640 |
+| Elo só por time: validação 0,669 a 0,670; teste | 61 | — | 0,681 a 0,731 | — |
+
+- O modelo supera a moeda no teste, mas a amostra é pequena (61 mapas): a diferença para "só liga" está dentro
+  do ruído. O ganho vem quase todo da força da liga.
+- Simulação com dados reais (20.000, semente 2026): somas 8, 4, 2 e 1 por fase; gate com 0 achados.
+- `pytest tests/unit/test_esports.py`: 19 testes sintéticos (parser, Elo, série, simulação, gate).

@@ -36,8 +36,8 @@ LEAGUE_CODES = ("premier-league", "la-liga")
 
 def mount_competition_sites(app: FastAPI) -> None:
     """Mesmo desenho do artefato do Pages (ADR-0010, ADR-0011): `/serie-b/` e `/<liga>/`, com o
-    `forecast.json` local de cada um; Champions League (ADR-0012) em `/champions-league/`. Os caminhos mais
-    específicos vêm antes do `/` da Série A."""
+    `forecast.json` local de cada um; Champions League (ADR-0012) em `/champions-league/` e Mundial de LoL
+    (ADR-0013) em `/mundial-lol/`. Os caminhos mais específicos vêm antes do `/` da Série A."""
     if SERIE_B_DIR.exists():
         app.mount("/serie-b", StaticFiles(directory=SERIE_B_DIR, html=True), name="serie-b")
     for code in LEAGUE_CODES if PATHS.league_web_app.exists() else ():
@@ -50,6 +50,11 @@ def mount_competition_sites(app: FastAPI) -> None:
         if champions_data.exists():
             app.mount("/champions-league/data", StaticFiles(directory=champions_data), name="champions-data")
         app.mount("/champions-league", StaticFiles(directory=PATHS.champions_web_app, html=True), name="champions")
+    lol_data = PATHS.esports_data / "forecast"
+    if PATHS.lol_web_app.exists():
+        if lol_data.exists():
+            app.mount("/mundial-lol/data", StaticFiles(directory=lol_data), name="lol-data")
+        app.mount("/mundial-lol", StaticFiles(directory=PATHS.lol_web_app, html=True), name="lol")
 
 
 class SeasonInfo(BaseModel):

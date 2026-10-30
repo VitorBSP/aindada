@@ -3076,3 +3076,36 @@ Registrado pelo orquestrador (00), que executou as partes de 01, 03, 02, 04/05 e
   - **08/05**: interface em `methods.js`;
   - **06**: auditar;
   - **07**: nada muda no workflow.
+
+## Mundial de LoL (ADR-0013; 2026-10-30)
+
+- **O que mudou:**
+  - `src/brasileirao/esports/` (fontes, modelo, simulação, previsão, gate e CLI);
+  - `data/reference/lol_teams.csv` e `lol_source_pins.json`; `data/gold/lol_model_config.json` e
+    `lol_tuning_report.json` (só métricas agregadas);
+  - `apps/web-lol/` em `/mundial-lol/`; seletor com "Mundial de LoL" em todos os sites (D-042); API local monta
+    `/mundial-lol/`;
+  - `publish-site.yml` (as duas cópias) com passo próprio, sem segredo, falha isolada e fallback com gate.
+- **Evidência:**
+  - ingestão real: 126 séries; Mundial 2026 com 34 de 46 séries jogadas;
+  - calibração: teste 0,655 por mapa (moeda 0,693), 61 mapas;
+  - previsão real: Dplus KIA 32%, Gen.G 30%, T1 20%; gate com 0 achados no artefato de ensaio;
+  - `pytest -q`, ruff, format, mypy e actionlint sem achados.
+- **Premissas e limitações:** só eventos internacionais; teste curto; mapas independentes; regras do artigo da
+  Wikipédia, não do regulamento oficial; política da Riot revogável (risco aceito pelo dono).
+- **Próximo:**
+  - **06**: auditar antes do push;
+  - **08**: decidir se o LoL ganha aba em "Como calculamos" (D-040);
+  - **01**: Oracle's Elixir, se os CSVs forem baixados.
+- **Auditoria do 06 (ADR-0013)**: na primeira rodada, commit aprovado com ressalvas e push reprovado por B1. Depois das correções, commit aprovado e push/deploy aprovados com ressalvas, sem bloqueantes nem médios.
+  - **B1** (série com placar parcial ao vivo tratada como encerrada): `worlds.complete_only` devolve a série a agendada até o vencedor chegar às vitórias do formato. Teste novo.
+  - **M1** (resultado real do mata-mata dependia da ordem na página): a série é procurada pelos dois times em toda a fase, e a semi definida manda no pareamento.
+  - **M2** (quartas definidas em parte eram descartadas): passaram a ser mantidas.
+  - **M3** (`set -e` sem efeito dentro de `if ( ... )`): o passo do LoL foi encadeado com `&&` nas duas cópias.
+  - Menores corrigidos: formato das séries pela regra da fase, erro para grupo ímpar ou total diferente de 8 classificados, gate com [0, 1], `n_simulations` e times de `upcoming`, e texto da regressão.
+  - Ressalvas abertas (02/03):
+    - pareamento das semis segue a ordem das quartas na página enquanto as semis estiverem indefinidas;
+    - nas quartas definidas em parte, o resto é sorteado sem a regra 3–0 contra 3–2;
+    - o play-in do evento atual é tratado como melhor de 5.
+  - Para o 08: rótulo de time eliminado no mata-mata.
+  - Evidência: `pytest -q` com 894 testes passando; ruff, format, mypy e actionlint sem achados; gate com 0 achados.

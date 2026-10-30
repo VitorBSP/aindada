@@ -48,6 +48,9 @@ data/gold/*
 # Champions League (ADR-0012): hiperparâmetros e métricas agregadas.
 !data/gold/champions_model_config.json
 !data/gold/champions_tuning_report.json
+# Mundial de LoL (ADR-0013): hiperparâmetros e métricas agregadas.
+!data/gold/lol_model_config.json
+!data/gold/lol_tuning_report.json
 # Série B: raw, silver e previsão (placares derivados das fontes); export gerado só no workflow.
 data/serie_b/
 apps/web-serie-b/data/
@@ -55,6 +58,9 @@ apps/web-serie-b/data/
 data/leagues/
 apps/web-ligas/data/
 apps/web-champions/data/
+# Mundial de LoL: raw e previsão; export gerado só no workflow.
+data/esports/
+apps/web-lol/data/
 # Snapshots (SQLite) persistem fora do git (ADR-0007, item 4).
 data/snapshots/
 *.sqlite
