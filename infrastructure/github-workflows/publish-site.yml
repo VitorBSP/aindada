@@ -16,9 +16,11 @@ run-name: "publish-site (${{ inputs.trigger || github.event_name }}${{ inputs.ma
 
 on:
   schedule:
-    # Todo dia, 06:17 em Brasília: cobre os jogos da noite anterior. Fora do minuto 0, em que a fila de
-    # agendamentos do GitHub costuma atrasar ou pular execuções.
+    # Todo dia, 06:17 e 01:47 em Brasília: cobre os jogos da noite anterior em todas as competições. Fora
+    # do minuto 0, em que a fila de agendamentos do GitHub costuma atrasar ou pular execuções; o segundo
+    # horário existe porque o GitHub já atrasou o primeiro em até 10 horas.
     - cron: "17 9 * * *"
+    - cron: "47 4 * * *"
   workflow_dispatch:
     inputs:
       season:

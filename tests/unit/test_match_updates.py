@@ -391,3 +391,32 @@ def test_api_finished_match_already_finished_on_site_is_not_published() -> None:
     api_status = {"101": "FINISHED", "102": "FINISHED"}
     outcome = MU.evaluate(due, api_status, MU.site_statuses(_export_document()), NOW, DEADLINE)
     assert outcome.publish == ("102",)
+
+
+# --- agendamento atrasado pelo GitHub: jogos de ontem ----------------------------------------------
+
+LATE_NOITE_START = datetime(2099, 3, 5, 3, 3, tzinfo=UTC)  # 00:03 BRT do dia seguinte
+
+
+def test_late_evening_run_checks_yesterday_night_match() -> None:
+    queue, _ = MU.plan([_match("late", 21)], LATE_NOITE_START, "noite")
+    assert [check.source_id for check in queue] == ["late"]
+
+
+def test_late_evening_run_publishes_yesterday_match_missing_on_site() -> None:
+    world = _world(late=(21, 0, FINISHED_AT_115))
+    _run(world, LATE_NOITE_START, window="noite")
+    assert world.dispatched == [("late",)]
+
+
+def test_yesterday_match_already_on_site_is_not_published_again() -> None:
+    world = _world(late=(21, 0, FINISHED_AT_115))
+    world.site = {"late": "finished"}
+    _run(world, LATE_NOITE_START, window="noite")
+    assert world.dispatched == []
+
+
+def test_match_from_two_days_ago_is_ignored() -> None:
+    old = MU.ApiMatch("old", datetime(2099, 3, 2, 22, 0, tzinfo=UTC), "FINISHED")
+    queue, _ = MU.plan([old], LATE_NOITE_START, "noite")
+    assert queue == []

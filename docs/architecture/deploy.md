@@ -48,8 +48,9 @@ checkout -> pip install -> pytest (sem dados) -> SQLite isolado em $RUNNER_TEMP
   -> visibilidade do repositório -> upload-pages-artifact -> deploy-pages
 ```
 
-- Gatilhos: `schedule` diário às 09:17 UTC (06:17 em Brasília, depois dos jogos da noite; fora do
-  minuto 0, em que o GitHub costuma atrasar ou pular agendamentos) e `workflow_dispatch` (entrada
+- Gatilhos: `schedule` diário às 09:17 e às 04:47 UTC (06:17 e 01:47 em Brasília, depois dos jogos da noite;
+  fora do minuto 0, em que o GitHub costuma atrasar ou pular agendamentos; o segundo horário existe porque o
+  primeiro já atrasou até 10 horas em 31/10–02/11/2026) e `workflow_dispatch` (entrada
   opcional `season`). Só na `main`. Nunca em `pull_request` nem `pull_request_target`.
 - **Interruptor `PUBLISH_ENABLED`** (variável do repositório):
   - ausente ou diferente de `true`: o agendamento não roda; o `workflow_dispatch` é um **ensaio**

@@ -2,8 +2,11 @@
 
 Rodado pelo `atualizar-rodada.yml` com `python -I`, só com a biblioteca padrão:
 
-1. uma chamada ao football-data.org pelos jogos do dia em Brasília (o filtro da API é por data UTC; o
-   pedido cobre de `dia` a `dia + 2` e o script filtra pela data em `America/Sao_Paulo`);
+1. uma chamada ao football-data.org pelos jogos do dia em Brasília e do dia anterior (o filtro da API é
+   por data UTC; o pedido cobre de `ontem` a `ontem + 2` e o script filtra pela data em `America/Sao_Paulo`).
+   Os jogos de ontem entram porque o GitHub chega a atrasar o agendamento em horas: a janela da noite já
+   começou depois da meia-noite e perdeu o jogo das 21h. Jogo de ontem já encerrado no site não é publicado
+   de novo;
 2. `check_at = início + 2 h 10` para os jogos com horário confirmado da janela (tarde: `check_at` antes
    de 18:30; noite: o dia inteiro, o que recolhe os jogos da tarde ainda não publicados);
 3. dorme até cada grupo de `check_at`; no horário, uma chamada à API e a leitura do `predictions.json`
@@ -124,9 +127,15 @@ def plan(matches: Iterable[ApiMatch], started_at: datetime, window: str) -> tupl
     queue: list[Check] = []
     entries: list[Entry] = []
     for match in sorted(matches, key=lambda item: (item.kickoff_utc, item.source_id)):
-        if brasilia_day(match.kickoff_utc) != day:
+        match_day = brasilia_day(match.kickoff_utc)
+        if match_day not in (day, day - timedelta(days=1)):
             continue
         check_at = match.kickoff_utc + CHECK_DELAY
+        if match_day != day:
+            if match.status not in DROPPED_STATUSES and check_at <= deadline:
+                queue.append(Check(match.source_id, check_at))
+                entries.append(Entry(check_at, match.source_id, "jogo de ontem; checagem agendada"))
+            continue
         if match.status in DROPPED_STATUSES:
             entries.append(Entry(started_at, match.source_id, f"{match.status}; fica para a publicação diária"))
         elif match.status == "SCHEDULED" and match.kickoff_utc > started_at:
@@ -202,7 +211,7 @@ def run(
     if mode == "off":
         record(Entry(started_at, "-", "MATCH_UPDATES=off; nada a fazer"))
         return report
-    day = brasilia_day(started_at)
+    day = brasilia_day(started_at) - timedelta(days=1)
     matches = fetch_matches(day)
     fetched_at = started_at
     queue, entries = plan(matches, started_at, window)

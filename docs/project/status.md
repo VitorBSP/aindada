@@ -3109,3 +3109,24 @@ Registrado pelo orquestrador (00), que executou as partes de 01, 03, 02, 04/05 e
     - o play-in do evento atual é tratado como melhor de 5.
   - Para o 08: rótulo de time eliminado no mata-mata.
   - Evidência: `pytest -q` com 894 testes passando; ruff, format, mypy e actionlint sem achados; gate com 0 achados.
+
+## Jogos de 02/11 fora do site (Agente 07; 2026-11-03)
+
+- **Sintomas:** Série A, Série B, Premier League, LaLiga e Mundial de LoL sem os jogos de ontem.
+- **Causas:**
+  - O GitHub atrasou os agendamentos em horas. A janela da noite do `atualizar-rodada` (18:37) começou às 00:03 de
+    03/11; o script tomou 03/11 como "dia" e não olhou o jogo da Série A de 02/11 à noite. A publicação diária
+    (06:17) vinha rodando entre 12:19 e 16:29, e as outras competições só atualizam por ela.
+  - O passo do LoL falhava desde 01/11: a Wikipédia passou a grafar o Los Grandes como "LØS", e time fora do
+    cadastro faz a ingestão falhar (de propósito). O fallback manteve a versão de 31/10.
+- **O que mudou:**
+  - `match_updates.py` olha também os jogos de ontem; o jogo já encerrado no site não é publicado de novo
+    (4 testes novos);
+  - `publish-site.yml` (as duas cópias) ganhou um segundo horário diário, 01:47 em Brasília;
+  - `lol_teams.csv`: o Los Grandes passa a se chamar "LØS", com "Los Grandes" como grafia antiga;
+  - `deploy.md` e o risco R19 foram atualizados.
+- **Evidência:**
+  - `pytest -q`: 898 testes passam;
+  - ruff, mypy e actionlint sem achados;
+  - LoL local: 39 de 46 séries, quartas definidas (TES × IG em 03/11).
+- **Próximo:** 07 dispara o `publish-site` depois do push e acompanha.
