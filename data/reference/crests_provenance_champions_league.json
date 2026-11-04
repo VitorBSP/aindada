@@ -1,0 +1,374 @@
+{
+  "aut-lask": {
+    "author": "<a href=\"https://en.wikipedia.org/wiki/en:LASK\" class=\"extiw\" title=\"w:en:LASK\"><span title=\"association football club in Austria\">LASK Linz</span></a>",
+    "bg": "#FFFFFF",
+    "commons_file": "LASK-Logo 2023.svg",
+    "fg": "#17191C",
+    "file": "aut-lask.png",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:LASK-Logo_2023.svg",
+    "license": "Public domain",
+    "license_status": "livre",
+    "retrieved_at": "2026-11-04T20:48:37+00:00",
+    "sha256": "841f62cab8921fb83e48be6ed9b3084f8336af93bd4f3b5fc947319af2253dee",
+    "short_name": "LIN",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/a/a2/LASK-Logo_2023.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a2/LASK-Logo_2023.svg/250px-LASK-Logo_2023.svg.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "wikipedia_title": "LASK"
+  },
+  "aze-sabah": {
+    "bg": "#000000",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "SAB",
+    "wikipedia_title": "Sabah FK (Azerbaijan)"
+  },
+  "bel-brugge": {
+    "bg": "#1F3F8F",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "BRU",
+    "wikipedia_title": "Club Brugge KV"
+  },
+  "cze-slavia-praha": {
+    "author": "SK Slavia Praha",
+    "bg": "#C8102E",
+    "commons_file": "Slavia-symbol-nowordmark-RGB.png",
+    "fg": "#FFFFFF",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Slavia-symbol-nowordmark-RGB.png",
+    "license": "CC BY-SA 4.0",
+    "license_status": "sem logo livre",
+    "short_name": "SLP",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/9/90/Slavia-symbol-nowordmark-RGB.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/90/Slavia-symbol-nowordmark-RGB.png/250px-Slavia-symbol-nowordmark-RGB.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "wikipedia_title": "SK Slavia Prague"
+  },
+  "eng-arsenal": {
+    "bg": "#C8102E",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "ARS",
+    "wikipedia_title": "Arsenal F.C."
+  },
+  "eng-aston-villa": {
+    "bg": "#800032",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "AVL",
+    "wikipedia_title": "Aston Villa F.C."
+  },
+  "eng-liverpool": {
+    "bg": "#C8102E",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "note": "logo do Wikidata é só o letreiro L.F.C.",
+    "short_name": "LIV",
+    "wikipedia_title": "Liverpool F.C."
+  },
+  "eng-manchester-city": {
+    "bg": "#6CABDD",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "MCI",
+    "wikipedia_title": "Manchester City F.C."
+  },
+  "eng-manchester-united": {
+    "bg": "#C8102E",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "MUN",
+    "wikipedia_title": "Manchester United F.C."
+  },
+  "esp-atletico-madrid": {
+    "bg": "#C8102E",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "ATL",
+    "wikipedia_title": "Atlético Madrid"
+  },
+  "esp-barcelona": {
+    "author": "<a href=\"//commons.wikimedia.org/w/index.php?title=User:HAMDANI_72&amp;action=edit&amp;redlink=1\" class=\"new\" title=\"User:HAMDANI 72 (page does not exist)\">HAMDANI 72</a>",
+    "bg": "#1F3F8F",
+    "commons_file": "Football Club Barcelona Color Update.png",
+    "fg": "#FFFFFF",
+    "file": "esp-barcelona.png",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Football_Club_Barcelona_Color_Update.png",
+    "license": "CC0",
+    "license_status": "livre",
+    "retrieved_at": "2026-11-04T20:48:17+00:00",
+    "sha256": "b1a5ebb2771d3134b2058910a8692b1be8a5a63f9fc0061f328d36125e7cc295",
+    "short_name": "FCB",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/33/Football_Club_Barcelona_Color_Update.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/33/Football_Club_Barcelona_Color_Update.png/250px-Football_Club_Barcelona_Color_Update.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "wikipedia_title": "FC Barcelona"
+  },
+  "esp-real-betis": {
+    "bg": "#E2E1DB",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "BET",
+    "wikipedia_title": "Real Betis"
+  },
+  "esp-real-madrid-c-f": {
+    "bg": "#FFFFFF",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "RMA",
+    "wikipedia_title": "Real Madrid CF"
+  },
+  "esp-villarreal": {
+    "bg": "#F2C300",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "VIL",
+    "wikipedia_title": "Villarreal CF"
+  },
+  "fra-lens": {
+    "bg": "#E2E1DB",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "RCL",
+    "wikipedia_title": "RC Lens"
+  },
+  "fra-lille": {
+    "bg": "#E2E1DB",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "LIL",
+    "wikipedia_title": "Lille OSC"
+  },
+  "fra-paris-saint-germain": {
+    "bg": "#000080",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "PSG",
+    "wikipedia_title": "Paris Saint-Germain FC"
+  },
+  "ger-bayern-munchen": {
+    "author": "<a href=\"https://en.wikipedia.org/wiki/en:FC_Bayern_Munich\" class=\"extiw\" title=\"w:en:FC Bayern Munich\"><span title=\"association football club in Munich, Germany\">FC Bayern Munich</span></a>",
+    "bg": "#E2E1DB",
+    "commons_file": "FC Bayern München logo (2024).svg",
+    "fg": "#17191C",
+    "file": "ger-bayern-munchen.png",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:FC_Bayern_M%C3%BCnchen_logo_(2024).svg",
+    "license": "Public domain",
+    "license_status": "livre",
+    "retrieved_at": "2026-11-04T20:48:25+00:00",
+    "sha256": "cdbcd5f8198cec251a83b7df0ff018b5ec23b4445a3ad6d3c30a9f7e5c73a804",
+    "short_name": "BAY",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/8/8d/FC_Bayern_M%C3%BCnchen_logo_%282024%29.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8d/FC_Bayern_M%C3%BCnchen_logo_%282024%29.svg/250px-FC_Bayern_M%C3%BCnchen_logo_%282024%29.svg.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "wikipedia_title": "FC Bayern Munich"
+  },
+  "ger-borussia-dortmund": {
+    "author": "<a href=\"//commons.wikimedia.org/wiki/User:Lispir\" title=\"User:Lispir\">Lispir</a> (<a href=\"https://pl.wikipedia.org/wiki/Wikipedysta:Lispir\" class=\"extiw\" title=\"pl:Wikipedysta:Lispir\">Lispir</a>)",
+    "bg": "#F2C300",
+    "commons_file": "Borussia Dortmund logo.svg",
+    "fg": "#17191C",
+    "file": "ger-borussia-dortmund.png",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Borussia_Dortmund_logo.svg",
+    "license": "Public domain",
+    "license_status": "livre",
+    "retrieved_at": "2026-11-04T20:48:39+00:00",
+    "sha256": "d84f95395cd652be1b8fc8ff18a727ae447ef25e2e24b7f5031b1ac13da3a1ee",
+    "short_name": "BVB",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/6/67/Borussia_Dortmund_logo.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/67/Borussia_Dortmund_logo.svg/250px-Borussia_Dortmund_logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "wikipedia_title": "Borussia Dortmund"
+  },
+  "ger-rb-leipzig": {
+    "author": "<a href=\"//commons.wikimedia.org/wiki/User:Stepro\" title=\"User:Stepro\">Steffen Prößdorf</a>, edited by <a href=\"//commons.wikimedia.org/wiki/User:CennoxX\" title=\"User:CennoxX\">User:CennoxX</a>",
+    "bg": "#E2E1DB",
+    "commons_file": "2019-07-12 Fußball; Freundschaftsspiel RB Leipzig - FC Zürich 1DX 0881 by Stepro 2.png",
+    "fg": "#17191C",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:2019-07-12_Fu%C3%9Fball;_Freundschaftsspiel_RB_Leipzig_-_FC_Z%C3%BCrich_1DX_0881_by_Stepro_2.png",
+    "license": "CC BY-SA 4.0",
+    "license_status": "sem logo livre",
+    "short_name": "RBL",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/a/ab/2019-07-12_Fu%C3%9Fball%3B_Freundschaftsspiel_RB_Leipzig_-_FC_Z%C3%BCrich_1DX_0881_by_Stepro_2.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ab/2019-07-12_Fu%C3%9Fball%3B_Freundschaftsspiel_RB_Leipzig_-_FC_Z%C3%BCrich_1DX_0881_by_Stepro_2.png/250px-2019-07-12_Fu%C3%9Fball%3B_Freundschaftsspiel_RB_Leipzig_-_FC_Z%C3%BCrich_1DX_0881_by_Stepro_2.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "wikipedia_title": "RB Leipzig"
+  },
+  "ger-stuttgart": {
+    "author": "<a href=\"//commons.wikimedia.org/wiki/VfB_Stuttgart\" title=\"VfB Stuttgart\">VfB Stuttgart</a>",
+    "bg": "#C8102E",
+    "commons_file": "VfB Stuttgart 1893 Logo.svg",
+    "fg": "#FFFFFF",
+    "file": "ger-stuttgart.png",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:VfB_Stuttgart_1893_Logo.svg",
+    "license": "Public domain",
+    "license_status": "livre",
+    "retrieved_at": "2026-11-04T20:48:29+00:00",
+    "sha256": "ba436fc1af57546fd820ec53b0d8bf3fbaf614136b1a723065f24cae743f68a5",
+    "short_name": "VFB",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/e/eb/VfB_Stuttgart_1893_Logo.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/eb/VfB_Stuttgart_1893_Logo.svg/250px-VfB_Stuttgart_1893_Logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "wikipedia_title": "VfB Stuttgart"
+  },
+  "gre-aek-athen": {
+    "bg": "#F2C300",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "AEK",
+    "wikipedia_title": "AEK Athens F.C."
+  },
+  "ita-como": {
+    "author": "Como 1907 srl",
+    "bg": "#E2E1DB",
+    "commons_file": "Calcio Como - logo (Italy, 2019-).svg",
+    "fg": "#17191C",
+    "file": "ita-como.png",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Calcio_Como_-_logo_(Italy,_2019-).svg",
+    "license": "Public domain",
+    "license_status": "livre",
+    "retrieved_at": "2026-11-04T20:48:30+00:00",
+    "sha256": "aef3e6669e46e38c259127b73b5ae391bf9c65f54b20e94f638562f792cd306a",
+    "short_name": "COM",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/9/99/Calcio_Como_-_logo_%28Italy%2C_2019-%29.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/99/Calcio_Como_-_logo_%28Italy%2C_2019-%29.svg/250px-Calcio_Como_-_logo_%28Italy%2C_2019-%29.svg.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "wikipedia_title": "Como 1907"
+  },
+  "ita-internazionale-milano": {
+    "author": "FC Internazionale Milano <a href=\"https://en.wikipedia.org/wiki/Societ%C3%A0_per_azioni\" class=\"extiw\" title=\"w:Società per azioni\">S.p.A.</a> / Bureau Borsche",
+    "bg": "#1F3F8F",
+    "commons_file": "FC Internazionale Milano 2021.svg",
+    "fg": "#FFFFFF",
+    "file": "ita-internazionale-milano.png",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:FC_Internazionale_Milano_2021.svg",
+    "license": "Public domain",
+    "license_status": "livre",
+    "retrieved_at": "2026-11-04T20:48:35+00:00",
+    "sha256": "05802b7ad1fe8cc49740a9a683276b761b630b807c6a609deb3bd51892db7a26",
+    "short_name": "INT",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/05/FC_Internazionale_Milano_2021.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/05/FC_Internazionale_Milano_2021.svg/250px-FC_Internazionale_Milano_2021.svg.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "wikipedia_title": "Inter Milan"
+  },
+  "ita-napoli": {
+    "author": "<ul><li><b>Logo: </b> SSC Napoli S.p.A.</li>\n<li><b>Upload: </b> <a href=\"//commons.wikimedia.org/wiki/User:The_White_Lion\" title=\"User:The White Lion\">The White Lion</a></li></ul>",
+    "bg": "#6CABDD",
+    "commons_file": "SSC Napoli 2024 (deep blue navy).svg",
+    "fg": "#17191C",
+    "file": "ita-napoli.png",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:SSC_Napoli_2024_(deep_blue_navy).svg",
+    "license": "Public domain",
+    "license_status": "livre",
+    "retrieved_at": "2026-11-04T20:48:51+00:00",
+    "sha256": "0ba5e1cc0b3cac9aea18cf96123323aafac6ed864e7e48d6c5f7ae00befb279c",
+    "short_name": "NAP",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/00/SSC_Napoli_2024_%28deep_blue_navy%29.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/00/SSC_Napoli_2024_%28deep_blue_navy%29.svg/250px-SSC_Napoli_2024_%28deep_blue_navy%29.svg.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "wikipedia_title": "SSC Napoli"
+  },
+  "ita-roma": {
+    "bg": "#F2C300",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "note": "logo do Wikidata é só o letreiro",
+    "short_name": "ROM",
+    "wikipedia_title": "AS Roma"
+  },
+  "ned-feyenoord-rotterdam": {
+    "bg": "#C8102E",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "FEY",
+    "wikipedia_title": "Feyenoord"
+  },
+  "ned-psv": {
+    "bg": "#E2E1DB",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "PSV",
+    "wikipedia_title": "PSV Eindhoven"
+  },
+  "nor-bod-glimt": {
+    "bg": "#F2C300",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "BOD",
+    "wikipedia_title": "FK Bodø/Glimt"
+  },
+  "nor-viking": {
+    "author": "Viking Fotballklubb",
+    "bg": "#1F3F8F",
+    "commons_file": "Viking Logo.png",
+    "fg": "#FFFFFF",
+    "file": "nor-viking.png",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Viking_Logo.png",
+    "license": "Public domain",
+    "license_status": "livre",
+    "retrieved_at": "2026-11-04T20:49:04+00:00",
+    "sha256": "6b6e3c4545cf4d5cc3aa7fbb9b01b322edc0ecb402ffbc99f52089450f22cbd3",
+    "short_name": "VIK",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/9/9a/Viking_Logo.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9a/Viking_Logo.png/250px-Viking_Logo.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "wikipedia_title": "Viking FK"
+  },
+  "por-porto": {
+    "author": "<a href=\"//commons.wikimedia.org/wiki/User:Manuel_de_Sousa\" title=\"User:Manuel de Sousa\">Manuel de Sousa</a> / <a href=\"//commons.wikimedia.org/wiki/User:JotaCartas\" title=\"User:JotaCartas\">JotaCartas",
+    "bg": "#1F3F8F",
+    "commons_file": "Emblema F C Porto (derived).jpg",
+    "fg": "#FFFFFF",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Emblema_F_C_Porto_(derived).jpg",
+    "license": "CC BY-SA 3.0",
+    "license_status": "sem logo livre",
+    "short_name": "FCP",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/2b/Emblema_F_C_Porto_%28derived%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "thumb_url": "https://upload.wikimedia.org/wikipedia/commons/2/2b/Emblema_F_C_Porto_%28derived%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "wikipedia_title": "FC Porto"
+  },
+  "por-sporting-clube-portugal": {
+    "bg": "#1E7B3A",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "note": "logo do Wikidata é o símbolo histórico",
+    "short_name": "SPO",
+    "wikipedia_title": "Sporting CP"
+  },
+  "svk-slovan-bratislava": {
+    "author": "ŠK Slovan Bratislava",
+    "bg": "#E2E1DB",
+    "commons_file": "SK Slovan Bratislava logo.svg",
+    "fg": "#17191C",
+    "file": "svk-slovan-bratislava.png",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:SK_Slovan_Bratislava_logo.svg",
+    "license": "Public domain",
+    "license_status": "livre",
+    "retrieved_at": "2026-11-04T20:49:08+00:00",
+    "sha256": "eb114b71d586bcda78372e66dfa758cf1ac05de79877e4e522e97b46db65e211",
+    "short_name": "SBA",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/01/SK_Slovan_Bratislava_logo.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/SK_Slovan_Bratislava_logo.svg/250px-SK_Slovan_Bratislava_logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "wikipedia_title": "ŠK Slovan Bratislava"
+  },
+  "tur-fenerbahce": {
+    "bg": "#F2C300",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "FEN",
+    "wikipedia_title": "Fenerbahçe S.K. (football)"
+  },
+  "tur-galatasaray": {
+    "author": "Ayet Emin (died on 29 September 1931, <a rel=\"nofollow\" class=\"external text\" href=\"http://www.galatasaray.org/tarih/pages/tarihlogo.php\">Galatasaray Logosunun Doğuşu</a>), Vector drawing: Turkish Wik",
+    "bg": "#F2C300",
+    "commons_file": "Galatasaray Sports Club Logo.svg",
+    "fg": "#17191C",
+    "file": "tur-galatasaray.png",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Galatasaray_Sports_Club_Logo.svg",
+    "license": "Public domain",
+    "license_status": "livre",
+    "retrieved_at": "2026-11-04T20:48:43+00:00",
+    "sha256": "1460214bbd8790589f1dd274346e4a23b27758b2a899db16e74d24d8f5d5ed6f",
+    "short_name": "GAL",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/20/Galatasaray_Sports_Club_Logo.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/20/Galatasaray_Sports_Club_Logo.svg/250px-Galatasaray_Sports_Club_Logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "wikipedia_title": "Galatasaray S.K. (football)"
+  },
+  "ukr-shakhtar-donetsk": {
+    "bg": "#E2E1DB",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "SHD",
+    "wikipedia_title": "FC Shakhtar Donetsk"
+  }
+}

@@ -1,7 +1,10 @@
 "use strict";
 
+// Premier League e LaLiga (ADR-0011) no desenho dos sites de competição (D-043). O mesmo app serve as duas ligas;
+// cada uma é publicada em /<código>/ com o próprio data/forecast.json.
 (function () {
-  const main = document.getElementById("main");
+  const S = window.AIndaDaSite;
+  const { escapeHtml, pct, team } = S;
   const number = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
   const decimal = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
   const DONE = {
@@ -9,6 +12,8 @@
     up: { in: "já garantiu", out: "não dá mais" },
     down: { in: "caiu", out: "não cai mais" },
   };
+  const KIND = { title: "title", up: "lib", down: "danger" };
+  const ROW_ZONE = { up: "zone-lib", down: "zone-z4" };
   const TIEBREAK_LABELS = {
     points: "pontos",
     wins: "vitórias",
@@ -20,193 +25,152 @@
     draw_lot: "sorteio (no lugar de fair play ou jogo extra)",
   };
 
-  function escapeHtml(value) {
-    return String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+  // Certeza só quando a aritmética decide (clinched); simulação nunca vira certeza.
+  const zoneLabel = (club, zone) => {
+    const state = club.clinched[zone.zone_id];
+    return state ? DONE[zone.kind][state] : pct(club.zones[zone.zone_id]);
+  };
+  const leagueName = (data) => data.competition_name.replace(/\s+\d{4}\/\d{2}$/, "");
+  const totalRounds = (data) => 2 * (data.teams.length - 1);
+
+  function edition(data) {
+    const played = Math.max(...data.teams.map((club) => club.played));
+    return `<p class="edition"><span class="edition-name">Edição de ${escapeHtml(S.formatDate(data.reference_date, { weekday: "long", day: "numeric", month: "long", year: "numeric" }))}</span> · ${escapeHtml(data.competition_name)} · ${played} de ${totalRounds(data)} rodadas</p>
+      <p class="edition-facts"><strong>${data.observed_matches}</strong> de ${data.observed_matches + data.remaining_matches} jogos disputados · <strong>${data.n_simulations.toLocaleString("pt-BR")}</strong> simulações do que falta</p>`;
   }
 
-  // Certeza só quando a aritmética decide (clinched); simulação nunca vira certeza (CONTENT_GUIDELINES).
-  function pct(value, state, kind) {
-    if (state && kind) return DONE[kind][state];
-    if (value < 0.001) return "<0,1%";
-    if (value > 0.999) return ">99,9%";
-    if (value < 0.01 || value > 0.99) return number.format(Math.round(value * 1000) / 10) + "%";
-    return Math.round(value * 100) + "%";
-  }
-
-  function formatDate(iso) {
-    const [year, month, day] = iso.split("-").map(Number);
-    return new Date(year, month - 1, day).toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
-  }
-
-  function kickoff(match) {
-    if (match.kickoff_utc) {
-      return new Date(match.kickoff_utc).toLocaleString("pt-BR", {
-        timeZone: "America/Sao_Paulo", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
-      }) + " (Brasília)";
-    }
-    const [year, month, day] = match.match_date.split("-").map(Number);
-    return new Date(year, month - 1, day).toLocaleDateString("pt-BR", { weekday: "short", day: "numeric", month: "short" }) + ", horário a definir";
-  }
-
-  function badge(team) {
-    return `<span class="badge" aria-hidden="true">${escapeHtml(team.short_name)}</span>`;
-  }
-
-  function zoneCard(data, zone) {
-    const candidates = data.teams
-      .filter((team) => team.clinched[zone.zone_id] !== "out" && team.zones[zone.zone_id] > 0)
+  function race(data, zone) {
+    const items = data.teams
+      .filter((club) => club.clinched[zone.zone_id] !== "out" && club.zones[zone.zone_id] > 0)
       .sort((a, b) => b.zones[zone.zone_id] - a.zones[zone.zone_id])
-      .slice(0, zone.kind === "title" ? 4 : 6);
-    const items = candidates
-      .map((team) => {
-        const state = team.clinched[zone.zone_id];
-        return `<li>${badge(team)}<span class="name">${escapeHtml(team.name)}</span><span class="value${state ? " done" : ""}">${pct(team.zones[zone.zone_id], state, zone.kind)}</span></li>`;
-      })
-      .join("");
-    const range = zone.first === zone.last ? `${zone.first}º lugar` : `entre ${zone.first}º e ${zone.last}º`;
-    return `<div class="zone ${zone.kind}"><h3>${escapeHtml(zone.label)}</h3><p class="zone-sub">% das simulações em que termina ${range}</p><ol>${items}</ol></div>`;
+      .slice(0, zone.kind === "title" ? 5 : 8)
+      .map((club) => ({ id: club.club_id, value: club.zones[zone.zone_id], label: zoneLabel(club, zone) }));
+    const range = zone.first === zone.last ? `em ${zone.first}º lugar` : `entre ${zone.first}º e ${zone.last}º`;
+    const title = zone.kind === "up" ? `${zone.label}: Liga dos Campeões` : zone.label;
+    return `<section class="race"><h3>${escapeHtml(title)}</h3><p class="note">% das simulações em que termina ${range}</p>${S.raceRows(items, KIND[zone.kind])}</section>`;
   }
 
-  function hero(data) {
+  function home(data) {
     const title = data.zones.find((zone) => zone.kind === "title");
     const leader = [...data.teams].sort((a, b) => b.zones[title.zone_id] - a.zones[title.zone_id])[0];
-    const played = Math.max(...data.teams.map((team) => team.played));
-    const totalRounds = 2 * (data.teams.length - 1);
     const leaderLine = leader.clinched[title.zone_id] === "in"
-      ? `${escapeHtml(leader.name)} já é campeão.`
-      : `${escapeHtml(leader.name)} é o favorito: fica com o título em ${pct(leader.zones[title.zone_id])} das simulações.`;
+      ? `<strong>${escapeHtml(leader.name)}</strong> já é campeão.`
+      : `<strong>${escapeHtml(leader.name)}</strong> é o favorito: fica com o título em ${pct(leader.zones[title.zone_id])} das simulações.`;
+    const notes = data.zones.filter((zone) => zone.note).map((zone) => `<p class="note">${escapeHtml(zone.note)}</p>`).join("");
+    const next = nextRound(data);
     return `
-      <section aria-labelledby="titulo">
-        <p class="kicker">${escapeHtml(data.competition_name)} · ${played} de ${totalRounds} rodadas disputadas</p>
-        <h1 id="titulo">Título, vaga e queda: quem ainda dá?</h1>
-        <p class="lede">${leaderLine} Contamos cada posição do 1º ao ${data.teams.length}º em ${data.n_simulations.toLocaleString("pt-BR")} simulações do que falta da temporada.</p>
-        <p class="meta">Resultados até ${formatDate(data.reference_date)}</p>
-        <div class="zones" id="disputas">${data.zones.map((zone) => zoneCard(data, zone)).join("")}</div>
-      </section>`;
+      <h1>Título, vaga e queda: quem ainda dá?</h1>
+      <p class="lede">${leaderLine} Contamos cada posição do 1º ao ${data.teams.length}º em ${data.n_simulations.toLocaleString("pt-BR")} simulações do que falta da temporada. Sem playoff: os ${data.zones.find((zone) => zone.kind === "down").last - data.zones.find((zone) => zone.kind === "down").first + 1} últimos caem direto.</p>
+      <div class="races">${data.zones.map((zone) => race(data, zone)).join("")}</div>
+      ${notes}
+      ${next ? `<h2>Próxima rodada: rodada ${next.round}</h2><p class="note">Horários de Brasília. Mandante à esquerda.</p>${next.matches.slice(0, 4).map(S.matchRow).join("")}<p class="more"><a href="#/jogos">Todos os ${next.matches.length} jogos da rodada</a> · <a href="#/tabela">Tabela completa</a></p>` : ""}`;
   }
 
   function table(data) {
-    const cuts = new Map();
-    data.zones.forEach((zone) => {
-      if (zone.kind === "down") cuts.set(zone.first - 1, "cut-safe");
-      else if (zone.last < data.teams.length) cuts.set(zone.last, zone.kind === "title" ? "" : "cut-direct");
-    });
-    const rows = data.teams
-      .map((team) => {
-        const heat = team.position_probabilities
-          .map((value, index) => `<i style="opacity:${value === 0 ? 0.06 : (0.12 + 0.88 * Math.min(1, value * 1.6)).toFixed(2)}" title="${index + 1}º: ${pct(value)}"></i>`)
-          .join("");
-        const zoneCells = data.zones
-          .map((zone) => `<td class="zone-cell">${pct(team.zones[zone.zone_id], team.clinched[zone.zone_id], zone.kind)}</td>`)
-          .join("");
-        const goalDifference = team.goals_for - team.goals_against;
-        return `<tr class="${cuts.get(team.position) || ""}">
-          <td>${team.position}</td>
-          <td class="left"><span class="club-cell">${badge(team)}${escapeHtml(team.name)}</span></td>
-          <td class="pts">${team.points}</td><td>${team.played}</td><td>${team.wins}</td><td>${team.draws}</td><td>${team.losses}</td>
-          <td>${goalDifference > 0 ? "+" : ""}${goalDifference}</td><td>${number.format(team.expected_points)}</td>
-          ${zoneCells}
-          <td class="left"><span class="heat" role="img" aria-label="Distribuição da posição final de ${escapeHtml(team.name)}">${heat}</span></td>
-        </tr>`;
-      })
-      .join("");
+    const zones = data.zones.filter((zone) => zone.kind !== "title");
+    const rowZone = (position) => {
+      const zone = zones.find((item) => position >= item.first && position <= item.last);
+      return zone ? ROW_ZONE[zone.kind] : "";
+    };
+    const rows = data.teams.map((club) => {
+      const goalDifference = club.goals_for - club.goals_against;
+      const cells = data.zones.map((zone) => `<td>${S.probCell(club.zones[zone.zone_id], KIND[zone.kind], club.clinched[zone.zone_id] ? zoneLabel(club, zone) : null)}</td>`).join("");
+      return `<tr class="${rowZone(club.position)}">
+        <td class="pos">${club.position}</td>
+        <td class="left club">${team(club.club_id, 20)}</td>
+        <td><strong>${club.points}</strong></td><td>${club.played}</td><td>${club.wins}</td><td>${club.draws}</td><td>${club.losses}</td>
+        <td>${goalDifference > 0 ? "+" : ""}${goalDifference}</td>
+        <td class="view-start">${number.format(club.expected_points)}<span class="range">${club.points_interval_90[0]}–${club.points_interval_90[1]}</span></td>
+        ${cells}
+        <td class="left">${S.heat(club.position_probabilities, club.name)}</td>
+      </tr>`;
+    }).join("");
+    const legend = zones.map((zone) => `<span class="${zone.kind === "up" ? "l-lib" : "l-z4"}">${escapeHtml(zone.label)} (${zone.first}º ao ${zone.last}º)</span>`).join("");
     return `
-      <section id="tabela" aria-labelledby="tabela-titulo">
-        <h2 id="tabela-titulo">Tabela e posição final provável</h2>
-        <p class="section-note">Percentuais: em quantas das simulações o clube termina em cada faixa. A faixa à direita mostra a chance de cada posição final, do 1º ao ${data.teams.length}º: quanto mais escura, mais provável.</p>
-        <div class="table-scroll" tabindex="0" role="region" aria-label="Tabela de ${escapeHtml(data.competition_name)}">
-          <table>
-            <thead><tr><th>#</th><th class="left">Clube</th><th>Pts</th><th>J</th><th>V</th><th>E</th><th>D</th><th>SG</th><th>Pts esp.</th>
-              ${data.zones.map((zone) => `<th>${escapeHtml(zone.label)}</th>`).join("")}<th class="left">Posição final (1º → ${data.teams.length}º)</th></tr></thead>
-            <tbody>${rows}</tbody>
-          </table>
-        </div>
-      </section>`;
+      <h1 class="race-heading">Tabela</h1>
+      <div class="legend">${legend}</div>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Tabela de ${escapeHtml(data.competition_name)}">
+        <table class="standings">
+          <thead><tr><th>#</th><th class="left">Clube</th><th>Pts</th><th>J</th><th>V</th><th>E</th><th>D</th><th>SG</th><th class="view-start">Pts proj.</th>
+            ${data.zones.map((zone) => `<th>${escapeHtml(zone.label)}</th>`).join("")}<th class="left">Posição final (1º → ${data.teams.length}º)</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <p class="note">Pts proj. = média simulada de pontos no fim; embaixo, a faixa onde terminam 90% das simulações. Percentuais: em quantas simulações o clube termina em cada faixa. A faixa à direita mostra a chance de cada posição final: quanto mais escura, mais provável.</p>`;
   }
 
-  function nextRound(data, byId) {
+  function nextRound(data) {
     const scheduled = data.remaining.filter((match) => match.status === "scheduled" && match.round !== null);
-    if (!scheduled.length) return "";
+    if (!scheduled.length) return null;
     const round = Math.min(...scheduled.map((match) => match.round));
-    const items = scheduled
+    const matches = scheduled
       .filter((match) => match.round === round)
-      .sort((a, b) => (a.kickoff_utc || a.match_date).localeCompare(b.kickoff_utc || b.match_date))
-      .map((match) => {
-        const home = byId[match.home_id];
-        const away = byId[match.away_id];
-        const widths = [match.p_home, match.p_draw, match.p_away].map((value) => (value * 100).toFixed(1));
-        return `<li>
-          <div class="when">${escapeHtml(kickoff(match))}</div>
-          <div class="teams"><span>${escapeHtml(home.name)}</span><span>${escapeHtml(away.name)}</span></div>
-          <div class="bar" role="img" aria-label="${escapeHtml(home.name)} ${pct(match.p_home)}, empate ${pct(match.p_draw)}, ${escapeHtml(away.name)} ${pct(match.p_away)}">
-            <span class="h" style="width:${widths[0]}%"></span><span class="d" style="width:${widths[1]}%"></span><span class="a" style="width:${widths[2]}%"></span>
-          </div>
-          <div class="nums"><span>${pct(match.p_home)}</span><span>empate ${pct(match.p_draw)}</span><span>${pct(match.p_away)}</span></div>
-        </li>`;
-      })
-      .join("");
+      .sort((a, b) => (a.kickoff_utc || a.match_date).localeCompare(b.kickoff_utc || b.match_date));
+    return { round, matches };
+  }
+
+  function matches(data) {
+    const next = nextRound(data);
+    if (!next) return `<h1 class="race-heading">Jogos</h1><p>Não há jogos marcados.</p>`;
+    let lastDay = "";
+    const rows = next.matches.map((match) => {
+      const day = match.match_date !== lastDay ? `<h3 class="round-day">${escapeHtml(S.formatDate(match.match_date, { weekday: "long", day: "numeric", month: "long" }))}</h3>` : "";
+      lastDay = match.match_date;
+      return day + S.matchRow(match);
+    }).join("");
     const pending = data.remaining.filter((match) => match.status !== "scheduled").length;
     return `
-      <section id="jogos" aria-labelledby="jogos-titulo">
-        <h2 id="jogos-titulo">Próxima rodada</h2>
-        <div class="round-head"><h3>Rodada ${round}</h3><span class="meta">mandante à esquerda; chance de vitória, empate e derrota</span></div>
-        <ul class="matches">${items}</ul>
-        ${pending ? `<p class="section-note">${pending} jogo(s) adiado(s) ou cancelado(s) sem nova data: entram na simulação, mas não aparecem aqui.</p>` : ""}
-      </section>`;
+      <h1 class="race-heading">Rodada ${next.round}</h1>
+      <p class="note">Horários de Brasília. Mandante à esquerda; chance de vitória do mandante, empate e vitória do visitante.</p>
+      <div class="legend"><span class="l-home">mandante</span><span class="l-draw">empate</span><span class="l-away">visitante</span></div>
+      ${rows}
+      ${pending ? `<p class="note">${pending} jogo(s) adiado(s) ou cancelado(s) sem nova data: entram na simulação, mas não aparecem aqui.</p>` : ""}`;
   }
 
   function method(data) {
     const backtest = data.backtest;
     const seasons = backtest ? backtest.test_seasons.map((season) => `${season}/${String(season + 1).slice(2)}`) : [];
     const facts = backtest
-      ? `<div class="facts">
-          <div class="fact"><strong>${decimal.format(backtest.log_loss)}</strong><span>log loss do modelo em ${backtest.n_matches.toLocaleString("pt-BR")} jogos de ${seasons[0]} a ${seasons[seasons.length - 1]} (taxa base: ${decimal.format(backtest.log_loss_base_rate)}; menor é melhor)</span></div>
-          <div class="fact"><strong>${decimal.format(backtest.late_title_brier)}</strong><span>Brier do título com ${2 * (data.teams.length - 1) - backtest.late_round} rodadas por jogar</span></div>
-          <div class="fact"><strong>${decimal.format(backtest.late_top4_brier)}</strong><span>Brier do top 4 no mesmo ponto da temporada (chute fixo: 0,160)</span></div>
-          <div class="fact"><strong>${Math.round(backtest.late_points_interval_90_coverage * 100)}%</strong><span>dos pontos finais caíram no intervalo de 90% previsto</span></div>
+      ? `<div class="stat-row">
+          <div class="stat"><span class="label">Log loss por jogo</span><span class="big">${decimal.format(backtest.log_loss)}</span><span class="sub">${backtest.n_matches.toLocaleString("pt-BR")} jogos de ${seasons[0]} a ${seasons[seasons.length - 1]}; taxa base ${decimal.format(backtest.log_loss_base_rate)}</span></div>
+          <div class="stat"><span class="label">Brier do título</span><span class="big">${decimal.format(backtest.late_title_brier)}</span><span class="sub">com ${totalRounds(data) - backtest.late_round} rodadas por jogar</span></div>
+          <div class="stat"><span class="label">Brier do top 4</span><span class="big">${decimal.format(backtest.late_top4_brier)}</span><span class="sub">no mesmo ponto; chute fixo 0,160</span></div>
+          <div class="stat"><span class="label">Pontos na faixa de 90%</span><span class="big">${Math.round(backtest.late_points_interval_90_coverage * 100)}%</span><span class="sub">dos pontos finais</span></div>
         </div>`
       : "";
-    const notes = data.zones.filter((zone) => zone.note).map((zone) => `<li>${escapeHtml(zone.note)}</li>`).join("");
-    const sources = data.sources
-      .map((source) => `<li><a href="${escapeHtml(source.origin)}">${escapeHtml(source.attribution || source.source_name)}</a>, versão ${escapeHtml(source.version)}.</li>`)
-      .join("");
     return `
-      <section id="metodo" class="prose" aria-labelledby="metodo-titulo">
-        <h2 id="metodo-titulo">Como calculamos</h2>
-        <p>É o modelo do AInda dá? para o Brasileirão, com parâmetros calibrados nos jogos desta liga: força de cada clube (Elo, ataque e defesa) reconstruída jogo a jogo, um modelo de gols treinado só com temporadas anteriores e ${data.n_simulations.toLocaleString("pt-BR")} simulações do que falta. Cada simulação fecha a tabela com os critérios de desempate do regulamento: ${data.tiebreak_order.map((key) => TIEBREAK_LABELS[key] || key).join(", ")}.</p>
-        ${facts}
-        <p>Limitações que você precisa saber:</p>
-        <ul>${data.warnings.map((warning) => `<li>${escapeHtml(warning)}</li>`).join("")}${notes}
-          <li>"Campeão", "já garantiu", "caiu", "não dá mais" e "não cai mais" só aparecem quando a conta de pontos fecha, nunca por simulação.</li>
-        </ul>
-        <p>Regulamento: <a href="${escapeHtml(data.regulation.url)}">${escapeHtml(data.regulation.title)}</a>.${data.regulation.note ? ` ${escapeHtml(data.regulation.note)}` : ""} Fontes:</p>
-        <ul>${sources}</ul>
-        <p class="meta">Modelo ${escapeHtml(data.model_version)} · dados ${escapeHtml(data.data_version)} · semente ${data.seed} · gerado em ${new Date(data.generated_at).toLocaleString("pt-BR")}</p>
-        <div id="metodo-elo"></div>
-      </section>`;
+      <h1 class="race-heading">Como calculamos</h1>
+      <p>É o modelo do AInda dá? para o Brasileirão, com parâmetros calibrados nos jogos desta liga: força de cada clube (Elo, ataque e defesa) reconstruída jogo a jogo, um modelo de gols treinado só com temporadas anteriores e ${data.n_simulations.toLocaleString("pt-BR")} simulações do que falta. Cada simulação fecha a tabela com os critérios de desempate do regulamento: ${data.tiebreak_order.map((key) => escapeHtml(TIEBREAK_LABELS[key] || key)).join(", ")}.</p>
+      <h2>Acerto em temporadas passadas</h2>
+      ${facts}
+      <p class="note">Menor é melhor no log loss e no Brier.</p>
+      <h2>Limitações</h2>
+      <ul class="summary-list">${data.warnings.map((warning) => `<li>${escapeHtml(warning)}</li>`).join("")}${data.zones.filter((zone) => zone.note).map((zone) => `<li>${escapeHtml(zone.note)}</li>`).join("")}
+        <li>"Campeão", "já garantiu", "caiu", "não dá mais" e "não cai mais" só aparecem quando a conta de pontos fecha, nunca por simulação.</li>
+      </ul>
+      <h2>Regulamento e fontes</h2>
+      <p>Regulamento: <a href="${S.safeUrl(data.regulation.url)}">${escapeHtml(data.regulation.title)}</a>.${data.regulation.note ? ` ${escapeHtml(data.regulation.note)}` : ""}</p>
+      <ul class="summary-list">${S.sources(data.sources)}</ul>
+      <p class="note">Modelo ${escapeHtml(data.model_version)} · dados <code class="data-version">${escapeHtml(data.data_version)}</code> · semente ${data.seed} · gerado em ${new Date(data.generated_at).toLocaleString("pt-BR")}</p>
+      <div id="metodo-elo"></div>`;
   }
 
-  function render(data) {
-    const byId = Object.fromEntries(data.teams.map((team) => [team.club_id, team]));
-    document.title = `AInda dá? ${data.competition_name}`;
-    document.getElementById("league-tag").textContent = data.competition_name.replace(/\s+\d{4}\/\d{2}$/, "");
-    document.querySelectorAll("#leagues a[data-league]").forEach((link) => {
-      if (link.dataset.league === data.competition) link.setAttribute("aria-current", "page");
-    });
-    main.innerHTML = [hero(data), table(data), nextRound(data, byId), method(data)].join("");
-    if (window.AIndaDaMetodo) window.AIndaDaMetodo.render(document.getElementById("metodo-elo"), data.competition);
-    document.getElementById("credits").innerHTML = `Fontes: ${data.sources
-      .map((source) => `<a href="${escapeHtml(source.origin)}">${escapeHtml(source.attribution || source.source_name)}</a>`)
-      .join("; ")}.`;
-  }
-
-  fetch("data/forecast.json", { cache: "no-cache" })
-    .then((response) => {
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return response.json();
-    })
-    .then(render)
-    .catch(() => {
-      main.innerHTML = '<p class="loading">Não foi possível carregar as simulações agora. Tente de novo em alguns minutos.</p>';
-    });
+  S.start({
+    names: (data) => {
+      document.title = `AInda dá? ${data.competition_name}`;
+      document.getElementById("league-tag").textContent = leagueName(data);
+      document.querySelectorAll("#leagues a[data-league]").forEach((link) => {
+        if (link.dataset.league === data.competition) link.setAttribute("aria-current", "page");
+      });
+      return Object.fromEntries(data.teams.map((club) => [club.club_id, club.name]));
+    },
+    edition,
+    footer: (data) => `Fontes: ${data.sources.map((source) => `<a href="${S.safeUrl(source.origin)}">${escapeHtml(source.attribution || source.source_name)}</a>`).join("; ")}.`,
+    routes: [
+      { id: "", label: "Início", render: home },
+      { id: "tabela", label: "Tabela", render: table },
+      { id: "jogos", label: "Jogos", render: matches },
+      { id: "metodologia", label: "Como calculamos", render: method, after: (data, main) => window.AIndaDaMetodo && window.AIndaDaMetodo.render(main.querySelector("#metodo-elo"), data.competition) },
+    ],
+  });
 })();

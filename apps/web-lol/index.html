@@ -4,48 +4,52 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AInda dá? · Mundial de LoL</title>
-  <meta name="description" content="Chances de cada time no Mundial de League of Legends: fase suíça, quartas, semi, final e título, com simulações.">
+  <meta name="description" content="Chances de cada time no Mundial de League of Legends: chave do mata-mata, possíveis adversários e título, com simulações.">
   <meta name="theme-color" content="#fafaf7" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#17191c" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="assets/brand/favicon.svg" type="image/svg+xml">
-  <link rel="preload" href="assets/inter-tight-latin.woff" as="font" type="font/woff" crossorigin>
+  <link rel="preload" href="../assets/fonts/inter-tight-latin.woff" as="font" type="font/woff" crossorigin>
+  <link rel="stylesheet" href="../assets/styles.css">
+  <link rel="stylesheet" href="../assets/rounds.css">
+  <link rel="stylesheet" href="../assets/competition.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <a class="skip-link" href="#main">Pular para o conteúdo</a>
-  <header class="top">
+  <header class="masthead">
     <div class="wrap leagues" role="navigation" aria-label="Competições" id="leagues">
       <a href="../">Brasileirão Série A</a>
-      <a href="../serie-b/">Série B</a>
+      <a href="../serie-b/" data-league="serie-b">Série B</a>
       <a href="../premier-league/" data-league="premier-league">Premier League</a>
       <a href="../la-liga/" data-league="la-liga">LaLiga</a>
       <a href="../champions-league/" data-league="champions-league">Champions League</a>
-      <a href="./" aria-current="page">Mundial de LoL</a>
+      <a href="../mundial-lol/" data-league="mundial-lol" aria-current="page">Mundial de LoL</a>
     </div>
-    <div class="wrap top-inner">
-      <a class="brand" href="./" aria-label="AInda dá?, início desta competição">
-        <img class="logo-light" src="assets/brand/ainda-da-assinatura-compacta.svg" alt="AInda dá?" width="168" height="32">
-        <img class="logo-dark" src="assets/brand/ainda-da-assinatura-compacta-reversa.svg" alt="AInda dá?" width="168" height="32">
-        <span class="league-tag">Mundial de LoL</span>
+    <div class="wrap masthead-inner">
+      <a class="brand" href="#/" aria-label="AInda dá?, início desta competição">
+        <img class="logo-light" src="assets/brand/ainda-da-assinatura-compacta.svg" alt="AInda dá?" width="188" height="36">
+        <img class="logo-dark" src="assets/brand/ainda-da-assinatura-compacta-reversa.svg" alt="AInda dá?" width="188" height="36">
+        <span class="league-tag" id="league-tag">Mundial de LoL</span>
       </a>
-      <nav aria-label="Seções">
-        <a href="#caminho">Caminho até a final</a>
-        <a href="#jogos">Próximas séries</a>
-        <a href="#ligas">Força das ligas</a>
-        <a href="#metodo">Como calculamos</a>
-      </nav>
+      <nav aria-label="Seções" id="sections"></nav>
     </div>
+    <div class="wrap reference-bar" id="reference-bar" aria-live="polite">Carregando as simulações…</div>
   </header>
   <main id="main" class="wrap" tabindex="-1">
-    <p class="loading">Carregando as simulações…</p>
     <noscript>Esta página precisa de JavaScript para mostrar as chances.</noscript>
   </main>
-  <footer class="wrap foot">
-    <p><strong>AInda dá?</strong> Chance não é certeza. Os números vêm de um modelo estatístico e mudam a cada atualização. "Classificado" e "eliminado" só aparecem quando a campanha na fase suíça fecha a conta.</p>
-    <p id="notice"></p>
-    <p id="credits"></p>
-    <p>O AInda dá? é um projeto independente de fãs. Não tem relação com a Riot Games, as ligas nem os times.</p>
+  <footer class="wrap site-footer">
+    <img src="assets/brand/favicon.svg" alt="" width="28" height="28">
+    <div>
+      <p class="footer-name">AInda dá?</p>
+      <p>Chance não é certeza. Os números vêm de um modelo estatístico e mudam a cada atualização. "Classificado" e "eliminado" só quando o resultado já aconteceu.</p>
+      <p id="footer-sources"></p>
+      <p>Logos: Wikimedia Commons, só os que estão em domínio público; os outros times aparecem com a sigla. São marcas dos times, usadas aqui só para identificá-los. Nenhum logo da Riot Games.</p>
+      <p>O AInda dá? é um projeto independente de fãs. Não tem relação com a Riot Games, as ligas nem os times. <span id="notice"></span> Fontes, método e limitações em <a href="#/metodologia">Como calculamos</a>.</p>
+    </div>
   </footer>
+  <script src="../assets/methods.js"></script>
+  <script src="../assets/competition.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

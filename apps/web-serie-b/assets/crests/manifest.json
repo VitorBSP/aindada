@@ -1,0 +1,106 @@
+{
+  "america-mg": {
+    "badge": {
+      "bg": "#1E7B3A",
+      "fg": "#FFFFFF",
+      "label": "AME"
+    }
+  },
+  "athletic-mg": {
+    "badge": {
+      "bg": "#E2E1DB",
+      "fg": "#17191C",
+      "label": "ATH"
+    }
+  },
+  "atletico-go": {
+    "file": "atletico-go.png"
+  },
+  "avai": {
+    "file": "avai.png"
+  },
+  "botafogo-sp": {
+    "file": "botafogo-sp.png"
+  },
+  "ceara": {
+    "file": "ceara.png"
+  },
+  "crb": {
+    "badge": {
+      "bg": "#E2E1DB",
+      "fg": "#17191C",
+      "label": "CRB"
+    }
+  },
+  "criciuma": {
+    "file": "criciuma.png"
+  },
+  "cuiaba": {
+    "badge": {
+      "bg": "#E2E1DB",
+      "fg": "#17191C",
+      "label": "CUI"
+    }
+  },
+  "fortaleza": {
+    "file": "fortaleza.png"
+  },
+  "goias": {
+    "badge": {
+      "bg": "#1E7B3A",
+      "fg": "#FFFFFF",
+      "label": "GOI"
+    }
+  },
+  "juventude": {
+    "badge": {
+      "bg": "#FFFFFF",
+      "fg": "#17191C",
+      "label": "JUV"
+    }
+  },
+  "londrina": {
+    "badge": {
+      "bg": "#E2E1DB",
+      "fg": "#17191C",
+      "label": "LON"
+    }
+  },
+  "nautico": {
+    "badge": {
+      "bg": "#E2E1DB",
+      "fg": "#17191C",
+      "label": "NAU"
+    }
+  },
+  "novorizontino": {
+    "badge": {
+      "bg": "#E2E1DB",
+      "fg": "#17191C",
+      "label": "NOV"
+    }
+  },
+  "operario-pr": {
+    "file": "operario-pr.png"
+  },
+  "ponte-preta": {
+    "file": "ponte-preta.png"
+  },
+  "sao-bernardo": {
+    "badge": {
+      "bg": "#E2E1DB",
+      "fg": "#17191C",
+      "label": "SBE"
+    }
+  },
+  "sport": {
+    "badge": {
+      "bg": "#E2E1DB",
+      "fg": "#17191C",
+      "label": "SPT"
+    }
+  },
+  "vila-nova": {
+    "file": "vila-nova.png"
+  }
+}

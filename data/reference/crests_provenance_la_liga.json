@@ -1,0 +1,163 @@
+{
+  "alaves": {
+    "bg": "#E2E1DB",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "ALA",
+    "wikipedia_title": "Deportivo Alavés"
+  },
+  "athletic": {
+    "bg": "#C8102E",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "ATH",
+    "wikipedia_title": "Athletic Bilbao"
+  },
+  "atletico-madrid": {
+    "bg": "#C8102E",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "ATM",
+    "wikipedia_title": "Atlético Madrid"
+  },
+  "barcelona": {
+    "author": "<a href=\"//commons.wikimedia.org/w/index.php?title=User:HAMDANI_72&amp;action=edit&amp;redlink=1\" class=\"new\" title=\"User:HAMDANI 72 (page does not exist)\">HAMDANI 72</a>",
+    "bg": "#1F3F8F",
+    "commons_file": "Football Club Barcelona Color Update.png",
+    "fg": "#FFFFFF",
+    "file": "barcelona.png",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Football_Club_Barcelona_Color_Update.png",
+    "license": "CC0",
+    "license_status": "livre",
+    "retrieved_at": "2026-11-04T20:47:46+00:00",
+    "sha256": "b1a5ebb2771d3134b2058910a8692b1be8a5a63f9fc0061f328d36125e7cc295",
+    "short_name": "BAR",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/33/Football_Club_Barcelona_Color_Update.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/33/Football_Club_Barcelona_Color_Update.png/250px-Football_Club_Barcelona_Color_Update.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "wikipedia_title": "FC Barcelona"
+  },
+  "celta": {
+    "author": "<ul><li><a href=\"//commons.wikimedia.org/wiki/File:Coa_Illustration_Shield_Heater.svg\" title=\"File:Coa Illustration Shield Heater.svg\">File:Coa Illustration Shield Heater.svg</a> <i>by</i> <a href=\"//",
+    "bg": "#E2E1DB",
+    "commons_file": "Escudo RC Celta de Vigo.svg",
+    "fg": "#17191C",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Escudo_RC_Celta_de_Vigo.svg",
+    "license": "CC BY-SA 3.0",
+    "license_status": "sem logo livre",
+    "short_name": "CEL",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/4/47/Escudo_RC_Celta_de_Vigo.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/Escudo_RC_Celta_de_Vigo.svg/250px-Escudo_RC_Celta_de_Vigo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "wikipedia_title": "RC Celta de Vigo"
+  },
+  "deportivo-la-coruna": {
+    "bg": "#E2E1DB",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "DEP",
+    "wikipedia_title": "Deportivo de La Coruña"
+  },
+  "elche": {
+    "bg": "#FFFFFF",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "ELC",
+    "wikipedia_title": "Elche CF"
+  },
+  "espanyol": {
+    "bg": "#1F3F8F",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "ESP",
+    "wikipedia_title": "RCD Espanyol"
+  },
+  "getafe": {
+    "author": "Yawen",
+    "bg": "#1F3F8F",
+    "commons_file": "Getafe CF Logo.png",
+    "fg": "#FFFFFF",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Getafe_CF_Logo.png",
+    "license": "CC BY-SA 4.0",
+    "license_status": "sem logo livre",
+    "short_name": "GET",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/b/b9/Getafe_CF_Logo.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b9/Getafe_CF_Logo.png/250px-Getafe_CF_Logo.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "wikipedia_title": "Getafe CF"
+  },
+  "levante": {
+    "bg": "#E2E1DB",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "LEV",
+    "wikipedia_title": "Levante UD"
+  },
+  "malaga": {
+    "bg": "#6CABDD",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "MAL",
+    "wikipedia_title": "Málaga CF"
+  },
+  "osasuna": {
+    "bg": "#E2E1DB",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "OSA",
+    "wikipedia_title": "CA Osasuna"
+  },
+  "racing-santander": {
+    "bg": "#1E7B3A",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "RAC",
+    "wikipedia_title": "Racing de Santander"
+  },
+  "rayo-vallecano": {
+    "bg": "#E2E1DB",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "RAY",
+    "wikipedia_title": "Rayo Vallecano"
+  },
+  "real-betis": {
+    "bg": "#E2E1DB",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "BET",
+    "wikipedia_title": "Real Betis"
+  },
+  "real-madrid": {
+    "bg": "#FFFFFF",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "RMA",
+    "wikipedia_title": "Real Madrid CF"
+  },
+  "real-sociedad": {
+    "bg": "#1F3F8F",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "RSO",
+    "wikipedia_title": "Real Sociedad"
+  },
+  "sevilla": {
+    "bg": "#C8102E",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "SEV",
+    "wikipedia_title": "Sevilla FC"
+  },
+  "valencia": {
+    "bg": "#FFFFFF",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "VAL",
+    "wikipedia_title": "Valencia CF"
+  },
+  "villarreal": {
+    "bg": "#F2C300",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "VIL",
+    "wikipedia_title": "Villarreal CF"
+  }
+}

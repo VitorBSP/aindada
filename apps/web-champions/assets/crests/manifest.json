@@ -1,0 +1,210 @@
+{
+  "aut-lask": {
+    "file": "aut-lask.png"
+  },
+  "aze-sabah": {
+    "badge": {
+      "bg": "#000000",
+      "fg": "#FFFFFF",
+      "label": "SAB"
+    }
+  },
+  "bel-brugge": {
+    "badge": {
+      "bg": "#1F3F8F",
+      "fg": "#FFFFFF",
+      "label": "BRU"
+    }
+  },
+  "cze-slavia-praha": {
+    "badge": {
+      "bg": "#C8102E",
+      "fg": "#FFFFFF",
+      "label": "SLP"
+    }
+  },
+  "eng-arsenal": {
+    "badge": {
+      "bg": "#C8102E",
+      "fg": "#FFFFFF",
+      "label": "ARS"
+    }
+  },
+  "eng-aston-villa": {
+    "badge": {
+      "bg": "#800032",
+      "fg": "#FFFFFF",
+      "label": "AVL"
+    }
+  },
+  "eng-liverpool": {
+    "badge": {
+      "bg": "#C8102E",
+      "fg": "#FFFFFF",
+      "label": "LIV"
+    }
+  },
+  "eng-manchester-city": {
+    "badge": {
+      "bg": "#6CABDD",
+      "fg": "#17191C",
+      "label": "MCI"
+    }
+  },
+  "eng-manchester-united": {
+    "badge": {
+      "bg": "#C8102E",
+      "fg": "#FFFFFF",
+      "label": "MUN"
+    }
+  },
+  "esp-atletico-madrid": {
+    "badge": {
+      "bg": "#C8102E",
+      "fg": "#FFFFFF",
+      "label": "ATL"
+    }
+  },
+  "esp-barcelona": {
+    "file": "esp-barcelona.png"
+  },
+  "esp-real-betis": {
+    "badge": {
+      "bg": "#E2E1DB",
+      "fg": "#17191C",
+      "label": "BET"
+    }
+  },
+  "esp-real-madrid-c-f": {
+    "badge": {
+      "bg": "#FFFFFF",
+      "fg": "#17191C",
+      "label": "RMA"
+    }
+  },
+  "esp-villarreal": {
+    "badge": {
+      "bg": "#F2C300",
+      "fg": "#17191C",
+      "label": "VIL"
+    }
+  },
+  "fra-lens": {
+    "badge": {
+      "bg": "#E2E1DB",
+      "fg": "#17191C",
+      "label": "RCL"
+    }
+  },
+  "fra-lille": {
+    "badge": {
+      "bg": "#E2E1DB",
+      "fg": "#17191C",
+      "label": "LIL"
+    }
+  },
+  "fra-paris-saint-germain": {
+    "badge": {
+      "bg": "#000080",
+      "fg": "#FFFFFF",
+      "label": "PSG"
+    }
+  },
+  "ger-bayern-munchen": {
+    "file": "ger-bayern-munchen.png"
+  },
+  "ger-borussia-dortmund": {
+    "file": "ger-borussia-dortmund.png"
+  },
+  "ger-rb-leipzig": {
+    "badge": {
+      "bg": "#E2E1DB",
+      "fg": "#17191C",
+      "label": "RBL"
+    }
+  },
+  "ger-stuttgart": {
+    "file": "ger-stuttgart.png"
+  },
+  "gre-aek-athen": {
+    "badge": {
+      "bg": "#F2C300",
+      "fg": "#17191C",
+      "label": "AEK"
+    }
+  },
+  "ita-como": {
+    "file": "ita-como.png"
+  },
+  "ita-internazionale-milano": {
+    "file": "ita-internazionale-milano.png"
+  },
+  "ita-napoli": {
+    "file": "ita-napoli.png"
+  },
+  "ita-roma": {
+    "badge": {
+      "bg": "#F2C300",
+      "fg": "#17191C",
+      "label": "ROM"
+    }
+  },
+  "ned-feyenoord-rotterdam": {
+    "badge": {
+      "bg": "#C8102E",
+      "fg": "#FFFFFF",
+      "label": "FEY"
+    }
+  },
+  "ned-psv": {
+    "badge": {
+      "bg": "#E2E1DB",
+      "fg": "#17191C",
+      "label": "PSV"
+    }
+  },
+  "nor-bod-glimt": {
+    "badge": {
+      "bg": "#F2C300",
+      "fg": "#17191C",
+      "label": "BOD"
+    }
+  },
+  "nor-viking": {
+    "file": "nor-viking.png"
+  },
+  "por-porto": {
+    "badge": {
+      "bg": "#1F3F8F",
+      "fg": "#FFFFFF",
+      "label": "FCP"
+    }
+  },
+  "por-sporting-clube-portugal": {
+    "badge": {
+      "bg": "#1E7B3A",
+      "fg": "#FFFFFF",
+      "label": "SPO"
+    }
+  },
+  "svk-slovan-bratislava": {
+    "file": "svk-slovan-bratislava.png"
+  },
+  "tur-fenerbahce": {
+    "badge": {
+      "bg": "#F2C300",
+      "fg": "#17191C",
+      "label": "FEN"
+    }
+  },
+  "tur-galatasaray": {
+    "file": "tur-galatasaray.png"
+  },
+  "ukr-shakhtar-donetsk": {
+    "badge": {
+      "bg": "#E2E1DB",
+      "fg": "#17191C",
+      "label": "SHD"
+    }
+  }
+}

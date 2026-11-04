@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from brasileirao.esports.forecast import LolForecast, SeriesOutlook, TeamOutlook
+from brasileirao.esports.forecast import BracketSeries, LolForecast, SeriesOutlook, TeamOutlook
 from brasileirao.esports.gate import check_forecast
 from brasileirao.esports.model import LeagueTeamElo, LeagueTeamParams, map_probability, series_probability
 from brasileirao.esports.sources import Series, SourceFormatError, load_teams, parse_series
@@ -236,3 +236,20 @@ def test_gate_rejects_upcoming_series_with_unknown_team() -> None:
     forecast = _forecast(1.0)
     forecast.upcoming[0].team2 = "desconhecido"
     assert any("fora da lista" in finding for finding in check_forecast(forecast, date(2040, 10, 21)))
+
+
+def test_gate_rejects_bracket_team_outside_the_team_list() -> None:
+    forecast = _forecast(1.0)
+    forecast.bracket = [
+        BracketSeries(
+            stage="Knockout stage / Quarterfinals",
+            label="QF1",
+            match_date="2040-10-25",
+            team1="t0",
+            team2="desconhecido",
+            score1=None,
+            score2=None,
+            p_team1=0.5,
+        )
+    ]
+    assert any("chave" in finding for finding in check_forecast(forecast, date(2040, 10, 21)))

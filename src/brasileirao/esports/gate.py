@@ -49,6 +49,11 @@ def check_forecast(forecast: LolForecast, today: date) -> list[str]:
             findings.append(f"{series.label}: probabilidade fora de [0, 1]")
         if not {series.team1, series.team2} <= team_ids:
             findings.append(f"{series.label}: time fora da lista de times")
+    for knockout in forecast.bracket:
+        if knockout.p_team1 is not None and not 0.0 <= knockout.p_team1 <= 1.0:
+            findings.append(f"{knockout.label}: probabilidade fora de [0, 1]")
+        if not {team for team in (knockout.team1, knockout.team2) if team} <= team_ids:
+            findings.append(f"{knockout.label}: time da chave fora da lista de times")
     for source in forecast.sources:
         if not source.get("attribution") or source.get("license_name") != "CC BY-SA 4.0":
             findings.append(f"fonte {source.get('version')} sem licença ou atribuição")

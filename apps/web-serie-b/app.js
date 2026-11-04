@@ -1,277 +1,160 @@
 "use strict";
 
+// Série B (ADR-0010) no desenho dos sites de competição (D-043): Início, Tabela, Jogos e Como calculamos.
 (function () {
-  const main = document.getElementById("main");
-
-  function escapeHtml(value) {
-    return String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
-  }
-
+  const S = window.AIndaDaSite;
+  const { escapeHtml, pct, team } = S;
   const number = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
   const decimal = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 
-  // Certeza só quando a aritmética decide (clinched); simulação nunca vira certeza (CONTENT_GUIDELINES).
-  function pct(value, decided, done = { yes: "100%", no: "não dá mais" }) {
-    if (decided === 1) return done.yes;
-    if (decided === 0) return done.no;
-    if (value < 0.001) return "<0,1%";
-    if (value > 0.999) return ">99,9%";
-    if (value < 0.01 || value > 0.99) return number.format(Math.round(value * 1000) / 10) + "%";
-    return Math.round(value * 100) + "%";
+  // Rótulos de certeza: só quando a aritmética decide (clinched), nunca por simulação.
+  function promotionLabel(club) {
+    if (club.clinched.promoted_direct) return "subiu";
+    if (club.clinched.out_of_top6) return "não dá mais";
+    return pct(club.promotion);
+  }
+  function directLabel(club) {
+    if (club.clinched.promoted_direct) return "subiu";
+    if (club.clinched.out_of_top6) return "não dá mais";
+    if (club.clinched.out_of_top2) return "só pelo playoff";
+    return pct(club.promotion_direct);
+  }
+  function relegationLabel(club) {
+    if (club.clinched.relegated) return "caiu";
+    if (club.clinched.safe) return "não cai mais";
+    return pct(club.relegation);
   }
 
-  const PROMOTION_DONE = { yes: "subiu", no: "não dá mais" };
-  const RELEGATION_DONE = { yes: "caiu", no: "não cai mais" };
+  const roundsLeft = (data) => Math.max(...data.teams.map((club) => club.remaining));
 
-  function formatDate(iso) {
-    const [year, month, day] = iso.split("-").map(Number);
-    return new Date(year, month - 1, day).toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
+  function edition(data) {
+    const left = roundsLeft(data);
+    return `<p class="edition"><span class="edition-name">Edição de ${escapeHtml(S.formatDate(data.reference_date, { weekday: "long", day: "numeric", month: "long", year: "numeric" }))}</span> · Série B ${data.season} · ${left === 1 ? "falta 1 rodada" : `faltam ${left} rodadas`}</p>
+      <p class="edition-facts"><strong>${data.observed_matches}</strong> jogos disputados · <strong>${data.n_simulations.toLocaleString("pt-BR")}</strong> simulações do que falta e dos playoffs</p>`;
   }
 
-  function badge(team) {
-    return `<span class="badge" aria-hidden="true">${escapeHtml(team.short_name)}</span>`;
+  function playoffBracket(data, byId) {
+    const groups = data.rules.playoff_groups;
+    const likely = Object.fromEntries(data.likely_playoffs.map((pairing) => [`${pairing.better_position}-${pairing.worse_position}`, pairing]));
+    const candidates = (position) => [...data.teams]
+      .map((club) => ({ id: club.club_id, value: club.position_probabilities[position - 1] }))
+      .filter((item) => item.value > 0.005)
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 3);
+    const side = (position) => `<p class="candidates-label">${position}º colocado</p><ul class="candidates">${candidates(position)
+      .map((item) => `<li>${team(item.id, 16)}<strong>${pct(item.value)}</strong></li>`).join("") || "<li>—</li>"}</ul>`;
+    const ties = groups.map(([better, worse]) => {
+      const pairing = likely[`${better}-${worse}`];
+      const tip = pairing
+        ? `Duelo mais provável: ${escapeHtml(byId[pairing.better_club_id].name)} × ${escapeHtml(byId[pairing.worse_club_id].name)}, em ${pct(pairing.probability)} das simulações; nele, ${escapeHtml(byId[pairing.better_club_id].name)} passa em ${pct(pairing.better_advances)}.`
+        : "";
+      return `<div class="tie"><div class="tie-head"><span>${better}º × ${worse}º · ida e volta</span><b>vale vaga</b></div>${side(better)}${side(worse)}${tip ? `<p class="candidates-label">${tip}</p>` : ""}</div>`;
+    }).join("");
+    return `<div class="sections-grid">${ties}</div>`;
   }
 
-  function decidedPromotion(team) {
-    if (team.clinched.promoted_direct) return 1;
-    if (team.clinched.out_of_top6) return 0;
-    return null;
-  }
-
-  // Fora do top 2 ainda pode subir pelo playoff: "não dá mais" só quando nem o 6º lugar é possível.
-  function directDone(team) {
-    return { yes: "subiu", no: team.clinched.out_of_top6 ? "não dá mais" : "só pelo playoff" };
-  }
-
-  function decidedDirect(team) {
-    if (team.clinched.promoted_direct) return 1;
-    if (team.clinched.out_of_top2) return 0;
-    return null;
-  }
-
-  function decidedRelegation(team) {
-    if (team.clinched.relegated) return 1;
-    if (team.clinched.safe) return 0;
-    return null;
-  }
-
-  function zoneList(teams, valueOf, decidedOf, doneOf) {
-    return `<ol>${teams
-      .map((team) => {
-        const decided = decidedOf(team);
-        const value = `<span class="value${decided === null ? "" : " done"}">${pct(valueOf(team), decided, doneOf(team))}</span>`;
-        return `<li>${badge(team)}<span class="name">${escapeHtml(team.name)}</span>${value}</li>`;
-      })
-      .join("")}</ol>`;
-  }
-
-  function hero(data) {
-    const byPromotion = [...data.teams].sort((a, b) => b.promotion - a.promotion);
-    const byDirect = [...data.teams].sort((a, b) => b.promotion_direct - a.promotion_direct).slice(0, 4);
-    const byPlayoff = [...data.teams].sort((a, b) => b.playoff - a.playoff).slice(0, 6);
-    const byDrop = [...data.teams].sort((a, b) => b.relegation - a.relegation).slice(0, 6);
-    const roundsLeft = Math.max(...data.teams.map((team) => team.remaining));
-    const leader = byPromotion[0];
-    const relegated = data.teams.filter((team) => team.clinched.relegated);
-    const dropLine = relegated.length
-      ? ` ${relegated.map((team) => escapeHtml(team.name)).join(", ").replace(/, ([^,]*)$/, " e $1")} já ${relegated.length > 1 ? "caíram" : "caiu"}.`
-      : "";
+  function home(data) {
+    const byId = Object.fromEntries(data.teams.map((club) => [club.club_id, club]));
+    const open = (key, out) => data.teams.filter((club) => !out(club)).sort((a, b) => b[key] - a[key]);
+    const direct = open("promotion_direct", (club) => club.clinched.out_of_top6).slice(0, 6);
+    const total = open("promotion", (club) => club.clinched.out_of_top6).slice(0, 8);
+    const drop = data.teams.filter((club) => !club.clinched.safe).sort((a, b) => b.relegation - a.relegation).slice(0, 8);
+    const leader = [...data.teams].sort((a, b) => b.promotion - a.promotion)[0];
+    const relegated = data.teams.filter((club) => club.clinched.relegated);
+    const dropLine = relegated.length ? ` ${relegated.map((club) => escapeHtml(club.name)).join(", ").replace(/, ([^,]*)$/, " e $1")} já ${relegated.length > 1 ? "caíram" : "caiu"}.` : "";
     return `
-      <section aria-labelledby="titulo">
-        <p class="kicker">Série B ${data.season} · ${roundsLeft === 1 ? "falta 1 rodada" : `faltam ${roundsLeft} rodadas`}</p>
-        <h1 id="titulo">Quatro sobem, quatro caem. Quem ainda dá?</h1>
-        <p class="lede">Dois sobem direto. Do 3º ao 6º, playoff em ida e volta vale mais duas vagas na Série A de ${data.season + 1}. ${escapeHtml(leader.name)} ${decidedPromotion(leader) === 1 ? "já subiu." : `é quem está mais perto: sobe em ${pct(leader.promotion)} das simulações.`}${dropLine}</p>
-        <p class="meta">Resultados até ${formatDate(data.reference_date)} · ${data.n_simulations.toLocaleString("pt-BR")} simulações do que falta e dos playoffs</p>
-        <div class="zones">
-          <div class="zone up"><h3>Sobe direto</h3><p class="zone-sub">% das simulações em que termina em 1º ou 2º</p>${zoneList(byDirect, (team) => team.promotion_direct, decidedDirect, directDone)}</div>
-          <div class="zone mid"><h3>Vai ao playoff</h3><p class="zone-sub">% das simulações em que termina entre 3º e 6º</p>${zoneList(byPlayoff, (team) => team.playoff, (team) => (team.clinched.out_of_top6 ? 0 : null), () => PROMOTION_DONE)}</div>
-          <div class="zone down"><h3>Cai</h3><p class="zone-sub">% das simulações em que termina entre 17º e 20º</p>${zoneList(byDrop, (team) => team.relegation, decidedRelegation, () => RELEGATION_DONE)}</div>
-        </div>
-      </section>`;
-  }
-
-  function ladder(data) {
-    const contenders = data.teams.filter((team) => !team.clinched.out_of_top6).sort((a, b) => b.promotion - a.promotion);
-    const rows = contenders
-      .map((team) => {
-        const lost = Math.max(team.playoff - team.promotion_playoff, 0);
-        const width = (value) => `${(value * 100).toFixed(2)}%`;
-        const label = `${team.name}: ${pct(team.promotion_direct, decidedDirect(team), directDone(team))} direto, ${pct(team.promotion_playoff)} pelo playoff`;
-        return `<li>
-          ${badge(team)}<span class="club">${escapeHtml(team.name)}</span>
-          <span class="stack" role="img" aria-label="${escapeHtml(label)}">
-            <span class="direct" style="width:${width(team.promotion_direct)}"></span>
-            <span class="via-playoff" style="width:${width(team.promotion_playoff)}"></span>
-            <span class="lost-playoff" style="width:${width(lost)}"></span>
-          </span>
-          <span class="total">${pct(team.promotion, decidedPromotion(team), PROMOTION_DONE)}</span>
-        </li>`;
-      })
-      .join("");
-    const out = data.teams.length - contenders.length;
-    return `
-      <section id="corrida" aria-labelledby="corrida-titulo">
-        <h2 id="corrida-titulo">A escada do acesso</h2>
-        <p class="section-note">Chance total de subir, dividida pelo caminho. O trecho claro é a chance de chegar ao playoff e perder.${out ? ` ${out} clubes não alcançam mais o 6º lugar e ficam de fora.` : ""}</p>
-        <ul class="legend">
-          <li><i style="background:var(--up)"></i>sobe direto</li>
-          <li><i style="background:var(--up-mid)"></i>sobe pelo playoff</li>
-          <li><i style="background:var(--up-soft)"></i>vai ao playoff e cai fora</li>
-        </ul>
-        <ol class="ladder">${rows}</ol>
-      </section>`;
-  }
-
-  function playoff(data, byId) {
-    const ties = data.likely_playoffs
-      .map((pairing) => {
-        const better = byId[pairing.better_club_id];
-        const worse = byId[pairing.worse_club_id];
-        const betterShare = (pairing.better_advances * 100).toFixed(1);
-        return `<article class="tie">
-          <h3>Grupo ${escapeHtml(pairing.group)} · ${pairing.better_position}º x ${pairing.worse_position}º</h3>
-          <div class="side">${badge(better)}<span class="name">${escapeHtml(better.name)}</span><span class="pct">${pct(pairing.better_advances)}</span></div>
-          <p class="vs">decide em casa</p>
-          <div class="side">${badge(worse)}<span class="name">${escapeHtml(worse.name)}</span><span class="pct">${pct(1 - pairing.better_advances)}</span></div>
-          <div class="split" aria-hidden="true"><span style="width:${betterShare}%"></span><span style="width:${(100 - betterShare).toFixed(1)}%"></span></div>
-          <p>Confronto mais provável do grupo, em ${pct(pairing.probability)} das simulações. Percentuais: chance de cada um passar se esse for o duelo.</p>
-        </article>`;
-      })
-      .join("");
-    return `
-      <section id="playoff" aria-labelledby="playoff-titulo">
-        <h2 id="playoff-titulo">O playoff mais provável</h2>
-        <p class="section-note">Ida na casa do pior colocado, volta na casa do melhor. Passa quem somar mais pontos nos dois jogos; empatou, vale o saldo de gols e, persistindo, a melhor posição na classificação final. Não tem pênaltis.</p>
-        <div class="playoff-grid">${ties}</div>
-      </section>`;
-  }
-
-  function relegation(data) {
-    const atRisk = data.teams.filter((team) => !team.clinched.safe).sort((a, b) => b.relegation - a.relegation);
-    const safeCount = data.teams.length - atRisk.length;
-    const items = atRisk
-      .map((team) => {
-        const decided = decidedRelegation(team);
-        const gone = decided === 1;
-        return `<li class="${gone ? "gone" : ""}">${badge(team)}<span class="name">${escapeHtml(team.name)}</span>
-          <span class="pct">${pct(team.relegation, decided, RELEGATION_DONE)}</span>
-          <span class="meter" aria-hidden="true"><span style="width:${(team.relegation * 100).toFixed(1)}%"></span></span></li>`;
-      })
-      .join("");
-    return `
-      <section id="queda" aria-labelledby="queda-titulo">
-        <h2 id="queda-titulo">Quem ainda pode cair</h2>
-        <p class="section-note">Só clubes que a matemática ainda não livrou. ${safeCount} já não caem mais.</p>
-        <ul class="drop">${items}</ul>
-      </section>`;
+      <h1>Quatro sobem, quatro caem. Quem ainda dá?</h1>
+      <p class="lede">Dois sobem direto; do 3º ao 6º, playoff em ida e volta vale mais duas vagas na Série A de ${data.season + 1}. <strong>${escapeHtml(leader.name)}</strong> ${leader.clinched.promoted_direct ? "já subiu." : `é quem está mais perto: sobe em ${pct(leader.promotion)} das simulações.`}${dropLine}</p>
+      <div class="races">
+        <section class="race"><h3>Sobe direto</h3><p class="note">% das simulações em que termina em 1º ou 2º</p>${S.raceRows(direct.map((club) => ({ id: club.club_id, value: club.promotion_direct, label: directLabel(club) })), "lib")}</section>
+        <section class="race"><h3>Sobe (direto ou pelo playoff)</h3><p class="note">% das simulações em que termina com o acesso</p>${S.raceRows(total.map((club) => ({ id: club.club_id, value: club.promotion, label: promotionLabel(club) })), "lib")}</section>
+        <section class="race"><h3>Cai</h3><p class="note">% das simulações em que termina entre 17º e 20º</p>${S.raceRows(drop.map((club) => ({ id: club.club_id, value: club.relegation, label: relegationLabel(club) })), "danger")}</section>
+      </div>
+      <h2>Chave do playoff</h2>
+      <p class="note">Quem pode ocupar cada lugar do playoff e quanto disso acontece nas simulações. Ida na casa do pior colocado, volta na casa do melhor; empatou em pontos e saldo, passa o melhor colocado. Não tem pênaltis.</p>
+      ${playoffBracket(data, byId)}
+      <p class="more"><a href="#/tabela">Tabela completa</a> · <a href="#/jogos">Jogos que faltam</a></p>`;
   }
 
   function table(data) {
     const direct = data.rules.direct_promotion;
     const playoffLast = Math.max(...data.rules.playoff_groups.map((group) => group[1]));
     const safeLast = data.teams.length - data.rules.relegation;
-    const rows = data.teams
-      .map((team) => {
-        const cut = team.position === direct ? "cut-direct" : team.position === playoffLast ? "cut-playoff" : team.position === safeLast ? "cut-safe" : "";
-        const heat = team.position_probabilities
-          .map((value, index) => `<i style="opacity:${value === 0 ? 0.06 : (0.12 + 0.88 * Math.min(1, value * 1.6)).toFixed(2)}" title="${index + 1}º: ${pct(value)}"></i>`)
-          .join("");
-        return `<tr class="${cut}">
-          <td>${team.position}</td>
-          <td class="left"><span class="club-cell">${badge(team)}${escapeHtml(team.name)}</span></td>
-          <td class="pts">${team.points}</td><td>${team.played}</td><td>${team.wins}</td><td>${team.draws}</td><td>${team.losses}</td>
-          <td>${team.goals_for - team.goals_against > 0 ? "+" : ""}${team.goals_for - team.goals_against}</td>
-          <td>${number.format(team.expected_points)}</td>
-          <td>${pct(team.promotion, decidedPromotion(team), PROMOTION_DONE)}</td>
-          <td>${pct(team.relegation, decidedRelegation(team), RELEGATION_DONE)}</td>
-          <td class="left"><span class="heat" role="img" aria-label="Distribuição da posição final de ${escapeHtml(team.name)}">${heat}</span></td>
-        </tr>`;
-      })
-      .join("");
+    const zone = (position) => (position <= direct ? "zone-lib" : position <= playoffLast ? "zone-sula" : position > safeLast ? "zone-z4" : "");
+    const rows = data.teams.map((club) => {
+      const goalDifference = club.goals_for - club.goals_against;
+      return `<tr class="${zone(club.position)}">
+        <td class="pos">${club.position}</td>
+        <td class="left club">${team(club.club_id, 20)}</td>
+        <td><strong>${club.points}</strong></td><td>${club.played}</td><td>${club.wins}</td><td>${club.draws}</td><td>${club.losses}</td>
+        <td>${goalDifference > 0 ? "+" : ""}${goalDifference}</td>
+        <td class="view-start">${number.format(club.expected_points)}<span class="range">${club.points_interval_90[0]}–${club.points_interval_90[1]}</span></td>
+        <td>${S.probCell(club.promotion_direct, "lib", directLabel(club))}</td>
+        <td>${S.probCell(club.playoff, "sula", club.clinched.out_of_top6 ? "não dá mais" : null)}</td>
+        <td>${S.probCell(club.promotion, "lib", promotionLabel(club))}</td>
+        <td>${S.probCell(club.relegation, "danger", relegationLabel(club))}</td>
+        <td class="left">${S.heat(club.position_probabilities, club.name)}</td>
+      </tr>`;
+    }).join("");
     return `
-      <section id="tabela" aria-labelledby="tabela-titulo">
-        <h2 id="tabela-titulo">Tabela e posição final provável</h2>
-        <p class="section-note">Linhas de corte depois do ${direct}º (acesso direto), do ${playoffLast}º (playoff) e do ${safeLast}º (rebaixamento). A faixa à direita mostra a chance de cada posição final, do 1º ao 20º: quanto mais escura, mais provável.</p>
-        <div class="table-scroll" tabindex="0" role="region" aria-label="Tabela da Série B">
-          <table>
-            <thead><tr><th>#</th><th class="left">Clube</th><th>Pts</th><th>J</th><th>V</th><th>E</th><th>D</th><th>SG</th><th>Pts esp.</th><th>Sobe</th><th>Cai</th><th class="left">Posição final (1º → 20º)</th></tr></thead>
-            <tbody>${rows}</tbody>
-          </table>
-        </div>
-      </section>`;
+      <h1 class="race-heading">Tabela</h1>
+      <div class="legend"><span class="l-lib">acesso direto (1º e 2º)</span><span class="l-sula">playoff (3º ao 6º)</span><span class="l-z4">rebaixamento (17º ao 20º)</span></div>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Tabela da Série B">
+        <table class="standings">
+          <thead><tr><th>#</th><th class="left">Clube</th><th>Pts</th><th>J</th><th>V</th><th>E</th><th>D</th><th>SG</th><th class="view-start">Pts proj.</th><th>Sobe direto</th><th>Playoff</th><th>Sobe</th><th>Cai</th><th class="left">Posição final (1º → 20º)</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <p class="note">Pts proj. = média simulada de pontos no fim; embaixo, a faixa onde terminam 90% das simulações. "Sobe" soma o acesso direto e o pelo playoff. A faixa à direita mostra a chance de cada posição final: quanto mais escura, mais provável.</p>`;
   }
 
-  function matches(data, byId) {
-    const items = [...data.remaining]
-      .sort((a, b) => byId[a.home_id].position - byId[b.home_id].position)
-      .map((match) => {
-        const home = byId[match.home_id];
-        const away = byId[match.away_id];
-        const widths = [match.p_home, match.p_draw, match.p_away].map((value) => (value * 100).toFixed(1));
-        return `<li>
-          <div class="teams"><span>${escapeHtml(home.name)}</span><span>${escapeHtml(away.name)}</span></div>
-          <div class="bar" role="img" aria-label="${escapeHtml(home.name)} ${pct(match.p_home)}, empate ${pct(match.p_draw)}, ${escapeHtml(away.name)} ${pct(match.p_away)}">
-            <span class="h" style="width:${widths[0]}%"></span><span class="d" style="width:${widths[1]}%"></span><span class="a" style="width:${widths[2]}%"></span>
-          </div>
-          <div class="nums"><span>${pct(match.p_home)}</span><span>empate ${pct(match.p_draw)}</span><span>${pct(match.p_away)}</span></div>
-        </li>`;
-      })
-      .join("");
+  function matches(data) {
+    const byId = Object.fromEntries(data.teams.map((club) => [club.club_id, club]));
+    const rows = [...data.remaining].sort((a, b) => byId[a.home_id].position - byId[b.home_id].position).map(S.matchRow).join("");
     return `
-      <section id="jogos" aria-labelledby="jogos-titulo">
-        <h2 id="jogos-titulo">Os ${data.remaining.length} jogos que faltam</h2>
-        <p class="section-note">Mandante à esquerda. A fonte não traz as datas, então os jogos aparecem pela posição do mandante na tabela.</p>
-        <ul class="matches">${items}</ul>
-      </section>`;
+      <h1 class="race-heading">Os ${data.remaining.length} jogos que faltam</h1>
+      <p class="note">Mandante à esquerda; chance de vitória do mandante, empate e vitória do visitante. A fonte não traz as datas, então os jogos aparecem pela posição do mandante na tabela.</p>
+      <div class="legend"><span class="l-home">mandante</span><span class="l-draw">empate</span><span class="l-away">visitante</span></div>
+      ${rows}`;
   }
 
   function method(data) {
     const backtest = data.backtest;
     const facts = backtest
-      ? `<div class="facts">
-          <div class="fact"><strong>${decimal.format(backtest.log_loss)}</strong><span>log loss do modelo em ${backtest.n_matches.toLocaleString("pt-BR")} jogos de ${backtest.test_seasons[0]} a ${backtest.test_seasons[backtest.test_seasons.length - 1]} (taxa base: ${decimal.format(backtest.log_loss_base_rate)}; menor é melhor)</span></div>
-          <div class="fact"><strong>${decimal.format(backtest.late_top4_brier)}</strong><span>Brier de "4 primeiros" com ${38 - backtest.late_round} rodadas por jogar (chute fixo: ${decimal.format(backtest.climatology_brier)})</span></div>
-          <div class="fact"><strong>${decimal.format(backtest.late_relegation_brier)}</strong><span>Brier do rebaixamento no mesmo ponto da temporada</span></div>
-          <div class="fact"><strong>${Math.round(backtest.late_points_interval_90_coverage * 100)}%</strong><span>dos pontos finais caíram no intervalo de 90% previsto</span></div>
+      ? `<div class="stat-row">
+          <div class="stat"><span class="label">Log loss por jogo</span><span class="big">${decimal.format(backtest.log_loss)}</span><span class="sub">${backtest.n_matches.toLocaleString("pt-BR")} jogos de ${backtest.test_seasons[0]} a ${backtest.test_seasons[backtest.test_seasons.length - 1]}; taxa base ${decimal.format(backtest.log_loss_base_rate)}</span></div>
+          <div class="stat"><span class="label">Brier de "4 primeiros"</span><span class="big">${decimal.format(backtest.late_top4_brier)}</span><span class="sub">com ${38 - backtest.late_round} rodadas por jogar; chute fixo ${decimal.format(backtest.climatology_brier)}</span></div>
+          <div class="stat"><span class="label">Brier do rebaixamento</span><span class="big">${decimal.format(backtest.late_relegation_brier)}</span><span class="sub">no mesmo ponto da temporada</span></div>
+          <div class="stat"><span class="label">Pontos na faixa de 90%</span><span class="big">${Math.round(backtest.late_points_interval_90_coverage * 100)}%</span><span class="sub">dos pontos finais</span></div>
         </div>`
       : "";
-    const sources = data.sources
-      .map((source) => `<li><a href="${escapeHtml(source.origin)}">${escapeHtml(source.attribution || source.source_name)}</a>, versão ${escapeHtml(source.version)}.</li>`)
-      .join("");
     return `
-      <section id="metodo" class="prose" aria-labelledby="metodo-titulo">
-        <h2 id="metodo-titulo">Como calculamos</h2>
-        <p>É o mesmo modelo da Série A do AInda dá?, com parâmetros calibrados nos jogos da própria Série B: força de cada clube (Elo, ataque e defesa) reconstruída jogo a jogo desde 2018, um modelo de gols treinado só com temporadas anteriores e ${data.n_simulations.toLocaleString("pt-BR")} simulações do que falta. Cada simulação termina a tabela com os critérios do regulamento e depois disputa os dois playoffs, ida e volta.</p>
-        ${facts}
-        <p>Limitações que você precisa saber:</p>
-        <ul>${data.warnings.map((warning) => `<li>${escapeHtml(warning)}</li>`).join("")}
-          <li>Quem não jogou a Série B no ano anterior (os rebaixados da Série A e os que subiram da Série C) começa a temporada com a força média dos clubes que deixaram a divisão. A força se ajusta jogo a jogo depois disso.</li>
-          <li>"Subiu", "caiu" e "não dá mais" só aparecem quando a conta de pontos fecha, nunca por simulação.</li>
-        </ul>
-        <p>Regulamento: <a href="${escapeHtml(data.regulation.url)}">${escapeHtml(data.regulation.title)}</a>. Fontes:</p>
-        <ul>${sources}</ul>
-        <p class="meta">Modelo ${escapeHtml(data.model_version)} · dados ${escapeHtml(data.data_version)} · semente ${data.seed} · gerado em ${new Date(data.generated_at).toLocaleString("pt-BR")}</p>
-        <div id="metodo-elo"></div>
-      </section>`;
+      <h1 class="race-heading">Como calculamos</h1>
+      <p>É o mesmo modelo da Série A do AInda dá?, com parâmetros calibrados nos jogos da própria Série B: força de cada clube (Elo, ataque e defesa) reconstruída jogo a jogo desde 2018, um modelo de gols treinado só com temporadas anteriores e ${data.n_simulations.toLocaleString("pt-BR")} simulações do que falta. Cada simulação termina a tabela com os critérios do regulamento e depois disputa os dois playoffs, ida e volta.</p>
+      <h2>Acerto em temporadas passadas</h2>
+      ${facts}
+      <p class="note">Menor é melhor no log loss e no Brier.</p>
+      <h2>Limitações</h2>
+      <ul class="summary-list">${data.warnings.map((warning) => `<li>${escapeHtml(warning)}</li>`).join("")}
+        <li>Quem não jogou a Série B no ano anterior começa a temporada com a força média dos clubes que deixaram a divisão; a força se ajusta jogo a jogo depois disso.</li>
+        <li>"Subiu", "caiu" e "não dá mais" só aparecem quando a conta de pontos fecha, nunca por simulação.</li>
+      </ul>
+      <h2>Regulamento e fontes</h2>
+      <p>Regulamento: <a href="${S.safeUrl(data.regulation.url)}">${escapeHtml(data.regulation.title)}</a>.</p>
+      <ul class="summary-list">${S.sources(data.sources)}</ul>
+      <p class="note">Modelo ${escapeHtml(data.model_version)} · dados <code class="data-version">${escapeHtml(data.data_version)}</code> · semente ${data.seed} · gerado em ${new Date(data.generated_at).toLocaleString("pt-BR")}</p>
+      <div id="metodo-elo"></div>`;
   }
 
-  function render(data) {
-    const byId = Object.fromEntries(data.teams.map((team) => [team.club_id, team]));
-    main.innerHTML = [hero(data), ladder(data), playoff(data, byId), relegation(data), table(data), matches(data, byId), method(data)].join("");
-    if (window.AIndaDaMetodo) window.AIndaDaMetodo.render(document.getElementById("metodo-elo"), "serie-b");
-    const credits = document.getElementById("credits");
-    credits.innerHTML = `Fontes: ${data.sources
-      .map((source) => `<a href="${escapeHtml(source.origin)}">${escapeHtml(source.attribution || source.source_name)}</a>`)
-      .join("; ")}. Licenças: <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.pt-br">CC BY-SA 4.0</a> e <a href="https://creativecommons.org/publicdomain/zero/1.0/deed.pt-br">CC0 1.0</a>.`;
-  }
-
-  fetch("data/forecast.json", { cache: "no-cache" })
-    .then((response) => {
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return response.json();
-    })
-    .then(render)
-    .catch(() => {
-      main.innerHTML = '<p class="loading">Não foi possível carregar as simulações agora. Tente de novo em alguns minutos.</p>';
-    });
+  S.start({
+    names: (data) => Object.fromEntries(data.teams.map((club) => [club.club_id, club.name])),
+    edition,
+    footer: (data) => `Fontes: ${data.sources.map((source) => `<a href="${S.safeUrl(source.origin)}">${escapeHtml(source.attribution || source.source_name)}</a>`).join("; ")}. Licenças: <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.pt-br">CC BY-SA 4.0</a> e <a href="https://creativecommons.org/publicdomain/zero/1.0/deed.pt-br">CC0 1.0</a>.`,
+    routes: [
+      { id: "", label: "Início", render: home },
+      { id: "tabela", label: "Tabela", render: table },
+      { id: "jogos", label: "Jogos", render: matches },
+      { id: "metodologia", label: "Como calculamos", render: method, after: (data, main) => window.AIndaDaMetodo && window.AIndaDaMetodo.render(main.querySelector("#metodo-elo"), "serie-b") },
+    ],
+  });
 })();

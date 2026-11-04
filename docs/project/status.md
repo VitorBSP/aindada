@@ -3130,3 +3130,40 @@ Registrado pelo orquestrador (00), que executou as partes de 01, 03, 02, 04/05 e
   - ruff, mypy e actionlint sem achados;
   - LoL local: 39 de 46 séries, quartas definidas (TES × IG em 03/11).
 - **Próximo:** 07 dispara o `publish-site` depois do push e acompanha.
+
+## Sites das outras competições no desenho da Série A (D-043; 2026-11-04)
+
+- **O que mudou:**
+  - base comum `apps/web/assets/competition.js` e `competition.css` (cabeçalho, abas por rota, barra de edição,
+    escudos, barras de chance, tabela, jogos e chave);
+  - `apps/web-serie-b/`, `apps/web-ligas/`, `apps/web-champions/` e `apps/web-lol/` reescritos sobre a base, com
+    "Como calculamos" em aba própria e a fonte e o estilo vindos de `../assets/`;
+  - escudos: `src/brasileirao/crests.py`, `data/reference/crest_sources.csv`, `crests_provenance_*.json` e
+    `apps/<site>/assets/crests/`;
+  - Mundial de LoL: `forecast.json` ganha `bracket` (séries do mata-mata com placar ou chance), conferido no gate.
+- **Evidência:**
+  - `pytest -q` passa, com os testes novos de `test_crests.py` e da chave em `test_esports.py`; ruff e mypy sem achados;
+  - os 5 gates (Série B, Premier League, LaLiga, Champions e LoL) deram 0 achados no artefato de ensaio montado com
+    os `forecast.json` publicados (o do LoL gerado localmente com `bracket`);
+  - conferido no navegador, em desktop e celular (375 px): sem rolagem lateral na página, e a chave rola dentro da
+    própria caixa.
+- **Premissas e limitações:**
+  - poucos escudos livres na Inglaterra e na Espanha;
+  - a chave da Champions é estrutural (seções do Art. 19 e posições), não um sorteio simulado de confrontos.
+- **Próximo:**
+  - **06**: auditar;
+  - **08**: revisão do dono sobre D-043.
+- **Auditoria do 06 (D-043):**
+  - **Primeira rodada:** commit aprovado com ressalvas; push bloqueado por três problemas:
+    - **B1:** na Champions, um clube que garantiu o top 8 aparecia como "eliminado". Agora aparece "já nas oitavas".
+    - **M1:** a página do LoL quebrava no fallback, com um `forecast.json` sem `bracket`.
+    - **M2:** a página do LoL quebrava com as quartas ainda não sorteadas.
+  - **Menores corrigidos:**
+    - fase alcançada por resultado aparece como "classificado" ou "campeão";
+    - `safeUrl` nos links;
+    - `thumb_url` na proveniência;
+    - testes de SHA e licença dos escudos;
+    - nota sobre PD-textlogo no catálogo.
+  - **Reauditoria:** aprovado para commit e push.
+  - **Ressalva aberta:** a página do LoL supõe que as quartas 1 e 2 formam a semifinal 1.
+

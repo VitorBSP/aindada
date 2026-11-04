@@ -350,3 +350,16 @@ Até haver decisão, 2026 segue com a ordem imputada (ADR-0010, Decisão 1).
 - Política de fãs da Riot ("Legal Jibber Jabber"): aviso obrigatório, sem logos, não comercial, revogável; risco
   aceito pelo dono do produto em 30/10/2026.
 - Composição real (2026-10-30): 126 séries; Mundial 2026 com 34 de 46 séries listadas jogadas.
+
+## Escudos e logos das outras competições (D-043, 2026-11-04)
+
+- Cadastro revisado `data/reference/crest_sources.csv`: competição, time, artigo da Wikipédia em inglês e, quando
+  for o caso, o motivo para não usar o logo do Wikidata (histórico ou só letreiro).
+- Coleta (`python -m brasileirao.crests`): item do Wikidata pelo artigo → logo (P154, posto preferido) → licença no
+  Wikimedia Commons. Entra só "Public domain" ou "CC0", baixado como PNG de 128 px; proveniência por arquivo (URL
+  da página do arquivo, licença, autor, SHA-256, data) em `data/reference/crests_provenance_<competição>.json`.
+- Resultado em 2026-11-04: Série B 9 de 20, Premier League 0 de 20, LaLiga 1 de 20, Champions 11 de 36, Mundial de
+  LoL 4 de 16. Os outros recebem o marcador com a sigla e a cor oficial (Wikidata P6364/P465, CC0).
+- CC BY e CC BY-SA ficam de fora por enquanto (mesma regra da Série A, D-028); são, em geral, recriações de fãs.
+- "Public domain" no Commons costuma ser PD-textlogo (abaixo do limiar de originalidade dos EUA), que pode não
+  valer no país do clube; a marca continua protegida. Uso só para identificar o clube, como na Série A.

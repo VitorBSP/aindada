@@ -1,0 +1,143 @@
+{
+  "arsenal": {
+    "bg": "#C8102E",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "ARS",
+    "wikipedia_title": "Arsenal F.C."
+  },
+  "aston-villa": {
+    "bg": "#800032",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "AVL",
+    "wikipedia_title": "Aston Villa F.C."
+  },
+  "bournemouth": {
+    "bg": "#C8102E",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "BOU",
+    "wikipedia_title": "AFC Bournemouth"
+  },
+  "brentford": {
+    "bg": "#C8102E",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "BRE",
+    "wikipedia_title": "Brentford F.C."
+  },
+  "brighton": {
+    "bg": "#1F3F8F",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "BHA",
+    "wikipedia_title": "Brighton & Hove Albion F.C."
+  },
+  "chelsea": {
+    "bg": "#002366",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "CHE",
+    "wikipedia_title": "Chelsea F.C."
+  },
+  "coventry-city": {
+    "bg": "#6CABDD",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "COV",
+    "wikipedia_title": "Coventry City F.C."
+  },
+  "crystal-palace": {
+    "bg": "#C8102E",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "CRY",
+    "wikipedia_title": "Crystal Palace F.C."
+  },
+  "everton": {
+    "bg": "#002366",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "EVE",
+    "wikipedia_title": "Everton F.C."
+  },
+  "fulham": {
+    "bg": "#FFFFFF",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "FUL",
+    "wikipedia_title": "Fulham F.C."
+  },
+  "hull-city": {
+    "bg": "#F2A900",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "HUL",
+    "wikipedia_title": "Hull City A.F.C."
+  },
+  "ipswich-town": {
+    "bg": "#1F3F8F",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "IPS",
+    "wikipedia_title": "Ipswich Town F.C."
+  },
+  "leeds-united": {
+    "bg": "#FFFFFF",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "LEE",
+    "wikipedia_title": "Leeds United F.C."
+  },
+  "liverpool": {
+    "bg": "#C8102E",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "note": "logo do Wikidata é só o letreiro L.F.C.",
+    "short_name": "LIV",
+    "wikipedia_title": "Liverpool F.C."
+  },
+  "manchester-city": {
+    "bg": "#6CABDD",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "MCI",
+    "wikipedia_title": "Manchester City F.C."
+  },
+  "manchester-united": {
+    "bg": "#C8102E",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "MUN",
+    "wikipedia_title": "Manchester United F.C."
+  },
+  "newcastle-united": {
+    "bg": "#FFFFFF",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "NEW",
+    "wikipedia_title": "Newcastle United F.C."
+  },
+  "nottingham-forest": {
+    "bg": "#C8102E",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "NFO",
+    "wikipedia_title": "Nottingham Forest F.C."
+  },
+  "sunderland": {
+    "bg": "#C8102E",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "SUN",
+    "wikipedia_title": "Sunderland A.F.C."
+  },
+  "tottenham-hotspur": {
+    "bg": "#FFFFFF",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "TOT",
+    "wikipedia_title": "Tottenham Hotspur F.C."
+  }
+}

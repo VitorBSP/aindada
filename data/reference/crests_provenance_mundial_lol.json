@@ -1,0 +1,152 @@
+{
+  "anyones-legend": {
+    "bg": "#E2E1DB",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "AL",
+    "wikipedia_title": "Anyone's Legend"
+  },
+  "bilibili-gaming": {
+    "bg": "#E2E1DB",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "BLG",
+    "wikipedia_title": "Bilibili Gaming"
+  },
+  "ctbc-flying-oyster": {
+    "bg": "#E2E1DB",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "CFO",
+    "wikipedia_title": "CTBC Flying Oyster"
+  },
+  "dplus-kia": {
+    "bg": "#E2E1DB",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "DK",
+    "wikipedia_title": "Dplus KIA"
+  },
+  "g2-esports": {
+    "bg": "#000000",
+    "fg": "#FFFFFF",
+    "license_status": "sem logo livre",
+    "short_name": "G2",
+    "wikipedia_title": "G2 Esports"
+  },
+  "gen-g": {
+    "author": "Gen.G",
+    "bg": "#E2E1DB",
+    "commons_file": "Gen.G Logo.svg",
+    "fg": "#17191C",
+    "file": "gen-g.png",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Gen.G_Logo.svg",
+    "license": "Public domain",
+    "license_status": "livre",
+    "retrieved_at": "2026-11-04T20:49:09+00:00",
+    "sha256": "2e371cd5929f1d24c2b1bd8a4077acb489808f7d49cf61bb06b9125a137ec354",
+    "short_name": "GEN",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/7/77/Gen.G_Logo.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/Gen.G_Logo.svg/250px-Gen.G_Logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "wikipedia_title": "Gen.G"
+  },
+  "hanwha-life-esports": {
+    "author": "<a href=\"//commons.wikimedia.org/w/index.php?title=User:TheHirder&amp;action=edit&amp;redlink=1\" class=\"new\" title=\"User:TheHirder (page does not exist)\">TheHirder</a>",
+    "bg": "#E2E1DB",
+    "commons_file": "Hanwha Life Esports logo.svg",
+    "fg": "#17191C",
+    "file": "hanwha-life-esports.png",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Hanwha_Life_Esports_logo.svg",
+    "license": "Public domain",
+    "license_status": "livre",
+    "retrieved_at": "2026-11-04T20:49:18+00:00",
+    "sha256": "727cb4edd44f8bf7aaf584a2f7bae121a1f7b7d6f9115ca5a7e28a49590c3d99",
+    "short_name": "HLE",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/9/99/Hanwha_Life_Esports_logo.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/99/Hanwha_Life_Esports_logo.svg/250px-Hanwha_Life_Esports_logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "wikipedia_title": "Hanwha Life Esports"
+  },
+  "invictus-gaming": {
+    "bg": "#E2E1DB",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "IG",
+    "wikipedia_title": "Invictus Gaming"
+  },
+  "karmine-corp": {
+    "author": "<a href=\"https://en.wikipedia.org/wiki/fr:Karmine_Corp\" class=\"extiw\" title=\"w:fr:Karmine Corp\">Karmine Corp</a>",
+    "bg": "#E2E1DB",
+    "commons_file": "Karmine Corp logo.svg",
+    "fg": "#17191C",
+    "file": "karmine-corp.png",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Karmine_Corp_logo.svg",
+    "license": "Public domain",
+    "license_status": "livre",
+    "retrieved_at": "2026-11-04T20:49:13+00:00",
+    "sha256": "cd25571940a6f4f77a83abf96546b435fc576805d5bde6272aa82068740fdc0d",
+    "short_name": "KC",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/9/96/Karmine_Corp_logo.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/96/Karmine_Corp_logo.svg/250px-Karmine_Corp_logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "wikipedia_title": "Karmine Corp"
+  },
+  "los-grandes": {
+    "bg": "#E2E1DB",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "note": "sem artigo próprio na Wikipédia em inglês",
+    "short_name": "LØS",
+    "wikipedia_title": ""
+  },
+  "lyon": {
+    "bg": "#E2E1DB",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "note": "sem artigo próprio na Wikipédia em inglês",
+    "short_name": "LYON",
+    "wikipedia_title": ""
+  },
+  "movistar-koi": {
+    "bg": "#E2E1DB",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "MKOI",
+    "wikipedia_title": "Movistar KOI"
+  },
+  "t1": {
+    "author": "T1",
+    "bg": "#E2E1DB",
+    "commons_file": "T1 esports logo.svg",
+    "fg": "#17191C",
+    "file": "t1.png",
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:T1_esports_logo.svg",
+    "license": "Public domain",
+    "license_status": "livre",
+    "retrieved_at": "2026-11-04T20:49:11+00:00",
+    "sha256": "70a3944c1df1c51546af6f8fe4c3d3c4185823d5c070e90de0cc16c4971bd861",
+    "short_name": "T1",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/3a/T1_esports_logo.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3a/T1_esports_logo.svg/250px-T1_esports_logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "wikipedia_title": "T1 (esports)"
+  },
+  "team-liquid": {
+    "bg": "#E2E1DB",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "TL",
+    "wikipedia_title": "Team Liquid"
+  },
+  "team-secret-whales": {
+    "bg": "#E2E1DB",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "TSW",
+    "wikipedia_title": "Team Secret Whales"
+  },
+  "top-esports": {
+    "bg": "#E2E1DB",
+    "fg": "#17191C",
+    "license_status": "sem logo livre",
+    "short_name": "TES",
+    "wikipedia_title": "Top Esports"
+  }
+}

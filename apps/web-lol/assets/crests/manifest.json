@@ -1,0 +1,98 @@
+{
+  "anyones-legend": {
+    "badge": {
+      "bg": "#E2E1DB",
+      "fg": "#17191C",
+      "label": "AL"
+    }
+  },
+  "bilibili-gaming": {
+    "badge": {
+      "bg": "#E2E1DB",
+      "fg": "#17191C",
+      "label": "BLG"
+    }
+  },
+  "ctbc-flying-oyster": {
+    "badge": {
+      "bg": "#E2E1DB",
+      "fg": "#17191C",
+      "label": "CFO"
+    }
+  },
+  "dplus-kia": {
+    "badge": {
+      "bg": "#E2E1DB",
+      "fg": "#17191C",
+      "label": "DK"
+    }
+  },
+  "g2-esports": {
+    "badge": {
+      "bg": "#000000",
+      "fg": "#FFFFFF",
+      "label": "G2"
+    }
+  },
+  "gen-g": {
+    "file": "gen-g.png"
+  },
+  "hanwha-life-esports": {
+    "file": "hanwha-life-esports.png"
+  },
+  "invictus-gaming": {
+    "badge": {
+      "bg": "#E2E1DB",
+      "fg": "#17191C",
+      "label": "IG"
+    }
+  },
+  "karmine-corp": {
+    "file": "karmine-corp.png"
+  },
+  "los-grandes": {
+    "badge": {
+      "bg": "#E2E1DB",
+      "fg": "#17191C",
+      "label": "LØS"
+    }
+  },
+  "lyon": {
+    "badge": {
+      "bg": "#E2E1DB",
+      "fg": "#17191C",
+      "label": "LYON"
+    }
+  },
+  "movistar-koi": {
+    "badge": {
+      "bg": "#E2E1DB",
+      "fg": "#17191C",
+      "label": "MKOI"
+    }
+  },
+  "t1": {
+    "file": "t1.png"
+  },
+  "team-liquid": {
+    "badge": {
+      "bg": "#E2E1DB",
+      "fg": "#17191C",
+      "label": "TL"
+    }
+  },
+  "team-secret-whales": {
+    "badge": {
+      "bg": "#E2E1DB",
+      "fg": "#17191C",
+      "label": "TSW"
+    }
+  },
+  "top-esports": {
+    "badge": {
+      "bg": "#E2E1DB",
+      "fg": "#17191C",
+      "label": "TES"
+    }
+  }
+}

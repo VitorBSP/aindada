@@ -60,6 +60,19 @@ class SeriesOutlook(BaseModel):
     p_team1: float
 
 
+class BracketSeries(BaseModel):
+    """Série do mata-mata na ordem da página: quartas 1 e 2 formam a semi 1, quartas 3 e 4 a semi 2 (D-043)."""
+
+    stage: str
+    label: str
+    match_date: str
+    team1: str | None
+    team2: str | None
+    score1: int | None
+    score2: int | None
+    p_team1: float | None
+
+
 class LolForecast(BaseModel):
     schema_version: str = LOL_SCHEMA_VERSION
     competition: str = "mundial-lol"
@@ -74,6 +87,7 @@ class LolForecast(BaseModel):
     league_strength: dict[str, float]
     teams: list[TeamOutlook]
     upcoming: list[SeriesOutlook]
+    bracket: list[BracketSeries] = []
     warnings: list[str]
     sources: list[dict[str, Any]]
     backtest: dict[str, Any] | None = None
@@ -216,6 +230,22 @@ def build_forecast(
                 p_team1=win,
             )
         )
+    bracket = [
+        BracketSeries(
+            stage=item.section,
+            label=item.label,
+            match_date=item.match_date.isoformat(),
+            team1=item.team1 if item.defined else None,
+            team2=item.team2 if item.defined else None,
+            score1=item.score1 if item.played else None,
+            score2=item.score2 if item.played else None,
+            p_team1=None
+            if item.played or not item.defined
+            else series_probability(map_probability(elo.rating(item.team1), elo.rating(item.team2)), 5),
+        )
+        for item in current
+        if item.section in (QUARTERFINALS, SEMIFINALS, FINAL)
+    ]
     tags = sorted(str(source["version"]) for source in sources)
     return LolForecast(
         competition_name=event_name,
@@ -231,6 +261,7 @@ def build_forecast(
         },
         teams=teams,
         upcoming=upcoming,
+        bracket=bracket,
         warnings=[
             "Só jogos de eventos internacionais (MSI e Mundial de 2025 e 2026): os das ligas nacionais não entram.",
             "Teste curto: o acerto foi medido em poucos mapas do próprio Mundial 2026.",

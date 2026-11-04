@@ -1,0 +1,68 @@
+/* Sites das outras competições (D-043): só o que a Série A não tem. Tokens de styles.css. */
+
+.league-tag { margin-left: 10px; padding: 2px 8px; border: 1px solid var(--ink); font-size: 13px; font-weight: 650; line-height: 1.4; color: var(--ink); white-space: nowrap; }
+.brand { gap: 0; }
+
+/* Faixa da posição final (1º → último) */
+.heat { display: inline-flex; gap: 1px; vertical-align: middle; }
+.heat i { display: block; width: 7px; height: 16px; background: var(--ink); }
+.heat-wide i { width: 5px; }
+
+/* Blocos de disputa na página inicial */
+.races { display: grid; gap: 8px 40px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); margin: 8px 0 8px; }
+.race { border-top: 1px solid var(--rule-strong); padding-top: 10px; }
+.race h3 { font-size: 17px; margin: 0 0 2px; }
+main .race p.note { margin: 0 0 6px; }
+.race-row .club-cell span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.race-row .club-cell { min-width: 0; }
+.more { font-size: 14px; font-weight: 600; margin: 10px 0 0; }
+
+/* Chave (mata-mata): colunas por fase, ligadas por fios */
+.bracket { display: grid; grid-template-columns: repeat(var(--rounds, 3), minmax(200px, 1fr)); gap: 0 28px; overflow-x: auto; padding: 8px 0 12px; margin: 8px 0 4px; }
+.bracket-round { display: flex; flex-direction: column; justify-content: space-around; gap: 14px; min-width: 200px; }
+.bracket-round h3 { font-size: 13px; font-weight: 600; color: var(--ink-soft); margin: 0 0 2px; }
+.tie { background: var(--surface); border: 1px solid var(--rule); position: relative; }
+.bracket-round:not(:last-child) .tie::after { content: ""; position: absolute; right: -15px; top: 50%; width: 14px; border-top: 1px solid var(--rule); }
+.bracket-round:not(:first-child) .tie::before { content: ""; position: absolute; left: -15px; top: 50%; width: 14px; border-top: 1px solid var(--rule); }
+.tie-head { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--ink-faint); padding: 5px 8px; border-bottom: 1px solid var(--rule); }
+.tie-head b { font-weight: 650; color: var(--ink-soft); border: 1px solid var(--rule); padding: 0 5px; }
+.tie-side { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 8px; font-size: 14px; }
+.tie-side + .tie-side { border-top: 1px solid var(--rule); }
+.tie-side .club-cell { min-width: 0; font-weight: 600; }
+.tie-side .club-cell span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tie-side .score { font-size: 15px; font-weight: 700; }
+.tie-side .chance { font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.tie-side.won { box-shadow: inset 3px 0 0 var(--positive); background: color-mix(in srgb, var(--positive) 8%, transparent); }
+.tie-side.lost { color: var(--ink-faint); }
+.tie-side.lost .club-cell { font-weight: 500; }
+.tie-side.open { color: var(--ink-faint); font-style: italic; font-family: var(--serif); }
+.candidates { list-style: none; margin: 0; padding: 4px 8px 6px; font-size: 13px; }
+.candidates li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 2px 0; }
+.candidates .club-cell span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.candidates strong { font-variant-numeric: tabular-nums; font-weight: 650; }
+.candidates-label { font-size: 12px; color: var(--ink-faint); padding: 6px 8px 0; }
+
+/* Possíveis adversários (Mundial de LoL) */
+.rivals { display: grid; gap: 12px 40px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); margin-top: 8px; }
+.rival-card { border-top: 1px solid var(--rule-strong); padding-top: 10px; }
+.rival-card h3 { display: flex; align-items: center; gap: 10px; font-size: 18px; }
+.rival-card dl { margin: 0; display: grid; gap: 8px; }
+.rival-card dt { font-size: 13px; color: var(--ink-soft); }
+.rival-card dd { margin: 2px 0 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 14px; }
+.rival-card dd strong { font-variant-numeric: tabular-nums; margin-left: 4px; }
+
+/* Seções da chave provável da Champions */
+.sections-grid { display: grid; gap: 12px 32px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin: 8px 0; }
+.section-card { border-top: 1px solid var(--rule-strong); padding-top: 8px; }
+.section-card h3 { font-size: 15px; margin: 0 0 4px; }
+.section-card .candidates { padding: 0; }
+.section-card .candidates-label { padding: 6px 0 0; }
+
+.status-out { color: var(--ink-faint); font-style: italic; font-family: var(--serif); }
+td.stage.strong { font-weight: 700; }
+.loading { color: var(--ink-soft); }
+
+@media (max-width: 560px) {
+  .league-tag { margin-left: 6px; font-size: 12px; }
+  .bracket { grid-template-columns: repeat(var(--rounds, 3), minmax(180px, 1fr)); }
+}
