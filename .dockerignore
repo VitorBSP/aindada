@@ -12,7 +12,5 @@ data/raw
 data/silver
 data/editorial
 data/snapshots
-# Escudos não livres (D-028/D-029): ficam só no disco local como evidência.
-apps/web/assets/crests/bragantino.png
-apps/web/assets/crests/corinthians.png
+# Cópia local antiga do Vasco (D-028); os escudos oficiais entram pelo ADR-0014.
 apps/web/assets/crests/vasco.svg

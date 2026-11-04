@@ -12,6 +12,7 @@ from brasileirao.crests import (
     APPS,
     BADGE,
     FREE_LICENSES,
+    OFFICIAL_STATUS,
     badge_colors,
     contrast,
     load_sources,
@@ -58,16 +59,29 @@ def test_logo_prefers_the_preferred_rank() -> None:
 
 
 @pytest.mark.parametrize("competition", sorted({row["competition"] for row in load_sources()}))
-def test_every_crest_file_is_free_and_matches_its_sha256(competition: str) -> None:
+def test_every_crest_file_matches_its_sha256(competition: str) -> None:
     provenance = json.loads(provenance_path(competition).read_text(encoding="utf-8"))
     problems = []
     for team_id, record in provenance.items():
         if not record.get("file"):
             continue
         content = (PATHS.root / "apps" / APPS[competition] / "assets" / "crests" / record["file"]).read_bytes()
-        if record["license"] not in FREE_LICENSES or hashlib.sha256(content).hexdigest() != record["sha256"]:
+        if hashlib.sha256(content).hexdigest() != record["sha256"]:
             problems.append(team_id)
     assert problems == []
+
+
+@pytest.mark.parametrize("competition", sorted({row["competition"] for row in load_sources()}))
+def test_crest_is_free_or_official_under_adr_0014(competition: str) -> None:
+    provenance = json.loads(provenance_path(competition).read_text(encoding="utf-8"))
+    wrong = [
+        team_id
+        for team_id, record in provenance.items()
+        if record.get("file")
+        and not (record["license_status"] == "livre" and record["license"] in FREE_LICENSES)
+        and not (record["license_status"] == OFFICIAL_STATUS and record.get("official_file"))
+    ]
+    assert wrong == []
 
 
 @pytest.mark.parametrize("app", sorted(set(APPS.values())))
@@ -79,5 +93,10 @@ def test_every_png_in_the_app_has_provenance(app: str) -> None:
         for record in json.loads(provenance_path(competition).read_text(encoding="utf-8")).values()
         if record.get("file")
     }
+    if app == "web":
+        files |= {
+            record["file"]
+            for record in json.loads((PATHS.reference / "crests_provenance.json").read_text(encoding="utf-8")).values()
+        }
     on_disk = {path.name for path in (PATHS.root / "apps" / app / "assets" / "crests").glob("*.png")}
     assert on_disk <= files

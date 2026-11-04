@@ -1,38 +1,18 @@
 {
   "anyones-legend": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "AL"
-    }
+    "file": "anyones-legend.png"
   },
   "bilibili-gaming": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "BLG"
-    }
+    "file": "bilibili-gaming.png"
   },
   "ctbc-flying-oyster": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "CFO"
-    }
+    "file": "ctbc-flying-oyster.png"
   },
   "dplus-kia": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "DK"
-    }
+    "file": "dplus-kia.png"
   },
   "g2-esports": {
-    "badge": {
-      "bg": "#000000",
-      "fg": "#FFFFFF",
-      "label": "G2"
-    }
+    "file": "g2-esports.png"
   },
   "gen-g": {
     "file": "gen-g.png"
@@ -41,11 +21,7 @@
     "file": "hanwha-life-esports.png"
   },
   "invictus-gaming": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "IG"
-    }
+    "file": "invictus-gaming.png"
   },
   "karmine-corp": {
     "file": "karmine-corp.png"
@@ -65,21 +41,13 @@
     }
   },
   "movistar-koi": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "MKOI"
-    }
+    "file": "movistar-koi.png"
   },
   "t1": {
     "file": "t1.png"
   },
   "team-liquid": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "TL"
-    }
+    "file": "team-liquid.png"
   },
   "team-secret-whales": {
     "badge": {
@@ -89,10 +57,6 @@
     }
   },
   "top-esports": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "TES"
-    }
+    "file": "top-esports.png"
   }
 }

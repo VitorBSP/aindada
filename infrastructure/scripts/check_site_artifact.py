@@ -10,7 +10,8 @@
 - todo ponto de `probability-history` com `generated_at` com fuso, `model_version` e `reconstructed` booleano;
   todos os `model_version` do histórico iguais ao de `predictions` (curva de um único modelo) e o último ponto
   com `reconstructed` falso;
-- nenhum dos escudos não livres no artefato (D-028/D-029);
+- todo arquivo de escudo (`*/assets/crests/`) citado no `manifest.json` da pasta (ADR-0014: só entra escudo com
+  proveniência registrada pela coleta);
 - `reference_date` não regride em relação ao site no ar (`--live-url`, opcional; sem resposta, a checagem é pulada);
 - nenhum jogo do `predictions.json` com placar sem status `finished`;
 - `current-round.json` (ADR-0009, Decisão 3), exigido quando o snapshot tem jogos: `schema_version` conhecido,
@@ -32,7 +33,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-NON_FREE_CRESTS = ("bragantino.png", "corinthians.png", "vasco.svg")
+CREST_SUFFIXES = (".png", ".svg")
 HISTORY_MODES = ("reconstructed", "recorded")
 TIMEOUT_SECONDS = 30
 CURRENT_ROUND_SCHEMA_VERSIONS = ("1.0",)
@@ -125,6 +126,21 @@ def _baseline_values(teams: Any) -> dict[str, dict[str, Any]]:
         for club, values in teams.items()
         if isinstance(values, dict)
     }
+
+
+def _crest_problems(site_dir: Path) -> list[str]:
+    """Escudo fora do manifesto não passou pela coleta com proveniência (ADR-0014)."""
+    orphans: list[str] = []
+    for folder in sorted({path.parent for path in site_dir.rglob("assets/crests/*")}):
+        manifest_path = folder / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.is_file() else {}
+        listed = {entry.get("file") for entry in manifest.values() if isinstance(entry, dict)}
+        orphans += [
+            path.relative_to(site_dir).as_posix()
+            for path in sorted(folder.iterdir())
+            if path.suffix in CREST_SUFFIXES and path.name not in listed
+        ]
+    return [f"escudos fora do manifesto no artefato: {orphans}"] if orphans else []
 
 
 def _baseline_problems(baseline: Any, starts_on: Any, predictions: Any, rounds: Any) -> list[str]:
@@ -243,9 +259,7 @@ def check(site_dir: Path, season: int, live_url: str | None, seed: int | None = 
         problems.extend(current_problems or _current_round_problems(current, season, predictions, rounds))
     if seed is not None:
         problems.extend(_seed_problems(seed, predictions, rounds, history or []))
-    crests = [path.as_posix() for name in NON_FREE_CRESTS for path in site_dir.rglob(name)]
-    if crests:
-        problems.append(f"escudos não livres no artefato: {crests}")
+    problems.extend(_crest_problems(site_dir))
     if live_url:
         live_date = _live_reference_date(live_url)
         if live_date is None:

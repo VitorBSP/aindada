@@ -1,17 +1,9 @@
 {
   "america-mg": {
-    "badge": {
-      "bg": "#1E7B3A",
-      "fg": "#FFFFFF",
-      "label": "AME"
-    }
+    "file": "america-mg.png"
   },
   "athletic-mg": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "ATH"
-    }
+    "file": "athletic-mg.png"
   },
   "atletico-go": {
     "file": "atletico-go.png"
@@ -26,59 +18,31 @@
     "file": "ceara.png"
   },
   "crb": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "CRB"
-    }
+    "file": "crb.png"
   },
   "criciuma": {
     "file": "criciuma.png"
   },
   "cuiaba": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "CUI"
-    }
+    "file": "cuiaba.png"
   },
   "fortaleza": {
     "file": "fortaleza.png"
   },
   "goias": {
-    "badge": {
-      "bg": "#1E7B3A",
-      "fg": "#FFFFFF",
-      "label": "GOI"
-    }
+    "file": "goias.png"
   },
   "juventude": {
-    "badge": {
-      "bg": "#FFFFFF",
-      "fg": "#17191C",
-      "label": "JUV"
-    }
+    "file": "juventude.png"
   },
   "londrina": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "LON"
-    }
+    "file": "londrina.png"
   },
   "nautico": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "NAU"
-    }
+    "file": "nautico.png"
   },
   "novorizontino": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "NOV"
-    }
+    "file": "novorizontino.png"
   },
   "operario-pr": {
     "file": "operario-pr.png"
@@ -87,18 +51,10 @@
     "file": "ponte-preta.png"
   },
   "sao-bernardo": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "SBE"
-    }
+    "file": "sao-bernardo.png"
   },
   "sport": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "SPT"
-    }
+    "file": "sport.png"
   },
   "vila-nova": {
     "file": "vila-nova.png"

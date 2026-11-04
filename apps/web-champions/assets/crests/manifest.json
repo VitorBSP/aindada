@@ -3,112 +3,52 @@
     "file": "aut-lask.png"
   },
   "aze-sabah": {
-    "badge": {
-      "bg": "#000000",
-      "fg": "#FFFFFF",
-      "label": "SAB"
-    }
+    "file": "aze-sabah.png"
   },
   "bel-brugge": {
-    "badge": {
-      "bg": "#1F3F8F",
-      "fg": "#FFFFFF",
-      "label": "BRU"
-    }
+    "file": "bel-brugge.png"
   },
   "cze-slavia-praha": {
-    "badge": {
-      "bg": "#C8102E",
-      "fg": "#FFFFFF",
-      "label": "SLP"
-    }
+    "file": "cze-slavia-praha.png"
   },
   "eng-arsenal": {
-    "badge": {
-      "bg": "#C8102E",
-      "fg": "#FFFFFF",
-      "label": "ARS"
-    }
+    "file": "eng-arsenal.png"
   },
   "eng-aston-villa": {
-    "badge": {
-      "bg": "#800032",
-      "fg": "#FFFFFF",
-      "label": "AVL"
-    }
+    "file": "eng-aston-villa.png"
   },
   "eng-liverpool": {
-    "badge": {
-      "bg": "#C8102E",
-      "fg": "#FFFFFF",
-      "label": "LIV"
-    }
+    "file": "eng-liverpool.png"
   },
   "eng-manchester-city": {
-    "badge": {
-      "bg": "#6CABDD",
-      "fg": "#17191C",
-      "label": "MCI"
-    }
+    "file": "eng-manchester-city.png"
   },
   "eng-manchester-united": {
-    "badge": {
-      "bg": "#C8102E",
-      "fg": "#FFFFFF",
-      "label": "MUN"
-    }
+    "file": "eng-manchester-united.png"
   },
   "esp-atletico-madrid": {
-    "badge": {
-      "bg": "#C8102E",
-      "fg": "#FFFFFF",
-      "label": "ATL"
-    }
+    "file": "esp-atletico-madrid.png"
   },
   "esp-barcelona": {
     "file": "esp-barcelona.png"
   },
   "esp-real-betis": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "BET"
-    }
+    "file": "esp-real-betis.png"
   },
   "esp-real-madrid-c-f": {
-    "badge": {
-      "bg": "#FFFFFF",
-      "fg": "#17191C",
-      "label": "RMA"
-    }
+    "file": "esp-real-madrid-c-f.png"
   },
   "esp-villarreal": {
-    "badge": {
-      "bg": "#F2C300",
-      "fg": "#17191C",
-      "label": "VIL"
-    }
+    "file": "esp-villarreal.png"
   },
   "fra-lens": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "RCL"
-    }
+    "file": "fra-lens.png"
   },
   "fra-lille": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "LIL"
-    }
+    "file": "fra-lille.png"
   },
   "fra-paris-saint-germain": {
-    "badge": {
-      "bg": "#000080",
-      "fg": "#FFFFFF",
-      "label": "PSG"
-    }
+    "file": "fra-paris-saint-germain.png"
   },
   "ger-bayern-munchen": {
     "file": "ger-bayern-munchen.png"
@@ -117,21 +57,13 @@
     "file": "ger-borussia-dortmund.png"
   },
   "ger-rb-leipzig": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "RBL"
-    }
+    "file": "ger-rb-leipzig.png"
   },
   "ger-stuttgart": {
     "file": "ger-stuttgart.png"
   },
   "gre-aek-athen": {
-    "badge": {
-      "bg": "#F2C300",
-      "fg": "#17191C",
-      "label": "AEK"
-    }
+    "file": "gre-aek-athen.png"
   },
   "ita-como": {
     "file": "ita-como.png"
@@ -143,68 +75,36 @@
     "file": "ita-napoli.png"
   },
   "ita-roma": {
-    "badge": {
-      "bg": "#F2C300",
-      "fg": "#17191C",
-      "label": "ROM"
-    }
+    "file": "ita-roma.png"
   },
   "ned-feyenoord-rotterdam": {
-    "badge": {
-      "bg": "#C8102E",
-      "fg": "#FFFFFF",
-      "label": "FEY"
-    }
+    "file": "ned-feyenoord-rotterdam.png"
   },
   "ned-psv": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "PSV"
-    }
+    "file": "ned-psv.png"
   },
   "nor-bod-glimt": {
-    "badge": {
-      "bg": "#F2C300",
-      "fg": "#17191C",
-      "label": "BOD"
-    }
+    "file": "nor-bod-glimt.png"
   },
   "nor-viking": {
     "file": "nor-viking.png"
   },
   "por-porto": {
-    "badge": {
-      "bg": "#1F3F8F",
-      "fg": "#FFFFFF",
-      "label": "FCP"
-    }
+    "file": "por-porto.png"
   },
   "por-sporting-clube-portugal": {
-    "badge": {
-      "bg": "#1E7B3A",
-      "fg": "#FFFFFF",
-      "label": "SPO"
-    }
+    "file": "por-sporting-clube-portugal.png"
   },
   "svk-slovan-bratislava": {
     "file": "svk-slovan-bratislava.png"
   },
   "tur-fenerbahce": {
-    "badge": {
-      "bg": "#F2C300",
-      "fg": "#17191C",
-      "label": "FEN"
-    }
+    "file": "tur-fenerbahce.png"
   },
   "tur-galatasaray": {
     "file": "tur-galatasaray.png"
   },
   "ukr-shakhtar-donetsk": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "SHD"
-    }
+    "file": "ukr-shakhtar-donetsk.png"
   }
 }

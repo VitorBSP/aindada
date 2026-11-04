@@ -72,7 +72,13 @@
         "note": "Escudo não será usado nem publicado; substituído por marcador neutro com sigla e cores (implementação do 05, decisão de marca do 08). O arquivo local fica só como evidência de proveniência."
       }
     ],
-    "research_2026_10_27": "Não há versão livre do escudo atual (Red Bull Bragantino) no Wikimedia Commons. O Commons só tem a versão 1995–2020, anterior à Red Bull, com PD-textlogo em revisão; não corresponde ao escudo atual."
+    "research_2026_10_27": "Não há versão livre do escudo atual (Red Bull Bragantino) no Wikimedia Commons. O Commons só tem a versão 1995–2020, anterior à Red Bull, com PD-textlogo em revisão; não corresponde ao escudo atual.",
+    "superseded_by": {
+      "decision": "ADR-0014 (dono do produto aceitou o risco, 2026-11-04)",
+      "provenance": "data/reference/crests_provenance_serie_a.json",
+      "file": "bragantino.png",
+      "note": "O arquivo publicado é o da infobox da Wikipédia em inglês, com SHA-256 registrado lá; este registro descreve só a cópia local antiga, que não é publicada."
+    }
   },
   "chapecoense": {
     "file": "chapecoense.svg",
@@ -117,7 +123,13 @@
         "note": "Escudo não será usado nem publicado; substituído por marcador neutro com sigla e cores (implementação do 05, decisão de marca do 08). O arquivo local fica só como evidência de proveniência."
       }
     ],
-    "research_2026_10_27": "Não há versão livre do escudo atual no Wikimedia Commons; arquivos do escudo já foram apagados do Commons por violação de copyright."
+    "research_2026_10_27": "Não há versão livre do escudo atual no Wikimedia Commons; arquivos do escudo já foram apagados do Commons por violação de copyright.",
+    "superseded_by": {
+      "decision": "ADR-0014 (dono do produto aceitou o risco, 2026-11-04)",
+      "provenance": "data/reference/crests_provenance_serie_a.json",
+      "file": "corinthians.png",
+      "note": "O arquivo publicado é o da infobox da Wikipédia em inglês, com SHA-256 registrado lá; este registro descreve só a cópia local antiga, que não é publicada."
+    }
   },
   "coritiba": {
     "file": "coritiba.svg",
@@ -260,7 +272,13 @@
         "note": "Escudo não será usado nem publicado; substituído por marcador neutro com sigla e cores (implementação do 05, decisão de marca do 08). O arquivo local fica só como evidência de proveniência."
       }
     ],
-    "research_2026_10_27": "Não há versão livre do escudo atual no Wikimedia Commons; arquivos do escudo já foram apagados do Commons por violação de copyright. O escudo de 1920 (domínio público por idade) foi avaliado e descartado para manter a uniformidade (todos os clubes com o escudo atual ou marcador neutro)."
+    "research_2026_10_27": "Não há versão livre do escudo atual no Wikimedia Commons; arquivos do escudo já foram apagados do Commons por violação de copyright. O escudo de 1920 (domínio público por idade) foi avaliado e descartado para manter a uniformidade (todos os clubes com o escudo atual ou marcador neutro).",
+    "superseded_by": {
+      "decision": "ADR-0014 (dono do produto aceitou o risco, 2026-11-04)",
+      "provenance": "data/reference/crests_provenance_serie_a.json",
+      "file": "vasco.png",
+      "note": "O arquivo publicado é o da infobox da Wikipédia em inglês, com SHA-256 registrado lá; este registro descreve só a cópia local antiga, que não é publicada."
+    }
   },
   "vitoria": {
     "file": "vitoria.svg",

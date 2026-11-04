@@ -3167,3 +3167,28 @@ Registrado pelo orquestrador (00), que executou as partes de 01, 03, 02, 04/05 e
   - **Reauditoria:** aprovado para commit e push.
   - **Ressalva aberta:** a página do LoL supõe que as quartas 1 e 2 formam a semifinal 1.
 
+## Escudos oficiais (ADR-0014, D-044; 2026-11-04)
+
+- **O que mudou:**
+  - `src/brasileirao/crests.py` busca o escudo oficial da infobox quando não há escudo livre;
+  - `crest_sources.csv` ganhou Bragantino, Corinthians e Vasco (Série A);
+  - os manifestos de cada site passam a apontar para os escudos oficiais;
+  - `.gitignore` deixa de esconder os escudos da Série A;
+  - `check_site_artifact.py` passa a exigir que todo escudo esteja no manifesto;
+  - rodapés e "Como calculamos" da Série A trazem o aviso de marca e o link de retirada.
+- **Cobertura:** 167 de 170 times. LØS, LYON e Team Secret Whales seguem com a sigla.
+- **Evidência:**
+  - folha de contato dos 170 arquivos conferida no navegador: todos os escudos são dos times certos;
+  - `pytest -q` passa; ruff e mypy sem achados.
+- **Premissa:** risco aceito pelo dono do produto; retirada a pedido.
+- **Próximo:** 06 audita; 07 publica.
+- **Auditoria do 06 (ADR-0014):** commit e push aprovados com ressalvas, sem nenhum ponto bloqueante.
+  - Três pontos médios corrigidos:
+    - **M1:** o `.dockerignore` excluía os escudos de Bragantino e Corinthians da imagem Docker;
+    - **M2:** os registros antigos da Série A em `crests_provenance.json` agora apontam para a proveniência nova;
+    - **M3:** os textos diziam 128 px, mas a API entrega miniaturas de 250 px.
+  - Ressalvas menores:
+    - no CI, `check_site_artifact` só confere os escudos da Série A; os outros sites são cobertos pelo teste unitário;
+    - o merge do manifesto não remove times que saíram do cadastro;
+    - `vasco.svg` continua só na cópia local.
+

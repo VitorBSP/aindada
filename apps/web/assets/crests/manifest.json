@@ -12,21 +12,13 @@
     "file": "botafogo.svg"
   },
   "bragantino": {
-    "badge": {
-      "label": "RBB",
-      "bg": "#C8102E",
-      "fg": "#FFFFFF"
-    }
+    "file": "bragantino.png"
   },
   "chapecoense": {
     "file": "chapecoense.svg"
   },
   "corinthians": {
-    "badge": {
-      "label": "COR",
-      "bg": "#FFFFFF",
-      "fg": "#000000"
-    }
+    "file": "corinthians.png"
   },
   "coritiba": {
     "file": "coritiba.svg"
@@ -62,11 +54,7 @@
     "file": "sao-paulo.svg"
   },
   "vasco": {
-    "badge": {
-      "label": "VAS",
-      "bg": "#000000",
-      "fg": "#FFFFFF"
-    }
+    "file": "vasco.png"
   },
   "vitoria": {
     "file": "vitoria.svg"

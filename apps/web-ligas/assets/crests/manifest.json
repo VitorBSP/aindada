@@ -1,278 +1,122 @@
 {
   "alaves": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "ALA"
-    }
+    "file": "alaves.png"
   },
   "arsenal": {
-    "badge": {
-      "bg": "#C8102E",
-      "fg": "#FFFFFF",
-      "label": "ARS"
-    }
+    "file": "arsenal.png"
   },
   "aston-villa": {
-    "badge": {
-      "bg": "#800032",
-      "fg": "#FFFFFF",
-      "label": "AVL"
-    }
+    "file": "aston-villa.png"
   },
   "athletic": {
-    "badge": {
-      "bg": "#C8102E",
-      "fg": "#FFFFFF",
-      "label": "ATH"
-    }
+    "file": "athletic.png"
   },
   "atletico-madrid": {
-    "badge": {
-      "bg": "#C8102E",
-      "fg": "#FFFFFF",
-      "label": "ATM"
-    }
+    "file": "atletico-madrid.png"
   },
   "barcelona": {
     "file": "barcelona.png"
   },
   "bournemouth": {
-    "badge": {
-      "bg": "#C8102E",
-      "fg": "#FFFFFF",
-      "label": "BOU"
-    }
+    "file": "bournemouth.png"
   },
   "brentford": {
-    "badge": {
-      "bg": "#C8102E",
-      "fg": "#FFFFFF",
-      "label": "BRE"
-    }
+    "file": "brentford.png"
   },
   "brighton": {
-    "badge": {
-      "bg": "#1F3F8F",
-      "fg": "#FFFFFF",
-      "label": "BHA"
-    }
+    "file": "brighton.png"
   },
   "celta": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "CEL"
-    }
+    "file": "celta.png"
   },
   "chelsea": {
-    "badge": {
-      "bg": "#002366",
-      "fg": "#FFFFFF",
-      "label": "CHE"
-    }
+    "file": "chelsea.png"
   },
   "coventry-city": {
-    "badge": {
-      "bg": "#6CABDD",
-      "fg": "#17191C",
-      "label": "COV"
-    }
+    "file": "coventry-city.png"
   },
   "crystal-palace": {
-    "badge": {
-      "bg": "#C8102E",
-      "fg": "#FFFFFF",
-      "label": "CRY"
-    }
+    "file": "crystal-palace.png"
   },
   "deportivo-la-coruna": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "DEP"
-    }
+    "file": "deportivo-la-coruna.png"
   },
   "elche": {
-    "badge": {
-      "bg": "#FFFFFF",
-      "fg": "#17191C",
-      "label": "ELC"
-    }
+    "file": "elche.png"
   },
   "espanyol": {
-    "badge": {
-      "bg": "#1F3F8F",
-      "fg": "#FFFFFF",
-      "label": "ESP"
-    }
+    "file": "espanyol.png"
   },
   "everton": {
-    "badge": {
-      "bg": "#002366",
-      "fg": "#FFFFFF",
-      "label": "EVE"
-    }
+    "file": "everton.png"
   },
   "fulham": {
-    "badge": {
-      "bg": "#FFFFFF",
-      "fg": "#17191C",
-      "label": "FUL"
-    }
+    "file": "fulham.png"
   },
   "getafe": {
-    "badge": {
-      "bg": "#1F3F8F",
-      "fg": "#FFFFFF",
-      "label": "GET"
-    }
+    "file": "getafe.png"
   },
   "hull-city": {
-    "badge": {
-      "bg": "#F2A900",
-      "fg": "#17191C",
-      "label": "HUL"
-    }
+    "file": "hull-city.png"
   },
   "ipswich-town": {
-    "badge": {
-      "bg": "#1F3F8F",
-      "fg": "#FFFFFF",
-      "label": "IPS"
-    }
+    "file": "ipswich-town.png"
   },
   "leeds-united": {
-    "badge": {
-      "bg": "#FFFFFF",
-      "fg": "#17191C",
-      "label": "LEE"
-    }
+    "file": "leeds-united.png"
   },
   "levante": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "LEV"
-    }
+    "file": "levante.png"
   },
   "liverpool": {
-    "badge": {
-      "bg": "#C8102E",
-      "fg": "#FFFFFF",
-      "label": "LIV"
-    }
+    "file": "liverpool.png"
   },
   "malaga": {
-    "badge": {
-      "bg": "#6CABDD",
-      "fg": "#17191C",
-      "label": "MAL"
-    }
+    "file": "malaga.png"
   },
   "manchester-city": {
-    "badge": {
-      "bg": "#6CABDD",
-      "fg": "#17191C",
-      "label": "MCI"
-    }
+    "file": "manchester-city.png"
   },
   "manchester-united": {
-    "badge": {
-      "bg": "#C8102E",
-      "fg": "#FFFFFF",
-      "label": "MUN"
-    }
+    "file": "manchester-united.png"
   },
   "newcastle-united": {
-    "badge": {
-      "bg": "#FFFFFF",
-      "fg": "#17191C",
-      "label": "NEW"
-    }
+    "file": "newcastle-united.png"
   },
   "nottingham-forest": {
-    "badge": {
-      "bg": "#C8102E",
-      "fg": "#FFFFFF",
-      "label": "NFO"
-    }
+    "file": "nottingham-forest.png"
   },
   "osasuna": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "OSA"
-    }
+    "file": "osasuna.png"
   },
   "racing-santander": {
-    "badge": {
-      "bg": "#1E7B3A",
-      "fg": "#FFFFFF",
-      "label": "RAC"
-    }
+    "file": "racing-santander.png"
   },
   "rayo-vallecano": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "RAY"
-    }
+    "file": "rayo-vallecano.png"
   },
   "real-betis": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "BET"
-    }
+    "file": "real-betis.png"
   },
   "real-madrid": {
-    "badge": {
-      "bg": "#FFFFFF",
-      "fg": "#17191C",
-      "label": "RMA"
-    }
+    "file": "real-madrid.png"
   },
   "real-sociedad": {
-    "badge": {
-      "bg": "#1F3F8F",
-      "fg": "#FFFFFF",
-      "label": "RSO"
-    }
+    "file": "real-sociedad.png"
   },
   "sevilla": {
-    "badge": {
-      "bg": "#C8102E",
-      "fg": "#FFFFFF",
-      "label": "SEV"
-    }
+    "file": "sevilla.png"
   },
   "sunderland": {
-    "badge": {
-      "bg": "#C8102E",
-      "fg": "#FFFFFF",
-      "label": "SUN"
-    }
+    "file": "sunderland.png"
   },
   "tottenham-hotspur": {
-    "badge": {
-      "bg": "#FFFFFF",
-      "fg": "#17191C",
-      "label": "TOT"
-    }
+    "file": "tottenham-hotspur.png"
   },
   "valencia": {
-    "badge": {
-      "bg": "#FFFFFF",
-      "fg": "#17191C",
-      "label": "VAL"
-    }
+    "file": "valencia.png"
   },
   "villarreal": {
-    "badge": {
-      "bg": "#F2C300",
-      "fg": "#17191C",
-      "label": "VIL"
-    }
+    "file": "villarreal.png"
   }
 }

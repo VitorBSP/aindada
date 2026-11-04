@@ -1,9 +1,13 @@
-"""Escudos e logos dos sites das outras competições (D-043), com a regra da Série A (D-028).
+"""Escudos e logos dos sites (D-043, ADR-0014).
 
-Para cada time de `data/reference/crest_sources.csv`: artigo da Wikipédia em inglês → item do Wikidata → logo
-(P154, posto preferido ou o último) → licença no Wikimedia Commons. Só entra arquivo em domínio público ou CC0,
-baixado como PNG de 128 px. Sem logo livre (ou sem artigo), o time recebe o marcador neutro com a sigla.
-Proveniência por arquivo em `data/reference/crests_provenance_<competição>.json`.
+Para cada time de `data/reference/crest_sources.csv`, em ordem:
+1. escudo livre: artigo da Wikipédia em inglês → item do Wikidata → logo (P154) → licença no Commons em domínio
+   público ou CC0;
+2. escudo oficial (ADR-0014, risco aceito pelo dono do produto): o arquivo da infobox do artigo, não livre, usado só
+   para identificar o time, em miniatura PNG da API (250 px) e sem alteração;
+3. sem artigo: marcador com a sigla na cor oficial.
+Proveniência por arquivo em `data/reference/crests_provenance_<competição>.json`. Na Série A, só os clubes do
+cadastro (os outros 17 seguem `crests_provenance.json`), e o manifesto do site é atualizado só para eles.
 
 Uso: `python -m brasileirao.crests` (rede) e `python -m brasileirao.crests --offline` (só refaz os manifestos).
 """
@@ -29,6 +33,7 @@ USER_AGENT = "AIndaDa/0.1 (https://github.com/VitorBSP/aindada)"
 FREE_LICENSES = frozenset({"Public domain", "CC0"})
 THUMB_WIDTH = 128
 APPS = {
+    "serie-a": "web",
     "serie-b": "web-serie-b",
     "premier-league": "web-ligas",
     "la-liga": "web-ligas",
@@ -54,6 +59,9 @@ SHADES = {
     "#FFBF00": "#F2A900",
 }
 SOURCES = PATHS.reference / "crest_sources.csv"
+OFFICIAL_STATUS = "oficial, não livre (ADR-0014: uso só para identificar, risco aceito pelo dono do produto)"
+INFOBOX_IMAGE = re.compile(r"^\|\s*(?:image|logo|crest|badge|clubcrest)\s*=\s*(.+?)\s*$", re.MULTILINE | re.IGNORECASE)
+IMAGE_NAME = re.compile(r"(?:\[\[(?:File|Image):)?\s*([^|\]\n]+?\.(?:svg|png|jpe?g|gif|webp))", re.IGNORECASE)
 
 
 def _get(url: str, params: dict[str, str] | None = None) -> Any:
@@ -152,6 +160,63 @@ def commons_info(file_name: str) -> dict[str, str]:
     }
 
 
+def infobox_image(wikitext: str) -> str | None:
+    """Primeiro arquivo de imagem dos campos `image`/`logo`/`crest` da infobox."""
+    start = wikitext.find("{{Infobox")
+    if start < 0:
+        return None
+    for field in INFOBOX_IMAGE.finditer(wikitext[start : start + 6000]):
+        found = IMAGE_NAME.search(field.group(1))
+        if found:
+            return found.group(1).strip()
+    return None
+
+
+def official_info(title: str) -> tuple[str, dict[str, str]] | None:
+    """Arquivo da infobox e os dados dele (a API da Wikipédia em inglês resolve arquivos locais e do Commons)."""
+    payload = _get(
+        "https://en.wikipedia.org/w/api.php",
+        {"action": "parse", "page": title, "prop": "wikitext", "section": "0", "redirects": "1", "format": "json"},
+    )
+    file_name = infobox_image(str(payload.get("parse", {}).get("wikitext", {}).get("*", "")))
+    if not file_name:
+        return None
+    info = _get(
+        "https://en.wikipedia.org/w/api.php",
+        {
+            "action": "query",
+            "titles": f"File:{file_name}",
+            "prop": "imageinfo",
+            "iiprop": "url|extmetadata",
+            "iiurlwidth": str(THUMB_WIDTH),
+            "format": "json",
+        },
+    )
+    page = next(iter(info["query"]["pages"].values()))
+    if not page.get("imageinfo"):
+        return None
+    image = page["imageinfo"][0]
+    meta = image.get("extmetadata", {})
+    return file_name, {
+        "thumb_url": image["thumburl"],
+        "source_url": image["url"],
+        "file_page_url": image["descriptionurl"],
+        "license": meta.get("LicenseShortName", {}).get("value", "") or "não livre (sem licença declarada)",
+    }
+
+
+def _save(competition: str, team_id: str, url: str) -> dict[str, str]:
+    content = _download(url)
+    target = PATHS.root / "apps" / APPS[competition] / "assets" / "crests" / f"{team_id}.png"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(content)
+    return {
+        "file": target.name,
+        "sha256": sha256_bytes(content),
+        "retrieved_at": datetime.now(tz=UTC).isoformat(timespec="seconds"),
+    }
+
+
 def load_sources(path: Path = SOURCES) -> list[dict[str, str]]:
     with path.open(encoding="utf-8") as handle:
         return list(csv.DictReader(handle))
@@ -194,18 +259,13 @@ def collect(
             )
             record["author"] = info["author"][:200]
             if info["license"] in FREE_LICENSES:
-                content = _download(info["thumb_url"])
-                target = PATHS.root / "apps" / APPS[competition] / "assets" / "crests" / f"{team_id}.png"
-                target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_bytes(content)
-                record.update(
-                    {
-                        "file": target.name,
-                        "license_status": "livre",
-                        "sha256": sha256_bytes(content),
-                        "retrieved_at": datetime.now(tz=UTC).isoformat(timespec="seconds"),
-                    }
-                )
+                record.update({**_save(competition, team_id, info["thumb_url"]), "license_status": "livre"})
+        if not record.get("file") and title:
+            official = official_info(title)
+            if official:
+                official_file, data = official
+                record.update({"official_file": official_file, **data, "license_status": OFFICIAL_STATUS})
+                record.update(_save(competition, team_id, data["thumb_url"]))
         provenance[competition][team_id] = record
         time.sleep(pause)
     return provenance
@@ -223,7 +283,9 @@ def write_manifests(provenance: dict[str, dict[str, dict[str, str]]]) -> None:
     for app, manifest in manifests.items():
         path = PATHS.root / "apps" / app / "assets" / "crests" / "manifest.json"
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        current = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+        current.update(manifest)
+        path.write_text(json.dumps(current, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def provenance_path(competition: str) -> Path:
@@ -231,7 +293,7 @@ def provenance_path(competition: str) -> Path:
 
 
 def main(argv: list[str] | None = None) -> None:
-    parser = argparse.ArgumentParser(prog="brasileirao-crests", description="Escudos livres das outras competições")
+    parser = argparse.ArgumentParser(prog="brasileirao-crests", description="Escudos dos sites (livres e oficiais)")
     parser.add_argument("--offline", action="store_true", help="refaz só os manifestos a partir da proveniência")
     arguments = parser.parse_args(argv)
     competitions = sorted({row["competition"] for row in load_sources()})
@@ -250,7 +312,8 @@ def main(argv: list[str] | None = None) -> None:
     for competition in competitions:
         teams = provenance[competition]
         free = sum(1 for record in teams.values() if record.get("file"))
-        print(f"{competition}: {free} logos livres, {len(teams) - free} marcadores")
+        official = sum(1 for record in teams.values() if record.get("official_file"))
+        print(f"{competition}: {free - official} livres, {official} oficiais, {len(teams) - free} marcadores")
 
 
 if __name__ == "__main__":

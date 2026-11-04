@@ -211,12 +211,23 @@ def test_unreachable_live_site_skips_regression_check(tmp_path: Path) -> None:
     assert CHECKER.check(_site(tmp_path), SEASON, LIVE_URL) == []
 
 
-@pytest.mark.parametrize("crest", CHECKER.NON_FREE_CRESTS)
-def test_non_free_crest_in_artifact_fails(tmp_path: Path, crest: str) -> None:
+@pytest.mark.parametrize("crest", ["vasco.svg", "outro.png"])
+def test_crest_outside_the_manifest_fails(tmp_path: Path, crest: str) -> None:
     site_dir = _site(tmp_path)
     (site_dir / "assets" / "crests").mkdir(parents=True)
+    (site_dir / "assets" / "crests" / "manifest.json").write_text('{"vasco": {"file": "vasco.png"}}', encoding="utf-8")
     (site_dir / "assets" / "crests" / crest).write_bytes(b"synthetic")
-    assert CHECKER.check(site_dir, SEASON, None)[0].startswith("escudos não livres no artefato")
+    assert CHECKER.check(site_dir, SEASON, None)[0].startswith("escudos fora do manifesto no artefato")
+
+
+def test_crest_listed_in_the_manifest_passes(tmp_path: Path) -> None:
+    site_dir = _site(tmp_path)
+    (site_dir / "serie-b" / "assets" / "crests").mkdir(parents=True)
+    (site_dir / "serie-b" / "assets" / "crests" / "manifest.json").write_text(
+        '{"x": {"file": "x.png"}}', encoding="utf-8"
+    )
+    (site_dir / "serie-b" / "assets" / "crests" / "x.png").write_bytes(b"synthetic")
+    assert CHECKER.check(site_dir, SEASON, None) == []
 
 
 def test_divergent_model_version_fails(tmp_path: Path) -> None:

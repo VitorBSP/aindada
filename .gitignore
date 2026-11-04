@@ -74,7 +74,6 @@ apps/web/data/
 data/reference/manual_corrections.csv
 
 # --- Escudos não livres (ADR-0007 C3; parecer 06 B3) ---------------------------
-# © dos clubes, sem licença livre. Ficam só na cópia local até autorização.
-apps/web/assets/crests/bragantino.png
-apps/web/assets/crests/corinthians.png
+# Cópia local antiga do Vasco. Bragantino, Corinthians e Vasco agora entram pelo ADR-0014
+# (escudo oficial, risco aceito pelo dono do produto), em PNG com proveniência.
 apps/web/assets/crests/vasco.svg

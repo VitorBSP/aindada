@@ -1,0 +1,47 @@
+{
+  "bragantino": {
+    "bg": "#E2E1DB",
+    "fg": "#17191C",
+    "file": "bragantino.png",
+    "file_page_url": "https://en.wikipedia.org/wiki/File:Red_Bull_Bragantino_logo.svg",
+    "license": "Fair use",
+    "license_status": "oficial, não livre (ADR-0014: uso só para identificar, risco aceito pelo dono do produto)",
+    "official_file": "Red Bull Bragantino logo.svg",
+    "retrieved_at": "2026-11-04T21:52:19+00:00",
+    "sha256": "01a02b5470867f6b5eb4b0ba845da699849f0b78582ec7d88b97e783fca80e34",
+    "short_name": "BRA",
+    "source_url": "https://upload.wikimedia.org/wikipedia/en/2/2e/Red_Bull_Bragantino_logo.svg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "thumb_url": "https://thumb.wikimedia.org/wikipedia/en/thumb/2/2e/Red_Bull_Bragantino_logo.svg/250px-Red_Bull_Bragantino_logo.svg.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "wikipedia_title": "Red Bull Bragantino"
+  },
+  "corinthians": {
+    "bg": "#E2E1DB",
+    "fg": "#17191C",
+    "file": "corinthians.png",
+    "file_page_url": "https://en.wikipedia.org/wiki/File:Sport_Club_Corinthians_Paulista_crest.svg",
+    "license": "Fair use",
+    "license_status": "oficial, não livre (ADR-0014: uso só para identificar, risco aceito pelo dono do produto)",
+    "official_file": "Sport Club Corinthians Paulista crest.svg",
+    "retrieved_at": "2026-11-04T21:52:20+00:00",
+    "sha256": "c2db8b61b84ff7b90ef1f9a26708110bfee4e12eb3a640a2438707cd2fbda6d8",
+    "short_name": "COR",
+    "source_url": "https://upload.wikimedia.org/wikipedia/en/5/5a/Sport_Club_Corinthians_Paulista_crest.svg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "thumb_url": "https://thumb.wikimedia.org/wikipedia/en/thumb/5/5a/Sport_Club_Corinthians_Paulista_crest.svg/250px-Sport_Club_Corinthians_Paulista_crest.svg.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "wikipedia_title": "Sport Club Corinthians Paulista"
+  },
+  "vasco": {
+    "bg": "#000000",
+    "fg": "#FFFFFF",
+    "file": "vasco.png",
+    "file_page_url": "https://en.wikipedia.org/wiki/File:Club_de_Regatas_Vasco_da_Gama_logo_(2021).svg",
+    "license": "Fair use",
+    "license_status": "oficial, não livre (ADR-0014: uso só para identificar, risco aceito pelo dono do produto)",
+    "official_file": "Club de Regatas Vasco da Gama logo (2021).svg",
+    "retrieved_at": "2026-11-04T21:52:23+00:00",
+    "sha256": "4faf922a3f19ea8cd0d485a599580cfc59f507106df3127382e5c27db5a98d89",
+    "short_name": "VAS",
+    "source_url": "https://upload.wikimedia.org/wikipedia/en/a/a5/Club_de_Regatas_Vasco_da_Gama_logo_%282021%29.svg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "thumb_url": "https://thumb.wikimedia.org/wikipedia/en/thumb/a/a5/Club_de_Regatas_Vasco_da_Gama_logo_%282021%29.svg/250px-Club_de_Regatas_Vasco_da_Gama_logo_%282021%29.svg.png?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "wikipedia_title": "CR Vasco da Gama"
+  }
+}
