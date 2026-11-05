@@ -154,11 +154,22 @@
     "wikipedia_title": "Los Grandes"
   },
   "lyon": {
+    "attribution": "Logo: egamersworld.com",
     "bg": "#E2E1DB",
+    "dark": "",
     "fg": "#17191C",
-    "license_status": "sem logo livre",
-    "note": "sem artigo próprio na Wikipédia em inglês",
+    "file": "lyon.png",
+    "file_page_url": "https://pt.egamersworld.com/lol/team/lyon-P3k4sbl2P",
+    "license": "não livre; termos do site de origem restringem reuso (risco aceito pelo dono do produto)",
+    "license_status": "oficial, não livre (ADR-0014: uso só para identificar, risco aceito pelo dono do produto)",
+    "note": "sem logo do time em nenhuma Wikipédia; logo do egamersworld (ADR-0014, pedido do dono)",
+    "official_file": "https://cdn.egamersworld.com/cdn-cgi/image/width=250,format=png/uploads/lol/teamsV2/1/17/1737268725353_1737268725353.webp",
+    "retrieved_at": "2026-11-05T02:06:12+00:00",
+    "sha256": "e90b478087dd2ac078519f496501b1a7c067503c870e71512f17368aeed50a48",
     "short_name": "LYON",
+    "source_url": "https://cdn.egamersworld.com/cdn-cgi/image/width=250,format=png/uploads/lol/teamsV2/1/17/1737268725353_1737268725353.webp",
+    "thumb_url": "https://cdn.egamersworld.com/cdn-cgi/image/width=250,format=png/uploads/lol/teamsV2/1/17/1737268725353_1737268725353.webp",
+    "wiki": "en",
     "wikipedia_title": ""
   },
   "movistar-koi": {
@@ -208,11 +219,23 @@
     "wikipedia_title": "Team Liquid"
   },
   "team-secret-whales": {
+    "attribution": "Logo: egamersworld.com",
     "bg": "#E2E1DB",
+    "dark": "sim",
     "fg": "#17191C",
-    "license_status": "sem logo livre",
+    "file": "team-secret-whales.png",
+    "file_page_url": "https://pt.egamersworld.com/lol/team/secret-whales-fRMgrfJ8O",
+    "license": "não livre; termos do site de origem restringem reuso (risco aceito pelo dono do produto)",
+    "license_status": "oficial, não livre (ADR-0014: uso só para identificar, risco aceito pelo dono do produto)",
+    "note": "sem logo do time em nenhuma Wikipédia; logo do egamersworld (ADR-0014, pedido do dono)",
+    "official_file": "https://cdn.egamersworld.com/cdn-cgi/image/width=250,format=png/uploads/lol/teamsV2/1/17/1733641047473_1733641047473.webp",
+    "retrieved_at": "2026-11-05T02:06:12+00:00",
+    "sha256": "c0568c1614aec2a2b5bfda1976838ac1a2d319586b502a4187255384733ef0e4",
     "short_name": "TSW",
-    "wikipedia_title": "Team Secret Whales"
+    "source_url": "https://cdn.egamersworld.com/cdn-cgi/image/width=250,format=png/uploads/lol/teamsV2/1/17/1733641047473_1733641047473.webp",
+    "thumb_url": "https://cdn.egamersworld.com/cdn-cgi/image/width=250,format=png/uploads/lol/teamsV2/1/17/1733641047473_1733641047473.webp",
+    "wiki": "en",
+    "wikipedia_title": ""
   },
   "top-esports": {
     "bg": "#E2E1DB",

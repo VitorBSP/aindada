@@ -267,6 +267,22 @@ def collect(
             record["author"] = info["author"][:200]
             if info["license"] in FREE_LICENSES:
                 record.update({**_save(competition, team_id, info["thumb_url"]), "license_status": "livre"})
+        if not record.get("file") and row.get("image_url"):
+            # Origem direta aprovada pelo dono do produto (ADR-0014): página do time num site de terceiros, com
+            # atribuição exigida pelos termos dele.
+            record.update(
+                {
+                    "official_file": row["image_url"],
+                    "source_url": row["image_url"],
+                    "thumb_url": row["image_url"],
+                    "file_page_url": row["image_page"],
+                    "license": "não livre; termos do site de origem restringem reuso (risco aceito pelo dono)",
+                    "attribution": row["image_attribution"],
+                    "dark": row.get("dark_background", ""),
+                    "license_status": OFFICIAL_STATUS,
+                }
+            )
+            record.update(_save(competition, team_id, row["image_url"]))
         if not record.get("file") and title:
             official = official_info(title, wiki)
             if official:
@@ -283,7 +299,10 @@ def write_manifests(provenance: dict[str, dict[str, dict[str, str]]]) -> None:
     for competition, teams in provenance.items():
         for team_id, record in sorted(teams.items()):
             if record.get("file"):
-                manifests[APPS[competition]][team_id] = {"file": record["file"]}
+                entry: dict[str, Any] = {"file": record["file"]}
+                if record.get("dark") == "sim":
+                    entry["dark"] = True
+                manifests[APPS[competition]][team_id] = entry
             else:
                 badge = {"label": record["short_name"], "bg": record["bg"], "fg": record["fg"]}
                 manifests[APPS[competition]][team_id] = {"badge": badge}

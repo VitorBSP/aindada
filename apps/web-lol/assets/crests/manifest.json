@@ -30,11 +30,7 @@
     "file": "los-grandes.png"
   },
   "lyon": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "LYON"
-    }
+    "file": "lyon.png"
   },
   "movistar-koi": {
     "file": "movistar-koi.png"
@@ -46,11 +42,8 @@
     "file": "team-liquid.png"
   },
   "team-secret-whales": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "TSW"
-    }
+    "dark": true,
+    "file": "team-secret-whales.png"
   },
   "top-esports": {
     "file": "top-esports.png"

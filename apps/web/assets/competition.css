@@ -3,6 +3,8 @@
 .league-tag { margin-left: 10px; padding: 2px 8px; border: 1px solid var(--ink); font-size: 13px; font-weight: 650; line-height: 1.4; color: var(--ink); white-space: nowrap; }
 .brand { gap: 0; }
 
+.crest-on-dark { background: #17191c; border-radius: 4px; padding: 2px; box-sizing: border-box; }
+
 /* Faixa da posição final (1º → último) */
 .heat { display: inline-flex; gap: 1px; vertical-align: middle; }
 .heat i { display: block; width: 7px; height: 16px; background: var(--ink); }

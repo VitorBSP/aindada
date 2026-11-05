@@ -39,7 +39,8 @@
   function crest(id, size = 20) {
     const entry = state.crests[id];
     if (entry && entry.file) {
-      return `<img class="crest" src="assets/crests/${encodeURIComponent(entry.file)}" alt="" width="${size}" height="${size}" loading="lazy" decoding="async">`;
+      // Logo claro (feito para fundo escuro) vai sobre um quadrado em tinta, sem alterar a imagem.
+      return `<img class="crest${entry.dark === true ? " crest-on-dark" : ""}" src="assets/crests/${encodeURIComponent(entry.file)}" alt="" width="${size}" height="${size}" loading="lazy" decoding="async">`;
     }
     const badge = entry && entry.badge;
     if (badge && BADGE_LABEL.test(badge.label) && HEX_COLOR.test(badge.bg) && HEX_COLOR.test(badge.fg)) {

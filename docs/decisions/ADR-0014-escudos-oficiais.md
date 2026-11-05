@@ -43,3 +43,17 @@ todos da LaLiga. Os termos lidos em 2026-11-04 não dão licença a terceiros:
   36 de 36; Mundial de LoL 14 de 16 (LØS pelo artigo da Wikipédia em português; LYON e Team Secret Whales seguem
   com a sigla). A Leaguepedia (Fandom) não é usada: os termos proíbem acesso automatizado sem permissão escrita.
 - Revoga a parte da D-028 que tirava os três escudos da Série A; o marcador (D-029) fica para quem não tem escudo.
+
+## Adendo (2026-11-04): logos de LYON e Team Secret Whales pelo egamersworld
+
+- Nenhuma Wikipédia tem o logo dos dois times. O dono do produto apontou a página do LYON no egamersworld
+  ("pegue daqui", "e pegue da tsw tbm").
+- A seção 4 dos termos do egamersworld diz que as imagens do portal não podem ser reutilizadas e exige atribuição.
+  O dono do produto aceitou também esse risco ("Usar o egamersworld").
+- O cadastro (`crest_sources.csv`) registra a URL da imagem, a página do time e a atribuição
+  ("Logo: egamersworld.com"). O rodapé do Mundial de LoL dá o crédito.
+- O logo do Team Secret Whales é branco: o manifesto marca `dark` e o site o mostra sobre um quadrado em tinta, sem
+  alterar a imagem.
+- Cobertura do Mundial de LoL: 16 de 16. No total, 170 de 170 times têm escudo.
+- Se o egamersworld pedir a retirada, os dois voltam ao marcador com a sigla.
+

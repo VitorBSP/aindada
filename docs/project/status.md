@@ -3192,4 +3192,11 @@ Registrado pelo orquestrador (00), que executou as partes de 01, 03, 02, 04/05 e
     - no CI, `check_site_artifact` só confere os escudos da Série A; os outros sites são cobertos pelo teste unitário;
     - o merge do manifesto não remove times que saíram do cadastro;
     - `vasco.svg` continua só na cópia local.
+- **Adendo (2026-11-04):**
+  - os logos de LYON e Team Secret Whales vêm do egamersworld, a pedido do dono, com o risco dos termos do site
+    aceito; a origem e a atribuição estão no cadastro, e o crédito está no rodapé do LoL;
+  - o coletor ganhou `--only` e as colunas `wiki`, `image_url`, `image_page`, `image_attribution` e
+    `dark_background`;
+  - o CSV foi reescrito com o módulo `csv`, porque uma nota com vírgulas quebrava a linha do LYON;
+  - cobertura: 170 de 170 times.
 
