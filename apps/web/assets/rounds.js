@@ -136,7 +136,7 @@
 
   function movementChart(metric, selected) {
     const views = review.rounds;
-    const width = 640, height = 170, left = 8, right = 8, top = 10, bottom = 24;
+    const width = main.clientWidth < 560 ? 380 : 640, height = 170, left = 8, right = 8, top = 10, bottom = 24;
     const values = views.map((view) => movementOf(view, metric));
     const strength = views.map((view) => view.summary ? view.summary.strength_movement[metric] / 2 : 0);
     const peak = Math.max(...values, 0.01);
@@ -334,7 +334,8 @@
 
   function seriesChart({ series, domain, invert = false, format, ariaLabel, guides = [], styles = SERIES }) {
     const views = review.rounds;
-    const width = 640, height = 240, left = 40, right = 124, top = 12, bottom = 26;
+    const narrow = main.clientWidth < 560;
+    const width = narrow ? 380 : 640, height = 240, left = 40, right = narrow ? 64 : 124, top = 12, bottom = 26;
     const [low, high] = domain;
     const x = (index) => left + (views.length === 1 ? 0 : (index / (views.length - 1)) * (width - left - right));
     const y = (value) => {

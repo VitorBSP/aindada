@@ -3200,3 +3200,13 @@ Registrado pelo orquestrador (00), que executou as partes de 01, 03, 02, 04/05 e
   - o CSV foi reescrito com o módulo `csv`, porque uma nota com vírgulas quebrava a linha do LYON;
   - cobertura: 170 de 170 times.
 
+## Agente 08: site no celular (D-045, 2026-11-05)
+
+- **O que mudou**: bloco "Celular" no fim de `apps/web/assets/styles.css` (vale para os seis sites), gráficos na
+  largura do celular em `apps/web/assets/app.js` (`lineChart`, `positionChart`) e `apps/web/assets/rounds.js`
+  (gráfico de movimento e de séries), e o item ativo das faixas de navegação mantido à vista em `app.js` e
+  `apps/web/assets/competition.js`. Desktop sem mudança, exceto o contorno atrás dos textos de anotação.
+- **Evidência**: navegador do app em 375 px: 12 rotas da Série A e 21 das outras competições sem rolagem
+  horizontal; cabeçalho de cerca de 380 px para 221 px de altura; tabela com posição e clube fixos ao rolar;
+  gráficos com texto legível. Em 1024 px, páginas iguais às de antes.
+

@@ -116,6 +116,12 @@
         if (link.dataset.route === route.id) link.setAttribute("aria-current", "page");
         else link.removeAttribute("aria-current");
       });
+      [nav, document.querySelector(".leagues")].forEach((strip) => {
+        const active = strip && strip.querySelector('[aria-current="page"]');
+        if (!active || strip.scrollWidth <= strip.clientWidth) return;
+        const hidden = active.offsetLeft < strip.scrollLeft || active.offsetLeft + active.offsetWidth > strip.scrollLeft + strip.clientWidth;
+        if (hidden) strip.scrollLeft = Math.max(0, active.offsetLeft - 16);
+      });
       main.innerHTML = route.render(data, rest);
       if (route.after) route.after(data, main);
       if (section) main.focus({ preventScroll: true });

@@ -276,6 +276,7 @@ main p.mosaic-key { display: flex; align-items: center; gap: 8px; font-family: v
 .annotation path { stroke: var(--ink-soft); stroke-width: 1; }
 .annotation circle { fill: var(--paper); stroke: var(--ink); stroke-width: 1.5; }
 .chart .annotation text { font-family: var(--serif); font-style: italic; font-size: 12.5px; fill: var(--ink-soft); }
+.chart .annotation text, .chart .series-end { paint-order: stroke; stroke: var(--paper); stroke-width: 4px; stroke-linejoin: round; }
 .chart .series-end { font-family: var(--sans); font-size: 12px; font-weight: 650; }
 
 /* Destaques editoriais (insights publicados) */
@@ -449,3 +450,69 @@ main .elo-example p { font-family: var(--serif); font-size: 16px; line-height: 1
 main .elo-example p.formula { font-family: var(--sans); font-size: 14px; }
 .elo-steps { font-family: var(--sans); font-size: 14px; line-height: 1.5; padding-left: 20px; margin: 0 0 8px; }
 .elo-steps li { margin: 3px 0; overflow-wrap: anywhere; }
+
+/* Celular (D-045): cabeçalho em faixas de uma linha que rolam de lado, conteúdo com a hierarquia preservada
+   e tabelas com a coluna do clube fixa. Vale para todos os sites, que usam este arquivo. */
+@media (max-width: 560px) {
+  .leagues, .masthead nav { position: relative; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .leagues::-webkit-scrollbar, .masthead nav::-webkit-scrollbar { display: none; }
+  .leagues { gap: 18px; padding-top: 6px; padding-bottom: 0; font-size: 13px; }
+  .leagues a { white-space: nowrap; padding: 6px 0 7px; }
+  .masthead-inner { flex-direction: column; align-items: stretch; gap: 4px; padding-top: 12px; padding-bottom: 0; }
+  .brand img { height: 28px; }
+  .masthead nav { gap: 20px; margin: 0 -16px; padding: 0 16px; min-width: 0; max-width: 100vw; }
+  .brand { align-self: flex-start; }
+  .masthead nav a { white-space: nowrap; padding: 10px 0 9px; font-size: 15px; }
+  .reference-bar { padding-top: 7px; padding-bottom: 8px; gap: 0; }
+  .edition { font-size: 12px; }
+  .edition-name { font-size: 14px; }
+  .edition-facts { font-size: 12px; color: var(--ink-faint); }
+
+  main.wrap { padding-top: 22px; padding-bottom: 40px; }
+  h1 { font-size: 27px; line-height: 1.12; }
+  h2 { font-size: 19px; margin-top: 32px; }
+  .race-heading { font-size: 22px; }
+  .lede { font-size: 16px; line-height: 1.5; }
+  .lede-method { font-size: 14px; }
+  main > p, main section > p, .summary-list li, main > ul li { font-size: 16px; }
+  .race-switch { gap: 6px; margin-bottom: 18px; }
+  .race-switch .segmented { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); }
+  .race-switch .segmented a { text-align: center; padding: 9px 4px; }
+  .tabs { gap: 2px 16px; }
+  .table-tabs { gap: 2px 24px; }
+
+  /* Barras: nome e número na mesma linha, barra inteira embaixo */
+  .race-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name value" "bar bar"; gap: 5px 10px; padding: 9px 0; }
+  .race-row > :first-child { grid-area: name; min-width: 0; }
+  .race-row .bar-track { grid-area: bar; height: 8px; }
+  .race-row .value { grid-area: value; min-width: 0; }
+
+  /* Mudanças: texto mais curto por linha */
+  .changes li { font-size: 15px; line-height: 1.45; padding: 9px 0; }
+
+  /* Números do clube em duas colunas iguais */
+  .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+  .stat .big { font-size: 24px; }
+  .stat .sub { font-size: 12px; }
+
+  /* Tabelas: posição e clube ficam parados enquanto o resto rola de lado */
+  table { font-size: 13px; }
+  th, td { padding: 8px 6px; }
+  table:has(td.pos) td.pos, table:has(td.pos) th:first-child { position: sticky; left: 0; z-index: 1; background: var(--paper); min-width: 30px; width: 30px; }
+  table:has(td.pos) td.pos + td, table:has(td.pos) th:first-child + th { position: sticky; left: 30px; z-index: 1; background: var(--paper); max-width: 132px; box-shadow: 6px 0 6px -6px color-mix(in srgb, var(--ink) 35%, transparent); }
+  table td.club .club-cell { max-width: 120px; }
+  table td.club .club-cell span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  th { z-index: 2; }
+  table:has(td.pos) th:first-child, table:has(td.pos) th:first-child + th { z-index: 3; }
+  .table-scroll { margin-right: -16px; }
+
+  /* Jogos e escolha de clube */
+  .club-strip { margin-left: -16px; margin-right: -16px; padding-left: 12px; padding-right: 12px; }
+  .club-grid { grid-template-columns: 1fr 1fr; }
+  .club-tile { grid-template-columns: 32px 1fr; padding: 10px 6px 10px 0; }
+  .club-tile .crest { width: 32px; height: 32px; }
+  .club-heading { font-size: 26px; gap: 10px; }
+  .club-heading .crest { width: 40px; height: 40px; }
+
+  .site-footer { gap: 10px; }
+}

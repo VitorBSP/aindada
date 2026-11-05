@@ -753,9 +753,19 @@
     return notes;
   }
 
+  const NARROW = 560;
+  const isNarrow = () => main.clientWidth < NARROW;
+
+  function revealActive(strip) {
+    const active = strip && strip.querySelector('[aria-current="page"]');
+    if (!active || strip.scrollWidth <= strip.clientWidth) return;
+    const hidden = active.offsetLeft < strip.scrollLeft || active.offsetLeft + active.offsetWidth > strip.scrollLeft + strip.clientWidth;
+    if (hidden) strip.scrollLeft = Math.max(0, active.offsetLeft - 16);
+  }
+
   function lineChart(series, height = 240, annotated = null) {
     if (!state.history.length) return "<p class='note'>Sem histórico.</p>";
-    const width = 640, left = 36, right = 128, top = 26, bottom = 28;
+    const width = isNarrow() ? 380 : 640, left = 36, right = isNarrow() ? 112 : 128, top = 26, bottom = 28;
     const points = state.history.length;
     const x = (index) => left + (points === 1 ? 0 : (index / (points - 1)) * (width - left - right));
     const y = (value) => top + (1 - value) * (height - top - bottom);
@@ -772,8 +782,8 @@
       const limit = index === ends.length - 1 ? floor : ends[index + 1].y - 14;
       ends[index].y = Math.min(ends[index].y, limit);
     }
-    const labels = ends.map(({ item, y: labelY }) => `<text class="series-end" x="${width - right + 8}" y="${(labelY + 4).toFixed(1)}" style="fill:${item.color}">${escapeHtml(item.label)} ${pct(item.values[item.values.length - 1])}</text>`).join("");
-    const notes = annotated ? chartAnnotations(annotated.values).map((note) => {
+    const labels = ends.map(({ item, y: labelY }) => `<text class="series-end" x="${width - right + 8}" y="${(labelY + 4).toFixed(1)}" style="fill:${item.color}">${escapeHtml(isNarrow() && item.short ? item.short : item.label)} ${pct(item.values[item.values.length - 1])}</text>`).join("");
+    const notes = annotated ? chartAnnotations(annotated.values).slice(0, isNarrow() ? 1 : 2).map((note) => {
       const px = x(note.index), py = y(annotated.values[note.index]);
       const above = note.above && annotated.values[note.index] < 0.85;
       const toLeft = px > left + (width - left - right) * 0.6;
@@ -789,7 +799,7 @@
   }
 
   function positionChart(probabilities) {
-    const width = 640, height = 180, left = 8, bottom = 22, top = 8;
+    const width = isNarrow() ? 380 : 640, height = isNarrow() ? 150 : 180, left = 8, bottom = 22, top = 8;
     const barWidth = (width - left * 2) / probabilities.length;
     const peak = Math.max(...probabilities, 0.01);
     const bars = probabilities.map((value, index) => {
@@ -866,7 +876,7 @@
         const series = [
           { key: "title", label: "Título", color: "var(--title)", values: history.map((item) => item.title) },
           { key: "top4", label: "G4", color: "var(--libertadores)", values: history.map((item) => item.top4) },
-          { key: "relegation", label: "Rebaixamento", color: "var(--danger)", values: history.map((item) => item.relegation) },
+          { key: "relegation", label: "Rebaixamento", short: "Queda", color: "var(--danger)", values: history.map((item) => item.relegation) },
         ];
         const focus = openMetric(history);
         return lineChart(series, 240, series.find((item) => item.key === focus));
@@ -1070,6 +1080,8 @@
     }
     else if (section === "metodologia") renderMethodology();
     else renderHome(parameter);
+    revealActive(document.querySelector(".masthead nav"));
+    revealActive(document.querySelector(".leagues"));
     const sameView = (isHome ? "inicio" : section) === lastSection && section !== "clubes";
     lastSection = isHome ? "inicio" : section;
     if (!sameView) window.scrollTo(0, 0);
