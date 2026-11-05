@@ -3,7 +3,8 @@
 Para cada time de `data/reference/crest_sources.csv`, em ordem:
 1. escudo livre: artigo da Wikipédia em inglês → item do Wikidata → logo (P154) → licença no Commons em domínio
    público ou CC0;
-2. escudo oficial (ADR-0014, risco aceito pelo dono do produto): o arquivo da infobox do artigo, não livre, usado só
+2. escudo oficial (ADR-0014, risco aceito pelo dono do produto): o arquivo da infobox do artigo (Wikipédia em
+   inglês ou na língua da coluna `wiki`), não livre, usado só
    para identificar o time, em miniatura PNG da API (250 px) e sem alteração;
 3. sem artigo: marcador com a sigla na cor oficial.
 Proveniência por arquivo em `data/reference/crests_provenance_<competição>.json`. Na Série A, só os clubes do
@@ -60,7 +61,9 @@ SHADES = {
 }
 SOURCES = PATHS.reference / "crest_sources.csv"
 OFFICIAL_STATUS = "oficial, não livre (ADR-0014: uso só para identificar, risco aceito pelo dono do produto)"
-INFOBOX_IMAGE = re.compile(r"^\|\s*(?:image|logo|crest|badge|clubcrest)\s*=\s*(.+?)\s*$", re.MULTILINE | re.IGNORECASE)
+INFOBOX_IMAGE = re.compile(
+    r"^\|\s*(?:image|imagem|logo|crest|badge|clubcrest)\s*=\s*(.+?)\s*$", re.MULTILINE | re.IGNORECASE
+)
 IMAGE_NAME = re.compile(r"(?:\[\[(?:File|Image):)?\s*([^|\]\n]+?\.(?:svg|png|jpe?g|gif|webp))", re.IGNORECASE)
 
 
@@ -78,12 +81,13 @@ def _download(url: str) -> bytes:
     return content
 
 
-def entity_claims(title: str) -> dict[str, Any]:
+def entity_claims(title: str, wiki: str = "en") -> dict[str, Any]:
     payload = _get(
         "https://www.wikidata.org/w/api.php",
-        {"action": "wbgetentities", "sites": "enwiki", "titles": title, "props": "claims", "format": "json"},
+        {"action": "wbgetentities", "sites": f"{wiki}wiki", "titles": title, "props": "claims", "format": "json"},
     )
-    claims: dict[str, Any] = next(iter(payload["entities"].values())).get("claims", {})
+    entities = payload.get("entities") or {"-1": {}}
+    claims: dict[str, Any] = next(iter(entities.values())).get("claims", {})
     return claims
 
 
@@ -162,7 +166,8 @@ def commons_info(file_name: str) -> dict[str, str]:
 
 def infobox_image(wikitext: str) -> str | None:
     """Primeiro arquivo de imagem dos campos `image`/`logo`/`crest` da infobox."""
-    start = wikitext.find("{{Infobox")
+    starts = [index for index in (wikitext.find("{{Infobox"), wikitext.find("{{Info/")) if index >= 0]
+    start = min(starts) if starts else -1
     if start < 0:
         return None
     for field in INFOBOX_IMAGE.finditer(wikitext[start : start + 6000]):
@@ -172,17 +177,17 @@ def infobox_image(wikitext: str) -> str | None:
     return None
 
 
-def official_info(title: str) -> tuple[str, dict[str, str]] | None:
+def official_info(title: str, wiki: str = "en") -> tuple[str, dict[str, str]] | None:
     """Arquivo da infobox e os dados dele (a API da Wikipédia em inglês resolve arquivos locais e do Commons)."""
     payload = _get(
-        "https://en.wikipedia.org/w/api.php",
+        f"https://{wiki}.wikipedia.org/w/api.php",
         {"action": "parse", "page": title, "prop": "wikitext", "section": "0", "redirects": "1", "format": "json"},
     )
     file_name = infobox_image(str(payload.get("parse", {}).get("wikitext", {}).get("*", "")))
     if not file_name:
         return None
     info = _get(
-        "https://en.wikipedia.org/w/api.php",
+        f"https://{wiki}.wikipedia.org/w/api.php",
         {
             "action": "query",
             "titles": f"File:{file_name}",
@@ -239,14 +244,16 @@ def collect(
     provenance: dict[str, dict[str, dict[str, str]]] = defaultdict(dict)
     for row in rows:
         competition, team_id, title = row["competition"], row["team_id"], row["wikipedia_title"]
+        wiki = row.get("wiki") or "en"
         record: dict[str, str] = {
             "wikipedia_title": title,
+            "wiki": wiki,
             "short_name": names.get((competition, team_id), team_id[:3].upper()),
             "license_status": "sem logo livre",
         }
         if row.get("skip_logo"):
             record["note"] = row["skip_logo"]
-        claims = entity_claims(title) if title else {}
+        claims = entity_claims(title, wiki) if title else {}
         record.update(badge_colors(club_colors(claims)))
         file_name = logo_file(claims) if not row.get("skip_logo") else None
         if file_name:
@@ -261,7 +268,7 @@ def collect(
             if info["license"] in FREE_LICENSES:
                 record.update({**_save(competition, team_id, info["thumb_url"]), "license_status": "livre"})
         if not record.get("file") and title:
-            official = official_info(title)
+            official = official_info(title, wiki)
             if official:
                 official_file, data = official
                 record.update({"official_file": official_file, **data, "license_status": OFFICIAL_STATUS})
@@ -295,6 +302,7 @@ def provenance_path(competition: str) -> Path:
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="brasileirao-crests", description="Escudos dos sites (livres e oficiais)")
     parser.add_argument("--offline", action="store_true", help="refaz só os manifestos a partir da proveniência")
+    parser.add_argument("--only", nargs="+", default=None, help="coleta só estes times e mescla na proveniência")
     arguments = parser.parse_args(argv)
     competitions = sorted({row["competition"] for row in load_sources()})
     if arguments.offline:
@@ -303,13 +311,18 @@ def main(argv: list[str] | None = None) -> None:
             for competition in competitions
         }
     else:
-        provenance = collect(load_sources(), short_names())
-        for competition, teams in provenance.items():
+        rows = [row for row in load_sources() if not arguments.only or row["team_id"] in arguments.only]
+        provenance = collect(rows, short_names())
+        for competition, collected in provenance.items():
+            merged = dict(collected)
+            if arguments.only and provenance_path(competition).exists():
+                merged = {**json.loads(provenance_path(competition).read_text(encoding="utf-8")), **collected}
+                provenance[competition] = merged
             provenance_path(competition).write_text(
-                json.dumps(teams, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+                json.dumps(merged, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8"
             )
     write_manifests(provenance)
-    for competition in competitions:
+    for competition in sorted(provenance):
         teams = provenance[competition]
         free = sum(1 for record in teams.values() if record.get("file"))
         official = sum(1 for record in teams.values() if record.get("official_file"))

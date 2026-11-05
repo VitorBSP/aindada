@@ -27,11 +27,7 @@
     "file": "karmine-corp.png"
   },
   "los-grandes": {
-    "badge": {
-      "bg": "#E2E1DB",
-      "fg": "#17191C",
-      "label": "LØS"
-    }
+    "file": "los-grandes.png"
   },
   "lyon": {
     "badge": {

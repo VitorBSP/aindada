@@ -3176,7 +3176,8 @@ Registrado pelo orquestrador (00), que executou as partes de 01, 03, 02, 04/05 e
   - `.gitignore` deixa de esconder os escudos da Série A;
   - `check_site_artifact.py` passa a exigir que todo escudo esteja no manifesto;
   - rodapés e "Como calculamos" da Série A trazem o aviso de marca e o link de retirada.
-- **Cobertura:** 167 de 170 times. LØS, LYON e Team Secret Whales seguem com a sigla.
+- **Cobertura:** 168 de 170 times; o LØS vem do artigo da Wikipédia em português (coluna `wiki`). LYON e Team Secret
+  Whales seguem com a sigla. A Leaguepedia não é usada (termos da Fandom).
 - **Evidência:**
   - folha de contato dos 170 arquivos conferida no navegador: todos os escudos são dos times certos;
   - `pytest -q` passa; ruff e mypy sem achados.

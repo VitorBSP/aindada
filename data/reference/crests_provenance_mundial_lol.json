@@ -140,10 +140,18 @@
   "los-grandes": {
     "bg": "#E2E1DB",
     "fg": "#17191C",
-    "license_status": "sem logo livre",
-    "note": "sem artigo próprio na Wikipédia em inglês",
+    "file": "los-grandes.png",
+    "file_page_url": "https://pt.wikipedia.org/wiki/Ficheiro:Los_Grandes_logo.png",
+    "license": "Conteúdo restrito",
+    "license_status": "oficial, não livre (ADR-0014: uso só para identificar, risco aceito pelo dono do produto)",
+    "official_file": "Los Grandes logo.png",
+    "retrieved_at": "2026-11-05T01:54:56+00:00",
+    "sha256": "168aefb36c0bad39b42a04f38d65419999b797a1efbdde6433abb9f49604f241",
     "short_name": "LØS",
-    "wikipedia_title": ""
+    "source_url": "https://upload.wikimedia.org/wikipedia/pt/a/af/Los_Grandes_logo.png?utm_source=pt.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+    "thumb_url": "https://upload.wikimedia.org/wikipedia/pt/a/af/Los_Grandes_logo.png?utm_source=pt.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "wiki": "pt",
+    "wikipedia_title": "Los Grandes"
   },
   "lyon": {
     "bg": "#E2E1DB",

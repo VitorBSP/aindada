@@ -40,5 +40,6 @@ todos da LaLiga. Os termos lidos em 2026-11-04 não dão licença a terceiros:
 - Risco jurídico aceito pelo dono: direito autoral sobre a arte dos escudos e uso de marca. Mitigação: uso só para
   identificar, sem alteração, gratuito, com retirada imediata a pedido. Isto não é parecer jurídico.
 - Cobertura em 2026-11-04: Série A 20 de 20; Série B 20 de 20; Premier League 20 de 20; LaLiga 20 de 20; Champions
-  36 de 36; Mundial de LoL 13 de 16 (LØS, LYON e Team Secret Whales seguem com a sigla).
+  36 de 36; Mundial de LoL 14 de 16 (LØS pelo artigo da Wikipédia em português; LYON e Team Secret Whales seguem
+  com a sigla). A Leaguepedia (Fandom) não é usada: os termos proíbem acesso automatizado sem permissão escrita.
 - Revoga a parte da D-028 que tirava os três escudos da Série A; o marcador (D-029) fica para quem não tem escudo.
