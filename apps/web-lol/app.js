@@ -44,7 +44,7 @@
       <p class="edition-facts"><strong>${data.n_simulations.toLocaleString("pt-BR")}</strong> simulações até a final</p>`;
   }
 
-  // Um lado de uma série: time definido (com placar ou chance) ou, se ainda não definido, os candidatos.
+  // Um lado de uma série: time definido (com placar ou probabilidade) ou, se ainda não definido, os candidatos.
   function side(id, series, index, candidates) {
     if (!id) {
       const list = candidates.filter((item) => item.value > 0).sort((a, b) => b.value - a.value);
@@ -65,7 +65,7 @@
     return `<div class="tie-head"><span>${series ? escapeHtml(S.shortDate(series.match_date)) : ""}${label ? ` · ${label}` : ""}</span><b>MD5</b></div>`;
   }
 
-  // Quem chega a uma vaga: o vencedor da série jogada, senão os dois times com a chance de passar daquela fase.
+  // Quem chega a uma vaga: o vencedor da série jogada, senão os dois times com a probabilidade de passar daquela fase.
   function feeders(data, seriesList, stageKey) {
     const byId = Object.fromEntries(data.teams.map((item) => [item.team_id, item]));
     // O vencedor de uma quarta já jogada está garantido na semifinal, não além dela.
@@ -103,7 +103,7 @@
         <div class="bracket-round"><h3>Semifinais</h3>${semiBox(semis[0], halves[0])}${semiBox(semis[1], halves[1])}</div>
         <div class="bracket-round"><h3>Final</h3><div class="tie">${tieHead(final, "final")}${finalSide(0)}${finalSide(1)}</div></div>
       </div>
-      <p class="note">Quartas 1 e 2 formam a semifinal 1; quartas 3 e 4, a semifinal 2. Todas em melhor de 5. Ao lado de cada time ainda sem série jogada: chance de vencer o confronto; nas vagas a definir, chance de cada candidato chegar ali.</p>`;
+      <p class="note">Quartas 1 e 2 formam a semifinal 1; quartas 3 e 4, a semifinal 2. Todas em melhor de 5. Ao lado de cada time ainda sem série jogada: probabilidade de vencer o confronto; nas vagas a definir, probabilidade de cada candidato chegar ali.</p>`;
   }
 
   // Possíveis adversários de cada time vivo no mata-mata: na semi (o outro confronto do mesmo lado) e na final (o outro lado).
@@ -137,7 +137,7 @@
       .map((card) => card.html)
       .join("");
     return `<h2>Quem cada time pode enfrentar</h2>
-      <p class="note">Percentual de cada adversário: chance de ele chegar àquela fase do mesmo lado (semifinal) ou do outro lado da chave (final).</p>
+      <p class="note">Percentual de cada adversário: probabilidade de ele chegar àquela fase do mesmo lado (semifinal) ou do outro lado da chave (final).</p>
       <div class="rivals">${cards}</div>`;
   }
 
@@ -198,7 +198,7 @@
       .join("");
     return `
       <h1 class="race-heading">Força das ligas</h1>
-      <p class="lede lede-method">Pontos de Elo de cada liga, aprendidos só nos confrontos entre regiões em MSI e Mundial. 100 pontos de diferença dão cerca de 64% de chance de vencer um mapa.</p>
+      <p class="lede lede-method">Pontos de Elo de cada liga, aprendidos só nos confrontos entre regiões em MSI e Mundial. 100 pontos de diferença dão cerca de 64% de probabilidade de vencer um mapa.</p>
       ${rows}`;
   }
 
@@ -223,7 +223,7 @@
     return `
       <h1 class="race-heading">Como calculamos</h1>
       <p>Times de regiões diferentes quase nunca se enfrentam fora de MSI e Mundial. Por isso a força de cada time tem duas partes: a força da liga (LCK, LPL, LEC…) mais um ajuste do time dentro dela. Cada série muda os dois ajustes pela surpresa em mapas: mapas vencidos menos os que o modelo esperava. Quando as ligas são diferentes, a força das duas ligas também muda (K = ${number.format(data.params.k_league)}; ajuste do time: K = ${number.format(data.params.k_team)}). ${regression(data.params.team_regression)}</p>
-      <p>A diferença de força dá a chance de vencer um mapa; com mapas independentes, ela vira a chance de vencer uma melhor de 1, de 3 ou de 5. Cada uma das ${data.n_simulations.toLocaleString("pt-BR")} simulações termina a fase suíça, sorteia as quartas com a regra do torneio (os dois times 3–0 em lados opostos, contra times 3–2) e joga o mata-mata até a final. Série já jogada entra com o resultado real.</p>
+      <p>A diferença de força dá a probabilidade de vencer um mapa; com mapas independentes, ela vira a probabilidade de vencer uma melhor de 1, de 3 ou de 5. Cada uma das ${data.n_simulations.toLocaleString("pt-BR")} simulações termina a fase suíça, sorteia as quartas com a regra do torneio (os dois times 3–0 em lados opostos, contra times 3–2) e joga o mata-mata até a final. Série já jogada entra com o resultado real.</p>
       <h2>Acerto</h2>
       ${facts}
       <p class="note">Menor é melhor. O teste é curto: poucos mapas do próprio Mundial 2026.</p>

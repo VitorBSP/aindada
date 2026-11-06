@@ -156,8 +156,8 @@
       const index = views.indexOf(view);
       return `<text x="${left + index * slot + slot / 2}" y="${height - 6}" text-anchor="middle">${view.round_number}</text>`;
     }).join("");
-    return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Chance de ${METRIC_LABELS[metric]} redistribuída em cada rodada">${bars}${ticks}</svg>
-      <div class="note"><span class="swatch swatch-results"></span> resultados &nbsp; <span class="swatch swatch-strength"></span> reavaliação de força · altura = pontos percentuais (p.p.) de chance de ${METRIC_LABELS[metric]} que trocaram de clube na rodada</div>`;
+    return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Probabilidade de ${METRIC_LABELS[metric]} redistribuída em cada rodada">${bars}${ticks}</svg>
+      <div class="note"><span class="swatch swatch-results"></span> resultados &nbsp; <span class="swatch swatch-strength"></span> reavaliação de força · altura = pontos percentuais (p.p.) de probabilidade de ${METRIC_LABELS[metric]} que trocaram de clube na rodada</div>`;
   }
 
   function roundHeadline(view, metric) {
@@ -169,10 +169,10 @@
     const items = [];
     if (riser) items.push(`Quem mais subiu em ${METRIC_LABELS[metric]}: ${teamLink(riser.club_id)} ${deltaSpan(riser.delta, metric)} p.p. (agora ${pct(view.teams[riser.club_id][metric])}).`);
     if (faller) items.push(`Quem mais caiu em ${METRIC_LABELS[metric]}: ${teamLink(faller.club_id)} ${deltaSpan(faller.delta, metric)} p.p. (agora ${pct(view.teams[faller.club_id][metric])}).`);
-    if (decisive) items.push(`Jogo que mais mexeu nas chances: <strong>${matchLabel(decisive)}</strong>.`);
-    if (surprise) items.push(`Maior surpresa: <strong>${matchLabel(surprise)}</strong>. Esse resultado tinha ${pct(surprise.pre_match[surprise.outcome])} de chance antes do jogo.`);
+    if (decisive) items.push(`Jogo que mais mexeu nas probabilidades: <strong>${matchLabel(decisive)}</strong>.`);
+    if (surprise) items.push(`Maior surpresa: <strong>${matchLabel(surprise)}</strong>. Esse resultado tinha ${pct(surprise.pre_match[surprise.outcome])} de probabilidade antes do jogo.`);
     const moved = movementOf(view, metric);
-    items.push(`${num(moved * 100)} p.p. de chance de ${METRIC_LABELS[metric]} trocaram de clube: ${num(summary.results_movement[metric] / 2 * 100)} p.p. pelos resultados (pontos na tabela) e ${num(summary.strength_movement[metric] / 2 * 100)} p.p. pela reavaliação da força dos times.`);
+    items.push(`${num(moved * 100)} p.p. de probabilidade de ${METRIC_LABELS[metric]} trocaram de clube: ${num(summary.results_movement[metric] / 2 * 100)} p.p. pelos resultados (pontos na tabela) e ${num(summary.strength_movement[metric] / 2 * 100)} p.p. pela reavaliação da força dos times.`);
     items.push(`<span class="note">Parte do efeito dos resultados que não dá para pôr na conta de um jogo só: ${num(summary.residual_movement[metric] / 2 * 100)} p.p. O ruído esperado da simulação é de ~${num(summary.expected_noise_movement[metric] / 2 * 100)} p.p.; o resto vem da combinação de resultados na mesma rodada.</span>`);
     return `<ul class="summary-list">${items.map((item) => `<li>${item}</li>`).join("")}</ul>`;
   }
@@ -272,7 +272,7 @@
     return `<div class="table-scroll"><table class="season-table">
       <thead><tr><th class="left">Rodada</th><th>Jogos</th><th>p.p. em jogo</th><th class="left">Rodada foi</th><th class="left">Líder da tabela</th><th class="left">Favorito ao título</th><th class="left">Mais subiu (${METRIC_LABELS[metric]})</th><th class="left">Mais caiu</th><th class="left">Jogo decisivo</th><th class="left">Maior surpresa</th></tr></thead>
       <tbody>${rows}</tbody></table></div>
-      <p class="note">"Rodada foi": agitada se ficou entre as 25% que mais mexeram na chance de ${METRIC_LABELS[metric]} na temporada; calma se ficou entre as 25% que menos mexeram.</p>`;
+      <p class="note">"Rodada foi": agitada se ficou entre as 25% que mais mexeram na probabilidade de ${METRIC_LABELS[metric]} na temporada; calma se ficou entre as 25% que menos mexeram.</p>`;
   }
 
   function renderRound(parameter) {
@@ -293,12 +293,12 @@
         <p class="note">Tabela real em ${formatDate(view.reference_date)} e variação desde ${formatDate(previous.reference_date)}. <strong>Resultados</strong>: efeito dos jogos, com a força dos times congelada. <strong>Força</strong>: efeito da reavaliação dos times depois desses jogos. As duas colunas somam a variação.</p>
         ${roundTable(view, metric)}
         <h2>Jogos do intervalo e quem eles afetaram</h2>
-        <p class="note">Efeito = chance de ${METRIC_LABELS[metric]} com o resultado real menos a chance antes do jogo, medida em simulações recalculadas com os resultados até a véspera. Inclui jogos adiados de outras rodadas. Só aparecem efeitos acima de 2 erros-padrão do ruído da simulação.</p>
+        <p class="note">Efeito = probabilidade de ${METRIC_LABELS[metric]} com o resultado real menos a probabilidade antes do jogo, medida em simulações recalculadas com os resultados até a véspera. Inclui jogos adiados de outras rodadas. Só aparecem efeitos acima de 2 erros-padrão do ruído da simulação.</p>
         ${[...view.matches].sort((left, right) => relevantImpacts(right, metric, "impacts", 0, previous).reduce((t, e) => t + Math.abs(e.value), 0) - relevantImpacts(left, metric, "impacts", 0, previous).reduce((t, e) => t + Math.abs(e.value), 0)).map((match) => matchCard(match, metric, previous, view)).join("")}`
       : `<h2>Pré-temporada</h2><p>Antes do primeiro jogo, só com a força herdada da temporada anterior (com regressão à média; promovidos recebem a média dos rebaixados).</p>
         ${roundTable(view, metric)}`;
     main.innerHTML = `
-      ${header("rodada", `Como o modelo atual vê o campeonato na véspera de cada rodada, desde a pré-temporada, e o que fez as chances mudarem. ${views.length} visões com ${review.n_simulations.toLocaleString("pt-BR")} simulações cada; dados até ${formatDate(review.data_until)}.${review.model_version ? ` Tudo recalculado com a versão ${escapeHtml(review.model_version)} do modelo; não são as previsões publicadas na época.` : ""}`)}
+      ${header("rodada", `Como o modelo atual vê o campeonato na véspera de cada rodada, desde a pré-temporada, e o que fez as probabilidades mudarem. ${views.length} visões com ${review.n_simulations.toLocaleString("pt-BR")} simulações cada; dados até ${formatDate(review.data_until)}.${review.model_version ? ` Tudo recalculado com a versão ${escapeHtml(review.model_version)} do modelo; não são as previsões publicadas na época.` : ""}`)}
       ${helpers.highlights ? helpers.highlights(view) : ""}
       ${metricPicker(metric, METRIC_TITLES, "metric")}
       <h2>Onde o campeonato mudou</h2>
@@ -436,7 +436,7 @@
     return metrics.sort((a, b) => now[b] - now[a])[0];
   }
 
-  /* Duas estimativas independentes da mesma chance: 2 erros-padrão da diferença. */
+  /* Duas estimativas independentes da mesma probabilidade: 2 erros-padrão da diferença. */
   function changeNoise(before, after) {
     const total = review.n_simulations;
     return 2 * Math.sqrt((before * (1 - before) + after * (1 - after)) / total);
@@ -466,8 +466,8 @@
     const losses = ordered.filter((moment) => moment.delta < 0).reverse().slice(0, 3);
     const none = (kind) => `<p class='note'>Nenhuma ${kind} em ${METRIC_LABELS[metric]} maior que o ruído da simulação.</p>`;
     return `<div class="grid">
-      <section><h3>${metric === "relegation" ? "Quando o risco de queda mais subiu" : `Quando a chance de ${METRIC_LABELS[metric]} mais subiu`}</h3>${gains.length ? `<ul class="summary-list">${gains.map(describe).join("")}</ul>` : none("alta")}</section>
-      <section><h3>${metric === "relegation" ? "Quando o risco de queda mais caiu" : `Quando a chance de ${METRIC_LABELS[metric]} mais caiu`}</h3>${losses.length ? `<ul class="summary-list">${losses.map(describe).join("")}</ul>` : none("queda")}</section>
+      <section><h3>${metric === "relegation" ? "Quando o risco de queda mais subiu" : `Quando a probabilidade de ${METRIC_LABELS[metric]} mais subiu`}</h3>${gains.length ? `<ul class="summary-list">${gains.map(describe).join("")}</ul>` : none("alta")}</section>
+      <section><h3>${metric === "relegation" ? "Quando o risco de queda mais caiu" : `Quando a probabilidade de ${METRIC_LABELS[metric]} mais caiu`}</h3>${losses.length ? `<ul class="summary-list">${losses.map(describe).join("")}</ul>` : none("queda")}</section>
     </div>
     <p class="note">Só entram variações acima de 2 erros-padrão da simulação.</p>`;
   }
@@ -507,7 +507,7 @@
     const picker = `<div class="club-picker">${clubs.map((club) =>
       `<a class="club-cell" href="#/rodadas/time/${encodeURIComponent(club)}" ${club === clubId ? 'aria-current="true"' : ""}>${crest(club, 18)}<span>${escapeHtml(clubName(club))}</span></a>`).join("")}</div>`;
     if (!latest.teams[clubId]) {
-      main.innerHTML = `${header("time", "Escolha um time para ver como as chances dele evoluíram em cada rodada e o que as fez mudar.")}${picker}`;
+      main.innerHTML = `${header("time", "Escolha um time para ver como as probabilidades dele evoluíram em cada rodada e o que as fez mudar.")}${picker}`;
       return;
     }
     const metric = ui.teamMetric[clubId] || openMetric(clubId);
@@ -516,7 +516,7 @@
     const views = review.rounds;
     const stat = (label, key) => `<div class="stat"><span class="label">${label}</span><span class="big">${pct(now[key])}</span><span class="sub">${deltaSpan(now[key] - first[key], key)} p.p. desde a pré-temporada</span></div>`;
     main.innerHTML = `
-      ${header("time", `Como as chances de ${escapeHtml(clubName(clubId))} evoluíram desde a pré-temporada e quais jogos fizeram a diferença.`)}
+      ${header("time", `Como as probabilidades de ${escapeHtml(clubName(clubId))} evoluíram desde a pré-temporada e quais jogos fizeram a diferença.`)}
       ${picker}
       <h2 class="team-heading">${crest(clubId, 48)}<span>${escapeHtml(clubName(clubId))}</span></h2>
       <div class="stat-row">
@@ -524,14 +524,14 @@
         <div class="stat"><span class="label">Pontos projetados</span><span class="big">${num(now.expected_points)}</span><span class="sub">${num(first.expected_points)} na pré-temporada</span></div>
         ${stat("Título", "title")}${stat("G4", "top4")}${stat("Rebaixamento", "relegation")}
       </div>
-      <h2>Chances ao longo das rodadas</h2>
+      <h2>Probabilidades ao longo das rodadas</h2>
       ${seriesChart({
         series: [
           { label: "Título", club: clubId, values: views.map((view) => view.teams[clubId].title) },
           { label: "G4", club: clubId, values: views.map((view) => view.teams[clubId].top4) },
           { label: "Rebaixamento", club: clubId, values: views.map((view) => view.teams[clubId].relegation) },
         ],
-        domain: [0, 1], format: shareFormat, styles: TEAM_SERIES, ariaLabel: `Chances de título, G4 e rebaixamento de ${clubName(clubId)} por rodada`,
+        domain: [0, 1], format: shareFormat, styles: TEAM_SERIES, ariaLabel: `Probabilidades de título, G4 e rebaixamento de ${clubName(clubId)} por rodada`,
         guides: [{ value: 0, label: "0%" }, { value: 0.5, label: "50%" }, { value: 1, label: "100%" }],
       })}
       <h2>Posição na tabela e projeção</h2>
@@ -645,7 +645,7 @@
         <label>Rodada <select id="compare-round">${views.map((view) => `<option value="${view.round_number}" ${view === roundView ? "selected" : ""}>${roundLabel(view)} · ${formatDate(view.reference_date)}</option>`).join("")}</select></label>
         ${views[views.indexOf(roundView) + 1] ? `<button type="button" class="button" data-compare-step="1">próxima →</button>` : "<span></span>"}
       </div>
-      <p class="note">${roundView.round_number === 0 ? "Antes do primeiro jogo: sem tabela, ordenado pelos pontos projetados." : `Tabela real em ${formatDate(roundView.reference_date)} e as chances recalculadas com o modelo atual para aquele dia.`} Os times escolhidos aparecem destacados, com o mesmo marcador do gráfico.</p>
+      <p class="note">${roundView.round_number === 0 ? "Antes do primeiro jogo: sem tabela, ordenado pelos pontos projetados." : `Tabela real em ${formatDate(roundView.reference_date)} e as probabilidades recalculadas com o modelo atual para aquele dia.`} Os times escolhidos aparecem destacados, com o mesmo marcador do gráfico.</p>
       ${compareSnapshotTable(roundView, selected)}`;
     main.querySelectorAll("[data-club]").forEach((button) => button.addEventListener("click", () => {
       const club = button.dataset.club;

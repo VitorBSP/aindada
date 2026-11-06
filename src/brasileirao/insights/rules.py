@@ -204,7 +204,7 @@ def _variation_candidate(
     decomposition_evidence, decomposition_sentence = _decomposition(rule_input, club_id, metric)
     evidence.extend(decomposition_evidence)
     body = (
-        f"A chance de {METRIC_LABELS[metric]} {verb} de {format_pct(previous_value)} para "
+        f"A probabilidade de {METRIC_LABELS[metric]} {verb} de {format_pct(previous_value)} para "
         f"{format_pct(current_value)} entre {format_day(previous.ref.reference_date)} e "
         f"{format_day(current.ref.reference_date)}: {format_pp(delta_pp)} pontos percentuais."
     )
@@ -316,9 +316,9 @@ def match_moved_most(rule_input: RuleInput) -> list[InsightCandidate]:
     direction = "acima" if impact > 0 else "abaixo"
     winner = {"home": match.home_id, "away": match.away_id}.get(match.outcome)
     affected = "Com ela, o clube" if club_id == winner else f"Para {names.get(club_id, club_id)}, a"
-    subject = "teve a chance" if club_id == winner else "chance"
+    subject = "teve a probabilidade" if club_id == winner else "probabilidade"
     body = (
-        f"{_outcome_text(match, names)} tinha {format_pct(pre_match)} de chance antes do jogo. {affected} "
+        f"{_outcome_text(match, names)} tinha {format_pct(pre_match)} de probabilidade antes do jogo. {affected} "
         f"{subject} de {METRIC_LABELS[metric]} {format_pp(impact * 100)} pontos percentuais {direction} "
         "do esperado antes da partida."
     )
@@ -339,10 +339,10 @@ def match_moved_most(rule_input: RuleInput) -> list[InsightCandidate]:
     ]
     rule_id = "MATCH_MOVED_MOST"
     score_line = f"{home} {match.home_goals} × {match.away_goals} {away}"
-    headline = f"{score_line}: o jogo que mais mexeu nas chances"
+    headline = f"{score_line}: o jogo que mais mexeu nas probabilidades"
     if len(headline) > 80:
         headline = score_line
-        body = f"Foi o jogo que mais mexeu nas chances. {body}"
+        body = f"Foi o jogo que mais mexeu nas probabilidades. {body}"
     return [
         InsightCandidate(
             insight_id=insight_id(rule_id, current.ref.snapshot_id, [match.match_id, club_id], metric),
@@ -367,7 +367,7 @@ def match_moved_most(rule_input: RuleInput) -> list[InsightCandidate]:
                 causal_claim="decomposition_supported",
                 notes=[
                     "Efeito medido nas simulações feitas antes do jogo, condicionando ao resultado real.",
-                    "Outros jogos da rodada e a reavaliação de força também mexeram nas chances.",
+                    "Outros jogos da rodada e a reavaliação de força também mexeram nas probabilidades.",
                     f"Limiar usado: {format_pp(threshold)} p.p.",
                 ],
             ),

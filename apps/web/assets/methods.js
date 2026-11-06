@@ -18,7 +18,7 @@
     <p class="formula">esperado do mandante = 1 / (1 + 10<sup>−(Elo mandante + H − Elo visitante) / 400</sup>)</p>
     <p>Depois do jogo, o mandante ganha ou perde pontos de Elo conforme o resultado ficou acima ou abaixo do esperado, e o visitante recebe o oposto:</p>
     <p class="formula">variação = K × M × (resultado − esperado)</p>
-    <p>O resultado vale 1 na vitória, 0,5 no empate e 0 na derrota. <em>K</em> controla a velocidade da mudança. <em>M</em> pesa o placar: 1 para vitória por um gol, 1,5 por dois e (11 + diferença) / 8 a partir de três. Entre uma temporada e outra, cada clube volta uma parte (<em>regressão</em>) do caminho até a média, porque elencos mudam. A diferença de Elo, junto com outros indicadores, entra num modelo de gols que dá a chance de cada placar, e cada simulação sorteia os jogos que faltam.</p>`;
+    <p>O resultado vale 1 na vitória, 0,5 no empate e 0 na derrota. <em>K</em> controla a velocidade da mudança. <em>M</em> pesa o placar: 1 para vitória por um gol, 1,5 por dois e (11 + diferença) / 8 a partir de três. Entre uma temporada e outra, cada clube volta uma parte (<em>regressão</em>) do caminho até a média, porque elencos mudam. A diferença de Elo, junto com outros indicadores, entra num modelo de gols que dá a probabilidade de cada placar, e cada simulação sorteia os jogos que faltam.</p>`;
 
   // Exemplos com jogos reais (data/elo-examples.json de cada site, gerado junto com a previsão; fora do git).
   // Um confronto direto por competição e, para cada lado, de onde vem o Elo antes do jogo.

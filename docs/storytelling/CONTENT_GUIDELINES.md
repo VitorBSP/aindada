@@ -8,6 +8,7 @@ quem entende, não grita e não inventa certeza. Provocação leve é permitida 
 clube, torcida, jogador ou cidade, e sem piada com violência, tragédia ou discriminação.
 
 ## Regras de linguagem
+- **"Probabilidade", não "chance"** (D-046): "título em 62% das simulações" ou "62% de probabilidade de título"; nunca "62% de chance".
 - **Porcentagem como frequência:** "O título fica com o Clube A em 62% das simulações", não
   "o Clube A vai ser campeão" (clube e número ilustrativos).
 - **"Não dá mais" e "já deu"** só com certeza matemática. "0%" vira "não aconteceu em nenhuma das

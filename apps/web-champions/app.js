@@ -98,7 +98,7 @@
         <div class="bracket-round"><h3>Final</h3><div class="tie"><div class="tie-head"><span>Jogo único</span><b>final</b></div><p class="candidates-label">Mais prováveis na final</p><ul class="candidates">${finalists.map((club) => `<li>${team(club.club_id, 16)}<strong>${pct(club.stages.final)}</strong></li>`).join("")}</ul></div></div>
       </div>
       <h2>Quem pode ocupar cada seção</h2>
-      <p class="note">Percentual ao lado de cada clube: em quantas simulações ele termina nas posições daquela seção. Para os cabeças, também a chance de chegar às quartas.</p>
+      <p class="note">Percentual ao lado de cada clube: em quantas simulações ele termina nas posições daquela seção. Para os cabeças, também a probabilidade de chegar às quartas.</p>
       <div class="sections-grid">${SECTIONS.map((section) => sectionCard(data, section)).join("")}</div>
       <h2>Mais prováveis nas semifinais</h2>
       ${S.raceRows(semis.map((club) => ({ id: club.club_id, value: club.stages.semi_finals })), "")}
@@ -116,7 +116,7 @@
         ${STAGES.map(([key]) => `<td class="stage${club.stages[key] >= 0.5 ? " strong" : ""}">${pct(club.stages[key])}</td>`).join("")}
       </tr>`)
       .join("");
-    return `<div class="table-scroll" tabindex="0" role="region" aria-label="Chance de cada clube por fase">
+    return `<div class="table-scroll" tabindex="0" role="region" aria-label="Probabilidade de cada clube por fase">
       <table><thead><tr><th class="left">Clube</th><th>Top 8</th><th>Playoff</th>${STAGES.map(([, label]) => `<th>${label}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table>
     </div>
     <p class="note">Percentuais: em quantas simulações o clube chega a cada fase. As oitavas somam quem foi direto e quem passou no playoff.</p>`;
@@ -165,7 +165,7 @@
       .join("");
     return `
       <h1 class="race-heading">Rodada ${round} da fase de liga</h1>
-      <p class="note">Horários de Brasília. Mandante à esquerda; chance de vitória do mandante, empate e vitória do visitante.</p>
+      <p class="note">Horários de Brasília. Mandante à esquerda; probabilidade de vitória do mandante, empate e vitória do visitante.</p>
       <div class="legend"><span class="l-home">mandante</span><span class="l-draw">empate</span><span class="l-away">visitante</span></div>
       ${rows}`;
   }
@@ -190,7 +190,7 @@
       <h2>Limitações</h2>
       <ul class="summary-list">${data.warnings.map((warning) => `<li>${escapeHtml(warning)}</li>`).join("")}
         <li>Clubes de ligas fora das sete principais têm força medida só pelos jogos europeus; os que nunca jogaram copas europeias desde 2021/22 começam de um valor fixo.</li>
-        <li>A chave provável mostra as posições de cada seção; onde a UEFA sorteia (quem é o 1º ou o 2º de cada lado), a simulação sorteia com chances iguais.</li>
+        <li>A chave provável mostra as posições de cada seção; onde a UEFA sorteia (quem é o 1º ou o 2º de cada lado), a simulação sorteia com probabilidades iguais.</li>
         <li>"Garantido", "não dá mais", "eliminado" e "não cai mais" só aparecem quando a conta de pontos fecha, nunca por simulação.</li>
       </ul>
       <h2>Regulamento e fontes</h2>
