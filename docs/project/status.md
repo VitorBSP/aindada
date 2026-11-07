@@ -3267,5 +3267,8 @@ Registrado pelo orquestrador (00), que executou as partes de 01, 03, 02, 04/05 e
   (`teste-pontos`, apagada depois): Placar exato 8 pontos (5 + 3), Vencedor 1, com palpites de jogo iniciado,
   inexistente e inválido descartados. "Apagar minha participação" removeu a conta. Estado final: 0 usuários, 0
   perfis, 0 simulações, 380 jogos, 1 temporada.
-- **Falta**: variável `SUPABASE_URL` e segredo `SUPABASE_SERVICE_ROLE_KEY` no GitHub (dono); página de privacidade;
-  revisão do 06; decidir a trava da Classificação 2026.
+- **GitHub (2026-11-07)**: `main` com o simulador e a correção de lint da `corrige-lint-ci` (`ab6d08d`), CI #39
+  verde, nenhum PR aberto. Variável `SUPABASE_URL` cadastrada; segredo `SUPABASE_SERVICE_ROLE_KEY` cadastrado pelo
+  dono. Com `PUBLISH_ENABLED=true`, a próxima publicação sincroniza o Supabase e põe o simulador no ar.
+- **Falta**: página de privacidade; revisão do 06 (o simulador vai ao ar sem ela, por decisão do dono de "fazer
+  funcionar"); decidir a trava da Classificação 2026.
