@@ -1,5 +1,5 @@
 /* Aba da rodada da home (ADR-0009, Decisão 3; textos e layout da D-037, versão enxuta).
-   Só apresenta o que vem em current-round.json e predictions.json: não calcula chance nem decide qual
+   Só apresenta o que vem em current-round.json e predictions.json: não calcula probabilidade nem decide qual
    rodada mostrar. O relógio do aparelho só escolhe a aba padrão e troca "a jogar" por "aguardando placar". */
 (function () {
   "use strict";
@@ -134,7 +134,7 @@
         meta.push(postponedMeta(match, info));
       } else if (status.kind === "waiting") {
         meta.push(status.overdue
-          ? "O placar ainda não chegou da fonte de dados. Até chegar, as chances tratam este jogo como não disputado."
+          ? "O placar ainda não chegou da fonte de dados. Até chegar, as probabilidades tratam este jogo como não disputado."
           : `Começou às ${kickoffText(match)}. O placar entra aqui depois do fim do jogo, com atraso.`);
       }
       const statusClass = status.kind === "postponed" || status.overdue ? " rm-status-alert" : "";
@@ -208,8 +208,8 @@
     function biggestChange(compared, inProgress) {
       if (!compared || !compared.comparable) return "";
       const top = compared.movements[0];
-      if (!top) return inProgress ? "Até agora, nenhuma chance mudou além do ruído das simulações." : "Nenhuma chance mudou além do ruído das simulações nesta rodada.";
-      const fact = `${ofClub(top.clubId)}: chance de ${top.metric.noun} de ${pct(top.start)} para ${pct(top.now)}.`;
+      if (!top) return inProgress ? "Até agora, nenhuma probabilidade mudou além do ruído das simulações." : "Nenhuma probabilidade mudou além do ruído das simulações nesta rodada.";
+      const fact = `${ofClub(top.clubId)}: probabilidade de ${top.metric.noun} de ${pct(top.start)} para ${pct(top.now)}.`;
       return inProgress ? `Até agora, a maior mudança é ${fact}` : `A maior mudança foi ${fact}`;
     }
 
@@ -225,7 +225,7 @@
       }
       if (!finished) {
         const lede = info.baseline
-          ? "As chances abaixo são as do início da rodada. Cada placar entra depois do apito final, com atraso."
+          ? "As probabilidades abaixo são as do início da rodada. Cada placar entra depois do apito final, com atraso."
           : "Cada placar entra depois do apito final, com atraso.";
         return { title: `Rodada ${info.number}: nenhum jogo encerrado ainda`, lede: anyFinished ? biggestChange(compared, true) || lede : lede };
       }
@@ -244,14 +244,14 @@
     function comparisonNote(info, compared, snapshot, anyFinished) {
       const baseline = info.baseline;
       if (!compared.comparable) {
-        return `O modelo mudou durante a rodada (versão ${escapeHtml(baseline.model_version)} para ${escapeHtml(snapshot.model.model_version)}). Comparar as duas daria diferenças que não vêm dos jogos, então mostramos só as chances de agora.`;
+        return `O modelo mudou durante a rodada (versão ${escapeHtml(baseline.model_version)} para ${escapeHtml(snapshot.model.model_version)}). Comparar as duas daria diferenças que não vêm dos jogos, então mostramos só as probabilidades de agora.`;
       }
-      if (!anyFinished) return "Nenhum jogo da rodada terminou ainda, então as chances não mudaram.";
+      if (!anyFinished) return "Nenhum jogo da rodada terminou ainda, então as probabilidades não mudaram.";
       if (baseline.reconstructed === false) {
         const day = typeof baseline.reference_date === "string" && ISO_DAY.test(baseline.reference_date) ? formatDate(baseline.reference_date) : "";
-        return `Início da rodada = chances publicadas${day ? ` em ${escapeHtml(day)}` : ""}, antes do primeiro jogo, com o mesmo modelo de agora.`;
+        return `Início da rodada = probabilidades publicadas${day ? ` em ${escapeHtml(day)}` : ""}, antes do primeiro jogo, com o mesmo modelo de agora.`;
       }
-      return `Início da rodada = chances com os resultados conhecidos antes do primeiro jogo, recalculadas com o mesmo modelo de agora (versão ${escapeHtml(snapshot.model.model_version)}). Não é necessariamente o que o site mostrava naquela hora. A diferença vem dos jogos encerrados desde então.`;
+      return `Início da rodada = probabilidades com os resultados conhecidos antes do primeiro jogo, recalculadas com o mesmo modelo de agora (versão ${escapeHtml(snapshot.model.model_version)}). Não é necessariamente o que o site mostrava naquela hora. A diferença vem dos jogos encerrados desde então.`;
     }
 
     function movementList(compared) {
@@ -284,13 +284,13 @@
         return `<tr><th scope="row" class="left club">${link}</th>${row.cells.map((cell) => tableCell(cell, withVariation)).join("")}</tr>`;
       }).join("");
       const legend = withVariation
-        ? `<p class="note">Embaixo de cada chance, a variação desde o início da rodada, em pontos percentuais. "=" quando a diferença fica dentro do ruído das simulações.</p>`
+        ? `<p class="note">Embaixo de cada probabilidade, a variação desde o início da rodada, em pontos percentuais. "=" quando a diferença fica dentro do ruído das simulações.</p>`
         : "";
       return `<h2>O que mudou desde o início da rodada</h2>
         <p class="note">${comparisonNote(info, compared, snapshot, anyFinished)}</p>
         ${withVariation ? movementList(compared) : ""}
         <div class="table-scroll"><table class="round-changes">
-          <caption>Chances no início da rodada e agora</caption>
+          <caption>Probabilidades no início da rodada e agora</caption>
           <thead><tr><th scope="col" class="left">Clube</th>${METRICS.map((metric) => `<th scope="col">${metric.head}</th>`).join("")}</tr></thead>
           <tbody>${rows}</tbody></table></div>
         ${legend}`;

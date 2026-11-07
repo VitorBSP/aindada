@@ -1,7 +1,7 @@
 "use strict";
 
 // Base comum dos sites das outras competições (D-043): cabeçalho, abas por rota (#/aba), barra de edição, escudos e
-// os blocos da Série A (barras de chance, tabela, jogos). Cada site chama AIndaDaSite.start com as próprias abas.
+// os blocos da Série A (barras de probabilidade, tabela, jogos). Cada site chama AIndaDaSite.start com as próprias abas.
 (function () {
   const number = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
   const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
@@ -60,7 +60,7 @@
     return `<span class="prob prob-${kind}" style="--p:${intensity}">${label || pct(value)}</span>`;
   }
 
-  // Barras de chance da Série A: uma linha por time, com a barra e o valor (ou o rótulo da certeza aritmética).
+  // Barras de probabilidade da Série A: uma linha por time, com a barra e o valor (ou o rótulo da certeza aritmética).
   function raceRows(items, kind) {
     return items
       .map((item) => `<div class="race-row">${team(item.id, 18)}<div class="bar-track" aria-hidden="true"><div class="bar-fill ${kind}" style="width:${(item.value * 100).toFixed(1)}%"></div></div><span class="value">${item.label || pct(item.value)}</span></div>`)

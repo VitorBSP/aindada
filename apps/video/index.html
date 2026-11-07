@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>AInda dá? · vídeo de apresentação (rascunho)</title>
+<!--
+  Vídeo de apresentação, v1 (rascunho, não aprovado: "Redes sociais" segue pendente em BRAND_GUIDELINES.md).
+  Cada quadro é desenhado por renderAt(segundos); scripts/render.py fotografa quadro a quadro e gera o MP4.
+  Abra no navegador com ?t=12.5 para ver um instante, ou ?play para tocar.
+-->
+<style>
+  @font-face {
+    font-family: "Inter Tight";
+    src: url("../../docs/brand/assets/fontes/InterTight%5Bwght%5D.ttf") format("truetype");
+    font-weight: 100 900;
+  }
+  :root {
+    --paper: #F7F5EF;
+    --ink: #17191C;
+    --signal: #D9381E;
+    --muted: #5C6066;
+    --rule: #E2E1DB;
+    --sans: "Inter Tight", "Segoe UI", Arial, sans-serif;
+    --serif: Georgia, "Times New Roman", serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--paper); }
+  body { font-family: var(--sans); color: var(--ink); font-feature-settings: "tnum"; }
+  #stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--paper); }
+  .layer { position: absolute; inset: 0; opacity: 0; will-change: opacity, transform; }
+
+  /* Abertura e fecho */
+  .center { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .sig-big { height: 190px; }
+  .tagline { margin-top: 56px; font-family: var(--serif); font-style: italic; font-size: 50px; color: var(--ink); }
+  .edition { margin-top: 22px; font-size: 30px; color: var(--muted); }
+  .edition b { color: var(--ink); }
+  .outro-claim { margin-top: 64px; font-size: 64px; font-weight: 750; letter-spacing: -0.02em; }
+  .outro-list { margin-top: 22px; font-family: var(--serif); font-style: italic; font-size: 34px; color: var(--muted); }
+  .outro-url { margin-top: 54px; font-size: 40px; font-weight: 700; padding-bottom: 8px; border-bottom: 5px solid var(--signal); }
+
+  /* Cenas com captura do site */
+  .head { position: absolute; left: 120px; top: 70px; right: 120px; }
+  .bar { width: 0; height: 7px; background: var(--signal); margin-bottom: 22px; }
+  .kicker { font-family: var(--serif); font-style: italic; font-size: 34px; color: var(--muted); }
+  .title { margin-top: 8px; font-size: 76px; font-weight: 750; letter-spacing: -0.03em; line-height: 1.04; }
+  .frame { position: absolute; left: 120px; top: 310px; width: 1680px; height: 650px; overflow: hidden;
+           background: #FAFAF7; border-top: 4px solid var(--ink); }
+  .frame img { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  .foot { position: absolute; left: 120px; right: 120px; bottom: 44px; display: flex; align-items: center;
+          justify-content: space-between; font-size: 24px; color: var(--muted); }
+  .foot i { font-family: var(--serif); }
+  .foot img { height: 40px; }
+  .head { transform-origin: 0 0; }
+  .explain { position: absolute; left: 120px; top: 640px; max-width: 1400px; font-family: var(--serif);
+             font-size: 46px; line-height: 1.4; color: #3A3D42; }
+  .explain b { font-family: var(--sans); font-weight: 750; color: var(--ink); }
+  /* Mosaico animado: bolinhas e legenda vêm do site (captures/*.mosaic.js) */
+  .mosaic-stage { position: absolute; inset: 0; }
+  .m-svg { position: absolute; overflow: visible; }
+  .m-legend { position: absolute; list-style: none; }
+  .m-legend li { display: flex; align-items: center; gap: 14px; opacity: 0; }
+  .m-sw { flex: none; overflow: visible; }
+  .m-name { font-weight: 650; }
+  .m-pct { margin-left: auto; font-weight: 800; font-feature-settings: "tnum"; }
+  .single .m-svg { left: 290px; top: 55px; width: 540px; height: 540px; }
+  .single .m-legend { left: 960px; top: 210px; width: 520px; font-size: 56px; }
+  .single .m-legend li { margin-bottom: 34px; }
+  .single .m-sw { width: 48px; height: 48px; }
+  .wide .m-svg { left: 120px; top: 40px; width: 1440px; height: 326px; }
+  .wide .m-legend { left: 120px; top: 410px; width: 1440px; display: grid; grid-template-columns: repeat(4, 1fr);
+                    gap: 18px 56px; font-size: 32px; }
+  .wide .m-sw { width: 30px; height: 30px; }
+  .label { position: absolute; right: 120px; top: 236px; font-size: 40px; font-weight: 750; letter-spacing: -0.02em; }
+
+  /* Vertical 9:16 (?format=vertical): margens de 70 px; topo e base livres para a interface dos apps */
+  body.v, body.v #stage { width: 1080px; height: 1920px; }
+  body.v .sig-big { height: 150px; }
+  body.v .tagline { font-size: 54px; max-width: 900px; }
+  body.v .edition { font-size: 34px; max-width: 860px; }
+  body.v .outro-claim { font-size: 64px; max-width: 900px; line-height: 1.1; }
+  body.v .outro-list { font-size: 36px; max-width: 860px; line-height: 1.35; }
+  body.v .outro-url { font-size: 44px; }
+  body.v .head { left: 70px; right: 70px; top: 220px; }
+  body.v .kicker { font-size: 38px; }
+  body.v .title { font-size: 74px; }
+  body.v .explain { left: 70px; right: 70px; top: 1000px; max-width: none; font-size: 48px; }
+  body.v .frame { left: 70px; top: 580px; width: 940px; height: 960px; }
+  body.v .label { left: 70px; right: auto; top: 1566px; font-size: 46px; }
+  body.v .foot { left: 70px; right: 70px; bottom: 200px; font-size: 26px; gap: 28px; }
+  body.v .single .m-svg { left: 150px; top: 40px; width: 640px; height: 640px; }
+  body.v .single .m-legend { left: 150px; top: 730px; width: 640px; font-size: 52px; }
+  body.v .single .m-legend li { margin-bottom: 22px; }
+  body.v .single .m-sw { width: 44px; height: 44px; }
+  body.v .wide .m-svg { left: 150px; top: 30px; width: 640px; height: 640px; }
+  body.v .wide .m-legend { left: 60px; top: 710px; width: 820px; grid-template-columns: repeat(2, 1fr); gap: 12px 60px; font-size: 32px; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <section class="layer center" id="intro">
+    <img class="sig-big" src="../../docs/brand/assets/assinatura/ainda-da-assinatura.svg" alt="AInda dá?">
+    <p class="tagline">Probabilidades do Brasileirão, rodada a rodada</p>
+    <p class="edition"><b>100.000</b> simulações do resto do campeonato, refeitas a cada rodada</p>
+  </section>
+
+  <section class="layer center" id="outro">
+    <img class="sig-big" src="../../docs/brand/assets/assinatura/ainda-da-assinatura.svg" alt="AInda dá?">
+    <p class="outro-claim">Probabilidade não é certeza. Mas ainda dá.</p>
+    <p class="outro-list">Brasileirão Série A e B · Premier League · LaLiga · Champions League · Mundial de LoL</p>
+    <p class="outro-url" id="outro-url"></p>
+  </section>
+</div>
+
+<script src="captures/home-titulo.mosaic.js"></script>
+<script src="captures/home-rebaixamento.mosaic.js"></script>
+<script src="captures/home-titulo-mobile.mosaic.js"></script>
+<script src="captures/home-rebaixamento-mobile.mosaic.js"></script>
+<script>
+"use strict";
+const params = new URLSearchParams(location.search);
+const VERTICAL = params.get("format") === "vertical";
+if (VERTICAL) document.body.classList.add("v");
+const CAPTURES = VERTICAL ? "captures/mobile" : "captures";
+const CONFIG = {
+  url: "vitorbsp.github.io/aindada",
+  footA: "Dados de 5 de nov. de 2026 · rodada 34 em andamento · <i>modelo experimental</i>",
+  footLeagues: "Edições de 2 a 5 de nov. de 2026 · <i>modelo experimental</i>",
+};
+
+// Capturas já recortadas no visual (scripts/capture.py). Baixas aparecem inteiras; altas descem em panorâmica.
+const SHOTS = [
+  { id: "titulo", img: "home-titulo", mosaic: "single",
+    kicker: "Título, G4 e rebaixamento", title: "Cada bolinha, 1% de probabilidade.",
+    explain: "Jogamos <b>100.000</b> vezes as partidas que faltam. Cada bolinha é <b>1%</b> dessas simulações: o quadro de 100 bolinhas mostra quem fica com o título." },
+  { id: "rebaixamento", img: "home-rebaixamento", mosaic: "wide",
+    kicker: "A disputa que mais mudou", title: "Quem ainda corre risco de cair?",
+    explain: "São <b>quatro</b> vagas de queda, então são quatro quadros de 100 bolinhas. Quanto mais bolinhas um clube ocupa, em mais simulações ele cai." },
+  { id: "tabela", dur: 6.0, img: "tabela",
+    kicker: "Tabela", title: "Como está e como deve terminar.",
+    explain: "A tabela real ao lado da projeção: os pontos esperados no fim, a faixa provável e a probabilidade de cada objetivo." },
+  { id: "clube", dur: 5.6, img: "clube-gremio",
+    kicker: "Clubes", title: "Cada clube, posição a posição.",
+    explain: "Em que posição o clube termina nas simulações e como a probabilidade dele mudou ao longo da temporada." },
+  { id: "jogos", dur: 5.0, img: "partidas",
+    kicker: "Jogos", title: "O que esperar de cada jogo.",
+    explain: "Para cada partida, a probabilidade de vitória do mandante, de empate e de vitória do visitante, com os placares mais prováveis." },
+  { id: "rodadas", dur: 5.0, img: "rodadas",
+    kicker: "Rodada a rodada", title: "O que mudou em cada rodada.",
+    explain: "Depois de cada rodada, o que mais mexeu nas probabilidades: quem subiu, quem caiu e o jogo que mais pesou." },
+];
+const LEAGUES = [
+  { img: "serie-b", name: "Série B" },
+  { img: "premier-league", name: "Premier League" },
+  { img: "la-liga", name: "LaLiga" },
+  { img: "champions-league", name: "Champions League" },
+  { img: "mundial-lol", name: "Mundial de LoL" },
+];
+const LEAGUE_EACH = 1.8;
+// CARD: introdução de cada cena (título + explicação) antes de a página entrar.
+const INTRO = 3.8, OUTRO = 4.6, LEAGUE_HEAD = 0.3, CARD = 3.6;
+
+const FRAME_W = VERTICAL ? 940 : 1680, FRAME_H = VERTICAL ? 960 : 650;
+const CARD_SHIFT = VERTICAL ? 400 : 330;
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const ease = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+const out = (p) => 1 - Math.pow(1 - p, 3);
+const stage = document.getElementById("stage");
+document.getElementById("outro-url").textContent = CONFIG.url;
+
+function shotLayer(spec) {
+  const el = document.createElement("section");
+  el.className = "layer";
+  el.innerHTML = `
+    <div class="head"><div class="bar"></div><p class="kicker"></p><h1 class="title"></h1></div>
+    <p class="explain"></p>
+    <div class="frame"></div>
+    <p class="label"></p>
+    <div class="foot"><span class="foot-text"></span>
+      <img src="../../docs/brand/assets/assinatura/ainda-da-assinatura-compacta.svg" alt="AInda dá?"></div>`;
+  el.querySelector(".kicker").textContent = spec.kicker;
+  el.querySelector(".title").textContent = spec.title;
+  el.querySelector(".foot-text").innerHTML = spec.foot;
+  el.querySelector(".explain").innerHTML = spec.explain;
+  for (const name of spec.images) {
+    const img = document.createElement("img");
+    img.src = `${CAPTURES}/${name}.png`;
+    el.querySelector(".frame").appendChild(img);
+  }
+  stage.appendChild(el);
+  return el;
+}
+
+// Título: uma bolinha por vez. Rebaixamento: clube a clube, cada bloco de bolinhas de uma vez.
+function buildMosaic(frame, data, layout) {
+  const timing = [];
+  let t = 0.6;
+  if (layout === "single") {
+    data.dots.forEach((_, i) => timing.push(t + i * 0.028));
+  } else {
+    for (const item of data.legend) {
+      const count = data.dots.filter((dot) => dot[0] === item.href).length;
+      const sweep = 0.12 + 0.0025 * count;
+      for (let j = 0; j < count; j += 1) timing.push(t + (j / Math.max(1, count)) * sweep);
+      t += 0.3 + 0.004 * count + 0.12;
+    }
+  }
+  const dots = data.dots.map(([href, x, y, size], i) => ({ href, cx: x + size / 2, cy: y + size / 2, x, y, size, start: timing[i] }));
+  const groups = data.legend.map((item) => {
+    const members = dots.filter((dot) => dot.href === item.href);
+    return { ...item, members, start: members.length ? members[0].start : 0 };
+  });
+  const wrap = document.createElement("div");
+  wrap.className = `mosaic-stage ${layout}`;
+  wrap.innerHTML = `<svg class="m-svg" viewBox="${data.viewBox}">${data.defs}
+      <g>${dots.map((d) => `<circle cx="${d.cx}" cy="${d.cy}" r="${d.size / 2 - 0.7}" fill="#E6E4DD"/>`).join("")}</g>
+      <g>${dots.map((d) => `<use href="${d.href}" x="${d.x}" y="${d.y}" width="${d.size}" height="${d.size}"/>`).join("")}</g></svg>
+    <ul class="m-legend">${groups.map((g) => `<li><svg class="m-sw" viewBox="-5 -5 10 10"><use href="${g.href}" x="-5" y="-5" width="10" height="10"/></svg>
+      <span class="m-name"></span><b class="m-pct"></b></li>`).join("")}</ul>`;
+  wrap.querySelectorAll(".m-name").forEach((el, i) => { el.textContent = groups[i].name; });
+  frame.appendChild(wrap);
+  const uses = [...wrap.querySelectorAll(".m-svg > g:last-of-type > use")];
+  const items = [...wrap.querySelectorAll(".m-legend li")];
+  const end = Math.max(...dots.map((d) => d.start)) + 0.3;
+  function draw(mt) {
+    dots.forEach((d, i) => {
+      const p = prog(mt, d.start, d.start + 0.24);
+      const scale = p <= 0 ? 0 : out(p) + 0.22 * Math.sin(Math.PI * p);
+      uses[i].setAttribute("transform", `translate(${d.cx} ${d.cy}) scale(${scale}) translate(${-d.cx} ${-d.cy})`);
+    });
+    groups.forEach((g, i) => {
+      const p = out(prog(mt, g.start - 0.05, g.start + 0.3));
+      items[i].style.opacity = p;
+      items[i].style.transform = `translateY(${(1 - p) * 18}px)`;
+      const shown = g.members.filter((d) => mt >= d.start).length;
+      items[i].querySelector(".m-pct").textContent = shown >= g.members.length ? g.pct : `${shown}%`;
+    });
+  }
+  draw(-1);
+  return { draw, end };
+}
+
+function placeImage(img, p, maxPan = Infinity) {
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  const fitW = Math.min(FRAME_W / iw, 1.25);
+  let scale, x, y;
+  if (ih * fitW <= FRAME_H * 1.3) {
+    scale = Math.min(fitW, FRAME_H / ih) * (1 + 0.03 * p);
+    x = (FRAME_W - iw * scale) / 2; y = (FRAME_H - ih * scale) / 2;
+  } else {
+    scale = fitW;
+    x = (FRAME_W - iw * scale) / 2; y = -Math.min(ih * scale - FRAME_H, maxPan) * ease(p);
+  }
+  img.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+}
+
+function headIn(el, lt) {
+  const move = ease(prog(lt, CARD - 0.6, CARD - 0.05));
+  el.querySelector(".head").style.transform = `translateY(${(1 - move) * CARD_SHIFT}px) scale(${1.12 - 0.12 * move})`;
+  const ex = el.querySelector(".explain");
+  const pe = Math.min(out(prog(lt, 0.5, 1.0)), 1 - prog(lt, CARD - 0.7, CARD - 0.3));
+  ex.style.opacity = pe; ex.style.transform = `translateY(${(1 - out(prog(lt, 0.5, 1.0))) * 28}px)`;
+  el.querySelector(".bar").style.width = `${96 * out(prog(lt, 0.05, 0.6))}px`;
+  const k = el.querySelector(".kicker"), h = el.querySelector(".title");
+  const pk = out(prog(lt, 0.1, 0.55)), ph = out(prog(lt, 0.2, 0.75));
+  k.style.opacity = pk; k.style.transform = `translateY(${(1 - pk) * 24}px)`;
+  h.style.opacity = ph; h.style.transform = `translateY(${(1 - ph) * 36}px)`;
+}
+
+function layerFade(el, lt, dur, fadeIn = 0.35, fadeOut = 0.35) {
+  const o = Math.min(prog(lt, 0, fadeIn), 1 - prog(lt, dur - fadeOut, dur));
+  el.style.opacity = lt < 0 || lt > dur ? 0 : o;
+  el.style.transform = `translateY(${-14 * prog(lt, dur - fadeOut, dur)}px)`;
+}
+
+const timeline = [];
+let cursor = 0;
+function add(dur, draw) { timeline.push({ start: cursor, dur, draw }); cursor += dur; }
+
+const intro = document.getElementById("intro");
+add(INTRO, (lt) => {
+  layerFade(intro, lt, INTRO, 0.01, 0.4);
+  const [sig, tag, ed] = intro.children;
+  const ps = out(prog(lt, 0.1, 0.9));
+  sig.style.opacity = ps; sig.style.transform = `scale(${0.94 + 0.06 * ps})`;
+  const pt = out(prog(lt, 0.8, 1.4)), pe = out(prog(lt, 1.3, 1.9));
+  tag.style.opacity = pt; tag.style.transform = `translateY(${(1 - pt) * 24}px)`;
+  ed.style.opacity = pe; ed.style.transform = `translateY(${(1 - pe) * 24}px)`;
+});
+
+for (const spec of SHOTS) {
+  const el = shotLayer({ ...spec, images: spec.mosaic ? [] : [spec.img], foot: CONFIG.footA });
+  const img = el.querySelector(".frame img");
+  const frame = el.querySelector(".frame");
+  const mosaic = spec.mosaic ? buildMosaic(frame, window.MOSAICS[VERTICAL ? `${spec.img}-mobile` : spec.img], spec.mosaic) : null;
+  const total = CARD + (mosaic ? mosaic.end + 1.8 : spec.dur);
+  add(total, (lt) => {
+    layerFade(el, lt, total);
+    headIn(el, lt);
+    const pf = out(prog(lt, CARD - 0.2, CARD + 0.4));
+    frame.style.opacity = pf; frame.style.transform = `translateY(${(1 - pf) * 60}px)`;
+    if (mosaic) mosaic.draw(lt - CARD);
+    else placeImage(img, prog(lt, CARD + 0.3, total - 0.2));
+  });
+}
+
+{
+  const dur = CARD + LEAGUE_HEAD + LEAGUES.length * LEAGUE_EACH + 0.3;
+  const el = shotLayer({ kicker: "E não é só o Brasileirão", title: "Outras ligas, a mesma pergunta.",
+    explain: "O mesmo modelo, aplicado à <b>Série B</b>, à <b>Premier League</b>, à <b>LaLiga</b>, à <b>Champions League</b> e ao <b>Mundial de LoL</b>.",
+    images: LEAGUES.map((l) => l.img), foot: CONFIG.footLeagues });
+  const imgs = [...el.querySelectorAll(".frame img")];
+  const frame = el.querySelector(".frame"), label = el.querySelector(".label");
+  add(dur, (lt) => {
+    layerFade(el, lt, dur);
+    headIn(el, lt);
+    const pf = out(prog(lt, CARD - 0.2, CARD + 0.4));
+    frame.style.opacity = pf; frame.style.transform = `translateY(${(1 - pf) * 60}px)`;
+    const local = lt - CARD - LEAGUE_HEAD;
+    const idx = clamp(Math.floor(local / LEAGUE_EACH), 0, LEAGUES.length - 1);
+    imgs.forEach((img, i) => {
+      const li = local - i * LEAGUE_EACH;
+      const slide = i === 0 ? 1 : out(prog(li, 0, 0.4));
+      img.style.display = i === idx || (i === idx + 1 && li > 0) ? "" : "none";
+      placeImage(img, prog(li, 0, LEAGUE_EACH + 0.4), VERTICAL ? 260 : Infinity);
+      img.style.translate = `${(1 - slide) * FRAME_W}px 0`;
+      img.style.zIndex = i;
+    });
+    label.textContent = LEAGUES[idx].name;
+    const pl = out(prog(local - idx * LEAGUE_EACH, 0, 0.35));
+    label.style.opacity = Math.min(pf, pl);
+  });
+}
+
+const outro = document.getElementById("outro");
+add(OUTRO, (lt) => {
+  layerFade(outro, lt, OUTRO, 0.35, 0.01);
+  [...outro.children].forEach((child, i) => {
+    const p = out(prog(lt, 0.15 + i * 0.35, 0.75 + i * 0.35));
+    child.style.opacity = p;
+    child.style.transform = `translateY(${(1 - p) * 26}px)`;
+  });
+});
+
+const DURATION = cursor;
+window.DURATION = DURATION;
+window.renderAt = function (t) {
+  for (const scene of timeline) scene.draw(t - scene.start);
+};
+window.ready = Promise.all([
+  document.fonts.load('750 76px "Inter Tight"'),
+  ...[...document.images].map((img) => img.decode().catch(() => null)),
+]);
+
+if (params.has("play")) {
+  const t0 = performance.now();
+  const loop = () => { window.renderAt(((performance.now() - t0) / 1000) % DURATION); requestAnimationFrame(loop); };
+  window.ready.then(loop);
+} else {
+  window.renderAt(Number(params.get("t") || 0));
+}
+</script>
+</body>
+</html>

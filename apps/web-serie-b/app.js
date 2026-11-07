@@ -105,7 +105,7 @@
           <tbody>${rows}</tbody>
         </table>
       </div>
-      <p class="note">Pts proj. = média simulada de pontos no fim; embaixo, a faixa onde terminam 90% das simulações. "Sobe" soma o acesso direto e o pelo playoff. A faixa à direita mostra a chance de cada posição final: quanto mais escura, mais provável.</p>`;
+      <p class="note">Pts proj. = média simulada de pontos no fim; embaixo, a faixa onde terminam 90% das simulações. "Sobe" soma o acesso direto e o pelo playoff. A faixa à direita mostra a probabilidade de cada posição final: quanto mais escura, mais provável.</p>`;
   }
 
   function matches(data) {
@@ -113,7 +113,7 @@
     const rows = [...data.remaining].sort((a, b) => byId[a.home_id].position - byId[b.home_id].position).map(S.matchRow).join("");
     return `
       <h1 class="race-heading">Os ${data.remaining.length} jogos que faltam</h1>
-      <p class="note">Mandante à esquerda; chance de vitória do mandante, empate e vitória do visitante. A fonte não traz as datas, então os jogos aparecem pela posição do mandante na tabela.</p>
+      <p class="note">Mandante à esquerda; probabilidade de vitória do mandante, empate e vitória do visitante. A fonte não traz as datas, então os jogos aparecem pela posição do mandante na tabela.</p>
       <div class="legend"><span class="l-home">mandante</span><span class="l-draw">empate</span><span class="l-away">visitante</span></div>
       ${rows}`;
   }

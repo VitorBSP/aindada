@@ -162,7 +162,7 @@
       }
     }
     changes.sort((left, right) => Math.abs(right.delta) - Math.abs(left.delta));
-    if (!changes.length) return `<p class="note">Nenhuma chance andou mais de 5 pontos percentuais desde ${formatDate(previous.reference_date)}.</p>`;
+    if (!changes.length) return `<p class="note">Nenhuma probabilidade andou mais de 5 pontos percentuais desde ${formatDate(previous.reference_date)}.</p>`;
     const comparedTo = !reconstructionInfo()
       ? `Comparado à atualização de ${formatDate(previous.reference_date)}.`
       : sameModel(previous, latest)
@@ -171,7 +171,7 @@
     return `<p class="note">${comparedTo} Só entram variações de 5 pontos percentuais ou mais.</p><ul class="changes">` + changes.slice(0, 8).map((change) => {
       const sign = change.delta > 0 ? "+" : "−";
       const css = (change.label === "rebaixamento") === (change.delta > 0) ? "change-down" : "change-up";
-      return `<li>${clubLink(change.clubId)}: chance de ${change.label} <span class="${css}">${sign}${Math.round(Math.abs(change.delta) * 100)} p.p.</span> (agora ${pct(change.now)})</li>`;
+      return `<li>${clubLink(change.clubId)}: probabilidade de ${change.label} <span class="${css}">${sign}${Math.round(Math.abs(change.delta) * 100)} p.p.</span> (agora ${pct(change.now)})</li>`;
     }).join("") + "</ul>";
   }
 
@@ -332,11 +332,11 @@
     const simulations = state.snapshot.n_simulations.toLocaleString("pt-BR");
     return `<figure class="mosaic">
       <p class="mosaic-key"><svg class="mosaic-swatch" viewBox="-${DOT_RADIUS} -${DOT_RADIUS} ${DOT_RADIUS * 2} ${DOT_RADIUS * 2}" aria-hidden="true"><circle r="${DOT_RADIUS - 0.4}" fill="currentColor"/></svg>
-        <span><strong>cada bolinha, 1%</strong> de chance · ${key}</span></p>
+        <span><strong>cada bolinha, 1%</strong> de probabilidade · ${key}</span></p>
       <svg class="mosaic-chart mosaic-blocks-${blocksPerRow}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Mosaico de ${escapeHtml(race.noun)} com ${total} bolinhas de 1%. ${escapeHtml(description)}.">${dotDefs(groups.map((group) => group.team.club_id))}${dots}</svg>
       <figcaption>
         <ul class="mosaic-legend">${legend}</ul>
-        <p class="note">Chance em ${simulations} simulações do resto do campeonato, em bolinhas de 1 ponto percentual (arredondadas para fechar ${total}).${hidden > 0 ? ` ${hidden} clube(s) com menos de meio ponto não aparecem.` : ""}</p>
+        <p class="note">Probabilidade em ${simulations} simulações do resto do campeonato, em bolinhas de 1 ponto percentual (arredondadas para fechar ${total}).${hidden > 0 ? ` ${hidden} clube(s) com menos de meio ponto não aparecem.` : ""}</p>
       </figcaption>
     </figure>`;
   }
@@ -474,7 +474,7 @@
     const chosen = Object.keys(state.scenarioChoice).length;
     const remaining = matchingScenarios().length;
     if (!chosen) return `Sem escolha, Libertadores e Sul-Americana aparecem como faixa entre os ${total} cenários possíveis.`;
-    if (remaining === 1) return "Cenário completo: as chances de vaga abaixo valem se esses resultados acontecerem.";
+    if (remaining === 1) return "Cenário completo: as probabilidades de vaga abaixo valem se esses resultados acontecerem.";
     return `Faixa entre os ${remaining} cenários que combinam com a sua escolha.`;
   }
 
@@ -546,7 +546,7 @@
         const spread = race.rank_best === race.rank_worst ? "" : ` <span class="rank">${race.rank_best}º a ${race.rank_worst}º</span>`;
         return [`<strong>${race.rank}º</strong>${spread}`, scenarioValue(team.sudamericana), pct(race.all_scenarios)];
       },
-      caption: "Ordenada pela corrida da Sul-Americana: a vaga depende de quem ganha Libertadores, Sul-Americana e Copa do Brasil, então a coluna Sul-Americana mostra a faixa entre os cenários (ou só os que combinam com a sua escolha), e Corrida mostra a posição do clube nessa disputa e, em cinza, a melhor e a pior conforme o cenário. Vale em todos os cenários = chance de terminar com a vaga seja quem for campeão desses torneios.",
+      caption: "Ordenada pela corrida da Sul-Americana: a vaga depende de quem ganha Libertadores, Sul-Americana e Copa do Brasil, então a coluna Sul-Americana mostra a faixa entre os cenários (ou só os que combinam com a sua escolha), e Corrida mostra a posição do clube nessa disputa e, em cinza, a melhor e a pior conforme o cenário. Vale em todos os cenários = probabilidade de terminar com a vaga seja quem for campeão desses torneios.",
     },
     rebaixamento: {
       label: "Rebaixamento",
@@ -622,7 +622,7 @@
     };
   }
 
-  const TABLE_GROUPS = [["Chances", ["titulo", "libertadores", "sul-americana", "rebaixamento"]], ["Clubes", ["forca", "dificuldade"]]];
+  const TABLE_GROUPS = [["Probabilidades", ["titulo", "libertadores", "sul-americana", "rebaixamento"]], ["Clubes", ["forca", "dificuldade"]]];
   const UPCOMING_SHOWN = 5;
 
   function difficultyCell(value, rank = null) {
@@ -793,7 +793,7 @@
         <text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" text-anchor="${toLeft ? "end" : "start"}">${escapeHtml(note.text)}</text></g>`;
     }).join("") : "";
     const description = series.map((item) => `${item.label} ${pct(item.values[item.values.length - 1])}`).join(", ");
-    return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Evolução das chances de ${formatDate(first)} a ${formatDate(last)}: ${escapeHtml(description)}${reconstructionInfo() ? " (curva recalculada com o modelo atual)" : ""}">${grid}${lines}${notes}${labels}
+    return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Evolução das probabilidades de ${formatDate(first)} a ${formatDate(last)}: ${escapeHtml(description)}${reconstructionInfo() ? " (curva recalculada com o modelo atual)" : ""}">${grid}${lines}${notes}${labels}
       <text x="${left}" y="${height - 6}">${formatDate(first)}</text><text x="${width - right}" y="${height - 6}" text-anchor="end">${formatDate(last)}</text></svg>
       ${annotated ? `<p class="note">Anotações marcam o pico e a maior virada em ${escapeHtml(annotated.label.toLowerCase())}; só aparecem variações acima de ${Math.round(MIN_ANNOTATED_JUMP * 100)} pontos percentuais e de ${NOISE_Z} vezes o erro da simulação.</p>` : ""}`;
   }
@@ -847,7 +847,7 @@
         ${crest(item.club_id, 40)}<span class="club-tile-name">${escapeHtml(item.name)}</span>
         <span class="club-tile-meta">${item.current_position}º · ${item.current_points} pts</span></a></li>`).join("");
       main.innerHTML = `<span class="kicker">Clubes</span><h1>Escolha um clube</h1>
-        <p class="lede">Chances, força estimada, próximos jogos e como tudo mudou ao longo do campeonato. Em ordem de classificação.</p>
+        <p class="lede">Probabilidades, força estimada, próximos jogos e como tudo mudou ao longo do campeonato. Em ordem de classificação.</p>
         <ul class="club-grid">${tiles}</ul>`;
       return;
     }
@@ -892,10 +892,10 @@
       ${clubSchedule(team)}
       <h2>Próximos jogos</h2>${upcoming.length ? upcoming.map(matchRow).join("") : "<p class='note'>Sem jogos restantes.</p>"}
       <h2>Cenários externos</h2>
-      ${variesByScenario ? `<p class="note">A chance de Libertadores depende dos torneios ainda em disputa.</p>
+      ${variesByScenario ? `<p class="note">A probabilidade de Libertadores depende dos torneios ainda em disputa.</p>
         <h3>Mais favorável: ${pct(scenarioRows[0].value)}</h3><p class="note">${describe(scenarioRows[0].scenario)}</p>
         <h3>Menos favorável: ${pct(scenarioRows[scenarioRows.length - 1].value)}</h3><p class="note">${describe(scenarioRows[scenarioRows.length - 1].scenario)}</p>`
-        : `<p class="note">Os resultados de Libertadores, Sul-Americana e Copa do Brasil praticamente não alteram a chance de vaga deste clube (${scenarioValue(team.libertadores_total)}).</p>`}`;
+        : `<p class="note">Os resultados de Libertadores, Sul-Americana e Copa do Brasil praticamente não alteram a probabilidade de vaga deste clube (${scenarioValue(team.libertadores_total)}).</p>`}`;
   }
 
   function clubSchedule(team) {
@@ -924,7 +924,7 @@
     main.innerHTML = `
       <span class="kicker">Jogos</span>
       <h1>O que esperar de cada jogo</h1>
-      <p class="lede">Chance de vitória do mandante, de empate e de vitória do visitante, com a força de cada clube em ${formatDate(snapshot.reference_date)}.</p>
+      <p class="lede">Probabilidade de vitória do mandante, de empate e de vitória do visitante, com a força de cada clube em ${formatDate(snapshot.reference_date)}.</p>
       <div class="legend"><span class="l-home">mandante</span><span class="l-draw">empate</span><span class="l-away">visitante</span></div>
       ${overdueWarning()}
       ${Object.entries(byDate).map(([day, matches]) => `<section class="match-day"><h3>${formatShortDate(day)}</h3>${matches.map(matchRow).join("")}</section>`).join("")}
@@ -998,11 +998,11 @@
       const version = reconstruction.consistent
         ? `Versão do modelo da curva atual: ${reconstruction.modelVersion}, recalculada em ${reconstruction.generatedAt}.`
         : `Versão do modelo atual: ${reconstruction.modelVersion}, recalculada em ${reconstruction.generatedAt}. Atenção: parte da curva ainda foi calculada com outra versão do modelo.`;
-      return `<h2>Histórico das chances</h2>
+      return `<h2>Histórico das probabilidades</h2>
       <p>O gráfico de evolução de cada clube não guarda as previsões antigas. A cada atualização, refazemos a temporada inteira: para cada data de referência, o modelo atual roda as simulações usando só os resultados conhecidos até aquela data. Por isso a curva inteira muda quando o modelo muda ou quando um placar é corrigido na fonte, e um ponto antigo pode não bater com o que este site mostrou naquele dia. ${version} A aba Rodada a rodada é feita do mesmo jeito.</p>`;
     }
     if (state.rounds) {
-      return `<h2>Histórico das chances</h2><p>A aba Rodada a rodada não guarda as previsões antigas. A cada atualização, o modelo atual refaz a véspera de cada rodada usando só os resultados conhecidos até ali.</p>`;
+      return `<h2>Histórico das probabilidades</h2><p>A aba Rodada a rodada não guarda as previsões antigas. A cada atualização, o modelo atual refaz a véspera de cada rodada usando só os resultados conhecidos até ali.</p>`;
     }
     return "";
   }
@@ -1029,11 +1029,11 @@
       <p class="note">Versão ${escapeHtml(snapshot.model.model_version)} · variáveis: ${escapeHtml(snapshot.model.feature_set)} · treino: ${snapshot.model.training_seasons[0]}–${snapshot.model.training_seasons[snapshot.model.training_seasons.length - 1]} · semente ${snapshot.seed} · ratings na simulação: ${snapshot.dynamic_ratings ? "dinâmicos" : "fixos"}.</p>
       <h2>Vagas continentais</h2>
       <p>Pelo <a href="${escapeHtml(snapshot.regulation.url)}">${escapeHtml(snapshot.regulation.title)}</a> (${escapeHtml(snapshot.regulation.date)}): do 1º ao 4º vão à fase de grupos da Libertadores 2027 e o 5º à fase preliminar. O campeão da Copa do Brasil vai à fase de grupos e o vice à preliminar. Os campeões da Libertadores e da Sul-Americana 2026 também se classificam, e as vagas liberadas descem para o melhor colocado ainda não classificado. A Sul-Americana fica com os seis melhores restantes. Os quatro últimos são rebaixados.</p>
-      <p>Situação em ${escapeHtml(snapshot.external_context.as_of)}: ${snapshot.external_context.notes.map(escapeHtml).join(" ")} Como esses torneios não têm vencedor definido, mostramos faixas entre os ${snapshot.scenarios.length} cenários possíveis. Não estimamos a chance de cada um.</p>
+      <p>Situação em ${escapeHtml(snapshot.external_context.as_of)}: ${snapshot.external_context.notes.map(escapeHtml).join(" ")} Como esses torneios não têm vencedor definido, mostramos faixas entre os ${snapshot.scenarios.length} cenários possíveis. Não estimamos a probabilidade de cada um.</p>
       <p class="note">Interpretação do § 5º do Art. 6º adotada: "${escapeHtml(snapshot.external_context.cup_redirect_policy)}" (texto ambíguo; ver documentação).</p>
-      <p>Na corrida da Sul-Americana, os clubes são ordenados pela faixa entre os cenários. A coluna "vale em todos os cenários" é a chance de terminar com a vaga seja quem for campeão dos outros torneios; ela nunca atribui peso a um cenário.</p>
+      <p>Na corrida da Sul-Americana, os clubes são ordenados pela faixa entre os cenários. A coluna "vale em todos os cenários" é a probabilidade de terminar com a vaga seja quem for campeão dos outros torneios; ela nunca atribui peso a um cenário.</p>
       <h2>Dificuldade da tabela</h2>
-      <p>Para cada jogo que falta, calculamos quantos pontos um time de força média faria contra aquele adversário, naquele mando, com o mesmo modelo dos jogos. A soma vira uma nota de 0 a 100: 50 é uma tabela média do campeonato, e quanto maior, menos pontos um time comum faria. Jogar fora é sempre mais difícil, por isso casa e fora também têm posição entre os 20. Os pontos esperados do clube usam a força dele e as chances de cada jogo.</p>
+      <p>Para cada jogo que falta, calculamos quantos pontos um time de força média faria contra aquele adversário, naquele mando, com o mesmo modelo dos jogos. A soma vira uma nota de 0 a 100: 50 é uma tabela média do campeonato, e quanto maior, menos pontos um time comum faria. Jogar fora é sempre mais difícil, por isso casa e fora também têm posição entre os 20. Os pontos esperados do clube usam a força dele e as probabilidades de cada jogo.</p>
       <h2>Validação</h2>
       ${metrics ? `<p>Backtesting temporal: o modelo de cada temporada foi treinado só com temporadas anteriores. Os hiperparâmetros foram escolhidos em ${metrics.validation_seasons[0]}–${metrics.validation_seasons[metrics.validation_seasons.length - 1]} e o teste foi feito em ${metrics.test_seasons[0]}–${metrics.test_seasons[metrics.test_seasons.length - 1]}. Valores menores são melhores.</p>
         <div class="table-scroll"><table><thead><tr><th class="left">Modelo</th><th>Log loss</th><th>Brier</th><th>RPS</th></tr></thead><tbody>${metricRows}</tbody></table></div>

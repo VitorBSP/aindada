@@ -96,7 +96,7 @@
           <tbody>${rows}</tbody>
         </table>
       </div>
-      <p class="note">Pts proj. = média simulada de pontos no fim; embaixo, a faixa onde terminam 90% das simulações. Percentuais: em quantas simulações o clube termina em cada faixa. A faixa à direita mostra a chance de cada posição final: quanto mais escura, mais provável.</p>`;
+      <p class="note">Pts proj. = média simulada de pontos no fim; embaixo, a faixa onde terminam 90% das simulações. Percentuais: em quantas simulações o clube termina em cada faixa. A faixa à direita mostra a probabilidade de cada posição final: quanto mais escura, mais provável.</p>`;
   }
 
   function nextRound(data) {
@@ -121,7 +121,7 @@
     const pending = data.remaining.filter((match) => match.status !== "scheduled").length;
     return `
       <h1 class="race-heading">Rodada ${next.round}</h1>
-      <p class="note">Horários de Brasília. Mandante à esquerda; chance de vitória do mandante, empate e vitória do visitante.</p>
+      <p class="note">Horários de Brasília. Mandante à esquerda; probabilidade de vitória do mandante, empate e vitória do visitante.</p>
       <div class="legend"><span class="l-home">mandante</span><span class="l-draw">empate</span><span class="l-away">visitante</span></div>
       ${rows}
       ${pending ? `<p class="note">${pending} jogo(s) adiado(s) ou cancelado(s) sem nova data: entram na simulação, mas não aparecem aqui.</p>` : ""}`;
