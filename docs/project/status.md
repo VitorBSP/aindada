@@ -3368,5 +3368,8 @@ real com a chave anon: perfis, simulações, `sim_scores` e `sim_my_scores` nega
   próprio substitui o sorteado; rodadas 21 a 38 navegáveis; revisar e salvar levam à página da simulação; sair e
   voltar retoma no mesmo passo; Classificação ordenar → revisar → salvar; "As minhas" com 2 simulações completas;
   375 px sem rolagem horizontal nas 6 telas.
-- **Pendente**: aplicar a `0004` no Supabase (precisa de autorização do dono); A e B; revalidação do 06.
+- **No ar (2026-11-07)**: `0004` aplicada com autorização do dono (conferida por SHA-256; `sim_consensus` devolve
+  `simulations_at_least`, mínimo 30); push de `e579530`; publish-site #40 com sucesso (sincronização e deploy); o
+  site publicado serve o `simulator.js` da versão 3.
+- **Pendente**: ressalvas A e B do 06; revalidação do 06 da versão 3.
 
