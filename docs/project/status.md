@@ -3419,8 +3419,10 @@ real com a chave anon: perfis, simulações, `sim_scores` e `sim_my_scores` nega
   exato com "Revisar" levando à revisão; chance de tudo junto nos três modos (título do Flamengo 67% nos sorteios
   contra 66% oficial); "← Minhas simulações" volta à lista; console sem erros; `pytest -q` verde.
 - **Pendente**:
-  - **Dono do produto**: aplicar a `0005` no SQL Editor do Supabase **antes** de publicar o site (sem banco de teste
-    aqui, a migração não foi executada).
+  - ~~Dono do produto: aplicar a `0005`~~ **aplicada em 2026-11-07** pelo dono no SQL Editor (texto colado conferido
+    por SHA-256 `d773c11b…` contra o arquivo; a execução automática foi bloqueada e o dono clicou em Run). Conferido
+    depois: `sim_lock_margin` = 00:30:00, limite de 10 ativo, limite de 3 removido, `sim_keep_match_lock` com a exceção
+    de jogo adiado. Chapecoense × Vasco no banco: `scheduled`, 2026-11-14 23:30 UTC (data nova), sem trava.
   - **Agente 06**: revisar a `0005` num projeto de teste (limite com envios simultâneos, simulação fechada, trava com
     margem) e a chance de tudo junto calculada no navegador.
 
