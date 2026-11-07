@@ -3322,3 +3322,26 @@ real com a chave anon: perfis, simulações, `sim_scores` e `sim_my_scores` nega
 - **Pendente**: revalidação do 06; B1 do 00 (página de privacidade) com o dono e o 08; CAPTCHA, moderação de
   apelidos, SMTP e SRI (itens importantes do 00).
 
+## Simulador do usuário, versão 2 (ADR-0015, 2026-11-07)
+
+- **Revalidação do 06 sobre a `0002`**: aprovado com ressalvas (bloqueante resolvido). Ressalvas: média com 20
+  pessoas ainda permite deduzir um voto com 19 contas próprias (mínimo subiu para 30 na `0003`); aviso de trava
+  pode divergir do servidor em jogo remarcado (o servidor avisa depois de salvar); jogo adiado depois da trava fica
+  travado (conservador); palpites forjados antes da `0002` não são detectáveis (1 participante); SRI e testes de
+  JS/SQL pendentes.
+- **Pedido do dono**: versão 2 (ver ADR-0015, "Versão 2"). Decisões: até 3 simulações por pessoa e modo no
+  ranking, cada uma com ID; sorteio do modelo vale pontos.
+- **O que mudou**: `apps/web/assets/simulator.js` reescrito (início com os modos, editor por modo, várias
+  simulações, chave do modelo, pontuação atual e máxima, ranking por simulação, página "Visitantes"),
+  `simulator-cloud.js` (insert/update por ID, `deleteSimulation`, `consensus`, `contact`/`saveContact`),
+  `simulator.css`; migração `infrastructure/supabase/migrations/0003_simulador_varias_simulacoes.sql`;
+  `supabase_sync` envia `points` e `max_points` por clube e ganhou `fetch_notification_list`; comando
+  `simulator-notifications`.
+- **Evidência**: testes de `supabase_sync` (13); no navegador local (só no aparelho): 3 modos, sorteio do modelo
+  (61 jogos), palpite próprio substitui o sorteado, "Salvar simulação" e "Salvar como nova" com IDs diferentes,
+  rascunho volta ao começo, Classificação impossível com o botão desligado, lista com pontuação, 375 px sem
+  rolagem horizontal nas 5 telas.
+- **Bloqueio**: a aplicação da `0003` no Supabase foi recusada pela checagem automática de permissões da sessão
+  (classificada como deploy em produção). Até ela ser aplicada, o código novo não deve ir ao `main`: o site
+  publicado com o simulador novo e o banco antigo cai para "só no aparelho".
+

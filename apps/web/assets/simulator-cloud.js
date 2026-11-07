@@ -1,5 +1,6 @@
 /* Conexão do simulador com o Supabase (ADR-0015, fase 2). Só liga com simulator-config.js preenchido.
-   Conta anônima criada só quando o visitante pede; o e-mail é opcional e serve só para entrar em outro aparelho.
+   Conta anônima criada só quando o visitante pede. Dois e-mails opcionais e separados: o de login (entrar em outro
+   aparelho) e o de avisos de pontuação (sim_contacts, privado).
    O apelido é a única identificação pública. Nenhuma função aqui lê ou mostra o e-mail de outra pessoa. */
 (function () {
   "use strict";
@@ -97,18 +98,35 @@
     check(result);
   }
 
-  function payloadOf(mode, entry) {
-    return mode === "classificacao" ? { order: entry.order } : { picks: entry.picks };
+  /* Payload no formato do banco (sim_lock_picks): a Classificação guarda a ordem; Vencedor e Placar exato guardam
+     os palpites (os do usuário e os sorteados pelo modelo, que também valem pontos), a lista dos sorteados e a
+     tabela final quando todos os jogos têm resultado. */
+  function payloadOf(mode, entry, finalOrder) {
+    if (mode === "classificacao") return { order: entry.order };
+    const sampled = entry.sampled || {};
+    const payload = { picks: { ...sampled, ...(entry.picks || {}) }, sampled: Object.keys(sampled).filter((id) => !(entry.picks || {})[id]) };
+    if (finalOrder) payload.final_order = finalOrder;
+    return payload;
   }
 
-  async function saveSimulation(season, mode, entry) {
+  /* Cria (sem serverId) ou atualiza uma simulação; devolve o ID e o que o servidor de fato guardou. */
+  async function saveSimulation(season, mode, entry, serverId, finalOrder) {
     const supabase = await client();
     const user = await currentUser();
     if (!user) return null;
-    const rows = check(await supabase.from("sim_simulations").upsert({
-      user_id: user.id, competition, season, mode, payload: payloadOf(mode, entry), assist: Boolean(entry.assist),
-    }, { onConflict: "user_id,competition,season,mode" }).select("payload"));
-    return rows && rows[0] ? rows[0].payload : null;
+    const payload = payloadOf(mode, entry, finalOrder);
+    const result = serverId
+      ? await supabase.from("sim_simulations").update({ payload, assist: Boolean(entry.model) }).eq("id", serverId).select("id, payload")
+      : await supabase.from("sim_simulations").insert({ user_id: user.id, competition, season, mode, payload, assist: Boolean(entry.model) }).select("id, payload");
+    if (result.error && result.error.code === "P0001") throw new Error("limite de 3 simulações por modo no servidor");
+    if (result.error && result.error.code === "22023") throw new Error("a ordem é impossível pela matemática ou está incompleta");
+    const rows = check(result);
+    return rows && rows[0] ? rows[0] : null;
+  }
+
+  async function deleteSimulation(serverId) {
+    const supabase = await client();
+    check(await supabase.from("sim_simulations").delete().eq("id", serverId));
   }
 
   /* O que o servidor guarda depois da trava: sim_lock_picks descarta palpites de jogos já travados. */
@@ -122,12 +140,38 @@
   async function loadSimulations(season) {
     const supabase = await client();
     const user = await currentUser();
-    if (!user) return {};
-    const rows = check(await supabase.from("sim_simulations").select("mode, payload, assist")
-      .eq("user_id", user.id).eq("competition", competition).eq("season", season));
-    return Object.fromEntries(rows.map((row) => [row.mode, row.mode === "classificacao"
-      ? { order: row.payload.order }
-      : { picks: row.payload.picks || {}, assist: row.assist }]));
+    if (!user) return [];
+    return check(await supabase.from("sim_simulations").select("id, mode, payload, assist, created_at, updated_at")
+      .eq("user_id", user.id).eq("competition", competition).eq("season", season).order("id"));
+  }
+
+  async function consensus(season) {
+    const supabase = await client();
+    return check(await supabase.rpc("sim_consensus", { p_competition: competition, p_season: season }));
+  }
+
+  /* E-mail para avisos de pontuação: tabela privada (só o dono lê), separada do login. */
+  async function contact() {
+    const supabase = await client();
+    const user = await currentUser();
+    if (!user) return null;
+    const rows = check(await supabase.from("sim_contacts").select("email, notify").eq("user_id", user.id));
+    return rows[0] || null;
+  }
+
+  async function saveContact(email, notify) {
+    const supabase = await client();
+    const user = await currentUser();
+    if (!user) throw new Error("participe primeiro");
+    const result = await supabase.from("sim_contacts").upsert({ user_id: user.id, email, notify }, { onConflict: "user_id" });
+    if (result.error && result.error.code === "23514") throw new Error("e-mail inválido");
+    check(result);
+  }
+
+  async function deleteContact() {
+    const supabase = await client();
+    const user = await currentUser();
+    if (user) check(await supabase.from("sim_contacts").delete().eq("user_id", user.id));
   }
 
   async function community(season) {
@@ -152,6 +196,7 @@
 
   window.SimulatorCloud = {
     enabled, currentUser, join, linkEmail, signInWithEmail, signOut, deleteAccount, profile, saveProfile,
-    saveSimulation, seasonInfo, loadSimulations, community, ranking, myScores,
+    saveSimulation, deleteSimulation, seasonInfo, loadSimulations, community, consensus, ranking, myScores,
+    contact, saveContact, deleteContact,
   };
 })();

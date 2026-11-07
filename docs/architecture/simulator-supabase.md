@@ -38,7 +38,7 @@ aparelho (fase 1) e a página não carrega nada do Supabase.
 ## Como ligar (passos do dono do produto)
 
 1. Criar o projeto em supabase.com (plano gratuito; região sugerida: São Paulo).
-2. Em **SQL Editor**, rodar `infrastructure/supabase/migrations/0001_simulador.sql` inteiro.
+2. Em **SQL Editor**, rodar em ordem as migrações de `infrastructure/supabase/migrations/` (`0001`, `0002`, `0003`), cada uma inteira.
 3. Em **Authentication → Sign In / Providers**: ligar **Allow anonymous sign-ins** e o provedor **Email** (link
    mágico). Em **URL Configuration**: Site URL = endereço do site no GitHub Pages; em Redirect URLs, acrescentar
    `http://localhost:8080/**` para testes locais.

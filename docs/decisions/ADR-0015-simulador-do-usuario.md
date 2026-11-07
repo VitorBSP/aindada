@@ -73,3 +73,37 @@ vale a recomendada (bolão clássico), fácil de trocar em `sim_match_points`.
   `SNAPSHOT_SCHEMA_VERSION` não muda, e snapshots antigos ficam com `null` (o simulador então desliga "Completar com
   o modelo" e avisa).
 - O mesmo componente pode ir para as outras ligas depois, trocando as vagas por competição.
+
+## Versão 2 (2026-11-07, pedido do dono)
+
+Pedido no chat: fluxo explícito por modo, várias simulações com IDs diferentes, chave clara para ligar o modelo
+(que sorteia na hora um resultado concreto, não só uma probabilidade), pontuação detalhada do Placar exato,
+Classificação sem ordens impossíveis e com bônus de campeão e rebaixados (pontuação atual e máxima possível),
+classificação mais provável segundo os visitantes e e-mail para avisos de pontuação. Respostas do dono: até 3
+simulações por pessoa e modo entram no ranking ("Todas, com limite"), cada uma com o seu ID; os jogos sorteados pelo
+modelo valem pontos.
+
+1. **Fluxo**: `#/simular` mostra os três modos (o que fazer, como pontua, tempo) e "Minhas simulações" (ID, modo,
+   data, pontuação). Cada modo tem um editor com rascunho; "Salvar simulação" cria um ID novo e devolve o rascunho
+   ao começo; uma simulação salva pode ser editada (`#/simular/{modo}/s/{id}`) ou salva como nova.
+2. **Modelo**: chave "Jogos em branco: Deixar em branco | Modelo sorteia". Ligada, sorteia na hora um resultado
+   para cada jogo em branco (Vencedor: pelas probabilidades 1X2; Placar exato: pela matriz de placares), mostrado
+   tracejado e com a etiqueta "sorteado pelo modelo"; "Sortear de novo" refaz o sorteio; qualquer jogo pode ser
+   trocado. O Monte Carlo de 5.000 sorteios da versão 1 saiu.
+3. **Pontuação** (navegador e banco, migração `0003`): Placar exato 10 (placar), 7 (vencedor e gols do vencedor),
+   6 (vencedor e diferença), 5 (vencedor e gols do perdedor), 4 (só o vencedor ou o empate), 2 (placar invertido);
+   Vencedor 4 por acerto, mostrado como "X de Y". Classificação: 3 (posição exata), 1 (uma posição), 10 (campeão),
+   3 por rebaixado (máximo 82), mostrada como pontos com a tabela de hoje e teto ainda alcançável (pelas faixas de
+   posição que cada clube ainda alcança). A tabela final completa de um Vencedor ou Placar exato também é avaliada
+   como Classificação, à parte.
+4. **Ordem impossível**: não pode ser salva no navegador (botão desligado, com o motivo) nem no banco
+   (`sim_valid_order`, com `points` e `max_points` em `sim_standings`, enviados pelo `sync-simulator`).
+5. **Visitantes** (`#/simular/visitantes`, `sim_consensus`): a tabela mais recente de cada pessoa, ordenada pela
+   posição média, com % de campeão e de rebaixado; só com 30 ou mais pessoas. A média por jogo (`sim_community`)
+   também passou a exigir 30.
+6. **E-mail para avisos**: tabela `sim_contacts` (só o dono lê), separada do login. A lista para envio sai de
+   `sim_notification_list`, que só a chave de serviço chama (`python -m brasileirao.cli simulator-notifications
+   --out <arquivo fora do repositório>`). O envio em si ainda não existe: falta escolher o provedor e confirmar os
+   endereços antes do primeiro envio.
+7. **Ranking**: uma linha por simulação ("apelido · #ID"), com "pontos de máximo".
+

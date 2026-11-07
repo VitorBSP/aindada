@@ -15,6 +15,7 @@ from brasileirao.contracts import MatchStatus
 
 BRASILIA = ZoneInfo("America/Sao_Paulo")
 SYNC_STATUSES = {"scheduled", "finished", "postponed", "cancelled"}
+POINTS_PER_WIN = 3
 
 
 @dataclass(frozen=True)
@@ -64,8 +65,22 @@ def build_rows(
     # Jogo cancelado não tem placar e nunca termina: não impede o fim da temporada.
     if matches and all(match["status"] in (MatchStatus.FINISHED.value, "cancelled") for match in matches):
         season_row["final_at"] = now.astimezone(UTC).isoformat()
+    # Pontos e máximo ainda alcançável: o banco recusa uma Classificação em que um clube fica acima de outro que
+    # ele não alcança mais (sim_valid_order).
+    remaining: dict[str, int] = {}
+    for match in matches:
+        if match["status"] not in (MatchStatus.FINISHED.value, "cancelled"):
+            for club_id in (match["home_id"], match["away_id"]):
+                remaining[club_id] = remaining.get(club_id, 0) + 1
     standings_rows = [
-        {"competition": competition, "season": season, "club_id": row["club_id"], "position": int(row["position"])}
+        {
+            "competition": competition,
+            "season": season,
+            "club_id": row["club_id"],
+            "position": int(row["position"]),
+            "points": int(row["points"]),
+            "max_points": int(row["points"]) + POINTS_PER_WIN * remaining.get(row["club_id"], 0),
+        }
         for row in predictions["standings"]
     ]
     return SyncRows(season=season_row, matches=match_rows, standings=standings_rows)
@@ -102,3 +117,19 @@ def push(rows: SyncRows, base_url: str, service_key: str, client: HttpClient) ->
             raise RuntimeError(f"{table}: HTTP {response.status_code}: {str(response.text)[:300]}")
         sent[table] = len(payload)
     return sent
+
+
+def fetch_notification_list(
+    base_url: str, service_key: str, competition: str, season: int, client: HttpClient
+) -> list[dict[str, Any]]:
+    """Lista de avisos (e-mail, apelido e pontos de cada simulação); só a chave de serviço chama a função."""
+    headers = {"apikey": service_key, "Authorization": f"Bearer {service_key}", "Content-Type": "application/json"}
+    response = client.post(
+        f"{base_url.rstrip('/')}/rest/v1/rpc/sim_notification_list",
+        headers=headers,
+        json={"p_competition": competition, "p_season": season},
+    )
+    if response.status_code >= 300:
+        raise RuntimeError(f"sim_notification_list: HTTP {response.status_code}: {str(response.text)[:300]}")
+    rows: list[dict[str, Any]] = response.json()
+    return rows

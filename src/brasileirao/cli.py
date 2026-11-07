@@ -60,7 +60,7 @@ from brasileirao.ratings.examples import (
     write_examples,
 )
 from brasileirao.storage.snapshots import SnapshotStore
-from brasileirao.storage.supabase_sync import build_rows, push
+from brasileirao.storage.supabase_sync import build_rows, fetch_notification_list, push
 from brasileirao.validation.report import run_backtest_report
 
 LOGGER = get_logger("brasileirao.cli")
@@ -366,6 +366,30 @@ def command_sync_simulator(arguments: argparse.Namespace) -> None:
     print(", ".join(f"{table}: {count}" for table, count in sent.items()))
 
 
+def command_simulator_notifications(arguments: argparse.Namespace) -> None:
+    """ADR-0015: lista de avisos de pontuação (e-mail, apelido, pontos). Dados pessoais: só com --out, fora do repo."""
+    base_url = os.environ.get("SUPABASE_URL", "")
+    service_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+    if not base_url or not service_key:
+        raise SystemExit("defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY")
+    import csv  # noqa: PLC0415 - só este comando escreve CSV
+
+    import httpx  # noqa: PLC0415 - só quem envia avisos precisa
+
+    with httpx.Client(timeout=30) as client:
+        rows = fetch_notification_list(base_url, service_key, arguments.competition, arguments.season, client)
+    emails = {row["email"] for row in rows}
+    print(f"{len(emails)} e-mail(s) com aviso ligado, {len(rows)} linha(s) de pontuação")
+    if arguments.out:
+        with Path(arguments.out).open("w", encoding="utf-8", newline="") as handle:
+            writer = csv.DictWriter(
+                handle, fieldnames=["email", "nickname", "simulation_id", "mode", "points", "max_points"]
+            )
+            writer.writeheader()
+            writer.writerows(rows)
+        print(f"lista gravada em {arguments.out} (contém e-mails: não versione nem compartilhe)")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="brasileirao", description="Previsões da Série A")
     parser.add_argument("--verbose", action="store_true")
@@ -486,6 +510,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--classificacao-lock", default=None, help="ISO 8601 com fuso; padrão: o primeiro jogo da temporada"
     )
     sync.set_defaults(handler=command_sync_simulator)
+
+    notify = commands.add_parser("simulator-notifications", help="ADR-0015: lista de avisos de pontuação por e-mail")
+    notify.add_argument("--season", type=int, default=2026)
+    notify.add_argument("--competition", default="serie-a")
+    notify.add_argument("--out", default=None, help="CSV de saída (contém e-mails; fora do repositório)")
+    notify.set_defaults(handler=command_simulator_notifications)
     return parser
 
 

@@ -12,7 +12,7 @@ from typing import Any
 import pytest
 
 from brasileirao import cli
-from brasileirao.storage.supabase_sync import build_rows, match_lock_utc, push
+from brasileirao.storage.supabase_sync import build_rows, fetch_notification_list, match_lock_utc, push
 
 NOW = datetime(2032, 11, 7, 12, 0, tzinfo=UTC)
 
@@ -35,7 +35,10 @@ def _predictions(statuses: tuple[str, str] = ("finished", "scheduled")) -> dict[
     return {
         "season": 2032,
         "matches": [match("syn-1", statuses[0], "2032-11-01T22:00:00+00:00"), match("syn-2", statuses[1], None)],
-        "standings": [{"club_id": "sintetico-01", "position": 1}, {"club_id": "sintetico-02", "position": 2}],
+        "standings": [
+            {"club_id": "sintetico-01", "position": 1, "points": 10},
+            {"club_id": "sintetico-02", "position": 2, "points": 7},
+        ],
     }
 
 
@@ -120,3 +123,31 @@ def test_cli_default_predictions_path_is_the_web_export(tmp_path: Path, monkeypa
 def test_cancelled_match_does_not_block_end_of_season() -> None:
     rows = build_rows(_predictions(("finished", "cancelled")), "serie-a", None, NOW)
     assert rows.season["final_at"] == NOW.isoformat()
+
+
+def test_standings_carry_points_and_reachable_maximum() -> None:
+    """Um jogo por disputar entre os dois clubes: cada um ainda pode somar 3 pontos."""
+    rows = build_rows(_predictions(), "serie-a", None, NOW)
+    assert [(row["points"], row["max_points"]) for row in rows.standings] == [(10, 13), (7, 10)]
+
+
+@dataclass
+class _JsonResponse:
+    status_code: int
+    payload: Any
+
+    @property
+    def text(self) -> str:
+        return str(self.payload)
+
+    def json(self) -> Any:
+        return self.payload
+
+
+def test_notification_list_returns_rows() -> None:
+    class _Client:
+        def post(self, url: str, *, headers: dict[str, str], json: Any) -> _JsonResponse:
+            return _JsonResponse(200, [{"email": "x@example.org", "nickname": "Sintetico", "points": 4}])
+
+    rows = fetch_notification_list("https://example.supabase.co", "service", "serie-a", 2032, _Client())
+    assert rows[0]["email"] == "x@example.org"

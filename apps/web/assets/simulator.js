@@ -1,100 +1,87 @@
-/* Simulador do usuário (ADR-0015, fase 1): o visitante monta o próprio fim de campeonato.
-   Modos: Classificação (ordena a tabela final), Vencedor (vitória, empate ou derrota em cada jogo) e Placar exato
-   (placar de cada jogo). Com "Completar com o modelo", os jogos sem palpite são sorteados com a matriz de placares
-   que o modelo publica no snapshot (`score_probabilities`): o navegador só sorteia, não refaz o modelo.
-   Fica no aparelho (localStorage) e pode ser compartilhado por link. Com simulator-config.js preenchido (fase 2),
-   quem escolher "Participar" também salva no Supabase (simulator-cloud.js), vê a média dos visitantes e pode entrar
-   no ranking com um apelido. */
+/* Simulador do usuário (ADR-0015). O visitante escolhe um modo, monta a simulação e salva; pode fazer quantas quiser,
+   cada uma com o seu ID, e depois ir para outro modo.
+   - Classificação: ordena a tabela final. Ordem impossível pela matemática não pode ser salva.
+   - Vencedor: vitória do mandante, empate ou vitória do visitante em cada jogo.
+   - Placar exato: o placar de cada jogo.
+   Em Vencedor e Placar exato, a chave "Modelo sorteia" sorteia na hora um resultado concreto para cada jogo em branco,
+   com as probabilidades que o Python publica no snapshot (`score_probabilities`): o navegador só sorteia, não refaz o
+   modelo. Tudo fica no aparelho (localStorage). Com simulator-config.js preenchido, quem escolher "Participar" também
+   salva no Supabase (simulator-cloud.js, até 3 simulações por modo), entra no ranking com um apelido e pode cadastrar
+   um e-mail para avisos de pontuação. A pontuação aqui repete a do banco (migração 0003). */
 (function () {
   "use strict";
 
   const MODES = {
-    classificacao: { label: "Classificação", hint: "Ordene a tabela final como você acha que ela vai terminar." },
-    vencedor: { label: "Vencedor", hint: "Escolha vitória do mandante, empate ou vitória do visitante em cada jogo." },
-    placar: { label: "Placar exato", hint: "Dê o placar de cada jogo. A tabela sai com os critérios de desempate do regulamento." },
+    classificacao: {
+      label: "Classificação", effort: "1 minuto",
+      what: "Ordene os 20 clubes do 1º ao 20º.",
+      scoring: "3 pontos por clube na posição exata, 1 a uma posição da certa, 10 pelo campeão e 3 por rebaixado acertado (máximo 82).",
+    },
+    vencedor: {
+      label: "Vencedor", effort: "5 minutos",
+      what: "Escolha mandante, empate ou visitante em cada jogo que falta.",
+      scoring: "4 pontos por resultado certo.",
+    },
+    placar: {
+      label: "Placar exato", effort: "10 minutos",
+      what: "Dê o placar de cada jogo que falta.",
+      scoring: "Placar exato 10; vencedor e gols do vencedor 7; vencedor e diferença de gols 6; vencedor e gols do perdedor 5; só o vencedor 4; placar invertido 2.",
+    },
   };
-  const OUTCOMES = { H: "home", D: "draw", A: "away" };
+  const OUTCOME_LABEL = { H: "mandante", D: "empate", A: "visitante" };
   // serie_a_2026.toml: Art. 6º (5 vagas de Libertadores pela liga), 7º (6 de Sul-Americana) e 8º (4 rebaixados).
   const LIBERTADORES_GROUPS = 4;
   const LIBERTADORES_SLOTS = 5;
   const SUDAMERICANA_SLOTS = 6;
   const RELEGATED = 4;
-  const ASSIST_SIMULATIONS = 5000;
-  const ASSIST_SEED = 2026;
+  const POINTS = { exact: 10, winnerGoals: 7, difference: 6, loserGoals: 5, winner: 4, inverted: 2 };
+  const TABLE_POINTS = { exact: 3, near: 1, champion: 10, relegated: 3 };
+  const SERVER_LIMIT = 3;
   const MAX_GOALS_INPUT = 20;
   const CODE_VERSION = "1";
   const MINUS = "−";
-  const RANKING_MODES = {
-    placar: { label: "Placar exato", exact: "Placares exatos", rules: "5 pontos pelo placar exato, 3 pelo vencedor (ou empate) com o saldo de gols certo e 2 só pelo vencedor (ou empate)." },
-    vencedor: { label: "Vencedor", exact: "Acertos", rules: "1 ponto por resultado certo: vitória do mandante, empate ou vitória do visitante." },
-    classificacao: { label: "Classificação", exact: "Posições exatas", rules: "No fim da temporada: 3 pontos por clube na posição exata e 1 por clube a uma posição da certa. Vale a última ordem salva antes da trava da temporada, que fica no início do campeonato." },
-  };
   // Mesma regra do banco (sim_profiles.nickname): letras com acento do português, números e _ . - espaço.
   const NICKNAME = /^[A-Za-zÀ-ÖØ-öø-ÿ0-9_. -]{3,20}$/;
-  const cloudState = { checked: false, user: null, profile: null, community: null, status: "", open: "" };
-  const cloudTimers = {};
+  const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+  const view = { store: null, season: null, link: null, linkNote: "" };
+  const cloudState = { checked: false, user: null, profile: null, contact: null, community: null, scores: {}, status: "", open: "" };
   const cloudApi = () => (window.SimulatorCloud && window.SimulatorCloud.enabled ? window.SimulatorCloud : null);
 
-  // fromLink: o modo aberto por link (ou false); ownEntry guarda a simulação do próprio usuário nesse modo.
-  const view = { mode: "classificacao", fromLink: false, ownEntry: null, linkNote: "", data: null, baseline: null };
+  /* ---------------------------------------------------------------- Armazenamento local */
 
-  function storageKey(season) { return `ainda-da:simulador:serie-a:${season}`; }
+  const storageKey = (season) => `ainda-da:simulador:serie-a:${season}:v2`;
 
-  function readSaved(season) {
+  function readStore(season) {
     try {
       const raw = window.localStorage.getItem(storageKey(season));
-      const saved = raw ? JSON.parse(raw) : null;
-      return saved && saved.version === 1 ? saved : null;
-    } catch (error) { return null; }
+      const store = raw ? JSON.parse(raw) : null;
+      if (store && store.version === 2) return store;
+    } catch (error) { /* armazenamento indisponível: começa vazio */ }
+    return { version: 2, drafts: {}, saved: [] };
   }
 
-  function writeSaved(season, data) {
-    try {
-      window.localStorage.setItem(storageKey(season), JSON.stringify({ version: 1, saved_at: new Date().toISOString(), ...data }));
-      return true;
-    } catch (error) { return false; }
+  function writeStore() {
+    try { window.localStorage.setItem(storageKey(view.season), JSON.stringify(view.store)); } catch (error) { /* só nesta aba */ }
   }
 
-  function emptyData(snapshot) {
-    const order = [...snapshot.teams].sort((left, right) => left.expected_position - right.expected_position).map((team) => team.club_id);
-    return { classificacao: { order }, vencedor: { picks: {}, assist: true }, placar: { picks: {}, assist: true } };
-  }
+  const newLocalId = () => Math.random().toString(36).slice(2, 6).toUpperCase();
 
-  function mulberry32(seed) {
-    let value = seed >>> 0;
-    return function () {
-      value = (value + 0x6d2b79f5) >>> 0;
-      let mixed = value;
-      mixed = Math.imul(mixed ^ (mixed >>> 15), mixed | 1);
-      mixed ^= mixed + Math.imul(mixed ^ (mixed >>> 7), mixed | 61);
-      return ((mixed ^ (mixed >>> 14)) >>> 0) / 4294967296;
-    };
-  }
+  /* ---------------------------------------------------------------- Sorteio e tabela */
 
-  const outcomeOf = (home, away) => (home > away ? "H" : home < away ? "A" : "D");
-
-  /* Distribuições acumuladas da matriz de placares: uma para o jogo todo e uma por resultado (H, D, A). */
   function scoreSampler(match) {
     const matrix = match.score_probabilities;
     if (!Array.isArray(matrix) || !matrix.length) return null;
-    const build = (accept) => {
-      const cells = [];
-      let total = 0;
-      matrix.forEach((row, home) => row.forEach((probability, away) => {
-        if (probability > 0 && accept(home, away)) { total += probability; cells.push([total, home, away]); }
-      }));
-      return total > 0 ? { cells, total } : null;
-    };
-    return {
-      all: build(() => true),
-      H: build((home, away) => home > away),
-      D: build((home, away) => home === away),
-      A: build((home, away) => home < away),
-    };
+    const cells = [];
+    let total = 0;
+    matrix.forEach((row, home) => row.forEach((probability, away) => {
+      if (probability > 0) { total += probability; cells.push([total, home, away]); }
+    }));
+    return total > 0 ? { cells, total } : null;
   }
 
-  function draw(distribution, random) {
-    const target = random() * distribution.total;
+  function draw(distribution) {
+    const target = Math.random() * distribution.total;
     const cells = distribution.cells;
     let low = 0;
     let high = cells.length - 1;
@@ -102,8 +89,10 @@
       const middle = (low + high) >> 1;
       if (cells[middle][0] < target) low = middle + 1; else high = middle;
     }
-    return cells[low];
+    return [cells[low][1], cells[low][2]];
   }
+
+  const outcomeOf = (home, away) => (home > away ? "H" : home < away ? "A" : "D");
 
   function newRows(clubIds) {
     const rows = {};
@@ -111,16 +100,16 @@
     return rows;
   }
 
-  function addResult(rows, homeId, awayId, outcome, homeGoals, awayGoals) {
-    const home = rows[homeId];
-    const away = rows[awayId];
+  function addResult(rows, result) {
+    const home = rows[result.home];
+    const away = rows[result.away];
     home.played += 1; away.played += 1;
-    if (outcome === "H") { home.points += 3; home.wins += 1; away.losses += 1; }
-    else if (outcome === "A") { away.points += 3; away.wins += 1; home.losses += 1; }
+    if (result.outcome === "H") { home.points += 3; home.wins += 1; away.losses += 1; }
+    else if (result.outcome === "A") { away.points += 3; away.wins += 1; home.losses += 1; }
     else { home.points += 1; away.points += 1; home.draws += 1; away.draws += 1; }
-    if (homeGoals !== null) {
-      home.goals_for += homeGoals; home.goals_against += awayGoals;
-      away.goals_for += awayGoals; away.goals_against += homeGoals;
+    if (result.homeGoals !== null) {
+      home.goals_for += result.homeGoals; home.goals_against += result.awayGoals;
+      away.goals_for += result.awayGoals; away.goals_against += result.homeGoals;
     }
   }
 
@@ -128,8 +117,8 @@
   const compareMain = (left, right) => right.points - left.points || right.wins - left.wins
     || goalDifference(right) - goalDifference(left) || right.goals_for - left.goals_for;
 
-  /* Art. 15: pontos, vitórias, saldo, gols marcados e confronto direto só entre dois clubes
-     (pontos e depois saldo nos jogos entre eles). Cartões e sorteio não dá para saber: o empate fica marcado. */
+  /* Art. 15: pontos, vitórias, saldo, gols marcados e confronto direto só entre dois clubes (pontos e depois saldo
+     nos jogos entre eles). Cartões e sorteio não dá para saber: o empate fica marcado. */
   function rankRows(rows, results) {
     const sorted = Object.values(rows).sort((left, right) => compareMain(left, right) || left.club_id.localeCompare(right.club_id));
     const ranked = [];
@@ -150,15 +139,10 @@
           }
         });
         const edge = duel[first.club_id].points - duel[second.club_id].points || duel[first.club_id].goals - duel[second.club_id].goals;
-        if (edge !== 0) {
-          ranked.push(...(edge > 0 ? [first, second] : [second, first]).map((row) => ({ ...row, tie: null })));
-        } else {
-          ranked.push(...group.map((row) => ({ ...row, tie: "cartões ou sorteio" })));
-        }
-      } else if (group.length > 2) {
-        ranked.push(...group.map((row) => ({ ...row, tie: "cartões ou sorteio" })));
+        if (edge !== 0) ranked.push(...(edge > 0 ? [first, second] : [second, first]).map((row) => ({ ...row, tie: null })));
+        else ranked.push(...group.map((row) => ({ ...row, tie: "cartões ou sorteio" })));
       } else {
-        ranked.push({ ...group[0], tie: null });
+        ranked.push(...group.map((row) => ({ ...row, tie: group.length > 2 ? "cartões ou sorteio" : null })));
       }
       start = end;
     }
@@ -174,28 +158,42 @@
     return { key: "", label: "" };
   }
 
-  function encodeLink(mode, data, matchIndex) {
-    if (mode === "classificacao") {
-      const clubs = [...data.classificacao.order].sort();
-      return CODE_VERSION + data.classificacao.order.map((clubId) => clubs.indexOf(clubId).toString(36)).join("");
-    }
-    const entry = data[mode];
-    const picks = Object.entries(entry.picks).filter(([matchId]) => matchIndex.has(matchId))
-      .map(([matchId, pick]) => matchIndex.get(matchId).toString(36).padStart(2, "0")
-        + (mode === "vencedor" ? pick : pick[0].toString(36) + pick[1].toString(36)));
-    return CODE_VERSION + (entry.assist ? "a" : "m") + picks.join("");
+  /* ---------------------------------------------------------------- Pontuação (igual a sim_match_points) */
+
+  function matchPoints(mode, pick, homeGoals, awayGoals) {
+    if (mode === "vencedor") return pick === outcomeOf(homeGoals, awayGoals) ? POINTS.winner : 0;
+    const [home, away] = pick;
+    const sameWinner = Math.sign(home - away) === Math.sign(homeGoals - awayGoals);
+    const decided = homeGoals !== awayGoals;
+    if (home === homeGoals && away === awayGoals) return POINTS.exact;
+    if (sameWinner && decided && Math.max(home, away) === Math.max(homeGoals, awayGoals)) return POINTS.winnerGoals;
+    if (sameWinner && home - away === homeGoals - awayGoals) return POINTS.difference;
+    if (sameWinner && decided && Math.min(home, away) === Math.min(homeGoals, awayGoals)) return POINTS.loserGoals;
+    if (sameWinner) return POINTS.winner;
+    if (home !== away && home === awayGoals && away === homeGoals) return POINTS.inverted;
+    return 0;
   }
 
-  function decodeLink(mode, code, snapshot, matchList) {
+  const maxPerMatch = (mode) => (mode === "placar" ? POINTS.exact : POINTS.winner);
+
+  /* ---------------------------------------------------------------- Links */
+
+  function encodeLink(mode, entry, matchIndex, clubs) {
+    if (mode === "classificacao") return CODE_VERSION + entry.order.map((clubId) => clubs.indexOf(clubId).toString(36)).join("");
+    const picks = { ...(entry.sampled || {}), ...(entry.picks || {}) };
+    return CODE_VERSION + "m" + Object.entries(picks).filter(([matchId]) => matchIndex.has(matchId))
+      .map(([matchId, pick]) => matchIndex.get(matchId).toString(36).padStart(2, "0")
+        + (mode === "vencedor" ? pick : pick[0].toString(36) + pick[1].toString(36))).join("");
+  }
+
+  function decodeLink(mode, code, clubs, matchList) {
     if (!code || code[0] !== CODE_VERSION) return null;
     const body = code.slice(1);
     if (mode === "classificacao") {
-      const clubs = snapshot.teams.map((team) => team.club_id).sort();
       const order = [...body].map((char) => clubs[parseInt(char, 36)]);
       const valid = order.length === clubs.length && new Set(order).size === clubs.length && order.every(Boolean);
-      return valid ? { order, ignored: 0 } : null;
+      return valid ? { entry: { order }, ignored: 0 } : null;
     }
-    const assist = body[0] === "a";
     const step = mode === "vencedor" ? 3 : 4;
     const picks = {};
     let ignored = 0;
@@ -204,7 +202,7 @@
       if (!match) return null;
       if (match.status === "finished") { ignored += 1; continue; }
       if (mode === "vencedor") {
-        if (!OUTCOMES[body[start + 2]]) return null;
+        if (!OUTCOME_LABEL[body[start + 2]]) return null;
         picks[match.match_id] = body[start + 2];
       } else {
         const home = parseInt(body[start + 2], 36);
@@ -213,124 +211,90 @@
         picks[match.match_id] = [home, away];
       }
     }
-    return { picks, assist, ignored };
+    return { entry: { picks, sampled: {}, model: false }, ignored };
   }
+
+  /* ---------------------------------------------------------------- Página */
 
   function render(main, segments, context) {
     const { snapshot, escapeHtml, pct, crest, nameOf, formatShortDate } = context;
+    const cloud = cloudApi();
     const season = snapshot.season;
+    if (view.season !== season) { view.season = season; view.store = readStore(season); }
+    const store = view.store;
+
     const matchList = [...snapshot.matches].sort((left, right) => left.match_id.localeCompare(right.match_id));
     const matchIndex = new Map(matchList.map((match, index) => [match.match_id, index]));
-    const finished = snapshot.matches.filter((match) => match.status === "finished" && Number.isInteger(match.home_goals) && Number.isInteger(match.away_goals));
+    const matchById = new Map(snapshot.matches.map((match) => [match.match_id, match]));
+    const isFinished = (match) => match.status === "finished" && Number.isInteger(match.home_goals) && Number.isInteger(match.away_goals);
+    const finished = snapshot.matches.filter(isFinished);
     const remaining = snapshot.matches.filter((match) => match.status !== "finished");
     const remainingIds = new Set(remaining.map((match) => match.match_id));
     const teamById = Object.fromEntries(snapshot.teams.map((team) => [team.club_id, team]));
     const clubIds = snapshot.teams.map((team) => team.club_id);
+    const sortedClubs = [...clubIds].sort();
     const samplers = new Map(remaining.map((match) => [match.match_id, scoreSampler(match)]));
-    const canAssist = remaining.every((match) => samplers.get(match.match_id));
+    const canSample = remaining.every((match) => samplers.get(match.match_id));
+    const standingsOrder = [...snapshot.standings].sort((left, right) => left.position - right.position).map((row) => row.club_id);
+    const currentPoints = Object.fromEntries(snapshot.standings.map((row) => [row.club_id, row.points]));
     const remainingByClub = Object.fromEntries(clubIds.map((clubId) => [clubId, 0]));
     remaining.forEach((match) => { remainingByClub[match.home_id] += 1; remainingByClub[match.away_id] += 1; });
-    const currentPoints = Object.fromEntries(snapshot.standings.map((row) => [row.club_id, row.points]));
     const maxPoints = Object.fromEntries(clubIds.map((clubId) => [clubId, currentPoints[clubId] + 3 * remainingByClub[clubId]]));
+    // Faixa de posições que cada clube ainda alcança (empates contam a favor).
+    const reach = Object.fromEntries(clubIds.map((clubId) => [clubId, {
+      best: 1 + clubIds.filter((other) => other !== clubId && currentPoints[other] > maxPoints[clubId]).length,
+      worst: clubIds.length - clubIds.filter((other) => other !== clubId && maxPoints[other] < currentPoints[clubId]).length,
+    }]));
 
-    const cloud = cloudApi();
-    const [modeSegment = "", code = ""] = segments;
-    const isRanking = Boolean(cloud) && modeSegment === "ranking";
-    const mode = MODES[modeSegment] ? modeSegment : view.mode;
-    view.mode = mode;
-    if (!view.data || view.data.season !== season) {
-      const saved = readSaved(season);
-      view.data = { season, ...emptyData(snapshot), ...(saved ? { classificacao: saved.classificacao, vencedor: saved.vencedor, placar: saved.placar } : {}) };
-      const validOrder = Array.isArray(view.data.classificacao.order) && view.data.classificacao.order.length === clubIds.length && clubIds.every((clubId) => view.data.classificacao.order.includes(clubId));
-      if (!validOrder) view.data.classificacao = emptyData(snapshot).classificacao;
-      ["vencedor", "placar"].forEach((key) => {
-        view.data[key].picks = Object.fromEntries(Object.entries(view.data[key].picks || {}).filter(([matchId]) => remainingIds.has(matchId)));
-      });
-      view.fromLink = false;
-    }
-    if (code && !isRanking) {
-      const decoded = decodeLink(mode, code, snapshot, matchList);
-      if (decoded) {
-        if (view.fromLink && view.fromLink !== mode) view.data[view.fromLink] = view.ownEntry;
-        if (view.fromLink !== mode) view.ownEntry = view.data[mode];
-        if (mode === "classificacao") view.data.classificacao = { order: decoded.order };
-        else view.data[mode] = { picks: decoded.picks, assist: decoded.assist && canAssist };
-        view.fromLink = mode;
-        view.linkNote = decoded.ignored ? ` ${decoded.ignored} ${decoded.ignored === 1 ? "palpite era de um jogo que já aconteceu e ficou" : "palpites eram de jogos que já aconteceram e ficaram"} de fora.` : "";
-      } else {
-        main.dataset.simLinkError = "1";
-      }
-      history.replaceState(null, "", `#/simular/${mode}`);
-    }
-
-    const save = () => {
-      const own = { classificacao: view.data.classificacao, vencedor: view.data.vencedor, placar: view.data.placar };
-      if (view.fromLink) own[view.fromLink] = view.ownEntry;
-      writeSaved(season, own);
-      if (cloud && cloudState.user && view.fromLink !== mode) scheduleCloudSave(mode);
-    };
-
-    /* ---------- Servidor (fase 2) ---------- */
-
+    const [first = "", second = "", third = ""] = segments;
+    const clubCell = (clubId, size = 18) => `<span class="club-cell">${crest(clubId, size)}<span>${escapeHtml(nameOf(clubId))}</span></span>`;
+    const shortName = (clubId) => escapeHtml((teamById[clubId] || {}).short_name || nameOf(clubId));
     const clock = () => new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    const currentSegments = () => location.hash.replace(/^#\/?/, "").split("/").slice(1).filter(Boolean);
     const onSimulator = () => location.hash.replace(/^#\/?/, "").startsWith("simular");
-    const rerender = () => { if (onSimulator()) render(main, isRanking ? ["ranking", segments[1] || ""] : [mode], context); };
+    const rerender = () => { if (onSimulator()) render(main, currentSegments(), context); };
+    const formatDay = (iso) => new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 
-    function setStatus(text) {
+    function emptyEntry(mode) {
+      if (mode === "classificacao") return { order: [...snapshot.teams].sort((left, right) => left.expected_position - right.expected_position).map((team) => team.club_id) };
+      return { picks: {}, sampled: {}, model: false };
+    }
+
+    /* Tira de um rascunho ou de uma simulação o que não vale mais (clube que não existe, jogo já disputado). */
+    function sanitize(mode, entry) {
+      if (!entry) return emptyEntry(mode);
+      if (mode === "classificacao") {
+        const valid = Array.isArray(entry.order) && entry.order.length === clubIds.length && clubIds.every((clubId) => entry.order.includes(clubId));
+        return valid ? { order: [...entry.order] } : emptyEntry(mode);
+      }
+      const keep = (picks) => Object.fromEntries(Object.entries(picks || {}).filter(([matchId]) => remainingIds.has(matchId)));
+      return { picks: keep(entry.picks), sampled: canSample ? keep(entry.sampled) : {}, model: Boolean(entry.model) && canSample };
+    }
+
+    /* ---------------- Contas e servidor */
+
+    const setStatus = (text) => {
       cloudState.status = text;
       const target = document.getElementById("sim-cloud-status");
       if (target) target.textContent = text;
+    };
+
+    function entryFromServer(row) {
+      if (row.mode === "classificacao") return { order: row.payload.order };
+      const picks = row.payload.picks || {};
+      const sampledIds = new Set(row.payload.sampled || []);
+      return {
+        picks: Object.fromEntries(Object.entries(picks).filter(([matchId]) => !sampledIds.has(matchId))),
+        sampled: Object.fromEntries(Object.entries(picks).filter(([matchId]) => sampledIds.has(matchId))),
+        model: Boolean(row.assist),
+      };
     }
 
-    function scheduleCloudSave(modeKey) {
-      window.clearTimeout(cloudTimers[modeKey]);
-      cloudTimers[modeKey] = window.setTimeout(async () => {
-        try {
-          const stored = await cloud.saveSimulation(season, modeKey, view.data[modeKey]);
-          setStatus(`Salvo no servidor às ${clock()}.${rankingNote(modeKey, stored)}`);
-        } catch (error) {
-          setStatus(`Não deu para salvar no servidor (${error.message}); continua salvo neste aparelho.`);
-        }
-      }, 800);
-    }
-
-    /* Lê o que o servidor de fato guardou: palpites de jogos travados não contam para o ranking. */
-    function rankingNote(modeKey, stored) {
-      if (!stored) return "";
-      if (modeKey === "classificacao") return stored.ranked_order ? "" : " Esta ordem não conta para o ranking: a trava da temporada já passou.";
-      const sent = Object.keys(view.data[modeKey].picks || {});
-      const kept = new Set(Object.keys(stored.picks || {}));
-      const dropped = sent.filter((matchId) => !kept.has(matchId)).length;
-      if (!dropped) return "";
-      return dropped === 1 ? " 1 palpite é de jogo já travado e não conta para o ranking." : ` ${dropped} palpites são de jogos já travados e não contam para o ranking.`;
-    }
-
-    /* Mesma trava do servidor (supabase_sync.match_lock_utc): o pontapé ou, sem ele, 00:00 de Brasília do dia. */
-    function lockTime(match) {
-      if (match.kickoff_utc) return new Date(match.kickoff_utc);
-      return new Date(`${match.match_date}T00:00:00-03:00`);
-    }
-
-    function lockLabel(match) {
-      if (!cloud || !cloudState.user) return "";
-      const lock = lockTime(match);
-      if (Number.isNaN(lock.getTime())) return "";
-      if (lock <= new Date()) return " · não conta mais para o ranking";
-      const when = lock.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
-      return ` · vale para o ranking até ${when}`;
-    }
-
-    function acceptStored(stored) {
-      Object.entries(stored).forEach(([key, entry]) => {
-        if (key === "classificacao") {
-          const valid = Array.isArray(entry.order) && entry.order.length === clubIds.length && clubIds.every((clubId) => entry.order.includes(clubId));
-          if (!valid) return;
-        } else {
-          entry.picks = Object.fromEntries(Object.entries(entry.picks || {}).filter(([matchId]) => remainingIds.has(matchId)));
-          entry.assist = Boolean(entry.assist) && canAssist;
-        }
-        if (view.fromLink === key) view.ownEntry = entry; else view.data[key] = entry;
-      });
+    async function refreshScores() {
+      try {
+        const rows = await cloud.myScores(season);
+        cloudState.scores = Object.fromEntries(rows.map((row) => [row.simulation_id, row]));
+      } catch (error) { cloudState.scores = {}; }
     }
 
     async function initCloud() {
@@ -339,68 +303,229 @@
       try {
         cloudState.user = await cloud.currentUser();
         if (cloudState.user) {
-          cloudState.profile = await cloud.profile();
-          acceptStored(await cloud.loadSimulations(season));
-          const own = { classificacao: view.data.classificacao, vencedor: view.data.vencedor, placar: view.data.placar };
-          if (view.fromLink) own[view.fromLink] = view.ownEntry;
-          writeSaved(season, own);
+          [cloudState.profile, cloudState.contact] = await Promise.all([cloud.profile(), cloud.contact()]);
+          const rows = await cloud.loadSimulations(season);
+          rows.forEach((row) => {
+            if (store.saved.some((item) => item.server_id === row.id)) return;
+            // Simulações completas guardam todos os jogos de quando foram salvas; os encerrados continuam pontuando.
+            store.saved.push({ local_id: `S${row.id}`, server_id: row.id, mode: row.mode, created_at: row.created_at, updated_at: row.updated_at, entry: entryFromServer(row) });
+          });
+          writeStore();
+          await refreshScores();
         }
       } catch (error) {
-        cloudState.status = `Servidor indisponível agora (${error.message}). A simulação continua salva neste aparelho.`;
+        cloudState.status = `Servidor indisponível agora (${error.message}). As simulações continuam salvas neste aparelho.`;
       }
       try { cloudState.community = await cloud.community(season); } catch (error) { cloudState.community = null; }
       rerender();
     }
 
-    async function uploadAll() {
-      for (const key of Object.keys(MODES)) {
-        const entry = view.fromLink === key ? view.ownEntry : view.data[key];
-        if (entry) await cloud.saveSimulation(season, key, entry);
+    function serverCount(mode) { return store.saved.filter((item) => item.mode === mode && item.server_id).length; }
+
+    /* Envia uma simulação ao servidor; devolve um texto sobre o que aconteceu. */
+    async function pushToServer(item) {
+      if (!cloud || !cloudState.user) return "";
+      if (!item.server_id && serverCount(item.mode) >= SERVER_LIMIT) return ` No servidor cabem ${SERVER_LIMIT} por modo: esta ficou só neste aparelho e fora do ranking.`;
+      try {
+        const stored = await cloud.saveSimulation(season, item.mode, item.entry, item.server_id, finalOrderOf(item.mode, item.entry));
+        if (!stored) return "";
+        item.server_id = stored.id;
+        writeStore();
+        return ` Enviada ao servidor como #${stored.id}.${droppedNote(item, stored.payload)}`;
+      } catch (error) {
+        return ` Não foi ao servidor (${error.message}); continua salva neste aparelho.`;
       }
     }
 
+    function droppedNote(item, payload) {
+      if (item.mode === "classificacao") return payload.ranked_order ? "" : " Esta ordem não conta para o ranking: a trava da temporada já passou.";
+      const sent = Object.keys({ ...item.entry.sampled, ...item.entry.picks });
+      const kept = new Set(Object.keys(payload.picks || {}));
+      const dropped = sent.filter((matchId) => !kept.has(matchId)).length;
+      if (!dropped) return "";
+      return dropped === 1 ? " 1 palpite é de jogo já travado e não conta para o ranking." : ` ${dropped} palpites são de jogos já travados e não contam para o ranking.`;
+    }
+
+    /* Mesma trava do servidor (supabase_sync.match_lock_utc): o pontapé ou, sem ele, 00:00 de Brasília do dia. */
+    function lockTime(match) {
+      return match.kickoff_utc ? new Date(match.kickoff_utc) : new Date(`${match.match_date}T00:00:00-03:00`);
+    }
+
+    function lockLabel(match) {
+      if (!cloud || !cloudState.user) return "";
+      const lock = lockTime(match);
+      if (Number.isNaN(lock.getTime())) return "";
+      if (lock <= new Date()) return `<span class="sim-lock is-locked">não conta mais para o ranking</span>`;
+      return `<span class="sim-lock">vale para o ranking até ${lock.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>`;
+    }
+
+    function crowdForMatch(match) {
+      const data = cloudState.community && cloudState.community.matches ? cloudState.community.matches[match.match_id] : null;
+      if (!data) return "";
+      return `<span class="sim-crowd" title="Pelo menos ${data.users_at_least} visitantes com palpite neste jogo; arredondado de 5 em 5 pontos">visitantes: ${pct(data.H)} · ${pct(data.D)} · ${pct(data.A)}</span>`;
+    }
+
+    /* ---------------- Pontuação das simulações */
+
+    function pickScore(mode, entry) {
+      const picks = { ...(entry.sampled || {}), ...(entry.picks || {}) };
+      let points = 0;
+      let scored = 0;
+      let open = 0;
+      Object.entries(picks).forEach(([matchId, pick]) => {
+        const match = matchById.get(matchId);
+        if (!match) return;
+        if (isFinished(match)) { scored += 1; points += matchPoints(mode, pick, match.home_goals, match.away_goals); }
+        else open += 1;
+      });
+      const per = maxPerMatch(mode);
+      return { points, outOf: scored * per, scored, ceiling: points + open * per, total: (scored + open) * per };
+    }
+
+    /* Classificação comparada com a tabela de hoje (como se o campeonato acabasse agora) e o teto que ainda dá. */
+    function tableScore(order) {
+      const total = order.length;
+      let points = 0;
+      let ceiling = 0;
+      order.forEach((clubId, index) => {
+        const predicted = index + 1;
+        const actual = standingsOrder.indexOf(clubId) + 1;
+        points += predicted === actual ? TABLE_POINTS.exact : Math.abs(predicted - actual) === 1 ? TABLE_POINTS.near : 0;
+        const range = reach[clubId];
+        if (predicted >= range.best && predicted <= range.worst) ceiling += TABLE_POINTS.exact;
+        else if (predicted + 1 >= range.best && predicted - 1 <= range.worst) ceiling += TABLE_POINTS.near;
+      });
+      if (order[0] === standingsOrder[0]) points += TABLE_POINTS.champion;
+      if (reach[order[0]].best === 1) ceiling += TABLE_POINTS.champion;
+      order.slice(total - RELEGATED).forEach((clubId) => {
+        if (standingsOrder.indexOf(clubId) >= total - RELEGATED) points += TABLE_POINTS.relegated;
+        if (reach[clubId].worst > total - RELEGATED) ceiling += TABLE_POINTS.relegated;
+      });
+      const maximum = total * TABLE_POINTS.exact + TABLE_POINTS.champion + RELEGATED * TABLE_POINTS.relegated;
+      return { points, ceiling, maximum };
+    }
+
+    function impossiblePairs(order) {
+      const problems = new Map();
+      order.forEach((upper, upperIndex) => {
+        order.slice(upperIndex + 1).forEach((lower) => {
+          if (maxPoints[upper] < currentPoints[lower] && !problems.has(upper)) problems.set(upper, lower);
+        });
+      });
+      return problems;
+    }
+
+    /* ---------------- Tabela final de Vencedor e Placar exato */
+
+    function effectivePicks(entry) { return { ...(entry.sampled || {}), ...(entry.picks || {}) }; }
+
+    function resultsFor(mode, entry) {
+      const results = finished.map((match) => ({ home: match.home_id, away: match.away_id, outcome: outcomeOf(match.home_goals, match.away_goals), homeGoals: match.home_goals, awayGoals: match.away_goals }));
+      const picks = effectivePicks(entry);
+      remaining.forEach((match) => {
+        const pick = picks[match.match_id];
+        if (pick === undefined) return;
+        if (mode === "vencedor") results.push({ home: match.home_id, away: match.away_id, outcome: pick, homeGoals: null, awayGoals: null });
+        else results.push({ home: match.home_id, away: match.away_id, outcome: outcomeOf(pick[0], pick[1]), homeGoals: pick[0], awayGoals: pick[1] });
+      });
+      return results;
+    }
+
+    function finalTable(mode, entry) {
+      const results = resultsFor(mode, entry);
+      const rows = newRows(clubIds);
+      results.forEach((result) => addResult(rows, result));
+      return rankRows(rows, results);
+    }
+
+    function isComplete(entry) { const picks = effectivePicks(entry); return remaining.every((match) => picks[match.match_id] !== undefined); }
+
+    function finalOrderOf(mode, entry) {
+      if (mode === "classificacao" || !isComplete(entry)) return null;
+      return finalTable(mode, entry).map((row) => row.club_id);
+    }
+
+    /* ---------------- Moldura */
+
+    function tabs(active) {
+      const items = [["", "Início"], ...Object.entries(MODES).map(([key, item]) => [key, item.label])];
+      if (cloud) items.push(["ranking", "Ranking"], ["visitantes", "Visitantes"]);
+      return `<nav class="tabs sim-tabs" aria-label="Simulador">${items.map(([key, label]) =>
+        `<a href="#/simular${key ? `/${key}` : ""}" ${key === active ? 'aria-current="page"' : ""}>${label}</a>`).join("")}</nav>`;
+    }
+
+    function storageNote() {
+      if (!cloud) return "Suas simulações ficam salvas só neste aparelho, sem conta e sem envio para servidor.";
+      return "Suas simulações ficam salvas neste aparelho. Ao abrir o simulador, o navegador baixa a biblioteca do Supabase pelo jsDelivr e consulta a média dos visitantes no servidor do AInda dá? (Supabase, nos Estados Unidos). Se você participar, as simulações também vão para lá, ligadas a uma conta sem nome. O e-mail é opcional e nunca aparece para ninguém; no ranking só aparece o apelido.";
+    }
+
+    function shell(active, title, lede, body) {
+      main.innerHTML = `
+        <span class="kicker">Simulador</span>
+        <h1>${title}</h1>
+        <p class="lede">${lede}</p>
+        ${tabs(active)}
+        ${accountPanel()}
+        ${body}
+        <p class="note sim-footnote">${storageNote()} Vagas pela liga em 2026: 1º a 4º na fase de grupos da Libertadores, 5º na fase preliminar, 6º a 11º na Sul-Americana, 17º a 20º rebaixados (regulamento, Art. 6º a 8º). Títulos da Copa do Brasil, da Libertadores e da Sul-Americana podem empurrar essas vagas para baixo; isso o simulador não calcula.</p>`;
+      bindAccount();
+    }
+
+    /* ---------------- Painel da conta */
+
     function accountPanel() {
       if (!cloud) return "";
-      const status = `<span class="note" id="sim-cloud-status" aria-live="polite">${escapeHtml(cloudState.status)}</span>`;
+      const status = `<p class="note" id="sim-cloud-status" aria-live="polite">${escapeHtml(cloudState.status)}</p>`;
       if (!cloudState.checked) return `<div class="sim-account">${status}</div>`;
       const user = cloudState.user;
       if (!user) {
         const login = cloudState.open === "login" ? `<form class="sim-form" id="sim-login-form">
             <label>E-mail ligado à sua participação <input type="email" required autocomplete="email" id="sim-login-email"></label>
             <button type="submit">Enviar link de entrada</button></form>` : "";
-        return `<div class="sim-account"><p><strong>Compare com os outros visitantes.</strong> Participe para salvar sua simulação no servidor, ver o que os outros visitantes acham e, se quiser, entrar no ranking com um apelido. Não precisa de cadastro.</p>
+        return `<div class="sim-account"><p><strong>Entre no ranking e compare com os outros visitantes.</strong> Participe para enviar suas simulações ao servidor (até ${SERVER_LIMIT} por modo), ver o que os outros visitantes acham e aparecer no ranking com um apelido. Não precisa de cadastro.</p>
           <p><button type="button" class="sim-button" id="sim-join">Participar</button> <button type="button" class="link-button" id="sim-login-open">Já participo em outro aparelho</button></p>${login}${status}</div>`;
       }
       const profile = cloudState.profile || {};
+      const contact = cloudState.contact;
       const who = profile.nickname ? `como <strong>${escapeHtml(profile.nickname)}</strong>${profile.show_in_ranking ? " · no ranking" : " · fora do ranking"}` : "sem apelido · fora do ranking";
-      const profileForm = cloudState.open === "profile" ? `<form class="sim-form" id="sim-profile-form">
+      const notices = contact && contact.notify ? "avisos por e-mail ligados" : "sem avisos por e-mail";
+      const forms = {
+        profile: `<form class="sim-form" id="sim-profile-form">
           <label>Apelido <input type="text" id="sim-nickname" maxlength="20" minlength="3" value="${escapeHtml(profile.nickname || "")}" autocomplete="nickname"></label>
           <label class="sim-check"><input type="checkbox" id="sim-in-ranking" ${profile.show_in_ranking ? "checked" : ""}> Aparecer no ranking com este apelido</label>
           <p class="note">De 3 a 20 letras, números, espaço, ponto, hífen ou _. Não use seu e-mail nem seu nome completo: o apelido é a única coisa que os outros veem.</p>
-          <button type="submit">Salvar</button></form>` : "";
-      const emailForm = cloudState.open === "email" ? `<form class="sim-form" id="sim-email-form">
-          <label>Seu e-mail <input type="email" required autocomplete="email" id="sim-email"></label>
-          <p class="note">Serve só para você entrar em outro aparelho. Não aparece para ninguém, nem no ranking.</p>
-          <button type="submit">Enviar link de confirmação</button></form>` : "";
-      const emailAction = user.hasEmail ? "e-mail ligado" : `<button type="button" class="link-button" id="sim-email-open">Usar em outro aparelho</button>`;
-      return `<div class="sim-account"><p>Participando ${who}. <button type="button" class="link-button" id="sim-profile-open">Apelido e ranking</button> · ${emailAction} · <button type="button" class="link-button" id="sim-signout">Sair</button> · <button type="button" class="link-button" id="sim-delete">Apagar minha participação</button></p>${profileForm}${emailForm}${status}</div>`;
+          <button type="submit">Salvar</button></form>`,
+        contact: `<form class="sim-form" id="sim-contact-form">
+          <label>E-mail para avisos <input type="email" required autocomplete="email" id="sim-contact-email" value="${escapeHtml(contact ? contact.email : "")}"></label>
+          <label class="sim-check"><input type="checkbox" id="sim-contact-notify" ${!contact || contact.notify ? "checked" : ""}> Quero receber minha pontuação por e-mail</label>
+          <p class="note">Usamos só para avisar da sua pontuação. Ninguém mais vê o e-mail, e ele sai do servidor quando você apagar a participação.</p>
+          <button type="submit">Salvar e-mail</button>${contact ? ` <button type="button" class="link-button" id="sim-contact-delete">Remover e-mail</button>` : ""}</form>`,
+        email: `<form class="sim-form" id="sim-email-form">
+          <label>E-mail para entrar em outro aparelho <input type="email" required autocomplete="email" id="sim-email"></label>
+          <p class="note">Enviamos um link de confirmação. Depois, use o mesmo e-mail para entrar em outro aparelho.</p>
+          <button type="submit">Enviar link de confirmação</button></form>`,
+      };
+      const loginAction = user.hasEmail ? "login por e-mail ligado" : `<button type="button" class="link-button" id="sim-email-open">Usar em outro aparelho</button>`;
+      return `<div class="sim-account"><p>Participando ${who} · ${notices}.</p>
+        <p class="sim-account-actions"><button type="button" class="link-button" id="sim-profile-open">Apelido e ranking</button> · <button type="button" class="link-button" id="sim-contact-open">Avisos por e-mail</button> · ${loginAction} · <button type="button" class="link-button" id="sim-signout">Sair</button> · <button type="button" class="link-button" id="sim-delete">Apagar minha participação</button></p>
+        ${forms[cloudState.open] || ""}${status}</div>`;
     }
 
     function bindAccount() {
       if (!cloud) return;
       const on = (id, event, handler) => { const element = document.getElementById(id); if (element) element.addEventListener(event, handler); };
       const toggle = (panel) => () => { cloudState.open = cloudState.open === panel ? "" : panel; rerender(); };
-      on("sim-login-open", "click", toggle("login"));
-      on("sim-profile-open", "click", toggle("profile"));
-      on("sim-email-open", "click", toggle("email"));
+      ["login", "profile", "contact", "email"].forEach((panel) => on(`sim-${panel}-open`, "click", toggle(panel)));
       on("sim-join", "click", async () => {
         setStatus("Entrando…");
         try {
           cloudState.user = await cloud.join();
-          cloudState.profile = await cloud.profile();
-          await uploadAll();
+          [cloudState.profile, cloudState.contact] = await Promise.all([cloud.profile(), cloud.contact()]);
+          const notes = [];
+          for (const item of store.saved) if (!item.server_id) notes.push(await pushToServer(item));
+          await refreshScores();
           cloudState.open = "profile";
-          cloudState.status = `Participando. Simulação salva no servidor às ${clock()}.`;
+          cloudState.status = `Participando.${notes.join("")} Escolha um apelido para aparecer no ranking.`;
         } catch (error) {
           cloudState.status = `Não deu para participar agora (${error.message}).`;
         }
@@ -420,6 +545,25 @@
           setStatus("Enviamos um link de confirmação. Depois de confirmar, use o mesmo e-mail para entrar em outro aparelho.");
         } catch (error) { setStatus(`Não deu para ligar o e-mail (${error.message}).`); }
       });
+      on("sim-contact-form", "submit", async (event) => {
+        event.preventDefault();
+        const email = document.getElementById("sim-contact-email").value.trim();
+        if (!EMAIL.test(email)) { setStatus("Confira o e-mail."); return; }
+        try {
+          await cloud.saveContact(email, document.getElementById("sim-contact-notify").checked);
+          cloudState.contact = await cloud.contact();
+          cloudState.open = "";
+          cloudState.status = "E-mail salvo para os avisos de pontuação.";
+          rerender();
+        } catch (error) { setStatus(`Não deu para salvar o e-mail (${error.message}).`); }
+      });
+      on("sim-contact-delete", "click", async () => {
+        try {
+          await cloud.deleteContact();
+          cloudState.contact = null; cloudState.open = ""; cloudState.status = "E-mail removido.";
+          rerender();
+        } catch (error) { setStatus(`Não deu para remover (${error.message}).`); }
+      });
       on("sim-profile-form", "submit", async (event) => {
         event.preventDefault();
         const nickname = document.getElementById("sim-nickname").value.trim();
@@ -435,128 +579,191 @@
           rerender();
         } catch (error) { setStatus(`Não deu para salvar (${error.message}).`); }
       });
-      on("sim-delete", "click", async () => {
-        if (!window.confirm("Apagar sua participação? Saem do servidor o apelido, o e-mail ligado e as simulações salvas lá, sem volta. A simulação continua neste aparelho.")) return;
-        try {
-          await cloud.deleteAccount();
-          cloudState.user = null; cloudState.profile = null; cloudState.open = ""; cloudState.status = "Participação apagada do servidor.";
-          rerender();
-        } catch (error) { setStatus(`Não deu para apagar agora (${error.message}).`); }
-      });
+      const leave = (message) => {
+        cloudState.user = null; cloudState.profile = null; cloudState.contact = null; cloudState.scores = {};
+        cloudState.open = ""; cloudState.status = message;
+        store.saved.forEach((item) => { item.server_id = null; });
+        writeStore();
+        rerender();
+      };
       on("sim-signout", "click", async () => {
         const warning = cloudState.user && !cloudState.user.hasEmail
-          ? "Sua participação não tem e-mail ligado: ao sair, você não consegue voltar a ela. Sair mesmo assim?"
-          : "Sair da participação neste aparelho? A simulação continua salva aqui.";
+          ? "Sua participação não tem login por e-mail: ao sair, você não consegue voltar a ela. Sair mesmo assim?"
+          : "Sair da participação neste aparelho? As simulações continuam salvas aqui.";
         if (!window.confirm(warning)) return;
         try { await cloud.signOut(); } catch (error) { /* sai localmente mesmo assim */ }
-        cloudState.user = null; cloudState.profile = null; cloudState.open = ""; cloudState.status = "Você saiu.";
-        rerender();
+        leave("Você saiu.");
+      });
+      on("sim-delete", "click", async () => {
+        if (!window.confirm("Apagar sua participação? Saem do servidor o apelido, os e-mails e as simulações salvas lá, sem volta. As simulações continuam neste aparelho.")) return;
+        try { await cloud.deleteAccount(); leave("Participação apagada do servidor."); }
+        catch (error) { setStatus(`Não deu para apagar agora (${error.message}).`); }
       });
     }
 
-    function crowdForMatch(match) {
-      const data = cloudState.community && cloudState.community.matches ? cloudState.community.matches[match.match_id] : null;
-      if (!data) return "";
-      return `<span class="sim-crowd" title="Pelo menos ${data.users_at_least} visitantes com palpite neste jogo; números arredondados de 5 em 5 pontos">visitantes: ${pct(data.H)} · ${pct(data.D)} · ${pct(data.A)}</span>`;
-    }
+    /* ---------------- Início: escolher o modo e ver as simulações */
 
-    function crowdForClub(clubId) {
-      const data = cloudState.community && cloudState.community.clubs ? cloudState.community.clubs[clubId] : null;
-      if (!data) return "";
-      return ` <span class="sim-crowd" title="Posição média nas tabelas de pelo menos ${data.users_at_least} visitantes, arredondada a meia posição">· visitantes ${Number(data.average_position).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}º</span>`;
-    }
+    function simulationLabel(item) { return item.server_id ? `#${item.server_id}` : `#${item.local_id}`; }
 
-    const signed = (value) => {
-      const points = Math.round(value * 100);
-      if (points === 0) return "0";
-      return (points > 0 ? "+" : MINUS) + Math.abs(points);
-    };
-    const clubCell = (clubId, size = 18) => `<span class="club-cell">${crest(clubId, size)}<span>${escapeHtml(nameOf(clubId))}</span></span>`;
-    const shortName = (clubId) => escapeHtml((teamById[clubId] || {}).short_name || nameOf(clubId));
-
-    function tabs() {
-      const ranking = cloud ? `<a href="#/simular/ranking" ${isRanking ? 'aria-current="page"' : ""}>Ranking</a>` : "";
-      return `<nav class="tabs sim-tabs" aria-label="Modo do simulador">${Object.entries(MODES).map(([key, item]) =>
-        `<a href="#/simular/${key}" ${key === mode && !isRanking ? 'aria-current="page"' : ""}>${item.label}</a>`).join("")}${ranking}</nav>`;
-    }
-
-    function linkBanner() {
-      if (main.dataset.simLinkError) {
-        delete main.dataset.simLinkError;
-        return `<p class="sim-banner" role="status">Não deu para abrir a simulação do link: ele está incompleto ou é de outra temporada. Abrimos a sua.</p>`;
+    function scoreSummary(item) {
+      if (item.mode === "classificacao") {
+        const score = tableScore(item.entry.order);
+        return `<strong>${score.points}</strong> pontos com a tabela de hoje · até <strong>${score.ceiling}</strong> de ${score.maximum} possíveis`;
       }
-      if (view.fromLink !== mode) return "";
-      return `<p class="sim-banner" role="status">Você está vendo uma simulação aberta por link.${escapeHtml(view.linkNote)} Ela não substitui a sua até você salvar.
-        <button type="button" class="link-button" id="sim-keep">Salvar como minha</button> · <button type="button" class="link-button" id="sim-discard">Voltar à minha</button></p>`;
+      const score = pickScore(item.mode, item.entry);
+      const server = item.server_id && cloudState.scores[item.server_id];
+      const counted = server ? ` · no ranking: ${server.points} de ${server.max_points}` : "";
+      if (!score.scored) return `Nenhum jogo terminou ainda · até <strong>${score.ceiling}</strong> pontos possíveis${counted}`;
+      return `<strong>${score.points}</strong> de ${score.outOf} pontos em ${score.scored} ${score.scored === 1 ? "jogo" : "jogos"} · ainda dá para chegar a <strong>${score.ceiling}</strong>${counted}`;
     }
 
-    function storageNote() {
-      if (!cloud) return "Sua simulação fica salva só neste aparelho, sem conta e sem envio para servidor.";
-      return "Sua simulação fica salva neste aparelho. Ao abrir o simulador, o navegador baixa a biblioteca do Supabase pelo jsDelivr e consulta a média dos visitantes no servidor do AInda dá? (Supabase, nos Estados Unidos). Se você participar, a simulação também vai para lá, ligada a uma conta sem nome; o e-mail é opcional e nunca aparece para ninguém. No ranking e na média dos visitantes só entram o apelido e números somados e arredondados.";
+    function renderHome() {
+      const cards = Object.entries(MODES).map(([key, item]) => {
+        const count = store.saved.filter((saved) => saved.mode === key).length;
+        return `<article class="sim-mode-card">
+          <h2>${item.label}</h2>
+          <p class="sim-mode-what">${item.what}</p>
+          <p class="note">${item.scoring}</p>
+          <p class="sim-mode-meta">${item.effort}${count ? ` · ${count} ${count === 1 ? "simulação salva" : "simulações salvas"}` : ""}</p>
+          <a class="sim-button" href="#/simular/${key}">${store.drafts[key] ? "Continuar" : "Começar"}</a>
+        </article>`;
+      }).join("");
+      const saved = [...store.saved].sort((left, right) => String(right.updated_at).localeCompare(String(left.updated_at)));
+      const list = saved.length ? `<div class="table-wrap"><table class="sim-table sim-saved">
+          <thead><tr><th>Simulação</th><th>Modo</th><th>Salva em</th><th>Pontuação</th><th><span class="visually-hidden">Ações</span></th></tr></thead>
+          <tbody>${saved.map((item) => `<tr>
+            <td><a href="#/simular/${item.mode}/s/${encodeURIComponent(item.local_id)}">${escapeHtml(simulationLabel(item))}</a>${item.server_id ? ` <span class="sim-tag">no servidor</span>` : ""}</td>
+            <td>${MODES[item.mode].label}</td>
+            <td>${escapeHtml(formatDay(item.updated_at))}</td>
+            <td>${scoreSummary(item)}</td>
+            <td><button type="button" class="link-button" data-delete="${escapeHtml(item.local_id)}">Excluir</button></td></tr>`).join("")}</tbody></table></div>`
+        : `<p class="note">Você ainda não salvou nenhuma simulação. Escolha um modo acima.</p>`;
+      shell("", "E se o campeonato terminar do seu jeito?", "Escolha um modo, monte a sua simulação e salve. Dá para fazer quantas quiser, em qualquer modo: cada uma ganha um ID e a própria pontuação.",
+        `<div class="sim-mode-grid">${cards}</div>
+         <h2>Minhas simulações</h2>
+         <p class="note">A pontuação conta os jogos que já terminaram. Na Classificação, ela compara com a tabela de hoje e mostra o máximo que ainda dá para fazer.</p>
+         ${list}`);
+      main.querySelectorAll("[data-delete]").forEach((button) => button.addEventListener("click", async () => {
+        const item = store.saved.find((saved) => saved.local_id === button.dataset.delete);
+        if (!item || !window.confirm(`Excluir a simulação ${simulationLabel(item)}?${item.server_id ? " Ela sai também do servidor e do ranking." : ""}`)) return;
+        if (item.server_id && cloud && cloudState.user) {
+          try { await cloud.deleteSimulation(item.server_id); } catch (error) { setStatus(`Não deu para excluir no servidor (${error.message}).`); return; }
+        }
+        store.saved = store.saved.filter((saved) => saved !== item);
+        writeStore();
+        cloudState.status = `Simulação ${simulationLabel(item)} excluída.`;
+        renderHome();
+      }));
     }
 
-    function shell(controls, body, lede) {
-      main.innerHTML = `
-        <span class="kicker">Simulador</span>
-        <h1>E se o campeonato terminar do seu jeito?</h1>
-        <p class="lede">${lede || `${MODES[mode].hint} O modelo fica ao lado, para comparar.`}</p>
-        ${tabs()}
-        ${isRanking ? "" : linkBanner()}
-        ${controls === null ? "" : `<div class="sim-toolbar">${controls}<button type="button" class="link-button" id="sim-share">Copiar link desta simulação</button><span class="note" id="sim-share-status" aria-live="polite"></span></div>`}
-        ${accountPanel()}
-        ${body}
-        <p class="note sim-footnote">${storageNote()} Vagas pela liga em 2026: 1º a 4º na fase de grupos da Libertadores, 5º na fase preliminar, 6º a 11º na Sul-Americana, 17º a 20º rebaixados (regulamento, Art. 6º a 8º). Títulos da Copa do Brasil, da Libertadores e da Sul-Americana podem empurrar essas vagas para baixo; isso o simulador não calcula.</p>`;
-      bindCommon();
-      bindAccount();
+    /* ---------------- Editor */
+
+    function openEditor(mode, savedId, code) {
+      if (code) {
+        const decoded = decodeLink(mode, code, sortedClubs, matchList);
+        if (decoded) {
+          view.link = { mode, entry: sanitize(mode, decoded.entry) };
+          view.linkNote = decoded.ignored ? ` ${decoded.ignored} ${decoded.ignored === 1 ? "palpite era de um jogo que já aconteceu e ficou" : "palpites eram de jogos que já aconteceram e ficaram"} de fora.` : "";
+        } else {
+          view.link = null;
+          view.linkNote = "Não deu para abrir a simulação do link: ele está incompleto ou é de outra temporada.";
+        }
+        history.replaceState(null, "", `#/simular/${mode}`);
+      }
+      const savedItem = savedId ? store.saved.find((item) => item.local_id === savedId && item.mode === mode) : null;
+      const fromLink = !savedItem && Boolean(view.link && view.link.mode === mode);
+      let entry;
+      if (savedItem) {
+        // Uma simulação salva mantém os jogos que já terminaram (eles pontuam); o editor mostra só os que faltam.
+        entry = savedItem.entry;
+      } else if (fromLink) {
+        entry = view.link.entry;
+      } else {
+        store.drafts[mode] = sanitize(mode, store.drafts[mode]);
+        entry = store.drafts[mode];
+      }
+      const persist = () => { if (!fromLink) writeStore(); };
+      if (mode === "classificacao") renderTable(entry, savedItem, fromLink, persist);
+      else renderPicks(mode, entry, savedItem, fromLink, persist);
     }
 
-    function bindCommon() {
-      const share = document.getElementById("sim-share");
-      if (share) share.addEventListener("click", async () => {
-        const url = `${location.href.split("#")[0]}#/simular/${mode}/${encodeLink(mode, view.data, matchIndex)}`;
-        const status = document.getElementById("sim-share-status");
-        try {
-          await navigator.clipboard.writeText(url);
-          status.textContent = "Link copiado.";
-        } catch (error) {
-          status.innerHTML = `Copie o link: <input class="sim-share-url" readonly value="${escapeHtml(url)}" aria-label="Link da simulação">`;
-          const input = status.querySelector("input");
-          input.focus(); input.select();
+    function editorHeader(mode, savedItem, fromLink) {
+      const where = savedItem ? `Editando a simulação <strong>${escapeHtml(simulationLabel(savedItem))}</strong>. <a href="#/simular/${mode}">Começar outra</a> · <a href="#/simular">Voltar ao início</a>`
+        : fromLink ? `Simulação aberta por link.${escapeHtml(view.linkNote)} <button type="button" class="link-button" id="sim-link-keep">Usar como meu rascunho</button> · <button type="button" class="link-button" id="sim-link-drop">Voltar ao meu rascunho</button>`
+          : "Rascunho novo: ao salvar, ele vira uma simulação com ID próprio, e o rascunho volta ao começo.";
+      const error = !fromLink && view.linkNote && !view.link ? `<p class="sim-banner" role="status">${escapeHtml(view.linkNote)}</p>` : "";
+      return `${error}<p class="sim-where">${where}</p>`;
+    }
+
+    function bindEditorHeader(mode) {
+      const keep = document.getElementById("sim-link-keep");
+      if (keep) keep.addEventListener("click", () => { store.drafts[mode] = view.link.entry; view.link = null; view.linkNote = ""; writeStore(); rerender(); });
+      const drop = document.getElementById("sim-link-drop");
+      if (drop) drop.addEventListener("click", () => { view.link = null; view.linkNote = ""; rerender(); });
+      if (!view.link) view.linkNote = "";
+    }
+
+    function saveBar(savedItem, blocked) {
+      const reason = blocked ? `<p class="sim-warning">${blocked}</p>` : "";
+      const buttons = savedItem
+        ? `<button type="button" class="sim-button" id="sim-save" ${blocked ? "disabled" : ""}>Salvar alterações em ${escapeHtml(simulationLabel(savedItem))}</button> <button type="button" class="link-button" id="sim-save-new" ${blocked ? "disabled" : ""}>Salvar como nova</button>`
+        : `<button type="button" class="sim-button" id="sim-save" ${blocked ? "disabled" : ""}>Salvar simulação</button>`;
+      return `<div class="sim-savebar">${reason}${buttons} <button type="button" class="link-button" id="sim-share">Copiar link</button><span class="note" id="sim-save-status" aria-live="polite"></span></div>`;
+    }
+
+    function bindSaveBar(mode, entry, savedItem) {
+      const status = (text) => { const target = document.getElementById("sim-save-status"); if (target) target.textContent = text; };
+      const save = async (asNew) => {
+        const now = new Date().toISOString();
+        const copy = JSON.parse(JSON.stringify(entry));
+        let item = savedItem && !asNew ? savedItem : null;
+        if (item) { item.entry = copy; item.updated_at = now; }
+        else {
+          item = { local_id: newLocalId(), server_id: null, mode, created_at: now, updated_at: now, entry: copy };
+          store.saved.push(item);
+          if (view.link && view.link.mode === mode) view.link = null;
+          else if (!savedItem) store.drafts[mode] = emptyEntry(mode);
+        }
+        writeStore();
+        status("Salvando…");
+        const note = await pushToServer(item);
+        if (cloud && cloudState.user) await refreshScores();
+        cloudState.status = `Simulação ${simulationLabel(item)} salva às ${clock()}.${note}`;
+        const target = `#/simular/${mode}/s/${encodeURIComponent(item.local_id)}`;
+        if (location.hash === target) rerender(); else location.hash = target;
+      };
+      const saveButton = document.getElementById("sim-save");
+      if (saveButton) saveButton.addEventListener("click", () => save(false));
+      const saveNew = document.getElementById("sim-save-new");
+      if (saveNew) saveNew.addEventListener("click", () => save(true));
+      document.getElementById("sim-share").addEventListener("click", async () => {
+        const url = `${location.href.split("#")[0]}#/simular/${mode}/l/${encodeLink(mode, entry, matchIndex, sortedClubs)}`;
+        try { await navigator.clipboard.writeText(url); status("Link copiado."); }
+        catch (error) {
+          const target = document.getElementById("sim-save-status");
+          target.innerHTML = `Copie o link: <input class="sim-share-url" readonly value="${escapeHtml(url)}" aria-label="Link da simulação">`;
+          const input = target.querySelector("input"); input.focus(); input.select();
         }
       });
-      const keep = document.getElementById("sim-keep");
-      if (keep) keep.addEventListener("click", () => { view.fromLink = false; view.ownEntry = null; save(); render(main, [mode], context); });
-      const discard = document.getElementById("sim-discard");
-      if (discard) discard.addEventListener("click", () => { view.data[mode] = view.ownEntry; view.fromLink = false; view.ownEntry = null; render(main, [mode], context); });
     }
 
-    /* ---------- Classificação ---------- */
+    /* ---------------- Classificação */
 
-    function impossiblePairs(order) {
-      const problems = new Map();
-      order.forEach((upper, upperIndex) => {
-        order.slice(upperIndex + 1).forEach((lower) => {
-          if (maxPoints[upper] < currentPoints[lower] && !problems.has(upper)) problems.set(upper, lower);
-        });
-      });
-      return problems;
-    }
-
-    function renderQuick(focusClub, focusDirection) {
-      const order = view.data.classificacao.order;
+    function renderTable(entry, savedItem, fromLink, persist, focusClub, focusDirection) {
+      const order = entry.order;
       const problems = impossiblePairs(order);
       const total = order.length;
+      const score = tableScore(order);
       const rows = order.map((clubId, index) => {
         const position = index + 1;
         const zone = zoneOf(position, total);
-        const team = teamById[clubId];
-        const chance = team.position_probabilities[index];
         const problem = problems.get(clubId);
-        return `<li class="sim-quick-row ${zone.key ? `zone-${zone.key}` : ""}" draggable="true" data-club="${escapeHtml(clubId)}">
+        const range = reach[clubId];
+        return `<li class="sim-quick-row ${zone.key ? `zone-${zone.key}` : ""} ${problem ? "is-impossible" : ""}" draggable="true" data-club="${escapeHtml(clubId)}">
           <span class="sim-pos">${position}º</span>
           ${clubCell(clubId, 22)}
           <span class="sim-zone">${zone.label}</span>
-          <span class="sim-model" title="Probabilidade do modelo de terminar exatamente nesta posição">modelo ${pct(chance)}${crowdForClub(clubId)}</span>
+          <span class="sim-model" title="Probabilidade do modelo de terminar exatamente nesta posição; entre parênteses, as posições que o clube ainda alcança">modelo ${pct(teamById[clubId].position_probabilities[index])} <span class="sim-reach">(${range.best}º–${range.worst}º)</span></span>
           <span class="sim-move">
             <button type="button" data-move="-1" aria-label="Subir ${escapeHtml(nameOf(clubId))}" ${index === 0 ? "disabled" : ""}>▲</button>
             <button type="button" data-move="1" aria-label="Descer ${escapeHtml(nameOf(clubId))}" ${index === total - 1 ? "disabled" : ""}>▼</button>
@@ -564,37 +771,31 @@
           ${problem ? `<span class="sim-warning">Impossível: chega a no máximo ${maxPoints[clubId]} pontos e ${escapeHtml(nameOf(problem))} já tem ${currentPoints[problem]}.</span>` : ""}
         </li>`;
       }).join("");
-      const champion = order[0];
+      const blocked = problems.size ? `Não dá para salvar: ${problems.size === 1 ? "uma posição é impossível" : `${problems.size} posições são impossíveis`} pela matemática. Veja os avisos na lista.` : "";
       const relegated = order.slice(total - RELEGATED);
-      const summary = `<div class="sim-summary">
-        <p><strong>Seu campeão:</strong> ${clubCell(champion)} <span class="note">(modelo: ${pct(teamById[champion].title)} de probabilidade)</span></p>
-        <p><strong>Seus rebaixados:</strong> ${relegated.map((clubId) => `${clubCell(clubId)} <span class="note">${pct(teamById[clubId].relegation)}</span>`).join(" · ")}</p>
-        ${problems.size ? `<p class="sim-warning">${problems.size === 1 ? "Uma posição é impossível" : `${problems.size} posições são impossíveis`} pela matemática: veja os avisos na lista.</p>` : ""}
-      </div>`;
-      const controls = `<button type="button" class="link-button" id="sim-reset-model">Começar da ordem do modelo</button> · <button type="button" class="link-button" id="sim-reset-table">Começar da tabela atual</button> · `;
-      shell(controls, `${summary}<ol class="sim-quick" aria-label="Sua tabela final">${rows}</ol>
-        <p class="note">"modelo" é a probabilidade, nas simulações do modelo, de o clube terminar exatamente naquela posição. Arraste as linhas ou use as setas.</p>`);
-      bindQuick();
-      if (focusClub) {
-        const button = main.querySelector(`.sim-quick-row[data-club="${CSS.escape(focusClub)}"] button[data-move="${focusDirection}"]`)
-          || main.querySelector(`.sim-quick-row[data-club="${CSS.escape(focusClub)}"] button:not([disabled])`);
-        if (button) button.focus();
-      }
-    }
-
-    function moveClub(clubId, target) {
-      const order = view.data.classificacao.order.filter((item) => item !== clubId);
-      order.splice(Math.max(0, Math.min(order.length, target)), 0, clubId);
-      view.data.classificacao.order = order;
-      save();
-    }
-
-    function bindQuick() {
+      shell("classificacao", "Classificação", `${MODES.classificacao.what} ${MODES.classificacao.scoring}`, `
+        ${editorHeader("classificacao", savedItem, fromLink)}
+        <div class="sim-scorebox">
+          <p><strong>${score.points}</strong> pontos se o campeonato acabasse hoje · até <strong>${score.ceiling}</strong> de ${score.maximum} possíveis no fim</p>
+          <p class="note">Seu campeão: ${clubCell(order[0])} (modelo: ${pct(teamById[order[0]].title)}) · Seus rebaixados: ${relegated.map((clubId) => `${clubCell(clubId)} ${pct(teamById[clubId].relegation)}`).join(" · ")}</p>
+        </div>
+        <p class="sim-toolbar"><button type="button" class="link-button" id="sim-reset-model">Começar da ordem do modelo</button> · <button type="button" class="link-button" id="sim-reset-table">Começar da tabela atual</button></p>
+        <ol class="sim-quick" aria-label="Sua tabela final">${rows}</ol>
+        <p class="note">"modelo" é a probabilidade, nas simulações do modelo, de o clube terminar exatamente naquela posição; entre parênteses, as posições que ele ainda alcança pela matemática. Arraste as linhas ou use as setas.</p>
+        ${saveBar(savedItem, blocked)}`);
+      bindEditorHeader("classificacao");
+      bindSaveBar("classificacao", entry, savedItem);
+      const rerenderTable = (club, direction) => renderTable(entry, savedItem, fromLink, persist, club, direction);
+      const move = (clubId, target) => {
+        const next = entry.order.filter((item) => item !== clubId);
+        next.splice(Math.max(0, Math.min(next.length, target)), 0, clubId);
+        entry.order = next;
+        persist();
+      };
       main.querySelectorAll(".sim-quick-row button[data-move]").forEach((button) => button.addEventListener("click", () => {
         const clubId = button.closest(".sim-quick-row").dataset.club;
-        const direction = Number(button.dataset.move);
-        moveClub(clubId, view.data.classificacao.order.indexOf(clubId) + direction);
-        renderQuick(clubId, button.dataset.move);
+        move(clubId, entry.order.indexOf(clubId) + Number(button.dataset.move));
+        rerenderTable(clubId, button.dataset.move);
       }));
       let dragged = null;
       main.querySelectorAll(".sim-quick-row").forEach((row) => {
@@ -605,268 +806,223 @@
         row.addEventListener("drop", (event) => {
           event.preventDefault();
           if (!dragged || dragged === row.dataset.club) return;
-          moveClub(dragged, view.data.classificacao.order.indexOf(row.dataset.club));
-          renderQuick();
+          move(dragged, entry.order.indexOf(row.dataset.club));
+          rerenderTable();
         });
       });
-      document.getElementById("sim-reset-model").addEventListener("click", () => { view.data.classificacao = emptyData(snapshot).classificacao; save(); renderQuick(); });
-      document.getElementById("sim-reset-table").addEventListener("click", () => {
-        view.data.classificacao = { order: [...snapshot.standings].sort((left, right) => left.position - right.position).map((row) => row.club_id) };
-        save(); renderQuick();
-      });
+      document.getElementById("sim-reset-model").addEventListener("click", () => { entry.order = emptyEntry("classificacao").order; persist(); rerenderTable(); });
+      document.getElementById("sim-reset-table").addEventListener("click", () => { entry.order = [...standingsOrder]; persist(); rerenderTable(); });
+      if (focusClub) {
+        const button = main.querySelector(`.sim-quick-row[data-club="${CSS.escape(focusClub)}"] button[data-move="${focusDirection}"]`)
+          || main.querySelector(`.sim-quick-row[data-club="${CSS.escape(focusClub)}"] button:not([disabled])`);
+        if (button) button.focus();
+      }
     }
 
-    /* ---------- Vencedor e Placar exato ---------- */
+    /* ---------------- Vencedor e Placar exato */
 
-    function pickResult(match) {
-      const pick = view.data[mode].picks[match.match_id];
-      if (pick === undefined) return null;
-      if (mode === "vencedor") return { outcome: pick, homeGoals: null, awayGoals: null };
-      return { outcome: outcomeOf(pick[0], pick[1]), homeGoals: pick[0], awayGoals: pick[1] };
+    function sampleMatch(mode, match) {
+      if (mode === "vencedor") {
+        const target = Math.random();
+        return target < match.p_home ? "H" : target < match.p_home + match.p_draw ? "D" : "A";
+      }
+      return draw(samplers.get(match.match_id));
     }
 
-    function playedResults() {
-      return finished.map((match) => ({ home: match.home_id, away: match.away_id, outcome: outcomeOf(match.home_goals, match.away_goals), homeGoals: match.home_goals, awayGoals: match.away_goals }));
-    }
-
-    function deterministicTable() {
-      const results = playedResults();
+    function fillWithModel(mode, entry, redraw) {
+      if (redraw) entry.sampled = {};
       remaining.forEach((match) => {
-        const pick = pickResult(match);
-        if (pick) results.push({ home: match.home_id, away: match.away_id, ...pick });
+        if (entry.picks[match.match_id] === undefined && entry.sampled[match.match_id] === undefined) entry.sampled[match.match_id] = sampleMatch(mode, match);
       });
-      const rows = newRows(clubIds);
-      results.forEach((result) => addResult(rows, result.home, result.away, result.outcome, result.homeGoals, result.awayGoals));
-      return rankRows(rows, results);
     }
 
-    /* Monte Carlo do "Completar com o modelo": jogos com palpite ficam fixos (no Vencedor, só o vencedor fica fixo e o
-       placar é sorteado dentro dele); os outros são sorteados da matriz do modelo. Depois de gols marcados,
-       o desempate é sorteado, como os cartões e o sorteio do regulamento, que não dá para prever. */
-    function assistedSimulation(withPicks) {
-      const random = mulberry32(ASSIST_SEED);
-      const base = newRows(clubIds);
-      playedResults().forEach((result) => addResult(base, result.home, result.away, result.outcome, result.homeGoals, result.awayGoals));
-      const plan = remaining.map((match) => {
-        const pick = withPicks ? pickResult(match) : null;
-        const sampler = samplers.get(match.match_id);
-        if (pick && pick.homeGoals !== null) return { match, fixed: pick };
-        return { match, distribution: pick ? sampler[pick.outcome] || sampler.all : sampler.all };
-      });
-      const index = Object.fromEntries(clubIds.map((clubId, position) => [clubId, position]));
-      const count = clubIds.length;
-      const positions = clubIds.map(() => new Float64Array(count));
-      const points = new Float64Array(count);
-      const stats = new Int32Array(count * 4);
-      for (let simulation = 0; simulation < ASSIST_SIMULATIONS; simulation += 1) {
-        clubIds.forEach((clubId, position) => {
-          const row = base[clubId];
-          stats[position * 4] = row.points; stats[position * 4 + 1] = row.wins;
-          stats[position * 4 + 2] = row.goals_for - row.goals_against; stats[position * 4 + 3] = row.goals_for;
-        });
-        for (const step of plan) {
-          let homeGoals;
-          let awayGoals;
-          if (step.fixed) { homeGoals = step.fixed.homeGoals; awayGoals = step.fixed.awayGoals; }
-          else { const cell = draw(step.distribution, random); homeGoals = cell[1]; awayGoals = cell[2]; }
-          const home = index[step.match.home_id] * 4;
-          const away = index[step.match.away_id] * 4;
-          if (homeGoals > awayGoals) { stats[home] += 3; stats[home + 1] += 1; }
-          else if (homeGoals < awayGoals) { stats[away] += 3; stats[away + 1] += 1; }
-          else { stats[home] += 1; stats[away] += 1; }
-          stats[home + 2] += homeGoals - awayGoals; stats[away + 2] += awayGoals - homeGoals;
-          stats[home + 3] += homeGoals; stats[away + 3] += awayGoals;
-        }
-        const lot = clubIds.map(() => random());
-        const order = clubIds.map((_, position) => position).sort((left, right) =>
-          stats[right * 4] - stats[left * 4] || stats[right * 4 + 1] - stats[left * 4 + 1]
-          || stats[right * 4 + 2] - stats[left * 4 + 2] || stats[right * 4 + 3] - stats[left * 4 + 3] || lot[left] - lot[right]);
-        order.forEach((club, rank) => { positions[club][rank] += 1; points[club] += stats[club * 4]; });
+    function matchControl(mode, match, entry) {
+      const own = entry.picks[match.match_id];
+      const sampled = own === undefined ? entry.sampled[match.match_id] : undefined;
+      const value = own !== undefined ? own : sampled;
+      const label = `${nameOf(match.home_id)} x ${nameOf(match.away_id)}`;
+      const tag = sampled !== undefined ? `<span class="sim-tag is-model">sorteado pelo modelo</span>` : own !== undefined ? "" : `<span class="sim-tag">em branco</span>`;
+      if (mode === "vencedor") {
+        const option = (key, text, probability) => `<button type="button" class="sim-choice ${value === key ? (sampled !== undefined ? "is-model" : "chosen") : ""}" data-match="${escapeHtml(match.match_id)}" data-pick="${key}" aria-pressed="${value === key}">
+          <span>${text}</span><span class="sim-prob">${pct(probability)}</span></button>`;
+        return `<div class="sim-choices" role="group" aria-label="${escapeHtml(label)}">
+          ${option("H", shortName(match.home_id), match.p_home)}${option("D", "Empate", match.p_draw)}${option("A", shortName(match.away_id), match.p_away)}</div>${tag}`;
       }
-      return clubIds.map((clubId, position) => {
-        const distribution = Array.from(positions[position], (value) => value / ASSIST_SIMULATIONS);
-        const expected = distribution.reduce((sum, probability, rank) => sum + probability * (rank + 1), 0);
-        return {
-          club_id: clubId,
-          expected_position: expected,
-          expected_points: points[position] / ASSIST_SIMULATIONS,
-          title: distribution[0],
-          top4: distribution.slice(0, LIBERTADORES_GROUPS).reduce((sum, value) => sum + value, 0),
-          relegation: distribution.slice(count - RELEGATED).reduce((sum, value) => sum + value, 0),
-        };
-      }).sort((left, right) => left.expected_position - right.expected_position);
+      const goals = (side) => (value !== undefined ? value[side] : "");
+      const probability = value !== undefined && match.score_probabilities && match.score_probabilities[value[0]] ? match.score_probabilities[value[0]][value[1]] || 0 : null;
+      return `<span class="sim-score ${sampled !== undefined ? "is-model" : ""}">
+        <input type="number" inputmode="numeric" min="0" max="${MAX_GOALS_INPUT}" value="${goals(0)}" data-match="${escapeHtml(match.match_id)}" data-side="0" aria-label="Gols de ${escapeHtml(nameOf(match.home_id))} contra ${escapeHtml(nameOf(match.away_id))}">
+        <span aria-hidden="true">x</span>
+        <input type="number" inputmode="numeric" min="0" max="${MAX_GOALS_INPUT}" value="${goals(1)}" data-match="${escapeHtml(match.match_id)}" data-side="1" aria-label="Gols de ${escapeHtml(nameOf(match.away_id))} contra ${escapeHtml(nameOf(match.home_id))}">
+        </span>${tag}<span class="sim-prob">${probability !== null ? `modelo: ${pct(probability)} para este placar` : `mais provável: ${escapeHtml(match.most_likely_score || "–")}`}</span>`;
     }
 
-    function baselineGap() {
-      if (!view.baseline || view.baseline.generated_at !== snapshot.generated_at) {
-        const rows = assistedSimulation(false);
-        const gap = Math.max(...rows.flatMap((row) => ["title", "top4", "relegation"].map((key) => Math.abs(row[key] - teamById[row.club_id][key]))));
-        view.baseline = { generated_at: snapshot.generated_at, gap };
-      }
-      return view.baseline.gap;
-    }
-
-    function pickedCount() { return Object.keys(view.data[mode].picks).length; }
-
-    function resultPanel() {
-      const entry = view.data[mode];
-      const missing = remaining.length - pickedCount();
-      if (entry.assist && canAssist) {
-        const rows = assistedSimulation(true);
-        const gap = baselineGap();
-        const body = rows.map((row, index) => {
-          const zone = zoneOf(index + 1, rows.length);
-          const official = teamById[row.club_id];
-          const cell = (key) => `<td class="num">${pct(row[key])}<span class="sim-delta" title="diferença para o modelo oficial, em pontos percentuais">${signed(row[key] - official[key])}</span></td>`;
-          return `<tr class="${zone.key ? `zone-${zone.key}` : ""}"><td class="num">${index + 1}</td><td>${clubCell(row.club_id)}</td>
-            <td class="num">${row.expected_points.toFixed(1).replace(".", ",")}</td>${cell("title")}${cell("top4")}${cell("relegation")}</tr>`;
-        }).join("");
-        return `<h2>Sua simulação, com o modelo completando</h2>
-          <p class="note">${pickedCount()} ${pickedCount() === 1 ? "jogo com palpite seu" : "jogos com palpite seu"}; ${missing === 1 ? "o outro foi sorteado" : `os outros ${missing} foram sorteados`} ${ASSIST_SIMULATIONS.toLocaleString("pt-BR")} vezes com as probabilidades do modelo. Ao lado de cada número, a diferença para o modelo oficial, em pontos percentuais.</p>
-          <div class="table-wrap"><table class="sim-table"><thead><tr><th class="num">#</th><th>Clube</th><th class="num">Pts</th><th class="num">Título</th><th class="num">G4</th><th class="num">Queda</th></tr></thead><tbody>${body}</tbody></table></div>
-          <p class="note">Cálculo simplificado, feito no seu navegador: a força dos clubes fica a da data de referência (no modelo oficial ela muda a cada jogo simulado) e, depois de gols marcados, o desempate é sorteado. Sem nenhum palpite, este cálculo fica a até ${(Math.round(gap * 1000) / 10).toLocaleString("pt-BR")} p.p. do oficial, somando a simplificação e o acaso do sorteio. Diferenças desse tamanho podem não vir dos seus palpites.</p>`;
-      }
-      const table = deterministicTable();
+    function resultPanel(mode, entry) {
+      const table = finalTable(mode, entry);
+      const picks = effectivePicks(entry);
+      const missing = remaining.filter((match) => picks[match.match_id] === undefined).length;
       const body = table.map((row) => {
         const zone = zoneOf(row.position, table.length);
+        const sign = goalDifference(row) > 0 ? "+" : goalDifference(row) < 0 ? MINUS : "";
         return `<tr class="${zone.key ? `zone-${zone.key}` : ""}"><td class="num">${row.position}</td><td>${clubCell(row.club_id)}${row.tie ? ` <span class="sim-tie" title="Empate em todos os critérios que dá para calcular; o regulamento decide por cartões e, depois, sorteio">empate: ${row.tie}</span>` : ""}</td>
-          <td class="num">${row.points}</td><td class="num">${row.played}</td><td class="num">${row.wins}</td><td class="num">${goalDifference(row) > 0 ? "+" : goalDifference(row) < 0 ? MINUS : ""}${Math.abs(goalDifference(row))}</td></tr>`;
+          <td class="num">${row.points}</td><td class="num">${row.played}</td><td class="num">${row.wins}</td><td class="num">${sign}${Math.abs(goalDifference(row))}</td></tr>`;
       }).join("");
-      const missingNote = missing ? `Faltam palpites em ${missing} ${missing === 1 ? "jogo, que não entra" : "jogos, que não entram"} na tabela. Marque "Completar com o modelo" para o modelo simular esses jogos.` : "Todos os jogos têm palpite.";
+      const missingNote = missing ? `${missing} ${missing === 1 ? "jogo em branco não entra" : "jogos em branco não entram"} na tabela. Ligue "Modelo sorteia" para completar.` : "Todos os jogos têm resultado.";
       const goalsNote = mode === "vencedor" ? " No modo Vencedor não há placar, então o saldo de gols é só o dos jogos já disputados." : "";
-      return `<h2>Sua tabela final</h2>
-        <p class="note">${missingNote}${goalsNote}</p>
-        <div class="table-wrap"><table class="sim-table"><thead><tr><th class="num">#</th><th>Clube</th><th class="num">Pts</th><th class="num">J</th><th class="num">V</th><th class="num">SG</th></tr></thead><tbody>${body}</tbody></table></div>`;
+      const asTable = missing ? "" : (() => {
+        const score = tableScore(table.map((row) => row.club_id));
+        return `<div class="sim-scorebox"><p><strong>Esta tabela como Classificação:</strong> ${score.points} pontos se o campeonato acabasse hoje · até ${score.ceiling} de ${score.maximum} possíveis.</p></div>`;
+      })();
+      return `<h2>Sua tabela final</h2><p class="note">${missingNote}${goalsNote}</p>
+        <div class="table-wrap"><table class="sim-table"><thead><tr><th class="num">#</th><th>Clube</th><th class="num">Pts</th><th class="num">J</th><th class="num">V</th><th class="num">SG</th></tr></thead><tbody>${body}</tbody></table></div>${asTable}`;
     }
 
-    function matchControl(match) {
-      const pick = view.data[mode].picks[match.match_id];
-      const label = `${nameOf(match.home_id)} x ${nameOf(match.away_id)}`;
-      if (mode === "vencedor") {
-        const option = (key, text, probability) => `<label class="sim-choice ${pick === key ? "chosen" : ""}">
-          <input type="radio" name="pick-${escapeHtml(match.match_id)}" value="${key}" ${pick === key ? "checked" : ""} data-match="${escapeHtml(match.match_id)}">
-          <span>${text}</span><span class="sim-prob">${pct(probability)}</span></label>`;
-        return `<fieldset class="sim-choices"><legend class="visually-hidden">${escapeHtml(label)}</legend>
-          ${option("H", shortName(match.home_id), match.p_home)}${option("D", "Empate", match.p_draw)}${option("A", shortName(match.away_id), match.p_away)}
-          ${pick ? `<button type="button" class="link-button sim-clear-one" data-match="${escapeHtml(match.match_id)}" aria-label="Apagar palpite de ${escapeHtml(label)}">apagar</button>` : ""}</fieldset>`;
-      }
-      const value = (side) => (pick ? pick[side] : "");
-      const probability = pick ? (match.score_probabilities && match.score_probabilities[pick[0]] ? match.score_probabilities[pick[0]][pick[1]] : 0) : null;
-      return `<span class="sim-score">
-        <input type="number" inputmode="numeric" min="0" max="${MAX_GOALS_INPUT}" value="${value(0)}" data-match="${escapeHtml(match.match_id)}" data-side="0" aria-label="Gols de ${escapeHtml(nameOf(match.home_id))} contra ${escapeHtml(nameOf(match.away_id))}">
-        <span aria-hidden="true">x</span>
-        <input type="number" inputmode="numeric" min="0" max="${MAX_GOALS_INPUT}" value="${value(1)}" data-match="${escapeHtml(match.match_id)}" data-side="1" aria-label="Gols de ${escapeHtml(nameOf(match.away_id))} contra ${escapeHtml(nameOf(match.home_id))}">
-        </span><span class="sim-prob" data-prob="${escapeHtml(match.match_id)}">${probability !== null ? `placar: ${pct(probability)}` : `modelo: ${escapeHtml(match.most_likely_score || "–")} é o mais provável`}</span>`;
-    }
-
-    function renderPicks() {
+    function renderPicks(mode, entry, savedItem, fromLink, persist) {
+      const picks = effectivePicks(entry);
+      const pending = remaining.length;
+      const own = remaining.filter((match) => entry.picks[match.match_id] !== undefined).length;
+      const sampledCount = remaining.filter((match) => entry.picks[match.match_id] === undefined && entry.sampled[match.match_id] !== undefined).length;
+      const blank = pending - own - sampledCount;
       const byRound = new Map();
       [...remaining].sort((left, right) => (left.round || 99) - (right.round || 99) || left.match_date.localeCompare(right.match_date))
-        .forEach((match) => {
-          const key = match.round || 0;
-          if (!byRound.has(key)) byRound.set(key, []);
-          byRound.get(key).push(match);
-        });
-      const rounds = [...byRound.entries()].map(([round, matches]) => `<section class="sim-round"><h3>${round ? `Rodada ${round}` : "Sem rodada"}</h3>
-        ${matches.map((match) => `<div class="sim-match">
-          <span class="sim-date">${escapeHtml(formatShortDate(match.match_date))}${match.match_date < snapshot.reference_date ? " · adiado" : ""}${lockLabel(match)}</span>
-          <span class="sim-home">${clubCell(match.home_id)}</span>
-          <span class="sim-pick">${matchControl(match)}${crowdForMatch(match)}</span>
-          <span class="sim-away">${clubCell(match.away_id)}</span></div>`).join("")}</section>`).join("");
-      const entry = view.data[mode];
-      const assistToggle = canAssist
-        ? `<label class="sim-assist"><input type="checkbox" id="sim-assist" ${entry.assist ? "checked" : ""}> Completar com o modelo <span class="note">(o modelo simula os jogos em que você não mexer)</span></label> · `
-        : `<span class="note">"Completar com o modelo" precisa de um snapshot mais novo, com a matriz de placares. </span>`;
-      const controls = `${assistToggle}<button type="button" class="link-button" id="sim-clear">Apagar palpites</button> · `;
-      shell(controls, `<div class="sim-layout"><div class="sim-picks">${rounds || "<p>Não há jogos por disputar.</p>"}</div>
-        <div class="sim-result" id="sim-result" aria-live="polite"></div></div>`);
-      updateResult();
-      bindPicks();
-    }
-
-    let pending = null;
-    function updateResult() {
-      const target = document.getElementById("sim-result");
-      if (!target) return;
-      if (pending) window.clearTimeout(pending);
-      target.classList.add("sim-busy");
-      pending = window.setTimeout(() => { target.innerHTML = resultPanel(); target.classList.remove("sim-busy"); pending = null; }, 30);
-    }
-
-    function bindPicks() {
-      const entry = view.data[mode];
-      const assist = document.getElementById("sim-assist");
-      if (assist) assist.addEventListener("change", () => { entry.assist = assist.checked; save(); updateResult(); });
+        .forEach((match) => { const key = match.round || 0; if (!byRound.has(key)) byRound.set(key, []); byRound.get(key).push(match); });
+      const rounds = [...byRound.entries()].map(([round, matches], index) => {
+        const filled = matches.filter((match) => picks[match.match_id] !== undefined).length;
+        return `<details class="sim-round" ${index < 2 ? "open" : ""}><summary><span>${round ? `Rodada ${round}` : "Sem rodada"}</span><span class="note">${filled} de ${matches.length} preenchidos</span></summary>
+          ${matches.map((match) => `<div class="sim-match" data-row="${escapeHtml(match.match_id)}">
+            <span class="sim-date">${escapeHtml(formatShortDate(match.match_date))}${match.match_date < snapshot.reference_date ? " · adiado" : ""} ${lockLabel(match)}</span>
+            <span class="sim-home">${clubCell(match.home_id)}</span>
+            <span class="sim-pick">${matchControl(mode, match, entry)}${crowdForMatch(match)}${entry.picks[match.match_id] !== undefined ? `<button type="button" class="link-button sim-clear-one" data-clear="${escapeHtml(match.match_id)}">apagar</button>` : ""}</span>
+            <span class="sim-away">${clubCell(match.away_id)}</span></div>`).join("")}
+        </details>`;
+      }).join("");
+      const modelSwitch = canSample ? `<div class="sim-model-switch" role="group" aria-label="O que fazer com os jogos em branco">
+          <span class="sim-model-switch-label">Jogos em branco</span>
+          <span class="sim-segments"><button type="button" class="sim-segment" data-model="off" aria-pressed="${!entry.model}">Deixar em branco</button><button type="button" class="sim-segment" data-model="on" aria-pressed="${entry.model}">Modelo sorteia</button></span>
+          ${entry.model ? `<button type="button" class="link-button" id="sim-redraw">Sortear de novo</button>` : ""}
+          <p class="note">${entry.model ? "O modelo sorteou agora um resultado para cada jogo que você não preencheu, com as probabilidades dele. Os sorteados aparecem tracejados e valem pontos como os seus; troque qualquer um clicando nele." : "Os jogos que você não preencher ficam fora da tabela final. Escolha \"Modelo sorteia\" para completar cada um com um resultado sorteado na hora."}</p>
+        </div>` : `<p class="note">O sorteio do modelo precisa de um snapshot mais novo, com a matriz de placares.</p>`;
+      const progress = `<div class="sim-progress" role="img" aria-label="${own} seus, ${sampledCount} sorteados, ${blank} em branco"><span class="is-own" style="width:${own / pending * 100}%"></span><span class="is-model" style="width:${sampledCount / pending * 100}%"></span></div>
+        <p class="note">${own} seus · ${sampledCount} sorteados pelo modelo · ${blank} em branco, de ${pending} jogos que faltam.</p>`;
+      const score = pickScore(mode, entry);
+      const scoreLine = savedItem ? `<div class="sim-scorebox"><p>${scoreSummary(savedItem)}</p></div>`
+        : `<div class="sim-scorebox"><p>Esta simulação vale até <strong>${score.total}</strong> pontos (${maxPerMatch(mode)} por jogo preenchido).</p></div>`;
+      const blocked = Object.keys(picks).length ? "" : "Preencha pelo menos um jogo, ou escolha \"Modelo sorteia\", para salvar.";
+      shell(mode, MODES[mode].label, `${MODES[mode].what} ${MODES[mode].scoring}`, `
+        ${editorHeader(mode, savedItem, fromLink)}
+        ${modelSwitch}${progress}${scoreLine}
+        <p class="sim-toolbar"><button type="button" class="link-button" id="sim-clear">Apagar meus palpites</button></p>
+        <div class="sim-layout"><div class="sim-picks">${rounds || "<p>Não há jogos por disputar.</p>"}</div>
+          <div class="sim-result" id="sim-result" aria-live="polite">${resultPanel(mode, entry)}</div></div>
+        ${saveBar(savedItem, blocked)}`);
+      bindEditorHeader(mode);
+      bindSaveBar(mode, entry, savedItem);
+      const again = (focusSelector) => {
+        const scroll = window.scrollY;
+        const openRounds = [...main.querySelectorAll(".sim-round")].map((details) => details.open);
+        renderPicks(mode, entry, savedItem, fromLink, persist);
+        main.querySelectorAll(".sim-round").forEach((details, index) => { if (openRounds[index] !== undefined) details.open = openRounds[index]; });
+        window.scrollTo(0, scroll);
+        if (focusSelector) { const element = main.querySelector(focusSelector); if (element) element.focus({ preventScroll: true }); }
+      };
+      main.querySelectorAll("[data-model]").forEach((button) => button.addEventListener("click", () => {
+        entry.model = button.dataset.model === "on";
+        if (entry.model) fillWithModel(mode, entry, false); else entry.sampled = {};
+        persist(); again(`[data-model="${button.dataset.model}"]`);
+      }));
+      const redraw = document.getElementById("sim-redraw");
+      if (redraw) redraw.addEventListener("click", () => { fillWithModel(mode, entry, true); persist(); again("#sim-redraw"); });
       document.getElementById("sim-clear").addEventListener("click", () => {
-        if (pickedCount() && !window.confirm("Apagar todos os palpites deste modo?")) return;
-        entry.picks = {}; save(); renderPicks();
+        if (Object.keys(entry.picks).length && !window.confirm("Apagar os seus palpites? Os sorteados pelo modelo ficam.")) return;
+        entry.picks = {};
+        if (entry.model) fillWithModel(mode, entry, false);
+        persist(); again();
       });
-      main.querySelectorAll(".sim-choices input[type=radio]").forEach((input) => input.addEventListener("change", () => {
-        entry.picks[input.dataset.match] = input.value;
-        save();
-        input.closest(".sim-choices").querySelectorAll(".sim-choice").forEach((choice) => choice.classList.toggle("chosen", choice.contains(input)));
-        updateResult();
+      main.querySelectorAll("[data-clear]").forEach((button) => button.addEventListener("click", () => {
+        const matchId = button.dataset.clear;
+        delete entry.picks[matchId];
+        if (entry.model) entry.sampled[matchId] = sampleMatch(mode, remaining.find((item) => item.match_id === matchId));
+        persist(); again();
       }));
-      main.querySelectorAll(".sim-clear-one").forEach((button) => button.addEventListener("click", () => {
-        delete entry.picks[button.dataset.match]; save(); renderPicks();
+      main.querySelectorAll(".sim-choice[data-pick]").forEach((button) => button.addEventListener("click", () => {
+        entry.picks[button.dataset.match] = button.dataset.pick;
+        delete entry.sampled[button.dataset.match];
+        persist(); again(`.sim-choice[data-match="${CSS.escape(button.dataset.match)}"][data-pick="${button.dataset.pick}"]`);
       }));
-      main.querySelectorAll(".sim-score input").forEach((input) => input.addEventListener("input", () => {
+      main.querySelectorAll(".sim-score input").forEach((input) => input.addEventListener("change", () => {
         const matchId = input.dataset.match;
-        const inputs = main.querySelectorAll(`.sim-score input[data-match="${CSS.escape(matchId)}"]`);
-        const values = Array.from(inputs, (field) => (field.value === "" ? null : Math.max(0, Math.min(MAX_GOALS_INPUT, Math.round(Number(field.value))))));
-        const label = main.querySelector(`[data-prob="${CSS.escape(matchId)}"]`);
-        const match = remaining.find((item) => item.match_id === matchId);
-        if (values.every((value) => value !== null && !Number.isNaN(value))) {
-          entry.picks[matchId] = values;
-          const matrix = match.score_probabilities;
-          const probability = matrix && matrix[values[0]] ? matrix[values[0]][values[1]] || 0 : 0;
-          label.textContent = `placar: ${pct(probability)}`;
-        } else {
-          delete entry.picks[matchId];
-          label.textContent = `modelo: ${match.most_likely_score || "–"} é o mais provável`;
-        }
-        save();
-        updateResult();
+        const fields = main.querySelectorAll(`.sim-score input[data-match="${CSS.escape(matchId)}"]`);
+        const values = Array.from(fields, (field) => (field.value === "" ? null : Math.max(0, Math.min(MAX_GOALS_INPUT, Math.round(Number(field.value))))));
+        if (!values.every((value) => value !== null && !Number.isNaN(value))) return;
+        entry.picks[matchId] = values;
+        delete entry.sampled[matchId];
+        persist();
+        const nextRow = main.querySelector(`.sim-match[data-row="${CSS.escape(matchId)}"]`)?.nextElementSibling;
+        const nextId = nextRow && nextRow.dataset ? nextRow.dataset.row : null;
+        again(nextId ? `.sim-score input[data-match="${CSS.escape(nextId)}"][data-side="0"]` : null);
       }));
     }
 
-    /* ---------- Ranking ---------- */
+    /* ---------------- Ranking e visitantes */
 
     async function renderRanking(requested) {
-      const rankMode = RANKING_MODES[requested] ? requested : "placar";
-      const subTabs = `<nav class="tabs sim-subtabs" aria-label="Ranking por modo">${Object.entries(RANKING_MODES).map(([key, item]) =>
+      const rankMode = MODES[requested] ? requested : "placar";
+      const subTabs = `<nav class="tabs sim-subtabs" aria-label="Ranking por modo">${Object.entries(MODES).map(([key, item]) =>
         `<a href="#/simular/ranking/${key}" ${key === rankMode ? 'aria-current="page"' : ""}>${item.label}</a>`).join("")}</nav>`;
-      shell(null, `${subTabs}<p class="note">${RANKING_MODES[rankMode].rules} Só contam palpites salvos no servidor antes do início de cada jogo; jogos completados pelo modelo não contam. Aparece aqui só quem escolheu um apelido e marcou "Aparecer no ranking".</p>
-        <div id="sim-ranking" aria-live="polite"><p class="note">Carregando o ranking…</p></div>`,
-        "Quem mais acerta os jogos e a tabela entre os visitantes que participam. Cada modo tem o seu ranking.");
+      shell("ranking", "Ranking", `Cada simulação enviada ao servidor por quem escolheu aparecer no ranking (até ${SERVER_LIMIT} por pessoa e modo), com o apelido e o ID da simulação.`,
+        `${subTabs}<p class="note">${MODES[rankMode].scoring} Só contam palpites salvos no servidor antes do horário de cada jogo; os sorteados pelo modelo contam como os outros.</p>
+         <div id="sim-ranking" aria-live="polite"><p class="note">Carregando o ranking…</p></div>`);
       const target = document.getElementById("sim-ranking");
-      if (rankMode === "classificacao") {
-        try {
+      try {
+        if (rankMode === "classificacao") {
           const info = await cloud.seasonInfo(season);
           if (info && new Date(info.classificacao_locks_at) <= new Date() && document.body.contains(target)) {
-            const when = new Date(info.classificacao_locks_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
-            target.insertAdjacentHTML("beforebegin", `<p class="sim-banner">Nesta temporada não há ranking da Classificação: a trava foi em ${when}, antes de o simulador existir. Ele começa na próxima temporada.</p>`);
+            target.insertAdjacentHTML("beforebegin", `<p class="sim-banner">Nesta temporada não há ranking da Classificação: a trava foi em ${formatDay(info.classificacao_locks_at)}, antes de o simulador existir. Ele começa na próxima temporada. A pontuação de cada Classificação continua em "Minhas simulações".</p>`);
           }
-        } catch (error) { /* sem a trava, a página segue sem o aviso */ }
-      }
-      try {
-        const [rows, mine] = await Promise.all([cloud.ranking(season, rankMode), cloudState.user ? cloud.myScores(season) : Promise.resolve([])]);
-        const own = (mine || []).find((row) => row.mode === rankMode);
-        const ownLine = cloudState.user
-          ? `<p><strong>Você:</strong> ${own ? `${own.points} ${own.points === 1 ? "ponto" : "pontos"} em ${own.scored_picks} ${own.scored_picks === 1 ? "palpite contado" : "palpites contados"}` : "ainda sem pontos neste modo"}${cloudState.profile && cloudState.profile.show_in_ranking ? "" : " (fora do ranking público)"}.</p>`
-          : "";
-        const body = rows.length ? `<div class="table-wrap"><table class="sim-table"><thead><tr><th class="num">#</th><th>Apelido</th><th class="num">Pontos</th><th class="num">${RANKING_MODES[rankMode].exact}</th><th class="num">Palpites contados</th></tr></thead>
-          <tbody>${rows.map((row) => `<tr${cloudState.profile && row.nickname === cloudState.profile.nickname ? ' class="selected-team"' : ""}><td class="num">${row.rank}</td><td>${escapeHtml(row.nickname)}</td><td class="num">${row.points}</td><td class="num">${row.exact_hits}</td><td class="num">${row.scored_picks}</td></tr>`).join("")}</tbody></table></div>`
+        }
+        const rows = await cloud.ranking(season, rankMode);
+        const mine = new Set(store.saved.map((item) => item.server_id).filter(Boolean));
+        const exactLabel = rankMode === "placar" ? "Placares exatos" : rankMode === "vencedor" ? "Acertos" : "Posições exatas";
+        const body = rows.length ? `<div class="table-wrap"><table class="sim-table"><thead><tr><th class="num">#</th><th>Apelido · simulação</th><th class="num">Pontos</th><th class="num">${exactLabel}</th><th class="num">${rankMode === "classificacao" ? "Clubes" : "Jogos"}</th></tr></thead>
+          <tbody>${rows.map((row) => `<tr${mine.has(row.simulation_id) ? ' class="selected-team"' : ""}><td class="num">${row.rank}</td><td>${escapeHtml(row.nickname)} · #${row.simulation_id}</td><td class="num">${row.points} de ${row.max_points}</td><td class="num">${row.exact_hits}</td><td class="num">${row.scored_picks}</td></tr>`).join("")}</tbody></table></div>`
           : `<p>Ninguém pontuou ainda neste modo. Os pontos aparecem depois que os jogos com palpite terminam${rankMode === "classificacao" ? " e, na Classificação, no fim da temporada" : ""}.</p>`;
-        if (document.body.contains(target)) target.innerHTML = ownLine + body;
+        if (document.body.contains(target)) target.innerHTML = body;
       } catch (error) {
         if (document.body.contains(target)) target.innerHTML = `<p class="note">Ranking indisponível agora (${escapeHtml(error.message)}).</p>`;
       }
     }
 
-    if (isRanking) renderRanking(segments[1]);
-    else if (mode === "classificacao") renderQuick();
-    else renderPicks();
+    async function renderVisitors() {
+      shell("visitantes", "Classificação dos visitantes", "A tabela final mais provável segundo as simulações feitas no site: a mais recente de cada pessoa que participa (uma Classificação, ou a tabela final de um Vencedor ou Placar exato completo), ordenada pela posição média.",
+        `<div id="sim-visitors" aria-live="polite"><p class="note">Carregando…</p></div>`);
+      const target = document.getElementById("sim-visitors");
+      try {
+        const data = await cloud.consensus(season);
+        if (!document.body.contains(target)) return;
+        if (!data.clubs || !data.clubs.length) {
+          target.innerHTML = `<p>Ainda são poucas pessoas: a tabela aparece com pelo menos ${data.min_users} participantes, para não expor a escolha de ninguém. Participe e salve uma simulação para entrar na conta.</p>`;
+          return;
+        }
+        const official = Object.fromEntries([...snapshot.teams].sort((left, right) => left.expected_position - right.expected_position).map((team, index) => [team.club_id, index + 1]));
+        target.innerHTML = `<p class="note">Com as tabelas de pelo menos ${data.users_at_least} pessoas. Na última coluna, a posição do clube na ordem do modelo oficial.</p>
+          <div class="table-wrap"><table class="sim-table"><thead><tr><th class="num">#</th><th>Clube</th><th class="num">Posição média</th><th class="num">Campeão</th><th class="num">Rebaixado</th><th class="num">Modelo</th></tr></thead>
+          <tbody>${data.clubs.map((club, index) => { const zone = zoneOf(index + 1, data.clubs.length); return `<tr class="${zone.key ? `zone-${zone.key}` : ""}"><td class="num">${index + 1}</td><td>${clubCell(club.club_id)}</td>
+            <td class="num">${Number(club.average_position).toLocaleString("pt-BR", { minimumFractionDigits: 1 })}</td><td class="num">${pct(club.champion)}</td><td class="num">${pct(club.relegated)}</td><td class="num">${official[club.club_id] || "–"}º</td></tr>`; }).join("")}</tbody></table></div>`;
+      } catch (error) {
+        if (document.body.contains(target)) target.innerHTML = `<p class="note">Indisponível agora (${escapeHtml(error.message)}).</p>`;
+      }
+    }
+
+    /* ---------------- Rotas: #/simular, /{modo}, /{modo}/s/{id}, /{modo}/l/{código}, /ranking/{modo}, /visitantes */
+
+    if (first === "ranking" && cloud) renderRanking(second);
+    else if (first === "visitantes" && cloud) renderVisitors();
+    else if (MODES[first]) {
+      if (second === "s") openEditor(first, decodeURIComponent(third), null);
+      else if (second === "l") openEditor(first, null, third);
+      else if (second) openEditor(first, null, second);
+      else openEditor(first, null, null);
+    } else renderHome();
     initCloud();
   }
 
