@@ -47,10 +47,29 @@ def main() -> None:
             return
 
         command = [
-            imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error",
-            "-f", "image2pipe", "-framerate", str(args.fps), "-c:v", "png", "-i", "-",
-            "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-pix_fmt", "yuv420p",
-            "-movflags", "+faststart", str(OUT / args.output),
+            imageio_ffmpeg.get_ffmpeg_exe(),
+            "-y",
+            "-loglevel",
+            "error",
+            "-f",
+            "image2pipe",
+            "-framerate",
+            str(args.fps),
+            "-c:v",
+            "png",
+            "-i",
+            "-",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "slow",
+            "-crf",
+            "18",
+            "-pix_fmt",
+            "yuv420p",
+            "-movflags",
+            "+faststart",
+            str(OUT / args.output),
         ]
         encoder = subprocess.Popen(command, stdin=subprocess.PIPE)
         total = round(duration * args.fps)

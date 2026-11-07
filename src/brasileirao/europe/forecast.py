@@ -229,7 +229,8 @@ def build_forecast(
         ],
         warnings=[
             "Pontos disciplinares e coeficiente da UEFA (últimos critérios de desempate) viram sorteio: sem dados.",
-            "Onde a UEFA sorteia (lado da chave e confronto em cada seção), a simulação sorteia com probabilidades iguais.",
+            "Onde a UEFA sorteia (lado da chave e confronto em cada seção), "
+            "a simulação sorteia com probabilidades iguais.",
             "Prorrogação com um terço das taxas de gol; pênaltis 50/50.",
             "Ratings fixos no que falta da competição; a força de cada clube é a da data de referência.",
         ],
