@@ -3341,7 +3341,14 @@ real com a chave anon: perfis, simulações, `sim_scores` e `sim_my_scores` nega
   (61 jogos), palpite próprio substitui o sorteado, "Salvar simulação" e "Salvar como nova" com IDs diferentes,
   rascunho volta ao começo, Classificação impossível com o botão desligado, lista com pontuação, 375 px sem
   rolagem horizontal nas 5 telas.
-- **Bloqueio**: a aplicação da `0003` no Supabase foi recusada pela checagem automática de permissões da sessão
-  (classificada como deploy em produção). Até ela ser aplicada, o código novo não deve ir ao `main`: o site
-  publicado com o simulador novo e o banco antigo cai para "só no aparelho".
+- **`0003` aplicada** (autorizada pelo dono depois do bloqueio da checagem automática; conferida por SHA-256). As 3
+  simulações do participante real ganharam ID. Pontuação no banco para o resultado 2x1: 10, 7, 6, 5, 5, 2 (e 6 para
+  1x1 contra 2x2; Vencedor 4).
+- **Ponta a ponta no banco real** (conta de teste, apagada no fim): 3 simulações de Placar exato no servidor (#4,
+  #5, #6) e a 4ª recusada pelo limite e mantida só no aparelho; Classificação #8 enviada com o aviso de que 2026 não
+  tem ranking; e-mail de avisos salvo e lido só pela própria conta; excluir a #5 tirou do servidor; Ranking e
+  Visitantes respondem (Visitantes pede 30 pessoas). Sem conta: `sim_contacts` e `sim_simulations` negados (42501),
+  `sim_notification_list` negada. Depois de apagar a conta: 1 usuário (o real), 3 simulações, 0 contatos.
+- **Falta**: a próxima publicação envia `points` e `max_points` por clube (até lá o banco não recusa ordem
+  impossível, só o navegador); envio de e-mails (provedor e confirmação de endereço); revalidação do 06 da `0003`.
 
