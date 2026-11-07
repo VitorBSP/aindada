@@ -16,17 +16,17 @@
     classificacao: {
       label: "Classificação", effort: "1 minuto",
       what: "Ordene os 20 clubes do 1º ao 20º.",
-      scoring: "3 pontos por clube na posição exata, 1 a uma posição da certa, 10 pelo campeão e 3 por rebaixado acertado (máximo 82).",
+      scoring: "3 pontos por clube na posição exata, 1 a uma posição da certa, 10 pelo campeão, 3 por clube do G4 acertado e 5 por rebaixado acertado (máximo 102). No ranking, a pontuação é multiplicada pela fração de jogos que ainda faltavam quando você salvou: quanto mais cedo, mais vale.",
     },
     vencedor: {
       label: "Vencedor", effort: "5 minutos",
       what: "Escolha mandante, empate ou visitante em cada jogo que falta.",
-      scoring: "4 pontos por resultado certo.",
+      scoring: "3 pontos por vitória certa e 5 por empate certo.",
     },
     placar: {
       label: "Placar exato", effort: "10 minutos",
       what: "Dê o placar de cada jogo que falta.",
-      scoring: "Placar exato 10; vencedor e gols do vencedor 7; vencedor e diferença de gols 6; vencedor e gols do perdedor 5; só o vencedor 4; placar invertido 2.",
+      scoring: "Placar exato 10; vencedor e gols do vencedor 7; vencedor e diferença de gols 6; vencedor e gols do perdedor 5; empate certo (sem o placar) 5; só o vencedor 3; placar invertido 2.",
     },
   };
   const OUTCOME_LABEL = { H: "mandante", D: "empate", A: "visitante" };
@@ -35,8 +35,9 @@
   const LIBERTADORES_SLOTS = 5;
   const SUDAMERICANA_SLOTS = 6;
   const RELEGATED = 4;
-  const POINTS = { exact: 10, winnerGoals: 7, difference: 6, loserGoals: 5, winner: 4, inverted: 2 };
-  const TABLE_POINTS = { exact: 3, near: 1, champion: 10, relegated: 3 };
+  // Pontuação (igual a sim_match_points e sim_pick_max, migração 0006).
+  const POINTS = { exact: 10, winnerGoals: 7, difference: 6, loserGoals: 5, draw: 5, winner: 3, inverted: 2 };
+  const TABLE_POINTS = { exact: 3, near: 1, champion: 10, top4: 3, relegated: 5 };
   // Versão 5 (ADR-0015): até 10 simulações por pessoa desde o último jogo que travou; cada jogo trava 30 minutos antes
   // do início (mesmas regras de sim_lock_margin e sim_event_start, migração 0005).
   const EVENT_LIMIT = 10;
@@ -165,20 +166,26 @@
   /* ---------------------------------------------------------------- Pontuação (igual a sim_match_points) */
 
   function matchPoints(mode, pick, homeGoals, awayGoals) {
-    if (mode === "vencedor") return pick === outcomeOf(homeGoals, awayGoals) ? POINTS.winner : 0;
+    if (mode === "vencedor") {
+      if (pick !== outcomeOf(homeGoals, awayGoals)) return 0;
+      return homeGoals === awayGoals ? POINTS.draw : POINTS.winner;
+    }
     const [home, away] = pick;
     const sameWinner = Math.sign(home - away) === Math.sign(homeGoals - awayGoals);
     const decided = homeGoals !== awayGoals;
     if (home === homeGoals && away === awayGoals) return POINTS.exact;
     if (sameWinner && decided && Math.max(home, away) === Math.max(homeGoals, awayGoals)) return POINTS.winnerGoals;
-    if (sameWinner && home - away === homeGoals - awayGoals) return POINTS.difference;
+    if (sameWinner && decided && home - away === homeGoals - awayGoals) return POINTS.difference;
     if (sameWinner && decided && Math.min(home, away) === Math.min(homeGoals, awayGoals)) return POINTS.loserGoals;
+    if (home === away && homeGoals === awayGoals) return POINTS.draw;
     if (sameWinner) return POINTS.winner;
     if (home !== away && home === awayGoals && away === homeGoals) return POINTS.inverted;
     return 0;
   }
 
-  const maxPerMatch = (mode) => (mode === "placar" ? POINTS.exact : POINTS.winner);
+  /* O que um palpite vale se o resultado sair como apostado (sim_pick_max). */
+  const maxForPick = (mode, pick) => (mode === "placar" ? POINTS.exact : pick === "D" ? POINTS.draw : POINTS.winner);
+  const perMatchText = (mode) => (mode === "placar" ? `${POINTS.exact} por jogo` : `${POINTS.winner} por vitória, ${POINTS.draw} por empate`);
 
   /* ---------------------------------------------------------------- Links */
 
@@ -389,7 +396,7 @@
     }
 
     function droppedNote(item, payload) {
-      if (item.mode === "classificacao") return payload.ranked_order ? "" : " Esta ordem não conta para o ranking: a trava da temporada já passou.";
+      if (item.mode === "classificacao") return "";
       const sent = Object.keys({ ...item.entry.sampled, ...item.entry.picks });
       const kept = new Set(Object.keys(payload.picks || {}));
       const dropped = sent.filter((matchId) => !kept.has(matchId)).length;
@@ -437,14 +444,15 @@
       let points = 0;
       let scored = 0;
       let open = 0;
+      let outOf = 0;
+      let openMax = 0;
       Object.entries(effectivePicks(entry)).forEach(([matchId, pick]) => {
         const match = matchById.get(matchId);
         if (!match) return;
-        if (isFinished(match)) { scored += 1; points += matchPoints(mode, pick, match.home_goals, match.away_goals); }
-        else open += 1;
+        if (isFinished(match)) { scored += 1; points += matchPoints(mode, pick, match.home_goals, match.away_goals); outOf += maxForPick(mode, pick); }
+        else { open += 1; openMax += maxForPick(mode, pick); }
       });
-      const per = maxPerMatch(mode);
-      return { points, outOf: scored * per, scored, ceiling: points + open * per, total: (scored + open) * per };
+      return { points, outOf, scored, ceiling: points + openMax, total: outOf + openMax };
     }
 
     /* Classificação comparada com a tabela de hoje (como se o campeonato acabasse agora) e o teto que ainda dá. */
@@ -462,11 +470,15 @@
       });
       if (order[0] === standingsOrder[0]) points += TABLE_POINTS.champion;
       if (reach[order[0]].best === 1) ceiling += TABLE_POINTS.champion;
+      order.slice(0, LIBERTADORES_GROUPS).forEach((clubId) => {
+        if (standingsOrder.indexOf(clubId) < LIBERTADORES_GROUPS) points += TABLE_POINTS.top4;
+        if (reach[clubId].best <= LIBERTADORES_GROUPS) ceiling += TABLE_POINTS.top4;
+      });
       order.slice(total - RELEGATED).forEach((clubId) => {
         if (standingsOrder.indexOf(clubId) >= total - RELEGATED) points += TABLE_POINTS.relegated;
         if (reach[clubId].worst > total - RELEGATED) ceiling += TABLE_POINTS.relegated;
       });
-      const maximum = total * TABLE_POINTS.exact + TABLE_POINTS.champion + RELEGATED * TABLE_POINTS.relegated;
+      const maximum = total * TABLE_POINTS.exact + TABLE_POINTS.champion + LIBERTADORES_GROUPS * TABLE_POINTS.top4 + RELEGATED * TABLE_POINTS.relegated;
       return { points, ceiling, maximum };
     }
 
@@ -830,10 +842,23 @@
 
     function simulationLabel(item) { return item.server_id ? `#${item.server_id}` : `#${item.local_id}`; }
 
+    /* Jogos que ainda faltavam num instante (mesma conta do banco, migração 0006): não cancelados e com a trava depois. */
+    function remainingAt(moment) {
+      const when = moment ? new Date(moment) : new Date();
+      return snapshot.matches.filter((match) => match.status !== "cancelled" && lockTime(match) > when).length;
+    }
+
+    /* Deflator da Classificação: pontos × (jogos que faltavam ÷ jogos da temporada). O banco guarda pontos × jogos que
+       faltavam (inteiro, mesma ordem no ranking); a página divide pelo total para mostrar. */
+    const seasonMatches = snapshot.matches.filter((match) => match.status !== "cancelled").length;
+    const deflated = (product) => (product / seasonMatches).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const weighted = (points, remaining) => deflated(points * remaining);
+
     function scoreSummary(item) {
       if (item.mode === "classificacao") {
         const score = tableScore(item.entry.order);
-        return `<strong>${score.points}</strong> pontos com a tabela de hoje · até <strong>${score.ceiling}</strong> de ${score.maximum} possíveis`;
+        const remaining = remainingAt(item.updated_at);
+        return `<strong>${score.points}</strong> pontos com a tabela de hoje (até <strong>${score.ceiling}</strong> de ${score.maximum}) × ${remaining}/${seasonMatches} ${remaining === 1 ? "jogo que faltava" : "jogos que faltavam"} = <strong>${weighted(score.points, remaining)}</strong> no ranking`;
       }
       const score = pickScore(item.mode, item.entry);
       const server = item.server_id && cloudState.scores[item.server_id];
@@ -1221,7 +1246,7 @@
           { label: "Seu campeão", value: clubCell(order[0], 24), note: `modelo: ${pct(teamById[order[0]].title)}` },
           { label: "Seu G4", value: order.slice(0, LIBERTADORES_GROUPS).map((clubId) => crest(clubId, 24)).join(""), note: order.slice(1, LIBERTADORES_GROUPS).map((clubId) => escapeHtml(teamById[clubId].short_name || nameOf(clubId))).join(" · ") },
           { label: "Seus rebaixados", value: relegated.map((clubId) => crest(clubId, 24)).join(""), note: relegated.map((clubId) => escapeHtml(teamById[clubId].short_name || nameOf(clubId))).join(" · ") },
-          { label: "Pontuação", value: `${score.points}`, note: `com a tabela de hoje · até ${score.ceiling} de ${score.maximum}` },
+          { label: "Pontuação", value: `${score.points}`, note: `com a tabela de hoje · até ${score.ceiling} de ${score.maximum} · no ranking, × ${remainingAt()}/${seasonMatches} jogos que faltam = ${weighted(score.points, remainingAt())}` },
         ])}
         ${jointSlot("sim-joint")}
         <div class="table-wrap"><table class="sim-table"><thead><tr><th class="num">#</th><th>Clube</th><th>Vaga</th><th class="num">Modelo</th></tr></thead><tbody>${rows}</tbody></table></div>
@@ -1461,7 +1486,7 @@
         return ` Como Classificação, esta tabela faria ${tableEval.points} pontos hoje (até ${tableEval.ceiling} de ${tableEval.maximum}).`;
       })() : "";
       const goalsNote = mode === "vencedor" ? `<p class="note">No modo Vencedor não há placar, então o saldo de gols da tabela é só o dos jogos já disputados.</p>` : "";
-      shell("", "Revise e salve", `${tally.own} seus · ${tally.sampled} sorteados pelo modelo · ${tally.blank} em branco. Esta simulação vale até ${score.total} pontos (${maxPerMatch(mode)} por jogo).${asTable}`, `${sessionHeader(active)}
+      shell("", "Revise e salve", `${tally.own} seus · ${tally.sampled} sorteados pelo modelo · ${tally.blank} em branco. Esta simulação vale até ${score.total} pontos (${perMatchText(mode)}).${asTable}`, `${sessionHeader(active)}
         ${warning}${picksHighlights(mode, entry)}${complete ? jointSlot("sim-joint") : ""}<h2>Sua tabela final</h2>${goalsNote}${finalTableHtml(mode, entry)}
         ${navBar("Voltar aos jogos", active.savedId ? "Salvar alterações" : "Salvar simulação", blocked)}`, { focus: true });
       bindSession(active, () => moveStep(active, 2), () => saveActive());
@@ -1537,17 +1562,11 @@
          <div id="sim-ranking" aria-live="polite"><p class="note">Carregando o ranking…</p></div>`);
       const target = document.getElementById("sim-ranking");
       try {
-        if (rankMode === "classificacao") {
-          const info = await cloud.seasonInfo(season);
-          if (info && new Date(info.classificacao_locks_at) <= new Date() && document.body.contains(target)) {
-            target.insertAdjacentHTML("beforebegin", `<p class="sim-banner">Nesta temporada não há ranking da Classificação: a trava foi em ${formatDay(info.classificacao_locks_at)}, antes de o simulador existir. Ele começa na próxima temporada. A pontuação de cada Classificação continua em "Minhas simulações".</p>`);
-          }
-        }
         const rows = await cloud.ranking(season, rankMode);
         const mine = new Set(store.saved.map((item) => item.server_id).filter(Boolean));
         const exactLabel = rankMode === "placar" ? "Placares exatos" : rankMode === "vencedor" ? "Acertos" : "Posições exatas";
-        const body = rows.length ? `<div class="table-wrap"><table class="sim-table"><thead><tr><th class="num">#</th><th>Apelido · simulação</th><th class="num">Pontos</th><th class="num">${exactLabel}</th><th class="num">${rankMode === "classificacao" ? "Clubes" : "Jogos"}</th></tr></thead>
-          <tbody>${rows.map((row) => `<tr${mine.has(row.simulation_id) ? ' class="selected-team"' : ""}><td class="num">${row.rank}</td><td>${escapeHtml(row.nickname)} · #${row.simulation_id}</td><td class="num">${row.points} de ${row.max_points}</td><td class="num">${row.exact_hits}</td><td class="num">${row.scored_picks}</td></tr>`).join("")}</tbody></table></div>`
+        const body = rows.length ? `<div class="table-wrap"><table class="sim-table"><thead><tr><th class="num">#</th><th>Apelido · simulação</th><th class="num">Pontos</th><th class="num">${exactLabel}</th><th class="num">${rankMode === "classificacao" ? "Jogos que faltavam" : "Jogos"}</th></tr></thead>
+          <tbody>${rows.map((row) => `<tr${mine.has(row.simulation_id) ? ' class="selected-team"' : ""}><td class="num">${row.rank}</td><td>${escapeHtml(row.nickname)} · #${row.simulation_id}</td><td class="num">${rankMode === "classificacao" ? `${deflated(row.points)} de ${deflated(row.max_points)}` : `${row.points} de ${row.max_points}`}</td><td class="num">${row.exact_hits}</td><td class="num">${row.scored_picks}</td></tr>`).join("")}</tbody></table></div>`
           : `<p>Ninguém pontuou ainda neste modo. Os pontos aparecem depois que os jogos com palpite terminam${rankMode === "classificacao" ? " e, na Classificação, no fim da temporada" : ""}.</p>`;
         if (document.body.contains(target)) target.innerHTML = body;
       } catch (error) {

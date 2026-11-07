@@ -3426,3 +3426,15 @@ real com a chave anon: perfis, simulações, `sim_scores` e `sim_my_scores` nega
   - **Agente 06**: revisar a `0005` num projeto de teste (limite com envios simultâneos, simulação fechada, trava com
     margem) e a chance de tudo junto calculada no navegador.
 
+## Agente 08: ranking da Classificação com deflator e pontuação nova (ADR-0015, item 10; 2026-11-07)
+
+- **O que mudou**: migração `infrastructure/supabase/migrations/0006_simulador_classificacao_por_jogos.sql` (sem trava
+  da temporada; Classificação com bônus de G4 e rebaixado a 5, máximo 102, × jogos que faltavam; Vencedor 3/5;
+  Placar exato com empate 5 e só o vencedor 3; `sim_pick_max`); `apps/web/assets/simulator.js` (mesmas regras,
+  deflator ÷ jogos da temporada na página e no ranking, textos da pontuação, fim do aviso da trava).
+- **Evidência**: navegador local: Classificação igual à tabela de hoje salva em 27/10 mostra "102 pontos [...] ×
+  61/380 jogos que faltavam = 16,4 no ranking"; textos novos nos três modos; `pytest -q` verde.
+- **No ar (2026-11-07)**: `0006` aplicada pelo dono no SQL Editor (texto conferido por SHA-256 `8f4ad360…`). Conferido
+  depois: `sim_pick_max` existe; Vencedor empate 5 e vitória 3; Placar empate sem placar 5 e só o vencedor 3; view com
+  máximo 102; trava da temporada fora de `sim_lock_picks`.
+- **Pendente**: 06 revisa (pontuação SQL x JS e deflator).

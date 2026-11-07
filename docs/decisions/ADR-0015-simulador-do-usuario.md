@@ -190,4 +190,15 @@ depois de salvar.
 8. **Voltar**: a simulação salva tem "← Minhas simulações" e o botão "Minhas simulações" (`#/simular/minhas`).
 9. Ordem de publicação: aplicar `0005` no Supabase antes de publicar o site; sem ela, o banco continua com o limite
    de 3 por modo e a trava no pontapé.
-
+10. **Classificação sem trava da temporada e pontuação nova** (pedidos do dono: "não faz sentido essa trava [...] a
+    pontuação ser por partidas que ainda tinha a realizar quando ele fez a classificação"; "dê pontuação extra para o
+    G4, aumente a pontuação do rebaixado [...] crie o deflator"; "Deixe 3 para o vencedor só [...] Se acertar o empate
+    pontua 5"; migração `0006`).
+    - Toda Classificação salva entra no ranking (`classificacao_locks_at` deixa de ser usado).
+    - Classificação: 3 por posição exata, 1 a uma posição, 10 pelo campeão, **3 por clube do G4 acertado** (em
+      qualquer ordem), **5 por rebaixado**: máximo 102, com a tabela de hoje (provisória até o fim).
+    - **Deflator**: × (jogos que ainda faltavam no último salvamento ÷ jogos da temporada). Ex.: 70 pontos × 61/380 =
+      10,6. O banco guarda pontos × jogos que faltavam (inteiro, mesma ordem); a página divide pelo total.
+    - Vencedor: **3 por vitória certa, 5 por empate certo**. Placar exato: 10, 7, 6, 5 (gols do perdedor), **5 por
+      empate certo sem o placar**, **3 só o vencedor**, 2 invertido. O máximo de cada palpite depende dele
+      (`sim_pick_max`).
