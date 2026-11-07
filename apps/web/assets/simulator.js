@@ -1,13 +1,14 @@
-/* Simulador do usuário (ADR-0015). O visitante escolhe um modo, monta a simulação e salva; pode fazer quantas quiser,
-   cada uma com o seu ID, e depois ir para outro modo.
-   - Classificação: ordena a tabela final. Ordem impossível pela matemática não pode ser salva.
-   - Vencedor: vitória do mandante, empate ou vitória do visitante em cada jogo.
-   - Placar exato: o placar de cada jogo.
-   Em Vencedor e Placar exato, a chave "Modelo sorteia" sorteia na hora um resultado concreto para cada jogo em branco,
-   com as probabilidades que o Python publica no snapshot (`score_probabilities`): o navegador só sorteia, não refaz o
-   modelo. Tudo fica no aparelho (localStorage). Com simulator-config.js preenchido, quem escolher "Participar" também
-   salva no Supabase (simulator-cloud.js, até 3 simulações por modo), entra no ranking com um apelido e pode cadastrar
-   um e-mail para avisos de pontuação. A pontuação aqui repete a do banco (migração 0003). */
+/* Simulador do usuário (ADR-0015). Um modo por vez: o visitante escolhe Classificação, Vencedor ou Placar exato e
+   segue o passo a passo até salvar (ou descarta o rascunho); só então começa outro. Cada simulação salva ganha um ID e
+   a própria pontuação; dá para fazer quantas quiser.
+   - Classificação: ordenar e revisar. Ordem impossível pela matemática não passa.
+   - Vencedor e Placar exato: escolher como preencher (eu, eu e o modelo, ou o modelo), preencher rodada por rodada e
+     revisar a tabela final. O modelo sorteia na hora um resultado concreto para cada jogo em branco, com as
+     probabilidades que o Python publica no snapshot (`score_probabilities`): o navegador só sorteia, não refaz o modelo.
+   Tudo fica no aparelho (localStorage). Com simulator-config.js preenchido, quem escolher "Participar" também salva no
+   Supabase (simulator-cloud.js, até 3 simulações por modo), entra no ranking com um apelido e pode cadastrar um e-mail
+   para avisos de pontuação. A pontuação aqui repete a do banco (migração 0003). A página "Agregado" mostra a posição
+   média das simulações: as do aparelho e as do site. */
 (function () {
   "use strict";
 
@@ -237,14 +238,21 @@
     const canSample = remaining.every((match) => samplers.get(match.match_id));
     const standingsOrder = [...snapshot.standings].sort((left, right) => left.position - right.position).map((row) => row.club_id);
     const currentPoints = Object.fromEntries(snapshot.standings.map((row) => [row.club_id, row.points]));
+    // Jogo cancelado não soma pontos a ninguém (mesma regra do supabase_sync, que envia o máximo ao banco).
     const remainingByClub = Object.fromEntries(clubIds.map((clubId) => [clubId, 0]));
-    remaining.forEach((match) => { remainingByClub[match.home_id] += 1; remainingByClub[match.away_id] += 1; });
+    remaining.filter((match) => match.status !== "cancelled").forEach((match) => { remainingByClub[match.home_id] += 1; remainingByClub[match.away_id] += 1; });
     const maxPoints = Object.fromEntries(clubIds.map((clubId) => [clubId, currentPoints[clubId] + 3 * remainingByClub[clubId]]));
     // Faixa de posições que cada clube ainda alcança (empates contam a favor).
     const reach = Object.fromEntries(clubIds.map((clubId) => [clubId, {
       best: 1 + clubIds.filter((other) => other !== clubId && currentPoints[other] > maxPoints[clubId]).length,
       worst: clubIds.length - clubIds.filter((other) => other !== clubId && maxPoints[other] < currentPoints[clubId]).length,
     }]));
+    const rounds = (() => {
+      const byRound = new Map();
+      [...remaining].sort((left, right) => (left.round || 99) - (right.round || 99) || left.match_date.localeCompare(right.match_date))
+        .forEach((match) => { const key = match.round || 0; if (!byRound.has(key)) byRound.set(key, []); byRound.get(key).push(match); });
+      return [...byRound.entries()].map(([round, matches]) => ({ round, matches }));
+    })();
 
     const [first = "", second = "", third = ""] = segments;
     const clubCell = (clubId, size = 18) => `<span class="club-cell">${crest(clubId, size)}<span>${escapeHtml(nameOf(clubId))}</span></span>`;
@@ -253,14 +261,16 @@
     const currentSegments = () => location.hash.replace(/^#\/?/, "").split("/").slice(1).filter(Boolean);
     const onSimulator = () => location.hash.replace(/^#\/?/, "").startsWith("simular");
     const rerender = () => { if (onSimulator()) render(main, currentSegments(), context); };
+    const go = (hash) => { if (location.hash === hash) rerender(); else location.hash = hash; };
     const formatDay = (iso) => new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+    const clone = (value) => JSON.parse(JSON.stringify(value));
 
     function emptyEntry(mode) {
       if (mode === "classificacao") return { order: [...snapshot.teams].sort((left, right) => left.expected_position - right.expected_position).map((team) => team.club_id) };
       return { picks: {}, sampled: {}, model: false };
     }
 
-    /* Tira de um rascunho ou de uma simulação o que não vale mais (clube que não existe, jogo já disputado). */
+    /* Tira do rascunho o que não vale mais (clube que não existe, jogo já disputado). */
     function sanitize(mode, entry) {
       if (!entry) return emptyEntry(mode);
       if (mode === "classificacao") {
@@ -270,6 +280,24 @@
       const keep = (picks) => Object.fromEntries(Object.entries(picks || {}).filter(([matchId]) => remainingIds.has(matchId)));
       return { picks: keep(entry.picks), sampled: canSample ? keep(entry.sampled) : {}, model: Boolean(entry.model) && canSample };
     }
+
+    /* ---------------- Sessão em andamento: um modo por vez, até salvar ou descartar */
+
+    const stepsOf = (mode) => (mode === "classificacao" ? ["Ordenar", "Revisar e salvar"] : ["Como preencher", "Rodada por rodada", "Revisar e salvar"]);
+
+    function startSession(mode, savedItem, entry) {
+      store.active = {
+        mode,
+        savedId: savedItem ? savedItem.local_id : null,
+        step: savedItem && mode !== "classificacao" ? 2 : 1,
+        round: 0,
+        entry: entry || (savedItem ? clone(savedItem.entry) : emptyEntry(mode)),
+        started_at: new Date().toISOString(),
+      };
+      writeStore();
+    }
+
+    function endSession() { store.active = null; writeStore(); }
 
     /* ---------------- Contas e servidor */
 
@@ -307,7 +335,6 @@
           const rows = await cloud.loadSimulations(season);
           rows.forEach((row) => {
             if (store.saved.some((item) => item.server_id === row.id)) return;
-            // Simulações completas guardam todos os jogos de quando foram salvas; os encerrados continuam pontuando.
             store.saved.push({ local_id: `S${row.id}`, server_id: row.id, mode: row.mode, created_at: row.created_at, updated_at: row.updated_at, entry: entryFromServer(row) });
           });
           writeStore();
@@ -322,16 +349,19 @@
 
     function serverCount(mode) { return store.saved.filter((item) => item.mode === mode && item.server_id).length; }
 
-    /* Envia uma simulação ao servidor; devolve um texto sobre o que aconteceu. */
+    /* Envia uma simulação ao servidor; devolve um texto sobre o que aconteceu. Depois do envio, a cópia local passa a
+       ser o que o servidor guardou (palpites de jogos travados saem), para a pontuação da tela bater com a do ranking. */
     async function pushToServer(item) {
       if (!cloud || !cloudState.user) return "";
       if (!item.server_id && serverCount(item.mode) >= SERVER_LIMIT) return ` No servidor cabem ${SERVER_LIMIT} por modo: esta ficou só neste aparelho e fora do ranking.`;
       try {
         const stored = await cloud.saveSimulation(season, item.mode, item.entry, item.server_id, finalOrderOf(item.mode, item.entry));
         if (!stored) return "";
+        const note = droppedNote(item, stored.payload);
         item.server_id = stored.id;
+        if (item.mode !== "classificacao") item.entry = { ...entryFromServer({ mode: item.mode, payload: stored.payload, assist: item.entry.model }) };
         writeStore();
-        return ` Enviada ao servidor como #${stored.id}.${droppedNote(item, stored.payload)}`;
+        return ` Enviada ao servidor como #${stored.id}.${note}`;
       } catch (error) {
         return ` Não foi ao servidor (${error.message}); continua salva neste aparelho.`;
       }
@@ -365,14 +395,15 @@
       return `<span class="sim-crowd" title="Pelo menos ${data.users_at_least} visitantes com palpite neste jogo; arredondado de 5 em 5 pontos">visitantes: ${pct(data.H)} · ${pct(data.D)} · ${pct(data.A)}</span>`;
     }
 
-    /* ---------------- Pontuação das simulações */
+    /* ---------------- Pontuação */
+
+    function effectivePicks(entry) { return { ...(entry.sampled || {}), ...(entry.picks || {}) }; }
 
     function pickScore(mode, entry) {
-      const picks = { ...(entry.sampled || {}), ...(entry.picks || {}) };
       let points = 0;
       let scored = 0;
       let open = 0;
-      Object.entries(picks).forEach(([matchId, pick]) => {
+      Object.entries(effectivePicks(entry)).forEach(([matchId, pick]) => {
         const match = matchById.get(matchId);
         if (!match) return;
         if (isFinished(match)) { scored += 1; points += matchPoints(mode, pick, match.home_goals, match.away_goals); }
@@ -417,8 +448,6 @@
 
     /* ---------------- Tabela final de Vencedor e Placar exato */
 
-    function effectivePicks(entry) { return { ...(entry.sampled || {}), ...(entry.picks || {}) }; }
-
     function resultsFor(mode, entry) {
       const results = finished.map((match) => ({ home: match.home_id, away: match.away_id, outcome: outcomeOf(match.home_goals, match.away_goals), homeGoals: match.home_goals, awayGoals: match.away_goals }));
       const picks = effectivePicks(entry);
@@ -441,15 +470,23 @@
     function isComplete(entry) { const picks = effectivePicks(entry); return remaining.every((match) => picks[match.match_id] !== undefined); }
 
     function finalOrderOf(mode, entry) {
-      if (mode === "classificacao" || !isComplete(entry)) return null;
+      if (mode === "classificacao") return entry.order;
+      if (!isComplete(entry)) return null;
       return finalTable(mode, entry).map((row) => row.club_id);
+    }
+
+    function counts(entry) {
+      const own = remaining.filter((match) => entry.picks[match.match_id] !== undefined).length;
+      const sampled = remaining.filter((match) => entry.picks[match.match_id] === undefined && entry.sampled[match.match_id] !== undefined).length;
+      return { own, sampled, blank: remaining.length - own - sampled };
     }
 
     /* ---------------- Moldura */
 
     function tabs(active) {
-      const items = [["", "Início"], ...Object.entries(MODES).map(([key, item]) => [key, item.label])];
-      if (cloud) items.push(["ranking", "Ranking"], ["visitantes", "Visitantes"]);
+      const items = [["", "Início"]];
+      if (cloud) items.push(["ranking", "Ranking"]);
+      items.push(["agregado", "Agregado"]);
       return `<nav class="tabs sim-tabs" aria-label="Simulador">${items.map(([key, label]) =>
         `<a href="#/simular${key ? `/${key}` : ""}" ${key === active ? 'aria-current="page"' : ""}>${label}</a>`).join("")}</nav>`;
     }
@@ -459,16 +496,16 @@
       return "Suas simulações ficam salvas neste aparelho. Ao abrir o simulador, o navegador baixa a biblioteca do Supabase pelo jsDelivr e consulta a média dos visitantes no servidor do AInda dá? (Supabase, nos Estados Unidos). Se você participar, as simulações também vão para lá, ligadas a uma conta sem nome. O e-mail é opcional e nunca aparece para ninguém; no ranking só aparece o apelido.";
     }
 
-    function shell(active, title, lede, body) {
+    function shell(active, title, lede, body, options = {}) {
       main.innerHTML = `
         <span class="kicker">Simulador</span>
         <h1>${title}</h1>
-        <p class="lede">${lede}</p>
-        ${tabs(active)}
-        ${accountPanel()}
+        ${lede ? `<p class="lede">${lede}</p>` : ""}
+        ${options.focus ? "" : tabs(active)}
+        ${options.focus ? "" : accountPanel()}
         ${body}
         <p class="note sim-footnote">${storageNote()} Vagas pela liga em 2026: 1º a 4º na fase de grupos da Libertadores, 5º na fase preliminar, 6º a 11º na Sul-Americana, 17º a 20º rebaixados (regulamento, Art. 6º a 8º). Títulos da Copa do Brasil, da Libertadores e da Sul-Americana podem empurrar essas vagas para baixo; isso o simulador não calcula.</p>`;
-      bindAccount();
+      if (!options.focus) bindAccount();
     }
 
     /* ---------------- Painel da conta */
@@ -601,7 +638,7 @@
       });
     }
 
-    /* ---------------- Início: escolher o modo e ver as simulações */
+    /* ---------------- Início */
 
     function simulationLabel(item) { return item.server_id ? `#${item.server_id}` : `#${item.local_id}`; }
 
@@ -617,143 +654,160 @@
       return `<strong>${score.points}</strong> de ${score.outOf} pontos em ${score.scored} ${score.scored === 1 ? "jogo" : "jogos"} · ainda dá para chegar a <strong>${score.ceiling}</strong>${counted}`;
     }
 
-    function renderHome() {
+    function activeCard() {
+      const active = store.active;
+      const steps = stepsOf(active.mode);
+      const editing = active.savedId ? store.saved.find((item) => item.local_id === active.savedId) : null;
+      return `<section class="sim-active" aria-labelledby="sim-active-title">
+        <p class="sim-active-kicker">Simulação em andamento</p>
+        <h2 id="sim-active-title">${MODES[active.mode].label}${editing ? ` · editando ${escapeHtml(simulationLabel(editing))}` : ""}</h2>
+        <p>Passo ${Math.min(active.step, steps.length)} de ${steps.length}: ${steps[Math.min(active.step, steps.length) - 1]}. Para começar outro modo, termine esta simulação ou descarte o rascunho.</p>
+        <p><a class="sim-button" href="#/simular/fazer">Continuar de onde parei</a> <button type="button" class="link-button" id="sim-discard">Descartar rascunho</button></p>
+      </section>`;
+    }
+
+    function renderHome(notice) {
+      const active = store.active;
       const cards = Object.entries(MODES).map(([key, item]) => {
         const count = store.saved.filter((saved) => saved.mode === key).length;
-        return `<article class="sim-mode-card">
+        const locked = active && active.mode !== key;
+        const action = active
+          ? (active.mode === key ? `<a class="sim-button" href="#/simular/fazer">Continuar</a>` : `<span class="sim-locked">Termine a simulação em andamento para começar esta</span>`)
+          : `<button type="button" class="sim-button" data-start="${key}">Começar</button>`;
+        return `<article class="sim-mode-card ${locked ? "is-locked" : ""} ${active && active.mode === key ? "is-active" : ""}">
           <h2>${item.label}</h2>
           <p class="sim-mode-what">${item.what}</p>
           <p class="note">${item.scoring}</p>
           <p class="sim-mode-meta">${item.effort}${count ? ` · ${count} ${count === 1 ? "simulação salva" : "simulações salvas"}` : ""}</p>
-          <a class="sim-button" href="#/simular/${key}">${store.drafts[key] ? "Continuar" : "Começar"}</a>
+          ${action}
         </article>`;
       }).join("");
       const saved = [...store.saved].sort((left, right) => String(right.updated_at).localeCompare(String(left.updated_at)));
       const list = saved.length ? `<div class="table-wrap"><table class="sim-table sim-saved">
-          <thead><tr><th>Simulação</th><th>Modo</th><th>Salva em</th><th>Pontuação</th><th><span class="visually-hidden">Ações</span></th></tr></thead>
+          <thead><tr><th>Simulação</th><th>Modo</th><th>Salva em</th><th>Pontuação</th></tr></thead>
           <tbody>${saved.map((item) => `<tr>
-            <td><a href="#/simular/${item.mode}/s/${encodeURIComponent(item.local_id)}">${escapeHtml(simulationLabel(item))}</a>${item.server_id ? ` <span class="sim-tag">no servidor</span>` : ""}</td>
+            <td><a href="#/simular/ver/${encodeURIComponent(item.local_id)}">${escapeHtml(simulationLabel(item))}</a>${item.server_id ? ` <span class="sim-tag">no servidor</span>` : ""}</td>
             <td>${MODES[item.mode].label}</td>
             <td>${escapeHtml(formatDay(item.updated_at))}</td>
-            <td>${scoreSummary(item)}</td>
-            <td><button type="button" class="link-button" data-delete="${escapeHtml(item.local_id)}">Excluir</button></td></tr>`).join("")}</tbody></table></div>`
-        : `<p class="note">Você ainda não salvou nenhuma simulação. Escolha um modo acima.</p>`;
-      shell("", "E se o campeonato terminar do seu jeito?", "Escolha um modo, monte a sua simulação e salve. Dá para fazer quantas quiser, em qualquer modo: cada uma ganha um ID e a própria pontuação.",
-        `<div class="sim-mode-grid">${cards}</div>
-         <h2>Minhas simulações</h2>
-         <p class="note">A pontuação conta os jogos que já terminaram. Na Classificação, ela compara com a tabela de hoje e mostra o máximo que ainda dá para fazer.</p>
+            <td>${scoreSummary(item)}</td></tr>`).join("")}</tbody></table></div>`
+        : `<p class="note">Você ainda não salvou nenhuma simulação.</p>`;
+      shell("", "E se o campeonato terminar do seu jeito?", "Escolha um modo e faça a simulação do começo ao fim: um modo por vez. Depois de salvar, ela ganha um ID e a própria pontuação, e você pode fazer outra, no mesmo modo ou em outro.",
+        `${notice ? `<p class="sim-banner" role="status">${notice}</p>` : ""}
+         ${active ? activeCard() : ""}
+         <h2 class="sim-section-title">${active ? "Modos" : "Escolha um modo"}</h2>
+         <div class="sim-mode-grid">${cards}</div>
+         <h2 class="sim-section-title">Minhas simulações</h2>
+         <p class="note">A pontuação conta os jogos que já terminaram. Na Classificação, compara com a tabela de hoje e mostra o máximo que ainda dá para fazer. Abra uma simulação para ver a tabela, editar ou excluir.</p>
          ${list}`);
-      main.querySelectorAll("[data-delete]").forEach((button) => button.addEventListener("click", async () => {
-        const item = store.saved.find((saved) => saved.local_id === button.dataset.delete);
-        if (!item || !window.confirm(`Excluir a simulação ${simulationLabel(item)}?${item.server_id ? " Ela sai também do servidor e do ranking." : ""}`)) return;
-        if (item.server_id && cloud && cloudState.user) {
-          try { await cloud.deleteSimulation(item.server_id); } catch (error) { setStatus(`Não deu para excluir no servidor (${error.message}).`); return; }
-        }
-        store.saved = store.saved.filter((saved) => saved !== item);
-        writeStore();
-        cloudState.status = `Simulação ${simulationLabel(item)} excluída.`;
-        renderHome();
+      main.querySelectorAll("[data-start]").forEach((button) => button.addEventListener("click", () => {
+        startSession(button.dataset.start, null, null);
+        go("#/simular/fazer");
       }));
-    }
-
-    /* ---------------- Editor */
-
-    function openEditor(mode, savedId, code) {
-      if (code) {
-        const decoded = decodeLink(mode, code, sortedClubs, matchList);
-        if (decoded) {
-          view.link = { mode, entry: sanitize(mode, decoded.entry) };
-          view.linkNote = decoded.ignored ? ` ${decoded.ignored} ${decoded.ignored === 1 ? "palpite era de um jogo que já aconteceu e ficou" : "palpites eram de jogos que já aconteceram e ficaram"} de fora.` : "";
-        } else {
-          view.link = null;
-          view.linkNote = "Não deu para abrir a simulação do link: ele está incompleto ou é de outra temporada.";
-        }
-        history.replaceState(null, "", `#/simular/${mode}`);
-      }
-      const savedItem = savedId ? store.saved.find((item) => item.local_id === savedId && item.mode === mode) : null;
-      const fromLink = !savedItem && Boolean(view.link && view.link.mode === mode);
-      let entry;
-      if (savedItem) {
-        // Uma simulação salva mantém os jogos que já terminaram (eles pontuam); o editor mostra só os que faltam.
-        entry = savedItem.entry;
-      } else if (fromLink) {
-        entry = view.link.entry;
-      } else {
-        store.drafts[mode] = sanitize(mode, store.drafts[mode]);
-        entry = store.drafts[mode];
-      }
-      const persist = () => { if (!fromLink) writeStore(); };
-      if (mode === "classificacao") renderTable(entry, savedItem, fromLink, persist);
-      else renderPicks(mode, entry, savedItem, fromLink, persist);
-    }
-
-    function editorHeader(mode, savedItem, fromLink) {
-      const where = savedItem ? `Editando a simulação <strong>${escapeHtml(simulationLabel(savedItem))}</strong>. <a href="#/simular/${mode}">Começar outra</a> · <a href="#/simular">Voltar ao início</a>`
-        : fromLink ? `Simulação aberta por link.${escapeHtml(view.linkNote)} <button type="button" class="link-button" id="sim-link-keep">Usar como meu rascunho</button> · <button type="button" class="link-button" id="sim-link-drop">Voltar ao meu rascunho</button>`
-          : "Rascunho novo: ao salvar, ele vira uma simulação com ID próprio, e o rascunho volta ao começo.";
-      const error = !fromLink && view.linkNote && !view.link ? `<p class="sim-banner" role="status">${escapeHtml(view.linkNote)}</p>` : "";
-      return `${error}<p class="sim-where">${where}</p>`;
-    }
-
-    function bindEditorHeader(mode) {
-      const keep = document.getElementById("sim-link-keep");
-      if (keep) keep.addEventListener("click", () => { store.drafts[mode] = view.link.entry; view.link = null; view.linkNote = ""; writeStore(); rerender(); });
-      const drop = document.getElementById("sim-link-drop");
-      if (drop) drop.addEventListener("click", () => { view.link = null; view.linkNote = ""; rerender(); });
-      if (!view.link) view.linkNote = "";
-    }
-
-    function saveBar(savedItem, blocked) {
-      const reason = blocked ? `<p class="sim-warning">${blocked}</p>` : "";
-      const buttons = savedItem
-        ? `<button type="button" class="sim-button" id="sim-save" ${blocked ? "disabled" : ""}>Salvar alterações em ${escapeHtml(simulationLabel(savedItem))}</button> <button type="button" class="link-button" id="sim-save-new" ${blocked ? "disabled" : ""}>Salvar como nova</button>`
-        : `<button type="button" class="sim-button" id="sim-save" ${blocked ? "disabled" : ""}>Salvar simulação</button>`;
-      return `<div class="sim-savebar">${reason}${buttons} <button type="button" class="link-button" id="sim-share">Copiar link</button><span class="note" id="sim-save-status" aria-live="polite"></span></div>`;
-    }
-
-    function bindSaveBar(mode, entry, savedItem) {
-      const status = (text) => { const target = document.getElementById("sim-save-status"); if (target) target.textContent = text; };
-      const save = async (asNew) => {
-        const now = new Date().toISOString();
-        const copy = JSON.parse(JSON.stringify(entry));
-        let item = savedItem && !asNew ? savedItem : null;
-        if (item) { item.entry = copy; item.updated_at = now; }
-        else {
-          item = { local_id: newLocalId(), server_id: null, mode, created_at: now, updated_at: now, entry: copy };
-          store.saved.push(item);
-          if (view.link && view.link.mode === mode) view.link = null;
-          else if (!savedItem) store.drafts[mode] = emptyEntry(mode);
-        }
-        writeStore();
-        status("Salvando…");
-        const note = await pushToServer(item);
-        if (cloud && cloudState.user) await refreshScores();
-        cloudState.status = `Simulação ${simulationLabel(item)} salva às ${clock()}.${note}`;
-        const target = `#/simular/${mode}/s/${encodeURIComponent(item.local_id)}`;
-        if (location.hash === target) rerender(); else location.hash = target;
-      };
-      const saveButton = document.getElementById("sim-save");
-      if (saveButton) saveButton.addEventListener("click", () => save(false));
-      const saveNew = document.getElementById("sim-save-new");
-      if (saveNew) saveNew.addEventListener("click", () => save(true));
-      document.getElementById("sim-share").addEventListener("click", async () => {
-        const url = `${location.href.split("#")[0]}#/simular/${mode}/l/${encodeLink(mode, entry, matchIndex, sortedClubs)}`;
-        try { await navigator.clipboard.writeText(url); status("Link copiado."); }
-        catch (error) {
-          const target = document.getElementById("sim-save-status");
-          target.innerHTML = `Copie o link: <input class="sim-share-url" readonly value="${escapeHtml(url)}" aria-label="Link da simulação">`;
-          const input = target.querySelector("input"); input.focus(); input.select();
-        }
+      const discard = document.getElementById("sim-discard");
+      if (discard) discard.addEventListener("click", () => {
+        if (!window.confirm(`Descartar o rascunho de ${MODES[active.mode].label}? O que você preencheu nele se perde.`)) return;
+        endSession();
+        renderHome("Rascunho descartado. Escolha um modo para começar outra simulação.");
       });
     }
 
-    /* ---------------- Classificação */
+    /* ---------------- Passo a passo */
 
-    function renderTable(entry, savedItem, fromLink, persist, focusClub, focusDirection) {
+    function stepper(mode, step) {
+      const steps = stepsOf(mode);
+      return `<ol class="sim-stepper" aria-label="Passos">${steps.map((label, index) => {
+        const number = index + 1;
+        const state = number < step ? "is-done" : number === step ? "is-current" : "";
+        return `<li class="${state}" ${number === step ? 'aria-current="step"' : ""}><span class="sim-step-number">${number < step ? "✓" : number}</span><span>${label}</span></li>`;
+      }).join("")}</ol>`;
+    }
+
+    function sessionHeader(active) {
+      const editing = active.savedId ? store.saved.find((item) => item.local_id === active.savedId) : null;
+      return `<div class="sim-session">
+        <p class="sim-session-title"><strong>${MODES[active.mode].label}</strong>${editing ? ` · editando ${escapeHtml(simulationLabel(editing))}` : " · simulação nova"}</p>
+        <p class="sim-session-actions"><a href="#/simular" class="link-button">Sair (o rascunho fica guardado)</a> · <button type="button" class="link-button" id="sim-session-discard">Descartar</button></p>
+      </div>
+      ${stepper(active.mode, active.step)}`;
+    }
+
+    function navBar(previousLabel, nextLabel, blocked) {
+      return `<div class="sim-savebar">
+        ${blocked ? `<p class="sim-warning">${blocked}</p>` : ""}
+        ${previousLabel ? `<button type="button" class="sim-button is-secondary" id="sim-back">${previousLabel}</button>` : ""}
+        <button type="button" class="sim-button" id="sim-next" ${blocked ? "disabled" : ""}>${nextLabel}</button>
+        <span class="note" id="sim-save-status" aria-live="polite"></span>
+      </div>`;
+    }
+
+    function bindSession(active, back, next) {
+      document.getElementById("sim-session-discard").addEventListener("click", () => {
+        if (!window.confirm("Descartar esta simulação? O que você preencheu nela se perde.")) return;
+        endSession();
+        go("#/simular");
+      });
+      const backButton = document.getElementById("sim-back");
+      if (backButton && back) backButton.addEventListener("click", back);
+      const nextButton = document.getElementById("sim-next");
+      if (nextButton && next) nextButton.addEventListener("click", next);
+    }
+
+    function moveStep(active, step) { active.step = step; writeStore(); rerender(); window.scrollTo(0, 0); }
+
+    async function saveActive() {
+      const active = store.active;
+      const now = new Date().toISOString();
+      let item = active.savedId ? store.saved.find((saved) => saved.local_id === active.savedId) : null;
+      if (item) { item.entry = clone(active.entry); item.updated_at = now; }
+      else {
+        item = { local_id: newLocalId(), server_id: null, mode: active.mode, created_at: now, updated_at: now, entry: clone(active.entry) };
+        store.saved.push(item);
+      }
+      writeStore();
+      const status = document.getElementById("sim-save-status");
+      if (status) status.textContent = "Salvando…";
+      const note = await pushToServer(item);
+      if (cloud && cloudState.user) await refreshScores();
+      store.done = { local_id: item.local_id, note };
+      endSession();
+      go(`#/simular/ver/${encodeURIComponent(item.local_id)}`);
+    }
+
+    function renderSession() {
+      const active = store.active;
+      if (!active) { renderHome(); return; }
+      active.entry = sanitize(active.mode, active.entry);
+      if (active.mode === "classificacao") renderTableStep(active);
+      else if (active.step === 1) renderFillChoice(active);
+      else if (active.step === 2) renderRoundStep(active);
+      else renderReview(active);
+    }
+
+    /* Classificação: 1 ordenar, 2 revisar e salvar */
+
+    function renderTableStep(active, focusClub, focusDirection) {
+      const entry = active.entry;
       const order = entry.order;
       const problems = impossiblePairs(order);
       const total = order.length;
       const score = tableScore(order);
+      const blocked = problems.size ? `${problems.size === 1 ? "Uma posição é impossível" : `${problems.size} posições são impossíveis`} pela matemática. Corrija antes de seguir.` : "";
+      const relegated = order.slice(total - RELEGATED);
+      const summary = `<div class="sim-scorebox">
+          <p><strong>${score.points}</strong> pontos se o campeonato acabasse hoje · até <strong>${score.ceiling}</strong> de ${score.maximum} possíveis no fim</p>
+          <p class="note">Seu campeão: ${clubCell(order[0])} (modelo: ${pct(teamById[order[0]].title)}) · Seus rebaixados: ${relegated.map((clubId) => `${clubCell(clubId)} ${pct(teamById[clubId].relegation)}`).join(" · ")}</p>
+        </div>`;
+      if (active.step === 2) {
+        const rows = order.map((clubId, index) => {
+          const zone = zoneOf(index + 1, total);
+          return `<tr class="${zone.key ? `zone-${zone.key}` : ""}"><td class="num">${index + 1}</td><td>${clubCell(clubId)}</td><td>${zone.label}</td><td class="num">${pct(teamById[clubId].position_probabilities[index])}</td></tr>`;
+        }).join("");
+        shell("", "Revise e salve", "", `${sessionHeader(active)}${summary}
+          <div class="table-wrap"><table class="sim-table"><thead><tr><th class="num">#</th><th>Clube</th><th>Vaga</th><th class="num">Modelo</th></tr></thead><tbody>${rows}</tbody></table></div>
+          ${navBar("Voltar e ajustar", active.savedId ? "Salvar alterações" : "Salvar simulação", blocked)}`, { focus: true });
+        bindSession(active, () => moveStep(active, 1), () => saveActive());
+        return;
+      }
       const rows = order.map((clubId, index) => {
         const position = index + 1;
         const zone = zoneOf(position, total);
@@ -771,31 +825,23 @@
           ${problem ? `<span class="sim-warning">Impossível: chega a no máximo ${maxPoints[clubId]} pontos e ${escapeHtml(nameOf(problem))} já tem ${currentPoints[problem]}.</span>` : ""}
         </li>`;
       }).join("");
-      const blocked = problems.size ? `Não dá para salvar: ${problems.size === 1 ? "uma posição é impossível" : `${problems.size} posições são impossíveis`} pela matemática. Veja os avisos na lista.` : "";
-      const relegated = order.slice(total - RELEGATED);
-      shell("classificacao", "Classificação", `${MODES.classificacao.what} ${MODES.classificacao.scoring}`, `
-        ${editorHeader("classificacao", savedItem, fromLink)}
-        <div class="sim-scorebox">
-          <p><strong>${score.points}</strong> pontos se o campeonato acabasse hoje · até <strong>${score.ceiling}</strong> de ${score.maximum} possíveis no fim</p>
-          <p class="note">Seu campeão: ${clubCell(order[0])} (modelo: ${pct(teamById[order[0]].title)}) · Seus rebaixados: ${relegated.map((clubId) => `${clubCell(clubId)} ${pct(teamById[clubId].relegation)}`).join(" · ")}</p>
-        </div>
-        <p class="sim-toolbar"><button type="button" class="link-button" id="sim-reset-model">Começar da ordem do modelo</button> · <button type="button" class="link-button" id="sim-reset-table">Começar da tabela atual</button></p>
+      shell("", "Ordene a tabela final", MODES.classificacao.scoring, `${sessionHeader(active)}${summary}
+        <p class="sim-toolbar">Começar de: <button type="button" class="link-button" id="sim-reset-model">ordem do modelo</button> · <button type="button" class="link-button" id="sim-reset-table">tabela atual</button></p>
         <ol class="sim-quick" aria-label="Sua tabela final">${rows}</ol>
-        <p class="note">"modelo" é a probabilidade, nas simulações do modelo, de o clube terminar exatamente naquela posição; entre parênteses, as posições que ele ainda alcança pela matemática. Arraste as linhas ou use as setas.</p>
-        ${saveBar(savedItem, blocked)}`);
-      bindEditorHeader("classificacao");
-      bindSaveBar("classificacao", entry, savedItem);
-      const rerenderTable = (club, direction) => renderTable(entry, savedItem, fromLink, persist, club, direction);
+        <p class="note">"modelo" é a probabilidade, nas simulações do modelo, de o clube terminar exatamente naquela posição; entre parênteses, as posições que ele ainda alcança. Arraste as linhas ou use as setas.</p>
+        ${navBar("", "Revisar", blocked)}`, { focus: true });
+      bindSession(active, null, () => moveStep(active, 2));
+      const again = (club, direction) => renderTableStep(active, club, direction);
       const move = (clubId, target) => {
         const next = entry.order.filter((item) => item !== clubId);
         next.splice(Math.max(0, Math.min(next.length, target)), 0, clubId);
         entry.order = next;
-        persist();
+        writeStore();
       };
       main.querySelectorAll(".sim-quick-row button[data-move]").forEach((button) => button.addEventListener("click", () => {
         const clubId = button.closest(".sim-quick-row").dataset.club;
         move(clubId, entry.order.indexOf(clubId) + Number(button.dataset.move));
-        rerenderTable(clubId, button.dataset.move);
+        again(clubId, button.dataset.move);
       }));
       let dragged = null;
       main.querySelectorAll(".sim-quick-row").forEach((row) => {
@@ -807,11 +853,11 @@
           event.preventDefault();
           if (!dragged || dragged === row.dataset.club) return;
           move(dragged, entry.order.indexOf(row.dataset.club));
-          rerenderTable();
+          again();
         });
       });
-      document.getElementById("sim-reset-model").addEventListener("click", () => { entry.order = emptyEntry("classificacao").order; persist(); rerenderTable(); });
-      document.getElementById("sim-reset-table").addEventListener("click", () => { entry.order = [...standingsOrder]; persist(); rerenderTable(); });
+      document.getElementById("sim-reset-model").addEventListener("click", () => { entry.order = emptyEntry("classificacao").order; writeStore(); again(); });
+      document.getElementById("sim-reset-table").addEventListener("click", () => { entry.order = [...standingsOrder]; writeStore(); again(); });
       if (focusClub) {
         const button = main.querySelector(`.sim-quick-row[data-club="${CSS.escape(focusClub)}"] button[data-move="${focusDirection}"]`)
           || main.querySelector(`.sim-quick-row[data-club="${CSS.escape(focusClub)}"] button:not([disabled])`);
@@ -819,7 +865,7 @@
       }
     }
 
-    /* ---------------- Vencedor e Placar exato */
+    /* Vencedor e Placar exato: 1 como preencher, 2 rodada por rodada, 3 revisar e salvar */
 
     function sampleMatch(mode, match) {
       if (mode === "vencedor") {
@@ -834,6 +880,31 @@
       remaining.forEach((match) => {
         if (entry.picks[match.match_id] === undefined && entry.sampled[match.match_id] === undefined) entry.sampled[match.match_id] = sampleMatch(mode, match);
       });
+    }
+
+    const FILL_CHOICES = [
+      { key: "manual", title: "Eu preencho tudo", text: "Você dá o resultado de cada jogo. Jogo deixado em branco fica fora da tabela final." },
+      { key: "assist", title: "Eu preencho e o modelo completa", text: "Você preenche os jogos que quiser; o modelo sorteia na hora um resultado para cada jogo que ficar em branco." },
+      { key: "model", title: "O modelo sorteia tudo e eu reviso", text: "O modelo sorteia agora um resultado para todos os jogos, com as probabilidades dele; você troca o que quiser." },
+    ];
+
+    function renderFillChoice(active) {
+      const mode = active.mode;
+      const cards = FILL_CHOICES.map((choice) => `<button type="button" class="sim-choice-card" data-fill="${choice.key}" ${!canSample && choice.key !== "manual" ? "disabled" : ""}>
+          <strong>${choice.title}</strong><span>${choice.text}</span></button>`).join("");
+      shell("", "Como você quer preencher?", `${MODES[mode].what} ${MODES[mode].scoring}`, `${sessionHeader(active)}
+        <div class="sim-choice-grid">${cards}</div>
+        <p class="note">Os resultados sorteados pelo modelo aparecem tracejados e valem pontos como os seus. Dá para mudar de ideia no passo seguinte. Faltam ${remaining.length} jogos, em ${rounds.length} ${rounds.length === 1 ? "rodada" : "rodadas"}.</p>`, { focus: true });
+      bindSession(active, null, null);
+      main.querySelectorAll("[data-fill]").forEach((button) => button.addEventListener("click", () => {
+        const choice = button.dataset.fill;
+        active.entry.model = choice !== "manual";
+        if (choice === "model") { active.entry.picks = {}; fillWithModel(mode, active.entry, true); }
+        else if (choice === "assist") fillWithModel(mode, active.entry, false);
+        else active.entry.sampled = {};
+        active.round = 0;
+        moveStep(active, 2);
+      }));
     }
 
     function matchControl(mode, match, entry) {
@@ -857,97 +928,59 @@
         </span>${tag}<span class="sim-prob">${probability !== null ? `modelo: ${pct(probability)} para este placar` : `mais provável: ${escapeHtml(match.most_likely_score || "–")}`}</span>`;
     }
 
-    function resultPanel(mode, entry) {
-      const table = finalTable(mode, entry);
+    function renderRoundStep(active, focusSelector) {
+      const mode = active.mode;
+      const entry = active.entry;
+      if (!rounds.length) { moveStep(active, 3); return; }
+      active.round = Math.max(0, Math.min(rounds.length - 1, active.round || 0));
+      const { round, matches } = rounds[active.round];
       const picks = effectivePicks(entry);
-      const missing = remaining.filter((match) => picks[match.match_id] === undefined).length;
-      const body = table.map((row) => {
-        const zone = zoneOf(row.position, table.length);
-        const sign = goalDifference(row) > 0 ? "+" : goalDifference(row) < 0 ? MINUS : "";
-        return `<tr class="${zone.key ? `zone-${zone.key}` : ""}"><td class="num">${row.position}</td><td>${clubCell(row.club_id)}${row.tie ? ` <span class="sim-tie" title="Empate em todos os critérios que dá para calcular; o regulamento decide por cartões e, depois, sorteio">empate: ${row.tie}</span>` : ""}</td>
-          <td class="num">${row.points}</td><td class="num">${row.played}</td><td class="num">${row.wins}</td><td class="num">${sign}${Math.abs(goalDifference(row))}</td></tr>`;
-      }).join("");
-      const missingNote = missing ? `${missing} ${missing === 1 ? "jogo em branco não entra" : "jogos em branco não entram"} na tabela. Ligue "Modelo sorteia" para completar.` : "Todos os jogos têm resultado.";
-      const goalsNote = mode === "vencedor" ? " No modo Vencedor não há placar, então o saldo de gols é só o dos jogos já disputados." : "";
-      const asTable = missing ? "" : (() => {
-        const score = tableScore(table.map((row) => row.club_id));
-        return `<div class="sim-scorebox"><p><strong>Esta tabela como Classificação:</strong> ${score.points} pontos se o campeonato acabasse hoje · até ${score.ceiling} de ${score.maximum} possíveis.</p></div>`;
-      })();
-      return `<h2>Sua tabela final</h2><p class="note">${missingNote}${goalsNote}</p>
-        <div class="table-wrap"><table class="sim-table"><thead><tr><th class="num">#</th><th>Clube</th><th class="num">Pts</th><th class="num">J</th><th class="num">V</th><th class="num">SG</th></tr></thead><tbody>${body}</tbody></table></div>${asTable}`;
-    }
-
-    function renderPicks(mode, entry, savedItem, fromLink, persist) {
-      const picks = effectivePicks(entry);
-      const pending = remaining.length;
-      const own = remaining.filter((match) => entry.picks[match.match_id] !== undefined).length;
-      const sampledCount = remaining.filter((match) => entry.picks[match.match_id] === undefined && entry.sampled[match.match_id] !== undefined).length;
-      const blank = pending - own - sampledCount;
-      const byRound = new Map();
-      [...remaining].sort((left, right) => (left.round || 99) - (right.round || 99) || left.match_date.localeCompare(right.match_date))
-        .forEach((match) => { const key = match.round || 0; if (!byRound.has(key)) byRound.set(key, []); byRound.get(key).push(match); });
-      const rounds = [...byRound.entries()].map(([round, matches], index) => {
-        const filled = matches.filter((match) => picks[match.match_id] !== undefined).length;
-        return `<details class="sim-round" ${index < 2 ? "open" : ""}><summary><span>${round ? `Rodada ${round}` : "Sem rodada"}</span><span class="note">${filled} de ${matches.length} preenchidos</span></summary>
-          ${matches.map((match) => `<div class="sim-match" data-row="${escapeHtml(match.match_id)}">
-            <span class="sim-date">${escapeHtml(formatShortDate(match.match_date))}${match.match_date < snapshot.reference_date ? " · adiado" : ""} ${lockLabel(match)}</span>
-            <span class="sim-home">${clubCell(match.home_id)}</span>
-            <span class="sim-pick">${matchControl(mode, match, entry)}${crowdForMatch(match)}${entry.picks[match.match_id] !== undefined ? `<button type="button" class="link-button sim-clear-one" data-clear="${escapeHtml(match.match_id)}">apagar</button>` : ""}</span>
-            <span class="sim-away">${clubCell(match.away_id)}</span></div>`).join("")}
-        </details>`;
+      const tally = counts(entry);
+      const chips = rounds.map((item, index) => {
+        const filled = item.matches.filter((match) => picks[match.match_id] !== undefined).length;
+        const state = filled === item.matches.length ? "is-full" : filled ? "is-partial" : "";
+        return `<button type="button" class="sim-round-chip ${state}" data-round="${index}" ${index === active.round ? 'aria-current="true"' : ""} title="${filled} de ${item.matches.length} preenchidos">${item.round || "?"}</button>`;
       }).join("");
       const modelSwitch = canSample ? `<div class="sim-model-switch" role="group" aria-label="O que fazer com os jogos em branco">
           <span class="sim-model-switch-label">Jogos em branco</span>
           <span class="sim-segments"><button type="button" class="sim-segment" data-model="off" aria-pressed="${!entry.model}">Deixar em branco</button><button type="button" class="sim-segment" data-model="on" aria-pressed="${entry.model}">Modelo sorteia</button></span>
           ${entry.model ? `<button type="button" class="link-button" id="sim-redraw">Sortear de novo</button>` : ""}
-          <p class="note">${entry.model ? "O modelo sorteou agora um resultado para cada jogo que você não preencheu, com as probabilidades dele. Os sorteados aparecem tracejados e valem pontos como os seus; troque qualquer um clicando nele." : "Os jogos que você não preencher ficam fora da tabela final. Escolha \"Modelo sorteia\" para completar cada um com um resultado sorteado na hora."}</p>
-        </div>` : `<p class="note">O sorteio do modelo precisa de um snapshot mais novo, com a matriz de placares.</p>`;
-      const progress = `<div class="sim-progress" role="img" aria-label="${own} seus, ${sampledCount} sorteados, ${blank} em branco"><span class="is-own" style="width:${own / pending * 100}%"></span><span class="is-model" style="width:${sampledCount / pending * 100}%"></span></div>
-        <p class="note">${own} seus · ${sampledCount} sorteados pelo modelo · ${blank} em branco, de ${pending} jogos que faltam.</p>`;
-      const score = pickScore(mode, entry);
-      const scoreLine = savedItem ? `<div class="sim-scorebox"><p>${scoreSummary(savedItem)}</p></div>`
-        : `<div class="sim-scorebox"><p>Esta simulação vale até <strong>${score.total}</strong> pontos (${maxPerMatch(mode)} por jogo preenchido).</p></div>`;
-      const blocked = Object.keys(picks).length ? "" : "Preencha pelo menos um jogo, ou escolha \"Modelo sorteia\", para salvar.";
-      shell(mode, MODES[mode].label, `${MODES[mode].what} ${MODES[mode].scoring}`, `
-        ${editorHeader(mode, savedItem, fromLink)}
-        ${modelSwitch}${progress}${scoreLine}
-        <p class="sim-toolbar"><button type="button" class="link-button" id="sim-clear">Apagar meus palpites</button></p>
-        <div class="sim-layout"><div class="sim-picks">${rounds || "<p>Não há jogos por disputar.</p>"}</div>
-          <div class="sim-result" id="sim-result" aria-live="polite">${resultPanel(mode, entry)}</div></div>
-        ${saveBar(savedItem, blocked)}`);
-      bindEditorHeader(mode);
-      bindSaveBar(mode, entry, savedItem);
-      const again = (focusSelector) => {
-        const scroll = window.scrollY;
-        const openRounds = [...main.querySelectorAll(".sim-round")].map((details) => details.open);
-        renderPicks(mode, entry, savedItem, fromLink, persist);
-        main.querySelectorAll(".sim-round").forEach((details, index) => { if (openRounds[index] !== undefined) details.open = openRounds[index]; });
-        window.scrollTo(0, scroll);
-        if (focusSelector) { const element = main.querySelector(focusSelector); if (element) element.focus({ preventScroll: true }); }
-      };
+        </div>` : "";
+      const rows = matches.map((match) => `<div class="sim-match" data-row="${escapeHtml(match.match_id)}">
+          <span class="sim-date">${escapeHtml(formatShortDate(match.match_date))}${match.match_date < snapshot.reference_date ? " · adiado" : ""} ${lockLabel(match)}</span>
+          <span class="sim-home">${clubCell(match.home_id)}</span>
+          <span class="sim-pick">${matchControl(mode, match, entry)}${crowdForMatch(match)}${entry.picks[match.match_id] !== undefined ? `<button type="button" class="link-button sim-clear-one" data-clear="${escapeHtml(match.match_id)}">apagar</button>` : ""}</span>
+          <span class="sim-away">${clubCell(match.away_id)}</span></div>`).join("");
+      const last = active.round === rounds.length - 1;
+      shell("", round ? `Rodada ${round}` : "Jogos sem rodada", "", `${sessionHeader(active)}
+        <div class="sim-progress" role="img" aria-label="${tally.own} seus, ${tally.sampled} sorteados, ${tally.blank} em branco"><span class="is-own" style="width:${tally.own / remaining.length * 100}%"></span><span class="is-model" style="width:${tally.sampled / remaining.length * 100}%"></span></div>
+        <p class="note">${tally.own} seus · ${tally.sampled} sorteados pelo modelo · ${tally.blank} em branco, de ${remaining.length} jogos.</p>
+        ${modelSwitch}
+        <nav class="sim-round-chips" aria-label="Rodadas">${chips}</nav>
+        <div class="sim-picks">${rows}</div>
+        ${navBar(active.round ? "Rodada anterior" : "Voltar", last ? "Revisar a tabela" : "Próxima rodada", "")}`, { focus: true });
+      bindSession(active,
+        () => { if (active.round) { active.round -= 1; writeStore(); renderRoundStep(active); window.scrollTo(0, 0); } else moveStep(active, 1); },
+        () => { if (last) moveStep(active, 3); else { active.round += 1; writeStore(); renderRoundStep(active); window.scrollTo(0, 0); } });
+      const again = (selector) => { const scroll = window.scrollY; writeStore(); renderRoundStep(active, selector); window.scrollTo(0, scroll); };
+      main.querySelectorAll("[data-round]").forEach((button) => button.addEventListener("click", () => { active.round = Number(button.dataset.round); writeStore(); renderRoundStep(active); }));
       main.querySelectorAll("[data-model]").forEach((button) => button.addEventListener("click", () => {
         entry.model = button.dataset.model === "on";
         if (entry.model) fillWithModel(mode, entry, false); else entry.sampled = {};
-        persist(); again(`[data-model="${button.dataset.model}"]`);
+        again(`[data-model="${button.dataset.model}"]`);
       }));
       const redraw = document.getElementById("sim-redraw");
-      if (redraw) redraw.addEventListener("click", () => { fillWithModel(mode, entry, true); persist(); again("#sim-redraw"); });
-      document.getElementById("sim-clear").addEventListener("click", () => {
-        if (Object.keys(entry.picks).length && !window.confirm("Apagar os seus palpites? Os sorteados pelo modelo ficam.")) return;
-        entry.picks = {};
-        if (entry.model) fillWithModel(mode, entry, false);
-        persist(); again();
-      });
+      if (redraw) redraw.addEventListener("click", () => { fillWithModel(mode, entry, true); again("#sim-redraw"); });
       main.querySelectorAll("[data-clear]").forEach((button) => button.addEventListener("click", () => {
         const matchId = button.dataset.clear;
         delete entry.picks[matchId];
         if (entry.model) entry.sampled[matchId] = sampleMatch(mode, remaining.find((item) => item.match_id === matchId));
-        persist(); again();
+        again();
       }));
       main.querySelectorAll(".sim-choice[data-pick]").forEach((button) => button.addEventListener("click", () => {
         entry.picks[button.dataset.match] = button.dataset.pick;
         delete entry.sampled[button.dataset.match];
-        persist(); again(`.sim-choice[data-match="${CSS.escape(button.dataset.match)}"][data-pick="${button.dataset.pick}"]`);
+        again(`.sim-choice[data-match="${CSS.escape(button.dataset.match)}"][data-pick="${button.dataset.pick}"]`);
       }));
       main.querySelectorAll(".sim-score input").forEach((input) => input.addEventListener("change", () => {
         const matchId = input.dataset.match;
@@ -956,14 +989,95 @@
         if (!values.every((value) => value !== null && !Number.isNaN(value))) return;
         entry.picks[matchId] = values;
         delete entry.sampled[matchId];
-        persist();
         const nextRow = main.querySelector(`.sim-match[data-row="${CSS.escape(matchId)}"]`)?.nextElementSibling;
         const nextId = nextRow && nextRow.dataset ? nextRow.dataset.row : null;
-        again(nextId ? `.sim-score input[data-match="${CSS.escape(nextId)}"][data-side="0"]` : null);
+        again(nextId ? `.sim-score input[data-match="${CSS.escape(nextId)}"][data-side="0"]` : "#sim-next");
       }));
+      if (focusSelector) { const element = main.querySelector(focusSelector); if (element) element.focus({ preventScroll: true }); }
     }
 
-    /* ---------------- Ranking e visitantes */
+    function finalTableHtml(mode, entry) {
+      const table = finalTable(mode, entry);
+      const body = table.map((row) => {
+        const zone = zoneOf(row.position, table.length);
+        const sign = goalDifference(row) > 0 ? "+" : goalDifference(row) < 0 ? MINUS : "";
+        return `<tr class="${zone.key ? `zone-${zone.key}` : ""}"><td class="num">${row.position}</td><td>${clubCell(row.club_id)}${row.tie ? ` <span class="sim-tie" title="Empate em todos os critérios que dá para calcular; o regulamento decide por cartões e, depois, sorteio">empate: ${row.tie}</span>` : ""}</td>
+          <td class="num">${row.points}</td><td class="num">${row.played}</td><td class="num">${row.wins}</td><td class="num">${sign}${Math.abs(goalDifference(row))}</td></tr>`;
+      }).join("");
+      return `<div class="table-wrap"><table class="sim-table"><thead><tr><th class="num">#</th><th>Clube</th><th class="num">Pts</th><th class="num">J</th><th class="num">V</th><th class="num">SG</th></tr></thead><tbody>${body}</tbody></table></div>`;
+    }
+
+    function renderReview(active) {
+      const mode = active.mode;
+      const entry = active.entry;
+      const tally = counts(entry);
+      const score = pickScore(mode, entry);
+      const complete = isComplete(entry);
+      const blocked = tally.own + tally.sampled ? "" : "Nenhum jogo preenchido. Volte e preencha pelo menos um, ou deixe o modelo sortear.";
+      const warning = tally.blank ? `<p class="sim-banner">${tally.blank} ${tally.blank === 1 ? "jogo está em branco e fica" : "jogos estão em branco e ficam"} fora da tabela final e da pontuação. Para completar, volte e ligue "Modelo sorteia".</p>` : "";
+      const asTable = complete ? (() => {
+        const tableEval = tableScore(finalTable(mode, entry).map((row) => row.club_id));
+        return `<p class="note"><strong>Esta tabela como Classificação:</strong> ${tableEval.points} pontos se o campeonato acabasse hoje · até ${tableEval.ceiling} de ${tableEval.maximum} possíveis.</p>`;
+      })() : "";
+      const goalsNote = mode === "vencedor" ? `<p class="note">No modo Vencedor não há placar, então o saldo de gols da tabela é só o dos jogos já disputados.</p>` : "";
+      shell("", "Revise e salve", "", `${sessionHeader(active)}
+        <div class="sim-scorebox"><p>${tally.own} seus · ${tally.sampled} sorteados pelo modelo · ${tally.blank} em branco. Esta simulação vale até <strong>${score.total}</strong> pontos (${maxPerMatch(mode)} por jogo).</p>${asTable}</div>
+        ${warning}<h2>Sua tabela final</h2>${goalsNote}${finalTableHtml(mode, entry)}
+        ${navBar("Voltar às rodadas", active.savedId ? "Salvar alterações" : "Salvar simulação", blocked)}`, { focus: true });
+      bindSession(active, () => { active.round = rounds.length - 1; moveStep(active, 2); }, () => saveActive());
+    }
+
+    /* ---------------- Simulação salva */
+
+    function renderSaved(localId) {
+      const item = store.saved.find((saved) => saved.local_id === localId);
+      if (!item) { renderHome("Essa simulação não está neste aparelho."); return; }
+      const done = store.done && store.done.local_id === localId ? store.done : null;
+      if (done) { store.done = null; writeStore(); }
+      const mode = item.mode;
+      const table = mode === "classificacao"
+        ? `<div class="table-wrap"><table class="sim-table"><thead><tr><th class="num">#</th><th>Clube</th><th>Vaga</th></tr></thead><tbody>${item.entry.order.map((clubId, index) => {
+          const zone = zoneOf(index + 1, item.entry.order.length);
+          return `<tr class="${zone.key ? `zone-${zone.key}` : ""}"><td class="num">${index + 1}</td><td>${clubCell(clubId)}</td><td>${zone.label}</td></tr>`;
+        }).join("")}</tbody></table></div>`
+        : finalTableHtml(mode, item.entry);
+      const busy = store.active && (store.active.savedId !== localId);
+      shell("", `${MODES[mode].label} ${escapeHtml(simulationLabel(item))}`, "", `
+        ${done ? `<p class="sim-banner is-success" role="status"><strong>Simulação salva.</strong>${escapeHtml(done.note)}</p>` : ""}
+        <div class="sim-scorebox"><p>${scoreSummary(item)}</p><p class="note">Salva em ${escapeHtml(formatDay(item.updated_at))}${item.server_id ? " · no servidor" : " · só neste aparelho"}.</p></div>
+        <p class="sim-toolbar">${busy ? `<span class="sim-locked">Há outra simulação em andamento: termine ou descarte antes de editar esta.</span>` : `<button type="button" class="sim-button" id="sim-edit">Editar</button>`}
+          <a class="sim-button is-secondary" href="#/simular">Fazer outra simulação</a>
+          <button type="button" class="link-button" id="sim-share">Copiar link</button>
+          <button type="button" class="link-button" id="sim-remove">Excluir</button>
+          <span class="note" id="sim-save-status" aria-live="polite"></span></p>
+        <h2>${mode === "classificacao" ? "Sua ordem" : "Sua tabela final"}</h2>${table}`);
+      const edit = document.getElementById("sim-edit");
+      if (edit) edit.addEventListener("click", () => {
+        if (!store.active || store.active.savedId !== localId) startSession(mode, item, null);
+        go("#/simular/fazer");
+      });
+      document.getElementById("sim-share").addEventListener("click", async () => {
+        const url = `${location.href.split("#")[0]}#/simular/${mode}/l/${encodeLink(mode, item.entry, matchIndex, sortedClubs)}`;
+        const status = document.getElementById("sim-save-status");
+        try { await navigator.clipboard.writeText(url); status.textContent = "Link copiado."; }
+        catch (error) {
+          status.innerHTML = `Copie o link: <input class="sim-share-url" readonly value="${escapeHtml(url)}" aria-label="Link da simulação">`;
+          const input = status.querySelector("input"); input.focus(); input.select();
+        }
+      });
+      document.getElementById("sim-remove").addEventListener("click", async () => {
+        if (!window.confirm(`Excluir a simulação ${simulationLabel(item)}?${item.server_id ? " Ela sai também do servidor e do ranking." : ""}`)) return;
+        if (item.server_id && cloud && cloudState.user) {
+          try { await cloud.deleteSimulation(item.server_id); } catch (error) { document.getElementById("sim-save-status").textContent = `Não deu para excluir no servidor (${error.message}).`; return; }
+        }
+        store.saved = store.saved.filter((saved) => saved !== item);
+        if (store.active && store.active.savedId === localId) store.active = null;
+        writeStore();
+        go("#/simular");
+      });
+    }
+
+    /* ---------------- Ranking */
 
     async function renderRanking(requested) {
       const rankMode = MODES[requested] ? requested : "placar";
@@ -992,36 +1106,85 @@
       }
     }
 
-    async function renderVisitors() {
-      shell("visitantes", "Classificação dos visitantes", "A tabela final mais provável segundo as simulações feitas no site: a mais recente de cada pessoa que participa (uma Classificação, ou a tabela final de um Vencedor ou Placar exato completo), ordenada pela posição média.",
-        `<div id="sim-visitors" aria-live="polite"><p class="note">Carregando…</p></div>`);
-      const target = document.getElementById("sim-visitors");
+    /* ---------------- Agregado: posição média das simulações */
+
+    function aggregate(tables) {
+      const totals = Object.fromEntries(clubIds.map((clubId) => [clubId, { sum: 0, champion: 0, relegated: 0 }]));
+      tables.forEach((order) => order.forEach((clubId, index) => {
+        if (!totals[clubId]) return;
+        totals[clubId].sum += index + 1;
+        if (index === 0) totals[clubId].champion += 1;
+        if (index >= order.length - RELEGATED) totals[clubId].relegated += 1;
+      }));
+      return clubIds.map((clubId) => ({
+        club_id: clubId,
+        average_position: totals[clubId].sum / tables.length,
+        champion: totals[clubId].champion / tables.length,
+        relegated: totals[clubId].relegated / tables.length,
+      })).sort((left, right) => left.average_position - right.average_position || left.club_id.localeCompare(right.club_id));
+    }
+
+    function aggregateTable(rows, note) {
+      const official = Object.fromEntries([...snapshot.teams].sort((left, right) => left.expected_position - right.expected_position).map((team, index) => [team.club_id, index + 1]));
+      return `<p class="note">${note}</p>
+        <div class="table-wrap"><table class="sim-table"><thead><tr><th class="num">#</th><th>Clube</th><th class="num" title="Posição média">Pos. média</th><th class="num">Campeão</th><th class="num" title="Rebaixado">Queda</th><th class="num" title="Posição na ordem do modelo oficial">Modelo</th></tr></thead>
+        <tbody>${rows.map((club, index) => { const zone = zoneOf(index + 1, rows.length); return `<tr class="${zone.key ? `zone-${zone.key}` : ""}"><td class="num">${index + 1}</td><td>${clubCell(club.club_id)}</td>
+          <td class="num">${Number(club.average_position).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</td><td class="num">${pct(club.champion)}</td><td class="num">${pct(club.relegated)}</td><td class="num">${official[club.club_id] || "–"}º</td></tr>`; }).join("")}</tbody></table></div>`;
+    }
+
+    async function renderAggregate(scope) {
+      const scopeName = scope === "minhas" ? "minhas" : "todas";
+      const subTabs = `<nav class="tabs sim-subtabs" aria-label="Agregado">${cloud ? `<a href="#/simular/agregado" ${scopeName === "todas" ? 'aria-current="page"' : ""}>Todas as simulações do site</a>` : ""}<a href="#/simular/agregado/minhas" ${scopeName === "minhas" || !cloud ? 'aria-current="page"' : ""}>As minhas</a></nav>`;
+      shell("agregado", "Simulador agregado", "A tabela final mais provável segundo as simulações: cada clube ordenado pela posição média. Entram as Classificações e as tabelas finais de Vencedor e Placar exato com todos os jogos preenchidos.",
+        `${subTabs}<div id="sim-aggregate" aria-live="polite"><p class="note">Carregando…</p></div>`);
+      const target = document.getElementById("sim-aggregate");
+      if (scopeName === "minhas" || !cloud) {
+        const tables = store.saved.map((item) => finalOrderOf(item.mode, item.entry)).filter((order) => Array.isArray(order) && order.length === clubIds.length);
+        target.innerHTML = tables.length
+          ? aggregateTable(aggregate(tables), `Média das suas ${tables.length} ${tables.length === 1 ? "simulação completa" : "simulações completas"} neste aparelho. Na última coluna, a posição do clube na ordem do modelo oficial.`)
+          : `<p>Você ainda não tem simulação completa. Salve uma Classificação, ou um Vencedor ou Placar exato com todos os jogos preenchidos (o modelo pode completar).</p>`;
+        return;
+      }
       try {
         const data = await cloud.consensus(season);
         if (!document.body.contains(target)) return;
         if (!data.clubs || !data.clubs.length) {
-          target.innerHTML = `<p>Ainda são poucas pessoas: a tabela aparece com pelo menos ${data.min_users} participantes, para não expor a escolha de ninguém. Participe e salve uma simulação para entrar na conta.</p>`;
+          target.innerHTML = `<p>Ainda são poucas pessoas: a média do site aparece com pelo menos ${data.min_users} participantes, para não expor a escolha de ninguém. Enquanto isso, veja a média das suas simulações em "As minhas".</p>`;
           return;
         }
-        const official = Object.fromEntries([...snapshot.teams].sort((left, right) => left.expected_position - right.expected_position).map((team, index) => [team.club_id, index + 1]));
-        target.innerHTML = `<p class="note">Com as tabelas de pelo menos ${data.users_at_least} pessoas. Na última coluna, a posição do clube na ordem do modelo oficial.</p>
-          <div class="table-wrap"><table class="sim-table"><thead><tr><th class="num">#</th><th>Clube</th><th class="num">Posição média</th><th class="num">Campeão</th><th class="num">Rebaixado</th><th class="num">Modelo</th></tr></thead>
-          <tbody>${data.clubs.map((club, index) => { const zone = zoneOf(index + 1, data.clubs.length); return `<tr class="${zone.key ? `zone-${zone.key}` : ""}"><td class="num">${index + 1}</td><td>${clubCell(club.club_id)}</td>
-            <td class="num">${Number(club.average_position).toLocaleString("pt-BR", { minimumFractionDigits: 1 })}</td><td class="num">${pct(club.champion)}</td><td class="num">${pct(club.relegated)}</td><td class="num">${official[club.club_id] || "–"}º</td></tr>`; }).join("")}</tbody></table></div>`;
+        target.innerHTML = aggregateTable(data.clubs, `Média das simulações de pelo menos ${data.users_at_least} pessoas que participam; cada pessoa pesa igual, qualquer que seja o número de simulações dela. Na última coluna, a posição do clube na ordem do modelo oficial.`);
       } catch (error) {
         if (document.body.contains(target)) target.innerHTML = `<p class="note">Indisponível agora (${escapeHtml(error.message)}).</p>`;
       }
     }
 
-    /* ---------------- Rotas: #/simular, /{modo}, /{modo}/s/{id}, /{modo}/l/{código}, /ranking/{modo}, /visitantes */
+    /* ---------------- Rotas: #/simular, /fazer, /ver/{id}, /{modo}[/l/{código}], /ranking/{modo}, /agregado[/minhas] */
 
-    if (first === "ranking" && cloud) renderRanking(second);
-    else if (first === "visitantes" && cloud) renderVisitors();
+    function openMode(mode, code) {
+      let entry = null;
+      let notice = "";
+      if (code) {
+        const decoded = decodeLink(mode, code, sortedClubs, matchList);
+        if (decoded) entry = sanitize(mode, decoded.entry);
+        else notice = "Não deu para abrir a simulação do link: ele está incompleto ou é de outra temporada.";
+      }
+      if (store.active && (store.active.mode !== mode || entry)) {
+        renderHome(`${notice ? `${notice} ` : ""}Você tem uma simulação de ${MODES[store.active.mode].label} em andamento. Termine ou descarte antes de começar ${entry ? "a do link" : `uma de ${MODES[mode].label}`}.`);
+        history.replaceState(null, "", "#/simular");
+        return;
+      }
+      if (!store.active) startSession(mode, null, entry);
+      history.replaceState(null, "", "#/simular/fazer");
+      renderSession();
+    }
+
+    if (first === "fazer") renderSession();
+    else if (first === "ver") renderSaved(decodeURIComponent(second));
+    else if (first === "ranking" && cloud) renderRanking(second);
+    else if (first === "agregado" || first === "visitantes") renderAggregate(second);
     else if (MODES[first]) {
-      if (second === "s") openEditor(first, decodeURIComponent(third), null);
-      else if (second === "l") openEditor(first, null, third);
-      else if (second) openEditor(first, null, second);
-      else openEditor(first, null, null);
+      if (second === "s") go(`#/simular/ver/${third}`);
+      else openMode(first, second === "l" ? third : second);
     } else renderHome();
     initCloud();
   }

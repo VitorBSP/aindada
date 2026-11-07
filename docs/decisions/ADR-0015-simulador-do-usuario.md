@@ -107,3 +107,25 @@ modelo valem pontos.
    endereços antes do primeiro envio.
 7. **Ranking**: uma linha por simulação ("apelido · #ID"), com "pontos de máximo".
 
+## Versão 3: um modo por vez e simulador agregado (2026-11-07, pedido do dono)
+
+Pedido: "uma aba que tu seleciona qual vai fazer, sem poder ficar trocando facilmente, se selecionou tem que
+finalizar", UX mais intuitiva, e o simulador agregado com a posição média de todas as simulações.
+
+1. **Sessão única**: escolher um modo cria uma simulação em andamento (`store.active`). Enquanto ela existe, os outros
+   modos ficam travados no início ("Termine a simulação em andamento para começar esta"), e um endereço de outro modo
+   volta ao início com o aviso. Sair guarda o rascunho no passo em que parou; "Descartar" pede confirmação. As abas
+   de modo saíram do topo (ficaram Início, Ranking e Agregado), e o passo a passo esconde abas e painel da conta.
+2. **Passo a passo** com indicador de passos: Classificação (Ordenar → Revisar e salvar); Vencedor e Placar exato
+   (Como preencher → Rodada por rodada → Revisar e salvar). "Como preencher" oferece "Eu preencho tudo", "Eu preencho
+   e o modelo completa" e "O modelo sorteia tudo e eu reviso"; a chave do modelo continua disponível nas rodadas.
+   As rodadas vêm uma por vez, com botões por rodada (cheia, parcial, vazia). Salvar leva à página da simulação
+   (`#/simular/ver/{id}`), com pontuação, tabela, editar (abre o passo a passo de novo), copiar link e excluir.
+3. **Agregado** (`#/simular/agregado`): "As minhas" (média das simulações completas do aparelho, sempre visível) e
+   "Todas as simulações do site" (`sim_consensus`, migração `0004`: todas as simulações completas de cada pessoa,
+   cada pessoa pesando igual, mínimo de 30 pessoas).
+4. Ressalvas do 06 tratadas: D (jogo cancelado fora do máximo de pontos, como no `supabase_sync`), E (depois do
+   envio, a cópia local vira o que o servidor guardou), C e F na `0004` (trava contra envios simultâneos; média por
+   jogo só com palpites das pessoas, sem os sorteados). Abertas: A (dedução com contas falsas) e B (e-mail de avisos
+   sem confirmação).
+

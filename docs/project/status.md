@@ -3352,3 +3352,21 @@ real com a chave anon: perfis, simulações, `sim_scores` e `sim_my_scores` nega
 - **Falta**: a próxima publicação envia `points` e `max_points` por clube (até lá o banco não recusa ordem
   impossível, só o navegador); envio de e-mails (provedor e confirmação de endereço); revalidação do 06 da `0003`.
 
+## Simulador do usuário, versão 3 (ADR-0015, 2026-11-07)
+
+- **Revalidação do 06 da `0003`/v2**: aprovado com ressalvas, nada bloqueante. Pontuação SQL x JS idêntica; tetos
+  válidos; `sim_valid_order` sem falso positivo; limite de 3 sem herança de palpites. Importantes: A (média e
+  consenso deduzíveis com 29 contas falsas), B (`sim_contacts` aceita e-mail de terceiros, sem confirmação; texto de
+  privacidade não cita os avisos). Menores: C (limite furável com envios simultâneos), D (cancelado no máximo de
+  pontos), E (pontuação local com palpites descartados), F (média com jogos sorteados).
+- **Pedido do dono**: um modo por vez, passo a passo, e simulador agregado (ver ADR-0015, "Versão 3").
+- **O que mudou**: `simulator.js` (página reescrita: sessão única, passo a passo, página da simulação salva,
+  Agregado "As minhas" e "Todas"); `simulator.css`; migração `0004_simulador_agregado.sql` (consenso com todas as
+  simulações, C e F); D e E no navegador.
+- **Evidência**: navegador local com o Supabase real em leitura (sem criar conta): trocar de modo pelo endereço volta
+  ao início com o aviso e 2 cartões travados; "Eu preencho e o modelo completa" sorteia os 61 jogos e o palpite
+  próprio substitui o sorteado; rodadas 21 a 38 navegáveis; revisar e salvar levam à página da simulação; sair e
+  voltar retoma no mesmo passo; Classificação ordenar → revisar → salvar; "As minhas" com 2 simulações completas;
+  375 px sem rolagem horizontal nas 6 telas.
+- **Pendente**: aplicar a `0004` no Supabase (precisa de autorização do dono); A e B; revalidação do 06.
+
