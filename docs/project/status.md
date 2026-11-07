@@ -3381,3 +3381,15 @@ real com a chave anon: perfis, simulações, `sim_scores` e `sim_my_scores` nega
   como outra pessoa; (6) `final_order` de Vencedor e Placar não é conferido contra os palpites no consenso. Abertos:
   A, B, SRI, testes de JS e SQL.
 
+## Simulador do usuário, versão 4: cartões (ADR-0015, 2026-11-07)
+
+- **Pedido do dono**: UX mais bonita, escolhendo por cartões, com mensagens diferentes (ADR-0015, "Versão 4").
+- **O que mudou**: `simulator.js` (cartão por jogo, Classificação por cartões, destaques, comemoração, Minhas
+  simulações em cartões, achados 1, 2, 3 e 5 do 06) e `simulator.css`. Sem mudança no banco.
+- **Evidência**: navegador local, sem criar conta: Vencedor com escolha que avança sozinha, "Sortear este", "Pular",
+  mapa com 61 jogos, revisão com 4 destaques, clique duplo em salvar gera 1 simulação; Placar exato com + e −
+  (2 x 0, "O modelo dá 5%") e atalho de placar; Classificação com 16 clubes desativados no título, G4 e rebaixados por
+  cartões e ajuste que bloqueia ordem impossível; 375 px sem rolagem horizontal nas 7 telas. `pytest` e checagens no
+  commit.
+- **Pendente**: achados 4 (duas abas) e 6 (`final_order` não conferido) do 06; A e B.
+

@@ -129,3 +129,25 @@ finalizar", UX mais intuitiva, e o simulador agregado com a posição média de 
    jogo só com palpites das pessoas, sem os sorteados). Abertas: A (dedução com contas falsas) e B (e-mail de avisos
    sem confirmação).
 
+## Versão 4: cartões (2026-11-07, pedido do dono)
+
+Pedido: "faça algo mais bonito, alguns cards vá escolhendo, coloque mensagens diferentes".
+
+1. **Vencedor e Placar exato**: um cartão por jogo ("Jogo 5 de 61 · Rodada 34 · data"), escudos grandes e uma frase
+   do modelo que muda com o jogo ("Favoritaço", "é favorito, mas zebra acontece", "Cheiro de empate", "Jogo
+   parelho"). Vencedor: três botões grandes, e o cartão avança sozinho. Placar exato: botões + e − por time, atalhos
+   com os 3 placares mais prováveis e "Confirmar placar". Em cada cartão: anterior, pular (deixar em branco),
+   "Sortear este" (o modelo sorteia só aquele jogo) e próximo; um mapa recolhível com todos os jogos (seus,
+   sorteados, em branco) permite pular para qualquer um e sortear ou tirar todos os sorteados de uma vez. Mensagens
+   variam com a escolha (zebra, lógica) e com o progresso ("Metade do caminho!", "Faltam só 5!").
+2. **Classificação** em cartões: "Quem leva o título?" (só quem ainda alcança o 1º lugar), "Quem completa o G4?",
+   "Quem cai?" (só quem ainda pode cair), depois o ajuste da tabela montada (campeão, G4 e rebaixados no lugar, o meio
+   na ordem do modelo) e a revisão.
+3. **Revisão** com cartões de destaque (campeão, rebaixados, maior zebra, palpites ousados); ao salvar, uma
+   mensagem de comemoração; "Minhas simulações" em cartões com o modo, o ID, a pontuação e onde ela está.
+4. Achados do 06 tratados: 1 (a cópia local guarda o que a pessoa escolheu; o aviso diz que palpites de jogos já
+   iniciados ficam na simulação, mas não contam para o ranking), 2 (salvar trava durante o envio), 3 (link aberto com
+   rascunho em andamento fica guardado, com "Descartar este rascunho e abrir o link"), 5 (sair sem e-mail marca as
+   simulações enviadas como de outra participação e não as reenvia; o aviso de sair indica "Apagar minha
+   participação" para tirá-las do servidor).
+
