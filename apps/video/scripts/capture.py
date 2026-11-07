@@ -15,8 +15,13 @@ from playwright.sync_api import sync_playwright
 BASE = "https://vitorbsp.github.io/aindada/"
 OUT = Path(__file__).resolve().parents[1] / "captures"
 APPS = Path(__file__).resolve().parents[2]
-SITE_DIRS = {"serie-b": "web-serie-b", "premier-league": "web-ligas", "la-liga": "web-ligas",
-             "champions-league": "web-champions", "mundial-lol": "web-lol"}
+SITE_DIRS = {
+    "serie-b": "web-serie-b",
+    "premier-league": "web-ligas",
+    "la-liga": "web-ligas",
+    "champions-league": "web-champions",
+    "mundial-lol": "web-lol",
+}
 
 # Alvos: seletor CSS (primeiro), "seletor@n" (n-ésimo), "h2=Texto" (título) ou "next:h2=Texto" (o bloco depois dele).
 SHOTS = {
@@ -47,17 +52,33 @@ TIGHT_BOX = """(targets) => {
     const [sel, idx] = spec.split("@"); return document.querySelectorAll(sel)[Number(idx || 0)];
   };
   let box = null;
-  const grow = (r) => { if (r.width < 1 || r.height < 1) return;
-    box = box ? { l: Math.min(box.l, r.left), t: Math.min(box.t, r.top), r: Math.max(box.r, r.right), b: Math.max(box.b, r.bottom) }
-              : { l: r.left, t: r.top, r: r.right, b: r.bottom }; };
-  const hidden = (el) => { for (let n = el; n && n !== document.body; n = n.parentElement) {
-    const s = getComputedStyle(n); if (s.display === "none" || s.visibility === "hidden") return true; } return false; };
-  const roots = targets.map((spec) => { const el = find(spec); if (!el) throw new Error("alvo não encontrado: " + spec); return el; });
+  const grow = (r) => {
+    if (r.width < 1 || r.height < 1) return;
+    box = box
+      ? { l: Math.min(box.l, r.left), t: Math.min(box.t, r.top),
+          r: Math.max(box.r, r.right), b: Math.max(box.b, r.bottom) }
+      : { l: r.left, t: r.top, r: r.right, b: r.bottom };
+  };
+  const hidden = (el) => {
+    for (let n = el; n && n !== document.body; n = n.parentElement) {
+      const s = getComputedStyle(n);
+      if (s.display === "none" || s.visibility === "hidden") return true;
+    }
+    return false;
+  };
+  const roots = targets.map((spec) => {
+    const el = find(spec);
+    if (!el) throw new Error("alvo não encontrado: " + spec);
+    return el;
+  });
   for (const root of roots) {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
     for (let node = walker.currentNode; node; node = walker.nextNode()) {
       if (node.nodeType === Node.TEXT_NODE) { if (!node.textContent.trim() || hidden(node.parentElement)) continue;
-        const range = document.createRange(); range.selectNodeContents(node); grow(range.getBoundingClientRect()); continue; }
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        grow(range.getBoundingClientRect());
+        continue; }
       if (hidden(node)) continue;
       const style = getComputedStyle(node);
       const leaf = !node.firstElementChild || ["IMG", "use", "rect", "path", "circle", "line"].includes(node.tagName);
@@ -110,10 +131,17 @@ def main() -> None:
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(channel="msedge")
         if mobile:
-            page = browser.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=3,
-                                    is_mobile=True, has_touch=True, color_scheme="light")
+            page = browser.new_page(
+                viewport={"width": 390, "height": 844},
+                device_scale_factor=3,
+                is_mobile=True,
+                has_touch=True,
+                color_scheme="light",
+            )
         else:
-            page = browser.new_page(viewport={"width": 1280, "height": 800}, device_scale_factor=2, color_scheme="light")
+            page = browser.new_page(
+                viewport={"width": 1280, "height": 800}, device_scale_factor=2, color_scheme="light"
+            )
         if "--local-code" in args:
             page.route("**/aindada/**", local_code)
         for name, (path, targets) in SHOTS.items():
@@ -125,7 +153,8 @@ def main() -> None:
                 data = json.dumps(page.evaluate(MOSAIC_DATA), ensure_ascii=False)
                 key = f"{name}-mobile" if mobile else name
                 (OUT / f"{key}.mosaic.js").write_text(
-                    f"(window.MOSAICS = window.MOSAICS || {{}})[{json.dumps(key)}] = {data};\n", encoding="utf-8")
+                    f"(window.MOSAICS = window.MOSAICS || {{}})[{json.dumps(key)}] = {data};\n", encoding="utf-8"
+                )
             page.add_style_tag(content=HIDE_TEXT)
             page.wait_for_timeout(1200)
             box = page.evaluate(TIGHT_BOX, targets)
