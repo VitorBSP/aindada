@@ -3372,4 +3372,12 @@ real com a chave anon: perfis, simulações, `sim_scores` e `sim_my_scores` nega
   `simulations_at_least`, mínimo 30); push de `e579530`; publish-site #40 com sucesso (sincronização e deploy); o
   site publicado serve o `simulator.js` da versão 3.
 - **Pendente**: ressalvas A e B do 06; revalidação do 06 da versão 3.
+- **Revalidação do 06 da versão 3**: aprovado com ressalvas, nada bloqueante. C e F fechados; sem regressão de
+  pontuação ou trava entre `0003` e `0004`; anon negado em contatos, simulações, perfis, `sim_scores` e
+  `sim_notification_list`. Importantes: (1) a cópia local passa a ser o payload do servidor e apaga palpites de jogos
+  já travados que a pessoa digitou (tabela final some de "As minhas"); (2) salvar não é desativado durante o envio
+  (clique duplo cria duas simulações e gasta o limite). Menores: (3) link compartilhado se perde com sessão aberta;
+  (4) duas abas se sobrescrevem no localStorage; (5) sair sem e-mail deixa simulações órfãs no servidor, contadas
+  como outra pessoa; (6) `final_order` de Vencedor e Placar não é conferido contra os palpites no consenso. Abertos:
+  A, B, SRI, testes de JS e SQL.
 
