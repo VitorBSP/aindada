@@ -104,11 +104,19 @@
   async function saveSimulation(season, mode, entry) {
     const supabase = await client();
     const user = await currentUser();
-    if (!user) return false;
-    check(await supabase.from("sim_simulations").upsert({
+    if (!user) return null;
+    const rows = check(await supabase.from("sim_simulations").upsert({
       user_id: user.id, competition, season, mode, payload: payloadOf(mode, entry), assist: Boolean(entry.assist),
-    }, { onConflict: "user_id,competition,season,mode" }));
-    return true;
+    }, { onConflict: "user_id,competition,season,mode" }).select("payload"));
+    return rows && rows[0] ? rows[0].payload : null;
+  }
+
+  /* O que o servidor guarda depois da trava: sim_lock_picks descarta palpites de jogos já travados. */
+  async function seasonInfo(season) {
+    const supabase = await client();
+    const rows = check(await supabase.from("sim_seasons").select("classificacao_locks_at, final_at")
+      .eq("competition", competition).eq("season", season));
+    return rows[0] || null;
   }
 
   async function loadSimulations(season) {
@@ -144,6 +152,6 @@
 
   window.SimulatorCloud = {
     enabled, currentUser, join, linkEmail, signInWithEmail, signOut, deleteAccount, profile, saveProfile,
-    saveSimulation, loadSimulations, community, ranking, myScores,
+    saveSimulation, seasonInfo, loadSimulations, community, ranking, myScores,
   };
 })();

@@ -27,7 +27,7 @@
   const RANKING_MODES = {
     placar: { label: "Placar exato", exact: "Placares exatos", rules: "5 pontos pelo placar exato, 3 pelo vencedor (ou empate) com o saldo de gols certo e 2 só pelo vencedor (ou empate)." },
     vencedor: { label: "Vencedor", exact: "Acertos", rules: "1 ponto por resultado certo: vitória do mandante, empate ou vitória do visitante." },
-    classificacao: { label: "Classificação", exact: "Posições exatas", rules: "No fim da temporada: 3 pontos por clube na posição exata e 1 por clube a uma posição da certa. Vale a última ordem salva antes da trava da temporada." },
+    classificacao: { label: "Classificação", exact: "Posições exatas", rules: "No fim da temporada: 3 pontos por clube na posição exata e 1 por clube a uma posição da certa. Vale a última ordem salva antes da trava da temporada, que fica no início do campeonato." },
   };
   // Mesma regra do banco (sim_profiles.nickname): letras com acento do português, números e _ . - espaço.
   const NICKNAME = /^[A-Za-zÀ-ÖØ-öø-ÿ0-9_. -]{3,20}$/;
@@ -192,7 +192,8 @@
     if (mode === "classificacao") {
       const clubs = snapshot.teams.map((team) => team.club_id).sort();
       const order = [...body].map((char) => clubs[parseInt(char, 36)]);
-      return new Set(order).size === clubs.length && order.every(Boolean) ? { order, ignored: 0 } : null;
+      const valid = order.length === clubs.length && new Set(order).size === clubs.length && order.every(Boolean);
+      return valid ? { order, ignored: 0 } : null;
     }
     const assist = body[0] === "a";
     const step = mode === "vencedor" ? 3 : 4;
@@ -285,12 +286,38 @@
       window.clearTimeout(cloudTimers[modeKey]);
       cloudTimers[modeKey] = window.setTimeout(async () => {
         try {
-          await cloud.saveSimulation(season, modeKey, view.data[modeKey]);
-          setStatus(`Salvo no servidor às ${clock()}.`);
+          const stored = await cloud.saveSimulation(season, modeKey, view.data[modeKey]);
+          setStatus(`Salvo no servidor às ${clock()}.${rankingNote(modeKey, stored)}`);
         } catch (error) {
           setStatus(`Não deu para salvar no servidor (${error.message}); continua salvo neste aparelho.`);
         }
       }, 800);
+    }
+
+    /* Lê o que o servidor de fato guardou: palpites de jogos travados não contam para o ranking. */
+    function rankingNote(modeKey, stored) {
+      if (!stored) return "";
+      if (modeKey === "classificacao") return stored.ranked_order ? "" : " Esta ordem não conta para o ranking: a trava da temporada já passou.";
+      const sent = Object.keys(view.data[modeKey].picks || {});
+      const kept = new Set(Object.keys(stored.picks || {}));
+      const dropped = sent.filter((matchId) => !kept.has(matchId)).length;
+      if (!dropped) return "";
+      return dropped === 1 ? " 1 palpite é de jogo já travado e não conta para o ranking." : ` ${dropped} palpites são de jogos já travados e não contam para o ranking.`;
+    }
+
+    /* Mesma trava do servidor (supabase_sync.match_lock_utc): o pontapé ou, sem ele, 00:00 de Brasília do dia. */
+    function lockTime(match) {
+      if (match.kickoff_utc) return new Date(match.kickoff_utc);
+      return new Date(`${match.match_date}T00:00:00-03:00`);
+    }
+
+    function lockLabel(match) {
+      if (!cloud || !cloudState.user) return "";
+      const lock = lockTime(match);
+      if (Number.isNaN(lock.getTime())) return "";
+      if (lock <= new Date()) return " · não conta mais para o ranking";
+      const when = lock.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+      return ` · vale para o ranking até ${when}`;
     }
 
     function acceptStored(stored) {
@@ -430,13 +457,13 @@
     function crowdForMatch(match) {
       const data = cloudState.community && cloudState.community.matches ? cloudState.community.matches[match.match_id] : null;
       if (!data) return "";
-      return `<span class="sim-crowd" title="Entre ${data.users} visitantes com palpite neste jogo">visitantes: ${pct(data.H)} · ${pct(data.D)} · ${pct(data.A)}</span>`;
+      return `<span class="sim-crowd" title="Pelo menos ${data.users_at_least} visitantes com palpite neste jogo; números arredondados de 5 em 5 pontos">visitantes: ${pct(data.H)} · ${pct(data.D)} · ${pct(data.A)}</span>`;
     }
 
     function crowdForClub(clubId) {
       const data = cloudState.community && cloudState.community.clubs ? cloudState.community.clubs[clubId] : null;
       if (!data) return "";
-      return ` <span class="sim-crowd" title="Posição média nas tabelas de ${data.users} visitantes">· visitantes ${Number(data.average_position).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}º</span>`;
+      return ` <span class="sim-crowd" title="Posição média nas tabelas de pelo menos ${data.users_at_least} visitantes, arredondada a meia posição">· visitantes ${Number(data.average_position).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}º</span>`;
     }
 
     const signed = (value) => {
@@ -465,7 +492,7 @@
 
     function storageNote() {
       if (!cloud) return "Sua simulação fica salva só neste aparelho, sem conta e sem envio para servidor.";
-      return "Sua simulação fica salva neste aparelho. Se você participar, ela também vai para o servidor do AInda dá?, ligada a uma conta sem nome; o e-mail é opcional e nunca aparece para ninguém. No ranking e na média dos visitantes só entram o apelido e números somados.";
+      return "Sua simulação fica salva neste aparelho. Ao abrir o simulador, o navegador baixa a biblioteca do Supabase pelo jsDelivr e consulta a média dos visitantes no servidor do AInda dá? (Supabase, nos Estados Unidos). Se você participar, a simulação também vai para lá, ligada a uma conta sem nome; o e-mail é opcional e nunca aparece para ninguém. No ranking e na média dos visitantes só entram o apelido e números somados e arredondados.";
     }
 
     function shell(controls, body, lede) {
@@ -697,7 +724,7 @@
         return `<h2>Sua simulação, com o modelo completando</h2>
           <p class="note">${pickedCount()} ${pickedCount() === 1 ? "jogo com palpite seu" : "jogos com palpite seu"}; ${missing === 1 ? "o outro foi sorteado" : `os outros ${missing} foram sorteados`} ${ASSIST_SIMULATIONS.toLocaleString("pt-BR")} vezes com as probabilidades do modelo. Ao lado de cada número, a diferença para o modelo oficial, em pontos percentuais.</p>
           <div class="table-wrap"><table class="sim-table"><thead><tr><th class="num">#</th><th>Clube</th><th class="num">Pts</th><th class="num">Título</th><th class="num">G4</th><th class="num">Queda</th></tr></thead><tbody>${body}</tbody></table></div>
-          <p class="note">Cálculo simplificado, feito no seu navegador: a força dos clubes fica a da data de referência (no modelo oficial ela muda a cada jogo simulado) e, depois de gols marcados, o desempate é sorteado. Sem nenhum palpite, este cálculo fica a até ${(Math.round(gap * 1000) / 10).toLocaleString("pt-BR")} p.p. do oficial. Diferenças desse tamanho não vêm dos seus palpites.</p>`;
+          <p class="note">Cálculo simplificado, feito no seu navegador: a força dos clubes fica a da data de referência (no modelo oficial ela muda a cada jogo simulado) e, depois de gols marcados, o desempate é sorteado. Sem nenhum palpite, este cálculo fica a até ${(Math.round(gap * 1000) / 10).toLocaleString("pt-BR")} p.p. do oficial, somando a simplificação e o acaso do sorteio. Diferenças desse tamanho podem não vir dos seus palpites.</p>`;
       }
       const table = deterministicTable();
       const body = table.map((row) => {
@@ -742,7 +769,7 @@
         });
       const rounds = [...byRound.entries()].map(([round, matches]) => `<section class="sim-round"><h3>${round ? `Rodada ${round}` : "Sem rodada"}</h3>
         ${matches.map((match) => `<div class="sim-match">
-          <span class="sim-date">${escapeHtml(formatShortDate(match.match_date))}${match.match_date < snapshot.reference_date ? " · adiado" : ""}</span>
+          <span class="sim-date">${escapeHtml(formatShortDate(match.match_date))}${match.match_date < snapshot.reference_date ? " · adiado" : ""}${lockLabel(match)}</span>
           <span class="sim-home">${clubCell(match.home_id)}</span>
           <span class="sim-pick">${matchControl(match)}${crowdForMatch(match)}</span>
           <span class="sim-away">${clubCell(match.away_id)}</span></div>`).join("")}</section>`).join("");
@@ -813,6 +840,15 @@
         <div id="sim-ranking" aria-live="polite"><p class="note">Carregando o ranking…</p></div>`,
         "Quem mais acerta os jogos e a tabela entre os visitantes que participam. Cada modo tem o seu ranking.");
       const target = document.getElementById("sim-ranking");
+      if (rankMode === "classificacao") {
+        try {
+          const info = await cloud.seasonInfo(season);
+          if (info && new Date(info.classificacao_locks_at) <= new Date() && document.body.contains(target)) {
+            const when = new Date(info.classificacao_locks_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+            target.insertAdjacentHTML("beforebegin", `<p class="sim-banner">Nesta temporada não há ranking da Classificação: a trava foi em ${when}, antes de o simulador existir. Ele começa na próxima temporada.</p>`);
+          }
+        } catch (error) { /* sem a trava, a página segue sem o aviso */ }
+      }
       try {
         const [rows, mine] = await Promise.all([cloud.ranking(season, rankMode), cloudState.user ? cloud.myScores(season) : Promise.resolve([])]);
         const own = (mine || []).find((row) => row.mode === rankMode);

@@ -115,3 +115,8 @@ def test_cli_default_predictions_path_is_the_web_export(tmp_path: Path, monkeypa
             argparse.Namespace(season=2032, competition="serie-a", predictions=None, classificacao_lock=None)
         )
     assert Path(error.value.filename) == tmp_path / "api" / "seasons" / "2032" / "predictions.json"
+
+
+def test_cancelled_match_does_not_block_end_of_season() -> None:
+    rows = build_rows(_predictions(("finished", "cancelled")), "serie-a", None, NOW)
+    assert rows.season["final_at"] == NOW.isoformat()

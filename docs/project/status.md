@@ -3272,3 +3272,53 @@ Registrado pelo orquestrador (00), que executou as partes de 01, 03, 02, 04/05 e
   dono. Com `PUBLISH_ENABLED=true`, a próxima publicação sincroniza o Supabase e põe o simulador no ar.
 - **Falta**: página de privacidade; revisão do 06 (o simulador vai ao ar sem ela, por decisão do dono de "fazer
   funcionar"); decidir a trava da Classificação 2026.
+
+## Pareceres do simulador do usuário (ADR-0015, 2026-11-07)
+
+Pedidos pelo dono, com o run publish-site #38 em andamento. Os dois agentes só leram e testaram (nada editado,
+nada escrito no Supabase). Ambos rodaram `pytest` (944 passaram), `ruff` e `mypy` sem erros e sondaram o projeto
+real com a chave anon: perfis, simulações, `sim_scores` e `sim_my_scores` negados (42501).
+
+- **Agente 00: aprovado com condições.** Nada a reverter no run #38. Para manter a fase 2 ligada até a próxima
+  publicação: **B1** página e aviso de privacidade (controlador, contato, transferência para os EUA; o rascunho
+  erra ao dizer que nada vai ao servidor sem "Participar", pois abrir `#/simular` já carrega a biblioteca do
+  jsDelivr e consulta `sim_community`); **B2** parecer do 06. Importantes: CAPTCHA nas contas anônimas,
+  moderação de apelidos, SMTP padrão do Supabase pode não enviar ao público, ranking da Classificação 2026
+  prometido e inexistente, biblioteca sem SRI, falha silenciosa da sincronização (`continue-on-error`, antes do
+  deploy). Menores: tamanho do `predictions.json` (~340 KB com 380 jogos, não ~70 KB), saldo incompleto no modo
+  Vencedor sem completar, regras do Art. 15 duplicadas no JS, projeto pausado sem CI.
+- **Agente 06: reprovado na fase 2; fase 1 aprovada com ressalvas menores.** Bloqueante: a política de UPDATE de
+  `sim_simulations` permite trocar `mode`, `competition` e `season`, e o trigger não limpa `picks` no modo
+  Classificação; uma linha de Classificação com placares reais de jogos encerrados, mudada para `placar`, mantém os
+  palpites forjados (`old_picks`) e pontua; um `ranked_order` forjado entra no ranking da Classificação; um palpite
+  `["x","y"]` derruba `sim_ranking`, `sim_my_scores` e `sim_community` (cast para int). Confirmado na leitura do SQL
+  pelo orquestrador. Importantes: a média dos visitantes permite deduzir a escolha de uma pessoa (contas próprias +
+  contagem exata; Vencedor e Placar somados); a interface diz "Salvo no servidor" quando o trigger descartou o
+  palpite e não mostra a trava às 00:00. Menores: jogo adiado depois do pontapé destrava; cancelado impede
+  `final_at`; sem SRI; link de Classificação com clube repetido; a frase "a até X p.p." mistura método e ruído.
+  Matemática da fase 1 conferida (sorteio condicionado, Art. 15, matriz igual a `p_home/p_draw/p_away`, diferença
+  máxima 4,8e-6). Lacunas: nenhum teste automático de JS nem de SQL.
+- **Situação**: ranking e média vazios (nenhum participante); o furo vale a partir do primeiro. **Próximo**: 04/00
+  migração `0002` com os achados 1 a 3 do 06 e revalidação do 06, ou esvaziar `simulator-config.js` (fase 1) até lá;
+  B1 com o dono e o 08.
+- **Correção (2026-11-07, decisão do dono: "Fix now")**: migração
+  `infrastructure/supabase/migrations/0002_simulador_integridade.sql`, aplicada no projeto real (conferida por
+  SHA-256): chaves da simulação imutáveis (trocar `mode`, `competition`, `season` ou dono é recusado com 42501);
+  cada modo guarda só as próprias chaves; `sim_valid_pick` valida o formato antes de qualquer conversão em
+  pontuação e média; média com uma voz por pessoa e jogo, mínimo de 20, frações arredondadas a 5 p.p. e contagem
+  em faixas de 10; jogo travado não destrava se o horário mudar depois (`sim_keep_match_lock`). Interface: cada
+  jogo mostra até quando vale para o ranking (ou que não conta mais); depois de salvar, a página diz quantos
+  palpites o servidor descartou; aviso de que não há ranking da Classificação em 2026; link de Classificação com
+  clube repetido recusado; texto da distância para o oficial corrigido (simplificação + acaso do sorteio); aviso
+  de armazenamento diz que abrir o simulador consulta o Supabase e o jsDelivr. `supabase_sync`: jogo cancelado
+  não impede `final_at`.
+- **Evidência da correção**: os cenários do 06 repetidos no projeto real com uma conta anônima descartável
+  (apagada no fim): ordem com picks e `ranked_order` forjados guardada só com `order`; troca de modo recusada
+  (403/42501); palpites de jogos encerrados descartados e o futuro mantido; palpite `["x","y"]` descartado;
+  `sim_ranking` (três modos), `sim_community` (mínimo 20) e `sim_my_scores` respondem. Pontuação direta: 5, 3, 5,
+  2, 0, 0 (malformado), 1, 0. No site local: 21 de 61 jogos marcados como travados, aviso de palpite descartado e
+  aviso da Classificação 2026. `pytest` 945 passaram; ruff e mypy sem erros. Há 1 participante real (anônimo,
+  criado às 03:02 de 07/11), com payloads já no formato novo; não foi tocado.
+- **Pendente**: revalidação do 06; B1 do 00 (página de privacidade) com o dono e o 08; CAPTCHA, moderação de
+  apelidos, SMTP e SRI (itens importantes do 00).
+

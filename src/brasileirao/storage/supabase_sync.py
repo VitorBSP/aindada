@@ -61,7 +61,8 @@ def build_rows(
         "season": season,
         "classificacao_locks_at": (classificacao_lock or first_kickoff).astimezone(UTC).isoformat(),
     }
-    if matches and all(match["status"] == MatchStatus.FINISHED.value for match in matches):
+    # Jogo cancelado não tem placar e nunca termina: não impede o fim da temporada.
+    if matches and all(match["status"] in (MatchStatus.FINISHED.value, "cancelled") for match in matches):
         season_row["final_at"] = now.astimezone(UTC).isoformat()
     standings_rows = [
         {"competition": competition, "season": season, "club_id": row["club_id"], "position": int(row["position"])}
