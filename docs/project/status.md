@@ -3391,5 +3391,7 @@ real com a chave anon: perfis, simulações, `sim_scores` e `sim_my_scores` nega
   (2 x 0, "O modelo dá 5%") e atalho de placar; Classificação com 16 clubes desativados no título, G4 e rebaixados por
   cartões e ajuste que bloqueia ordem impossível; 375 px sem rolagem horizontal nas 7 telas. `pytest` e checagens no
   commit.
+- **No ar**: publish-site #41 com sucesso (sincronização e deploy), autorizado pelo dono; o site serve o `simulator.js`
+  da versão 4.
 - **Pendente**: achados 4 (duas abas) e 6 (`final_order` não conferido) do 06; A e B.
 
