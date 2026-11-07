@@ -165,7 +165,7 @@
       return Object.fromEntries(data.teams.map((club) => [club.club_id, club.name]));
     },
     edition,
-    footer: (data) => `Fontes: ${data.sources.map((source) => `<a href="${S.safeUrl(source.origin)}">${escapeHtml(source.attribution || source.source_name)}</a>`).join("; ")}.`,
+    footer: (data) => `${data.sources.map((source) => `<a href="${S.safeUrl(source.origin)}">${escapeHtml(source.attribution || source.source_name)}</a>`).join("; ")}.`,
     routes: [
       { id: "", label: "Início", render: home },
       { id: "tabela", label: "Tabela", render: table },

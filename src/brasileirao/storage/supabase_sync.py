@@ -16,6 +16,8 @@ from brasileirao.contracts import MatchStatus
 BRASILIA = ZoneInfo("America/Sao_Paulo")
 SYNC_STATUSES = {"scheduled", "finished", "postponed", "cancelled"}
 POINTS_PER_WIN = 3
+# Mesma regra do site (app.js, isPostponed): sem placar mais de 7 dias depois da data marcada = adiado, data a definir.
+POSTPONED_AFTER_DAYS = 7
 
 
 @dataclass(frozen=True)
@@ -33,15 +35,27 @@ def match_lock_utc(match: dict[str, Any]) -> datetime:
     return datetime.combine(date.fromisoformat(match["match_date"]), time(0, 0), BRASILIA).astimezone(UTC)
 
 
+def is_postponed(match: dict[str, Any], reference_date: date | None) -> bool:
+    """Jogo adiado sem data nova: vai ao banco sem horário, para o palpite continuar aberto (ADR-0015, versão 5)."""
+    if match["status"] == "postponed":
+        return True
+    if reference_date is None or match["status"] != MatchStatus.SCHEDULED.value:
+        return False
+    return (reference_date - date.fromisoformat(match["match_date"])).days > POSTPONED_AFTER_DAYS
+
+
 def build_rows(
     predictions: dict[str, Any], competition: str, classificacao_lock: datetime | None, now: datetime
 ) -> SyncRows:
     season = int(predictions["season"])
     matches = predictions["matches"]
+    reference = predictions.get("reference_date")
+    reference_date = date.fromisoformat(str(reference)) if reference else None
     match_rows = []
     for match in matches:
         finished = match["status"] == MatchStatus.FINISHED.value
-        status = match["status"] if match["status"] in SYNC_STATUSES else "scheduled"
+        postponed = is_postponed(match, reference_date)
+        status = "postponed" if postponed else match["status"] if match["status"] in SYNC_STATUSES else "scheduled"
         match_rows.append(
             {
                 "competition": competition,
@@ -50,13 +64,14 @@ def build_rows(
                 "round": match.get("round"),
                 "home_id": match["home_id"],
                 "away_id": match["away_id"],
-                "kickoff_utc": match_lock_utc(match).isoformat(),
+                "kickoff_utc": None if postponed else match_lock_utc(match).isoformat(),
                 "status": status,
                 "home_goals": match["home_goals"] if finished else None,
                 "away_goals": match["away_goals"] if finished else None,
             }
         )
-    first_kickoff = min(match_lock_utc(match) for match in matches)
+    dated = [match for match in matches if not is_postponed(match, reference_date)] or matches
+    first_kickoff = min(match_lock_utc(match) for match in dated)
     season_row: dict[str, Any] = {
         "competition": competition,
         "season": season,

@@ -151,3 +151,43 @@ Pedido: "faça algo mais bonito, alguns cards vá escolhendo, coloque mensagens 
    simulações enviadas como de outra participação e não as reenvia; o aviso de sair indica "Apagar minha
    participação" para tirá-las do servidor).
 
+## Versão 5: eventos, trava antes do jogo, posições travadas e chance de tudo junto (2026-11-07, pedido do dono)
+
+Pedidos: "limite a 10 a cada evento novo [...] a cada partida realizada ele pode refazer as simulações. Mas não mudar
+as antigas"; "tranque as simulações de uma partida [...] 10, 15 ou 30 minutos antes de ela começar, pense em como
+fazer isso"; na Classificação, quem a matemática já pôs no G4 ou no rebaixamento fica travado; "uma probabilidade
+geral, de acontecer o campeão, g4 e rebaixamento de cada simulação" e, na Classificação, "uma combinação de
+resultados [...] que gerariam aquilo"; "Confirmar placar" no último jogo vira "Revisar"; voltar às simulações
+depois de salvar.
+
+1. **Trava 30 minutos antes do pontapé** (`sim_lock_margin`, migração `0005`; `LOCK_MARGIN_MINUTES` no navegador).
+   Escolha do Agente 08 entre 10, 15 e 30: a sincronização roda duas vezes por dia, então a margem maior cobre
+   relógios e horários que mudam em cima da hora, e o palpite fecha antes de qualquer lance. Sem horário, continua
+   00:00 de Brasília do dia. Depois da trava, o cartão do jogo fica sem botões para todos (antes, só não contava para
+   o ranking).
+   **Jogo adiado fica aberto** (pedido do dono, "esse jogo ainda vai ser jogado"): sem placar mais de 7 dias depois
+   da data marcada (mesma regra do site), o `supabase_sync` envia o jogo como `postponed` e sem horário, e a `0005`
+   deixa `sim_keep_match_lock` tirar a trava antiga só nesse caso (jogo sem placar). Quando a data nova chega, a trava
+   volta a valer. Risco para o 06: um jogo disputado cujo placar demore mais de 7 dias na fonte seria reaberto.
+2. **Evento** é cada trava de jogo (`sim_event_start`: a trava mais recente que já passou).
+3. **Limite**: até 10 simulações novas por pessoa (somando os três modos) desde o último evento. Sai o limite de 3 por
+   modo na temporada. No aparelho não há limite: a que passar das 10 fica só no aparelho, com aviso.
+4. **Simulação fechada**: salva antes do último evento, não pode mais ser editada (pode ser excluída). O banco recusa
+   a alteração (`P0001`, "simulação fechada"), e a página mostra "fechada" no lugar de "Editar".
+5. **Classificação**: no passo do campeão, do G4 e do rebaixamento, entra marcado e não sai o clube que a matemática
+   já pôs naquela faixa (pior posição possível ≤ 4 para o G4; melhor posição possível ≥ 17 para o rebaixamento) **e**,
+   por decisão do dono (chat, 2026-11-07, "Travar os 100% também"), o que ficou nela em todas as simulações do modelo.
+   A etiqueta diz qual dos dois ("garantido no G4 pela matemática" ou "no G4 em todas as N simulações"); a página não
+   chama de certeza o que é só 100% das simulações. No ajuste fino, tirar um clube travado da faixa bloqueia o avanço,
+   com o motivo na linha. O banco não confere essa trava (é escolha de interface, não regra de pontuação).
+6. **Chance de tudo junto** na revisão e na simulação salva, nos três modos (Vencedor e Placar exato quando completos):
+   chance do campeão, do G4 (em qualquer ordem), dos rebaixados e dos três juntos, em 20.000 campeonatos sorteados das
+   chances publicadas de cada jogo (o navegador só sorteia, como na versão 1; força fixa e empate sem critério
+   sorteado, avisados na página). Na Classificação, "um caminho possível": os resultados (vitória, empate, derrota) do
+   sorteio mais provável entre os que chegam à combinação; se nenhum chega, um caminho achado puxando os resultados a
+   favor dela, com aviso. Abaixo de 1 em 20.000 aparece como "menos de 1 em 20.000".
+7. **Placar exato**: no último jogo, o botão é "Revisar": guarda o placar, se houver, e vai para a revisão.
+8. **Voltar**: a simulação salva tem "← Minhas simulações" e o botão "Minhas simulações" (`#/simular/minhas`).
+9. Ordem de publicação: aplicar `0005` no Supabase antes de publicar o site; sem ela, o banco continua com o limite
+   de 3 por modo e a trava no pontapé.
+

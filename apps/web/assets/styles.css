@@ -361,10 +361,17 @@ main > ul.club-grid li { font-family: var(--sans); font-size: 15px; }
 .match .home .club-cell { justify-content: flex-end; }
 
 /* Rodapé */
-.site-footer { border-top: 3px solid var(--rule-strong); padding-top: 16px; padding-bottom: 40px; font-size: 13px; color: var(--ink-faint); display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start; }
+.site-footer { border-top: 3px solid var(--rule-strong); padding-top: 16px; padding-bottom: 40px; font-size: 13px; line-height: 1.5; color: var(--ink-faint); display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start; }
 .site-footer img { width: 28px; height: auto; display: block; }
-.site-footer p { margin: 0 0 4px; max-width: 75ch; }
-.site-footer .footer-name { color: var(--ink); font-weight: 700; }
+.site-footer p { margin: 0 0 8px; max-width: 80ch; }
+.site-footer .footer-name { color: var(--ink); font-weight: 700; font-size: 14px; }
+.footer-tagline { font-weight: 400; color: var(--ink-soft); margin-left: 6px; }
+.footer-facts { display: grid; gap: 6px; margin: 0 0 10px; max-width: 80ch; }
+.footer-facts div { display: grid; grid-template-columns: 64px 1fr; gap: 12px; }
+.footer-facts dt { font-weight: 650; color: var(--ink-soft); }
+.footer-facts dd { margin: 0; }
+.site-footer a { color: var(--ink-soft); }
+.site-footer .footer-small { font-size: 12px; }
 
 @media (max-width: 560px) {
   .brand img { height: 32px; }
@@ -515,4 +522,6 @@ main .elo-example p.formula { font-family: var(--sans); font-size: 14px; }
   .club-heading .crest { width: 40px; height: 40px; }
 
   .site-footer { gap: 10px; }
+  .footer-tagline { display: block; margin: 2px 0 0; }
+  .footer-facts div { grid-template-columns: 1fr; gap: 0; }
 }

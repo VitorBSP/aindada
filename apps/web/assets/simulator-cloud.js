@@ -116,9 +116,11 @@
     if (!user) return null;
     const payload = payloadOf(mode, entry, finalOrder);
     const result = serverId
-      ? await supabase.from("sim_simulations").update({ payload, assist: Boolean(entry.model) }).eq("id", serverId).select("id, payload")
-      : await supabase.from("sim_simulations").insert({ user_id: user.id, competition, season, mode, payload, assist: Boolean(entry.model) }).select("id, payload");
-    if (result.error && result.error.code === "P0001") throw new Error("limite de 3 simulações por modo no servidor");
+      ? await supabase.from("sim_simulations").update({ payload, assist: Boolean(entry.model) }).eq("id", serverId).select("id, payload, created_at")
+      : await supabase.from("sim_simulations").insert({ user_id: user.id, competition, season, mode, payload, assist: Boolean(entry.model) }).select("id, payload, created_at");
+    if (result.error && result.error.code === "P0001") {
+      throw new Error(/fechada/.test(result.error.message || "") ? "esta simulação está fechada: um jogo começou depois que ela foi salva" : "limite de 10 simulações por pessoa até o próximo jogo");
+    }
     if (result.error && result.error.code === "22023") throw new Error("a ordem é impossível pela matemática ou está incompleta");
     const rows = check(result);
     return rows && rows[0] ? rows[0] : null;

@@ -151,3 +151,24 @@ def test_notification_list_returns_rows() -> None:
 
     rows = fetch_notification_list("https://example.supabase.co", "service", "serie-a", 2032, _Client())
     assert rows[0]["email"] == "x@example.org"
+
+
+def _with_reference(predictions: dict[str, Any], reference_date: str) -> dict[str, Any]:
+    return {**predictions, "reference_date": reference_date}
+
+
+def test_match_without_score_long_after_its_date_goes_as_postponed() -> None:
+    """Sem placar 8 dias depois da data marcada: adiado, data a definir."""
+    rows = build_rows(_with_reference(_predictions(), "2032-11-16"), "serie-a", None, NOW)
+    assert rows.matches[1]["status"] == "postponed"
+
+
+def test_postponed_match_goes_without_lock_time() -> None:
+    rows = build_rows(_with_reference(_predictions(), "2032-11-16"), "serie-a", None, NOW)
+    assert rows.matches[1]["kickoff_utc"] is None
+
+
+def test_recent_match_without_score_stays_scheduled() -> None:
+    """Até 7 dias depois da data, o placar pode só estar atrasado na fonte: o jogo continua com a trava."""
+    rows = build_rows(_with_reference(_predictions(), "2032-11-15"), "serie-a", None, NOW)
+    assert rows.matches[1]["kickoff_utc"] == "2032-11-08T03:00:00+00:00"

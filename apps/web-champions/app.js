@@ -205,7 +205,7 @@
     edition,
     footer: (data) => {
       const credits = [...new Map(data.sources.map((source) => [source.attribution, source])).values()];
-      return `Fontes: ${credits.map((source) => `<a href="${S.safeUrl(source.origin)}">${escapeHtml(source.attribution || source.source_name)}</a>`).join("; ")}.`;
+      return `${credits.map((source) => `<a href="${S.safeUrl(source.origin)}">${escapeHtml(source.attribution || source.source_name)}</a>`).join("; ")}.`;
     },
     routes: [
       { id: "", label: "Início", render: home },

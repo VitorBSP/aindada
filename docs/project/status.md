@@ -3395,3 +3395,32 @@ real com a chave anon: perfis, simulações, `sim_scores` e `sim_my_scores` nega
   da versão 4.
 - **Pendente**: achados 4 (duas abas) e 6 (`final_order` não conferido) do 06; A e B.
 
+## Agente 08: rodapé enxuto e textos do simulador (D-047, 2026-11-07)
+
+- **O que mudou**: rodapé dos seis sites (`apps/web/index.html`, `apps/web-serie-b/index.html`,
+  `apps/web-ligas/index.html`, `apps/web-champions/index.html`, `apps/web-lol/index.html`), prefixo "Fontes:" fora dos
+  `footer()` de Série B, ligas e Champions, estilos em `apps/web/assets/styles.css`; textos do simulador em
+  `apps/web/assets/simulator.js` (nota curta e aviso de privacidade recolhido) com estilo em `simulator.css`.
+- **Evidência**: `check_g4_attribution` sem achados no `index.html` da Série A; navegador do app em 1024 px
+  (Série A e simulador) e 375 px (Mundial de LoL) sem rolagem horizontal; `pytest -q`: 947 passando.
+- **Para o 06 e o dono do produto (ADR-0015)**: o aviso de privacidade do simulador não mudou de conteúdo, só passou a
+  ficar recolhido; confirmar que isso basta para o modelo de consentimento enquanto a página de privacidade não sai.
+
+## Agente 08: simulador versão 5 (ADR-0015, 2026-11-07)
+
+- **O que mudou**: `infrastructure/supabase/migrations/0005_simulador_eventos.sql` (trava 30 min antes do jogo,
+  evento, limite de 10 por pessoa desde o último evento, simulação antiga fechada), `apps/web/assets/simulator.js`
+  (mesmas regras na página, clubes travados pela matemática ou por 100% das simulações na Classificação, chance de tudo junto e caminho possível,
+  "Revisar" no último placar, volta para "Minhas simulações"), `simulator-cloud.js` (mensagens e `created_at`) e
+  `simulator.css`; `src/brasileirao/storage/supabase_sync.py` (jogo adiado vai como `postponed`, sem horário, com 3
+  testes novos); ADR-0015 (versão 5) e `docs/architecture/simulator-supabase.md`.
+- **Evidência**: navegador do app (1024 e 375 px): com o Palmeiras campeão, o Flamengo entra travado no G4;
+  simulação de 01/10 aparece "fechada" e sem "Editar"; cartão de jogo travado sem botões; último cartão do Placar
+  exato com "Revisar" levando à revisão; chance de tudo junto nos três modos (título do Flamengo 67% nos sorteios
+  contra 66% oficial); "← Minhas simulações" volta à lista; console sem erros; `pytest -q` verde.
+- **Pendente**:
+  - **Dono do produto**: aplicar a `0005` no SQL Editor do Supabase **antes** de publicar o site (sem banco de teste
+    aqui, a migração não foi executada).
+  - **Agente 06**: revisar a `0005` num projeto de teste (limite com envios simultâneos, simulação fechada, trava com
+    margem) e a chance de tudo junto calculada no navegador.
+

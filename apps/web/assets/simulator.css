@@ -5,6 +5,9 @@
 .sim-toolbar .link-button { margin-left: 0; }
 .sim-share-url { font: inherit; font-size: 13px; width: min(100%, 420px); }
 .sim-footnote { margin-top: 28px; }
+.sim-privacy { margin: 4px 0 0; font-size: 13px; color: var(--ink-faint); }
+.sim-privacy summary { cursor: pointer; }
+.sim-privacy p { margin: 6px 0 0; }
 .sim-warning { color: var(--danger); font-size: 13px; }
 
 .sim-quick { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
@@ -297,3 +300,21 @@
   .sim-club-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sim-stepper-goals output { font-size: 34px; }
 }
+/* Versão 5: clube garantido pela matemática e jogo fechado */
+.sim-club-card.is-locked { cursor: default; border-style: solid; }
+.sim-club-card.is-locked .sim-club-chance { font-weight: 650; color: var(--ink); }
+.sim-score-pick.is-locked { opacity: .6; }
+.sim-outcome[disabled] { cursor: not-allowed; opacity: .6; }
+/* Versão 5: chance de tudo junto, caminho possível e volta para as simulações */
+.sim-back { margin: 0 0 12px; font-size: 14px; }
+.sim-back a { text-decoration: none; font-weight: 600; }
+.sim-joint { margin: 20px 0 8px; }
+.sim-joint h2 { margin-top: 0; }
+.sim-joint-all { font-size: 17px; margin: 0 0 10px; }
+.sim-joint-all strong { font-size: 22px; }
+.sim-joint-parts { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 4px; max-width: 640px; }
+.sim-joint-parts li { display: flex; justify-content: space-between; gap: 16px; padding: 6px 0; border-bottom: 1px solid var(--rule); }
+.sim-joint-parts strong { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sim-path-details { margin: 10px 0 0; }
+.sim-path-details summary { cursor: pointer; font-weight: 600; }
+.sim-path { max-width: 520px; }
