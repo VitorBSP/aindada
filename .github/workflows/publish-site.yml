@@ -145,6 +145,19 @@ jobs:
           python -I infrastructure/scripts/check_site_artifact.py \
             --site-dir _site --season "$SEASON" --seed "$SEED" --live-url "${live_url,,}"
 
+      # ADR-0015, fase 2: jogos, tabela e trava do simulador do usuário no Supabase. Só com a publicação ligada
+      # (o ensaio não escreve no banco de produção). Sem SUPABASE_URL ou sem o segredo, o comando não envia nada.
+      # Uma falha aqui não derruba a publicação do site: o simulador continua com os dados da última sincronização.
+      - name: Simulador — sincronizar com o Supabase
+        if: vars.PUBLISH_ENABLED == 'true'
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CLASSIFICACAO_LOCK: ${{ vars.SIMULATOR_CLASSIFICACAO_LOCK }}
+        run: |
+          python -m brasileirao.cli sync-simulator --season "$SEASON"             --predictions "_site/data/api/seasons/$SEASON/predictions.json"             ${CLASSIFICACAO_LOCK:+--classificacao-lock "$CLASSIFICACAO_LOCK"}
+
       # Série B (ADR-0010): pipeline e site próprios em _site/serie-b. Fontes sem segredo (openfootball
       # fixado por commit e Wikipédia). Uma falha aqui não bloqueia a Série A: o passo seguinte mantém o
       # forecast.json que já está no ar.

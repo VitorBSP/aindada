@@ -81,4 +81,26 @@ def test_finished_matches_have_no_score_distribution(
         DATA_INFO,
     )
     finished = [match for match in snapshot.matches if match.status == "finished"]
-    assert all(match.top_scores is None and match.p_three_plus_goals is None for match in finished)
+    assert all(
+        match.top_scores is None and match.p_three_plus_goals is None and match.score_probabilities is None
+        for match in finished
+    )
+
+
+def test_simulator_score_matrix_is_square(remaining: list[MatchPrediction]) -> None:
+    matrices = [match.score_probabilities or [] for match in remaining]
+    assert all(matrix and all(len(row) == len(matrix) for row in matrix) for matrix in matrices)
+
+
+def test_simulator_score_matrix_sums_to_one(remaining: list[MatchPrediction]) -> None:
+    totals = [sum(map(sum, match.score_probabilities or [])) for match in remaining]
+    assert all(abs(total - 1.0) < 1e-4 for total in totals)
+
+
+def test_simulator_score_matrix_matches_outcome_probabilities(remaining: list[MatchPrediction]) -> None:
+    """A diagonal da matriz reproduz o p_draw publicado."""
+    gaps = [
+        abs(sum(row[index] for index, row in enumerate(match.score_probabilities or [])) - (match.p_draw or 0.0))
+        for match in remaining
+    ]
+    assert max(gaps) < 1e-4

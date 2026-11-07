@@ -38,7 +38,13 @@ from brasileirao.data_pipeline.validation import (
 )
 from brasileirao.frame_values import as_int, as_timestamp, optional_int
 from brasileirao.logging_utils import get_logger
-from brasileirao.prediction.goals_model import GoalsModel, outcome_probabilities, top_scores, total_goals_at_least
+from brasileirao.prediction.goals_model import (
+    FloatArray,
+    GoalsModel,
+    outcome_probabilities,
+    top_scores,
+    total_goals_at_least,
+)
 from brasileirao.prediction.schedule import build_schedules
 from brasileirao.provenance import ProvenanceError, load_data_info, read_composition
 from brasileirao.publication_gate import check_g1_gold_sources
@@ -353,6 +359,11 @@ def _pending_status(match: Any) -> str:
     return status if status in PENDING_STATUSES_KEPT else MatchStatus.SCHEDULED.value
 
 
+def _simulator_scores(matrix: FloatArray) -> list[list[float]]:
+    """Matriz de placares do jogo, para o simulador do navegador sortear placares sem refazer o modelo."""
+    return [[round(float(value), 6) for value in row] for row in matrix]
+
+
 def _match_predictions(
     observed: pd.DataFrame, remaining: pd.DataFrame, engine: Any, model: GoalsModel
 ) -> list[MatchPrediction]:
@@ -405,6 +416,7 @@ def _match_predictions(
                     most_likely_score_probability=best_scores[0].probability,
                     top_scores=best_scores,
                     p_three_plus_goals=float(three_plus_goals[position]),
+                    score_probabilities=_simulator_scores(matrices[position]),
                     kickoff_utc=_kickoff_utc(match),
                     source_match_id=_source_match_id(match),
                 )

@@ -1078,6 +1078,7 @@
     else if (section === "rodadas") {
       window.Rounds.render(main, [parameter, ...rest], { review: state.rounds, escapeHtml, pct, num, formatDate, formatShortDate, highlights: roundHighlights });
     }
+    else if (section === "simular") window.Simulator.render(main, [parameter, ...rest], { snapshot: state.snapshot, escapeHtml, pct, crest, nameOf, formatShortDate });
     else if (section === "metodologia") renderMethodology();
     else renderHome(parameter);
     revealActive(document.querySelector(".masthead nav"));

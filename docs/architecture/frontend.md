@@ -40,3 +40,12 @@ rolagem horizontal.
 Escudos aparecem em todas as páginas (D-031): `crest()` em `app.js` lê `assets/crests/manifest.json`, com a mesma regra do marcador neutro de `rounds.js` (D-028/D-029).
 
 Tabela (`#/classificacao/{visão}`): todas as colunas, menos "Próximos jogos", ordenam ao clicar no cabeçalho (`aria-sort` no `th`); a ordem vale para a visão aberta. Rodada a rodada (`rounds.js`): comparativo com até 5 times (`SERIES`, tokens `--series-4` e `--series-5`) e dica própria nos gráficos de série, que mostra valor, jogo e placar de cada time na rodada (`view.matches`), por `pointermove`/`pointerdown`, com `touch-action: pan-y` para arrastar o dedo sem rolar a página na horizontal.
+
+## Simulador do usuário (ADR-0015, fase 1)
+
+`#/simular/{classificacao|vencedor|placar}`, em `assets/simulator.js` e `assets/simulator.css`; o `app.js` só chama
+`window.Simulator.render(main, segmentos, contexto)`. Lê só o `predictions.json`: `teams[].position_probabilities`
+(Classificação), `matches[].p_home/p_draw/p_away` (Vencedor) e `matches[].score_probabilities` ("Completar com o
+modelo" e a probabilidade do placar escolhido). Salva em `localStorage` e compartilha por link; nada vai para
+servidor. Sem palpites, a tabela calculada no navegador é igual a `standings` do snapshot (conferido em 26/10/2026,
+20 de 20 posições e pontos).

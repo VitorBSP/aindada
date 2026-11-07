@@ -3210,3 +3210,62 @@ Registrado pelo orquestrador (00), que executou as partes de 01, 03, 02, 04/05 e
   horizontal; cabeçalho de cerca de 380 px para 221 px de altura; tabela com posição e clube fixos ao rolar;
   gráficos com texto legível. Em 1024 px, páginas iguais às de antes.
 
+## Simulador do usuário, fase 1 (ADR-0015, 2026-11-07)
+
+- **Pedido do dono**: seção de simulação com modos, salvamento, média dos usuários e ranking opcional. Decidido
+  no chat: fases (fase 1 sem servidor), só Série A, modos **Classificação · Vencedor · Placar exato** e
+  **"Completar com o modelo"** nos dois últimos.
+- **O que mudou**: `MatchPrediction.score_probabilities` (`storage/schema.py`) preenchido em
+  `pipeline._match_predictions`; `apps/web/assets/simulator.js` e `simulator.css`; rota `#/simular` e item
+  "Simulador" (`app.js`, `index.html`); ADR-0015; seções em `docs/architecture/frontend.md` e `api.md`.
+- **Evidência**: testes novos em `tests/integration/test_match_score_fields.py` (matriz quadrada, soma 1, diagonal
+  igual a `p_draw`); `pytest`, ruff e mypy (resultado no commit). No navegador, com um snapshot local de 26/10
+  (banco temporário, 10 mil simulações): sem palpites, tabela igual a `standings` nas 20 posições e pontos;
+  "Completar com o modelo" sem palpites a até 1,2 p.p. do oficial em título, G4 e queda; link de compartilhamento
+  ida e volta sem sobrescrever a simulação salva; 375 px sem rolagem horizontal nos três modos.
+- **Premissas e limitações**: no navegador a força dos clubes fica fixa e o desempate depois de gols marcados é
+  sorteado (declarado na página); vagas de copas não são redistribuídas (aviso na página).
+- **Próximo**: 08 revisa textos e forma (nomes dos modos já decididos pelo dono); 06 valida; 07 publica com o
+  próximo snapshot (o `predictions.json` publicado só terá a matriz depois da próxima execução do workflow).
+  Fase 2 (conta, média dos usuários, ranking) espera decisão de provedor, regras e LGPD.
+
+## Simulador do usuário, fase 2 no Supabase (ADR-0015, 2026-11-07)
+
+- **Decisão do dono**: Supabase; entrada anônima com e-mail opcional; apelido como única identificação pública.
+  Pontuação: bolão clássico (recomendação; o dono não escolheu outra).
+- **O que mudou**: migração `infrastructure/supabase/migrations/0001_simulador.sql`;
+  `src/brasileirao/storage/supabase_sync.py` e o comando `sync-simulator`; passo no `publish-site.yml` (as duas
+  cópias); `apps/web/assets/simulator-config.js` (vazio), `simulator-cloud.js`, participação, média dos visitantes,
+  ranking e apagar a conta em `simulator.js`; `docs/architecture/simulator-supabase.md`,
+  `docs/project/privacidade-simulador.md` (rascunho) e ADR-0015.
+- **Evidência**: `tests/unit/test_supabase_sync.py` (9) e 2 testes novos em `test_workflows.py` (a chave de serviço
+  só no passo do simulador; o passo exige `PUBLISH_ENABLED`). No navegador: com a configuração vazia, o simulador
+  fica igual à fase 1 (sem aba Ranking, sem painel de conta); com um servidor simulado, participar, apelido
+  (recusa @ e apelido repetido), salvamento por modo, média dos visitantes, ranking e apagar a participação
+  funcionam; 375 px sem rolagem horizontal.
+- **Limitações**: o SQL não foi executado (sem Postgres local), e não houve teste contra um Supabase real. Ranking
+  da Classificação 2026 só com uma trava definida pelo dono (o padrão, o primeiro jogo, já passou).
+- **Próximo**: dono cria o projeto e segue `docs/architecture/simulator-supabase.md`; 06 roda a migração num projeto
+  de teste e confere as regras de acesso com duas contas; 08 revisa os textos; página de privacidade antes de
+  ligar.
+- **Projeto no ar (2026-11-07)**: projeto `tdrevgnfqmbwguqkcpvf` (região us-east-1, plano gratuito), criado pelo dono.
+  Migração rodada no SQL Editor (conferida por SHA-256 antes de rodar), com dois ajustes incorporados ao arquivo
+  (`citext` no schema `extensions`; permissões explícitas e retirada das concedidas a `anon` por padrão).
+  Login anônimo ligado, e-mail com confirmação, Site URL `https://vitorbsp.github.io/aindada/`, retornos para o
+  site e `http://localhost:8080/**`. URL e chave `anon` em `simulator-config.js`.
+- **Evidência no projeto real**: com a chave pública, sem conta: perfis e simulações negados (42501), visão
+  `sim_scores` negada, escrita em jogos e temporadas negada pelo RLS, `sim_delete_me` negada. Com duas contas
+  anônimas: B não lê nem altera o perfil de A, não cria perfil em nome de A, não repete o apelido (sem diferenciar
+  maiúsculas), apelido com @ e ranking sem apelido recusados; `sim_delete_me` apagou as duas contas (0 usuários,
+  perfis e simulações no fim).
+- **Primeira sincronização (2026-11-07, dono)**: `sim_seasons: 1, sim_matches: 380, sim_standings: 20`, a partir
+  do export local de 26/10 (a próxima publicação atualiza). Correção no caminho padrão do `predictions.json`
+  (`apps/web/data/api/...`), com teste.
+- **Ponta a ponta no site local com o Supabase real**: participar (conta anônima), apelido, salvamento dos três
+  modos; o servidor descartou o palpite de um jogo já iniciado e não marcou `ranked_order` (trava de 2026 já
+  passada); palpites voltaram do servidor com o navegador limpo; ranking abre. Pontuação numa competição de teste
+  (`teste-pontos`, apagada depois): Placar exato 8 pontos (5 + 3), Vencedor 1, com palpites de jogo iniciado,
+  inexistente e inválido descartados. "Apagar minha participação" removeu a conta. Estado final: 0 usuários, 0
+  perfis, 0 simulações, 380 jogos, 1 temporada.
+- **Falta**: variável `SUPABASE_URL` e segredo `SUPABASE_SERVICE_ROLE_KEY` no GitHub (dono); página de privacidade;
+  revisão do 06; decidir a trava da Classificação 2026.

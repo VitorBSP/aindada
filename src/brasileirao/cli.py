@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 from datetime import UTC, date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -59,6 +60,7 @@ from brasileirao.ratings.examples import (
     write_examples,
 )
 from brasileirao.storage.snapshots import SnapshotStore
+from brasileirao.storage.supabase_sync import build_rows, push
 from brasileirao.validation.report import run_backtest_report
 
 LOGGER = get_logger("brasileirao.cli")
@@ -342,6 +344,28 @@ def command_insights_publish(arguments: argparse.Namespace) -> None:
     print(f"{len(active)} insight(s) no ar; exportado em {target}")
 
 
+def command_sync_simulator(arguments: argparse.Namespace) -> None:
+    """ADR-0015: envia jogos, tabela e trava ao Supabase. Sem as variáveis, não faz nada (fase 2 desligada)."""
+    base_url = os.environ.get("SUPABASE_URL", "")
+    service_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+    if not base_url or not service_key:
+        print("SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY ausente: simulador sem servidor, nada enviado")
+        return
+    import httpx  # noqa: PLC0415 - só o CI com a fase 2 ligada precisa
+
+    predictions_path = (
+        Path(arguments.predictions)
+        if arguments.predictions
+        else PATHS.web_static_data / "api" / "seasons" / str(arguments.season) / "predictions.json"
+    )
+    predictions = json.loads(predictions_path.read_text(encoding="utf-8"))
+    lock = datetime.fromisoformat(arguments.classificacao_lock) if arguments.classificacao_lock else None
+    rows = build_rows(predictions, arguments.competition, lock, datetime.now(tz=UTC))
+    with httpx.Client(timeout=30) as client:
+        sent = push(rows, base_url, service_key, client)
+    print(", ".join(f"{table}: {count}" for table, count in sent.items()))
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="brasileirao", description="Previsões da Série A")
     parser.add_argument("--verbose", action="store_true")
@@ -453,6 +477,15 @@ def build_parser() -> argparse.ArgumentParser:
     insights_publish = commands.add_parser("insights-publish", help="publica os aprovados do último lote")
     insights_publish.add_argument("--season", type=int, default=2026)
     insights_publish.set_defaults(handler=command_insights_publish)
+
+    sync = commands.add_parser("sync-simulator", help="ADR-0015: envia jogos e tabela ao Supabase do simulador")
+    sync.add_argument("--season", type=int, default=2026)
+    sync.add_argument("--competition", default="serie-a")
+    sync.add_argument("--predictions", default=None, help="predictions.json exportado (padrão: o da temporada)")
+    sync.add_argument(
+        "--classificacao-lock", default=None, help="ISO 8601 com fuso; padrão: o primeiro jogo da temporada"
+    )
+    sync.set_defaults(handler=command_sync_simulator)
     return parser
 
 

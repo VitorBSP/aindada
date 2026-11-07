@@ -169,6 +169,7 @@ class MatchPrediction(BaseModel):
     most_likely_score_probability: float | None = None
     top_scores: list[ScoreProbability] | None = None
     p_three_plus_goals: float | None = None
+    score_probabilities: list[list[float]] | None = None
     kickoff_utc: str | None = None
     source_match_id: str | None = None
 

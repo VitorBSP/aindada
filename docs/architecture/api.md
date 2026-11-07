@@ -53,3 +53,9 @@ lê o snapshot publicado e a revisão por rodada mais recente; o horário do exp
   pré-temporada (rodada 0) é a véspera da rodada 1, então a rodada 1 tem ponto de partida sempre que o
   `rounds.json` existir.
 - `updated_at`, `model_version` e `data_version` são os do `predictions.json` (`generated_at`).
+
+## Matriz de placares para o simulador (ADR-0015)
+
+`matches[].score_probabilities` (jogos restantes; `null` nos encerrados e em snapshots antigos): matriz
+`[gols do mandante][gols do visitante]`, 11 × 11 (0 a 10 gols), a mesma de `p_home`, `p_draw`, `p_away` e
+`top_scores`, arredondada a 6 casas. Campo aditivo; o `SNAPSHOT_SCHEMA_VERSION` não muda.

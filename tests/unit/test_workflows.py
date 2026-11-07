@@ -231,3 +231,16 @@ def test_lol_runs_its_gate_before_entering_the_artifact() -> None:
 def test_lol_fallback_runs_the_gate() -> None:
     step = _text(PUBLISH).split("Mundial de LoL — incluir no artefato", 1)[1].split("- name:", 1)[0]
     assert "brasileirao.esports.cli gate --site-dir _site/mundial-lol" in step
+
+
+def test_supabase_key_is_scoped_to_the_simulator_sync() -> None:
+    """ADR-0015: a chave de serviço do Supabase só aparece no passo de sincronização do simulador."""
+    steps = _text(PUBLISH).split("      - name: ")
+    with_key = [step.splitlines()[0] for step in steps if "secrets.SUPABASE_SERVICE_ROLE_KEY" in step]
+    assert with_key == ["Simulador — sincronizar com o Supabase"]
+
+
+def test_simulator_sync_requires_publish_switch() -> None:
+    """O ensaio (workflow_dispatch sem PUBLISH_ENABLED) não escreve no banco do simulador."""
+    step = next(step for step in _text(PUBLISH).split("      - name: ") if step.startswith("Simulador — sincronizar"))
+    assert "if: vars.PUBLISH_ENABLED == 'true'" in step
