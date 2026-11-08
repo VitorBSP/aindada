@@ -3452,3 +3452,27 @@ real com a chave anon: perfis, simulações, `sim_scores` e `sim_my_scores` nega
   leva o cartão dele para a home; folha "Mais" com o resto do menu e as competições. 1280 px: barra escondida, menu de
   cima e "Continue explorando" em uma linha.
 
+## Agente 08: refinos de UX (D-049, 2026-11-08)
+
+- **O que mudou**: `apps/web/assets/match-popup.js` (novo; popup `<dialog>` de jogo, incluído nos seis sites),
+  `apps/web/assets/app.js` (seguir com texto explícito, cartão "Seu time" com disputas em ordem, popup de jogo em
+  Clubes e "Últimos resultados"), `apps/web/assets/rounds.js` (botão "Ver o que aconteceu" em cada jogo da rodada),
+  `apps/web/assets/simulator.js` e `simulator.css` (legenda de origem, lista jogo a jogo na revisão, resumo e fim
+  de simulação), `apps/web/assets/styles.css`.
+- **Evidência**: navegador local em 375 px: cinco rotas com `scrollWidth` 375; popup de jogo ainda não jogado e de
+  jogo encerrado (resultado, palpite antes do jogo, efeito nos dois clubes e nos outros que mais mexeram); simulador
+  de Vencedor com "O modelo sorteia, eu reviso": legenda, 61 jogos na lista com "sorteado pelo modelo".
+- **Pendente**: revisar com o visitante real o botão "Tornar este o meu time" e a lista de quem decidiu.
+
+## Agente 08: segunda rodada de UX (D-050, 2026-11-08)
+
+- **O que mudou**: `apps/web/assets/match-popup.js` (dica de gráfico com `data-tip`, mouse e toque), `app.js` (aba
+  Tabela pela disputa do time, dica em posição final e evolução, cartões do "Seu time" com link para a aba),
+  `rounds.js` (dica nas barras de movimento), `simulator.js` e `simulator.css` ("O que a sua simulação tem de mais
+  ousado" na revisão e na simulação salva), `styles.css` (lista de explorar no celular, balão da dica).
+- **Evidência**: navegador local (375 px): aba Tabela abre em Rebaixamento para o Internacional, com aviso; dica
+  na evolução do clube aparece com data e valores; simulação de Vencedor (modelo sorteia) mostra 32 de 61 jogos
+  seguindo o favorito e os cinco palpites mais arriscados; lista de explorar com 343 px de largura.
+- **Pendente**: as dicas de gráficos da Rodada atual (home) ainda não têm o balão; o simulador não foi refeito fluxo
+  a fluxo (Classificação e Placar exato seguem como estavam, só com a legenda e o resumo novos).
+

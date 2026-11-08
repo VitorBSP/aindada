@@ -601,3 +601,52 @@ main h2[id] { scroll-margin-top: 12px; }
 .round-howto { margin: 0 0 12px; }
 .round-howto summary { cursor: pointer; font-weight: 600; color: var(--ink-soft); }
 .round-howto p { margin: 6px 0 0; }
+.follow-box { display: grid; gap: 4px; justify-items: start; }
+.follow-hint { margin: 0; font-size: 13px; color: var(--ink-soft); }
+.chance-chip.is-strong { border-color: var(--ink); }
+.chance-chip.is-strong strong { font-size: 18px; }
+.chance-chip[data-dispute="queda"].is-strong strong { color: var(--danger); }
+.chance-chip[data-dispute="titulo"].is-strong strong { color: var(--ink); }
+
+/* Popup de jogo (D-049; assets/match-popup.js): <dialog> que fecha com Esc, com o botão ou tocando fora. */
+.match-popup { border: 1px solid var(--ink); background: var(--paper); color: var(--ink); padding: 0; width: min(92vw, 520px); max-height: 86vh; }
+.match-popup::backdrop { background: color-mix(in srgb, var(--ink) 40%, transparent); }
+.match-popup-panel { padding: 16px 18px 20px; overflow-y: auto; max-height: 86vh; }
+.match-popup-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.match-popup-head h2 { font-size: 18px; margin: 0; border: 0; padding: 0; }
+.match-popup-close { width: 40px; height: 40px; font-size: 26px; line-height: 1; border: 1px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; flex: none; }
+.match-popup-score { font-size: 34px; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 4px; font-variant-numeric: tabular-nums; }
+.match-popup-score span { display: block; font-size: 14px; font-weight: 400; color: var(--ink-soft); letter-spacing: 0; }
+main .match-popup p.match-popup-line, .match-popup p.match-popup-line { font-family: var(--sans); font-size: 15px; margin: 6px 0; }
+.match-popup-sub { font-size: 15px; margin: 16px 0 6px; border-top: 1px solid var(--rule); padding-top: 10px; }
+.match-popup-club h3 { font-size: 15px; margin: 8px 0 4px; }
+.match-popup-effects { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.match-popup-effects li { display: flex; justify-content: space-between; font-size: 15px; border-bottom: 1px solid var(--rule); padding: 4px 0; }
+.match-popup-effects .up { color: var(--positive); }
+.match-popup-effects .down { color: var(--danger); }
+.match-popup-triple { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 0; }
+.match-popup-triple span { display: flex; flex-direction: column; font-size: 13px; color: var(--ink-soft); border-top: 2px solid var(--ink); padding-top: 6px; }
+.match-popup-triple strong { font-size: 20px; color: var(--ink); }
+.match-popup-links { font-size: 14px; margin-top: 14px; }
+.match-actions { grid-column: 1 / -1; }
+.match-open { font: inherit; font-size: 13px; font-weight: 650; padding: 6px 10px; min-height: 36px; border: 1px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; }
+.match-open:hover { background: var(--ink); color: var(--paper); }
+
+/* Dica de gráfico (D-049; match-popup.js): um balão, com o conteúdo do elemento sob o ponteiro ou o dedo. */
+.chart-float { position: absolute; z-index: 60; max-width: min(260px, 88vw); padding: 8px 10px; background: var(--surface); border: 1px solid var(--ink); font-size: 13px; line-height: 1.4; color: var(--ink); pointer-events: none; }
+.chart-float strong { font-weight: 650; }
+.table-auto-note { margin: 4px 0 12px; }
+.chance-chip { text-decoration: none; color: inherit; }
+.chance-chip:hover { border-color: var(--ink); }
+
+
+/* Continue explorando no celular: lista de linhas, sem blocos (D-049). */
+@media (max-width: 560px) {
+  .explore-grid { grid-template-columns: 1fr; gap: 0; border-top: 1px solid var(--rule-strong); }
+  .explore-card, .explore-card.is-primary { min-height: 0; padding: 14px 32px 14px 0; border: 0; border-bottom: 1px solid var(--rule); background: transparent; color: var(--ink); }
+  .explore-card.is-primary span { color: var(--ink-soft); }
+  .explore-card strong { font-size: 16px; }
+  .explore-card span { font-size: 14px; }
+  .explore-card .explore-go { right: 0; top: 16px; }
+  .explore-card:hover { border-color: var(--rule); }
+}

@@ -1349,6 +1349,7 @@
       shell("", MODES[mode].label, "", `${sessionHeader(active)}
         <div class="sim-deck-progress"><div class="sim-progress" role="img" aria-label="${tally.own} seus, ${tally.sampled} sorteados, ${tally.blank} em branco"><span class="is-own" style="width:${tally.own / deck.length * 100}%"></span><span class="is-model" style="width:${tally.sampled / deck.length * 100}%"></span></div>
           <span class="note">${filled} de ${deck.length}</span></div>
+        ${originLegend()}
         <article class="sim-card" aria-labelledby="sim-card-title">
           <p class="sim-card-meta">Jogo ${active.cursor + 1} de ${deck.length} · ${roundLabel} · ${escapeHtml(formatShortDate(match.match_date))}${isPostponedMatch(match) ? " · adiado, data a definir" : ""}</p>
           <h2 class="sim-card-teams" id="sim-card-title">
@@ -1366,7 +1367,7 @@
         <div class="sim-deck-actions">
           <button type="button" class="sim-button is-secondary" id="sim-prev" ${active.cursor === 0 ? "disabled" : ""}>← Anterior</button>
           ${locked ? "" : `<button type="button" class="link-button" id="sim-skip">${value === undefined ? "Pular" : "Deixar em branco"}</button>`}
-          ${canSample && !locked ? `<button type="button" class="link-button" id="sim-roll">Sortear este</button>` : ""}
+          ${canSample && !locked ? `<button type="button" class="link-button" id="sim-roll">Deixar o modelo escolher este</button>` : ""}
           <button type="button" class="sim-button is-secondary" id="sim-forward">${active.cursor === deck.length - 1 ? "Revisar →" : "Próximo →"}</button>
         </div>
         <details class="sim-deck-map"><summary>Ver todos os jogos (${filled} de ${deck.length} preenchidos)</summary>${deckMap(entry, active.cursor)}
@@ -1473,6 +1474,70 @@
       ]);
     }
 
+    /* Como cada jogo foi decidido, em palavras que o visitante entende (versão 6, D-049). */
+    function originLegend() {
+      return `<p class="sim-legend" aria-label="Legenda">
+        <span><i class="sim-key is-own"></i>Seu palpite: você escolheu</span>
+        <span><i class="sim-key is-model"></i>Sorteado pelo modelo: ele escolheu com as chances dele; você pode trocar</span>
+        <span><i class="sim-key is-blank"></i>Em branco: fica fora da conta</span></p>`;
+    }
+
+    const originOf = (entry, matchId) => (entry.picks[matchId] !== undefined ? "own" : entry.sampled[matchId] !== undefined ? "model" : "blank");
+    const ORIGIN_TEXT = { own: "seu palpite", model: "sorteado pelo modelo", blank: "em branco, fora da conta" };
+
+    function pickText(mode, match, pick) {
+      if (pick === undefined) return "–";
+      if (mode === "vencedor") return pick === "D" ? "empate" : `vitória do ${escapeHtml(shortName(pick === "H" ? match.home_id : match.away_id))}`;
+      return `${pick[0]} × ${pick[1]}`;
+    }
+
+    /* Lista jogo a jogo, na ordem da rodada, com a origem de cada palpite (aparece na revisão). */
+    function decisionsTable(mode, entry) {
+      const ordered = [...remaining].sort((left, right) => (left.round || 99) - (right.round || 99) || left.match_date.localeCompare(right.match_date));
+      const rows = ordered.map((match) => {
+        const origin = originOf(entry, match.match_id);
+        const pick = effectivePicks(entry)[match.match_id];
+        return `<tr class="sim-origin-${origin}"><td class="num">${match.round || "–"}</td><td>${shortName(match.home_id)} × ${shortName(match.away_id)}</td><td>${pickText(mode, match, pick)}</td><td><span class="sim-origin-tag is-${origin}">${ORIGIN_TEXT[origin]}</span></td></tr>`;
+      }).join("");
+      return `<details class="sim-decisions" open><summary>Jogo a jogo: quem decidiu cada palpite (${ordered.length})</summary>
+        <div class="table-wrap"><table class="sim-table"><thead><tr><th class="num">Rod.</th><th>Jogo</th><th>Palpite</th><th>Quem decidiu</th></tr></thead><tbody>${rows}</tbody></table></div></details>`;
+    }
+
+    /* O que a simulação tem de mais ousado (D-049): quantas vezes seguiu o favorito do modelo e os palpites contra ele,
+       do mais arriscado ao menos arriscado. Aparece na revisão e na simulação salva. */
+    function decidedPicks(mode, entry) {
+      return Object.entries(effectivePicks(entry)).map(([matchId, pick]) => {
+        const match = matchById.get(matchId);
+        if (!match || isFinished(match)) return null;
+        const outcome = mode === "vencedor" ? pick : outcomeOf(pick[0], pick[1]);
+        const favorite = ["H", "D", "A"].reduce((best, key) => (outcomeProbability(match, key) > outcomeProbability(match, best) ? key : best), "H");
+        return { match, outcome, probability: outcomeProbability(match, outcome), followsFavorite: favorite === outcome, origin: originOf(entry, matchId), score: mode === "placar" ? pick : null };
+      }).filter(Boolean);
+    }
+
+    function insightsBlock(mode, entry) {
+      if (mode === "classificacao") return "";
+      const picks = decidedPicks(mode, entry);
+      if (!picks.length) return "";
+      const followed = picks.filter((item) => item.followsFavorite).length;
+      const risky = picks.filter((item) => !item.followsFavorite).sort((left, right) => left.probability - right.probability).slice(0, 5);
+      const pickWord = (item) => (item.score ? `${item.score[0]} × ${item.score[1]}` : item.outcome === "D" ? "empate" : `vitória do ${shortName(item.outcome === "H" ? item.match.home_id : item.match.away_id)}`);
+      const rows = risky.map((item) => `<li><span>${shortName(item.match.home_id)} × ${shortName(item.match.away_id)}</span><strong>${pickWord(item)}</strong><em>${pct(item.probability)} no modelo · ${ORIGIN_TEXT[item.origin]}</em></li>`).join("");
+      return `<section class="sim-insights" aria-labelledby="sim-insights-title">
+        <h2 id="sim-insights-title">O que a sua simulação tem de mais ousado</h2>
+        <p class="note">Você seguiu o favorito do modelo em <strong>${followed}</strong> de ${picks.length} jogos. ${risky.length ? `Os palpites contra o favorito, do mais arriscado ao menos arriscado:` : "Nenhum palpite foi contra o favorito."}</p>
+        ${risky.length ? `<ol class="sim-zebras">${rows}</ol>` : ""}
+      </section>`;
+    }
+
+    function reviewSummary(mode, entry, tally) {
+      const parts = [`<strong>${tally.own}</strong> seus`, `<strong>${tally.sampled}</strong> sorteados pelo modelo`, `<strong>${tally.blank}</strong> em branco`];
+      const note = tally.blank
+        ? `Os jogos em branco ficam fora da tabela e da pontuação. Os sorteados pelo modelo contam como os seus.`
+        : `Tudo decidido. Toque em Salvar simulação: ela ganha um número, a pontuação e aparece em Minhas simulações. Os sorteados pelo modelo contam como os seus.`;
+      return `<div class="sim-review-summary" role="status"><p>${parts.join(" · ")}</p><p class="note">${note}</p></div>`;
+    }
+
     function renderReview(active) {
       const mode = active.mode;
       const entry = active.entry;
@@ -1487,7 +1552,8 @@
       })() : "";
       const goalsNote = mode === "vencedor" ? `<p class="note">No modo Vencedor não há placar, então o saldo de gols da tabela é só o dos jogos já disputados.</p>` : "";
       shell("", "Revise e salve", `${tally.own} seus · ${tally.sampled} sorteados pelo modelo · ${tally.blank} em branco. Esta simulação vale até ${score.total} pontos (${perMatchText(mode)}).${asTable}`, `${sessionHeader(active)}
-        ${warning}${picksHighlights(mode, entry)}${complete ? jointSlot("sim-joint") : ""}<h2>Sua tabela final</h2>${goalsNote}${finalTableHtml(mode, entry)}
+        ${warning}${reviewSummary(mode, entry, tally)}${insightsBlock(mode, entry)}${picksHighlights(mode, entry)}${complete ? jointSlot("sim-joint") : ""}<h2>Sua tabela final</h2>${goalsNote}${finalTableHtml(mode, entry)}
+        ${decisionsTable(mode, entry)}
         ${navBar("Voltar aos jogos", active.savedId ? "Salvar alterações" : "Salvar simulação", blocked)}`, { focus: true });
       bindSession(active, () => moveStep(active, 2), () => saveActive());
       if (complete) fillJoint("sim-joint", finalOrderOf(mode, entry), false);
@@ -1513,8 +1579,11 @@
       const savedOrder = finalOrderOf(mode, item.entry);
       shell("", `${MODES[mode].label} ${escapeHtml(simulationLabel(item))}`, "", `
         <p class="sim-back"><a href="#/simular/minhas">← Minhas simulações</a></p>
-        ${done ? `<div class="sim-celebrate" role="status"><p class="sim-celebrate-title">${escapeHtml(done.cheer || savedCheers[0])}</p><p>${escapeHtml(simulationLabel(item))} está em "Minhas simulações".${escapeHtml(done.note)}</p></div>` : ""}
+        ${done ? `<div class="sim-celebrate" role="status"><p class="sim-celebrate-title">${escapeHtml(done.cheer || savedCheers[0])}</p>
+          <p><strong>Pronto: a simulação ${escapeHtml(simulationLabel(item))} foi salva.</strong> Ela está em "Minhas simulações", com a pontuação dela.${escapeHtml(done.note)}</p>
+          <p class="sim-celebrate-next"><a class="sim-button" href="#/simular">Fazer outra simulação</a> <a class="sim-button is-secondary" href="#/simular/minhas">Ver minhas simulações</a></p></div>` : ""}
         <div class="sim-scorebox"><p>${scoreSummary(item)}</p><p class="note">Salva em ${escapeHtml(formatDay(item.updated_at))}${item.server_id ? " · no servidor" : " · só neste aparelho"}.</p></div>
+        ${insightsBlock(mode, item.entry)}
         <p class="sim-toolbar">${isClosed(item) ? `<span class="sim-locked">Fechada: um jogo começou depois que ela foi salva. Ela fica como está; para mudar algo, faça outra.</span>`
           : busy ? `<span class="sim-locked">Há outra simulação em andamento: termine ou descarte antes de editar esta.</span>` : `<button type="button" class="sim-button" id="sim-edit">Editar</button>`}
           <a class="sim-button is-secondary" href="#/simular">Fazer outra simulação</a>

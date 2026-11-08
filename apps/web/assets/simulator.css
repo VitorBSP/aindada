@@ -290,7 +290,7 @@
 .sim-map-cell[aria-current="true"] { outline: 2px solid var(--signal); outline-offset: 1px; }
 .sim-map-actions { font-size: 13px; margin: 6px 0 0; }
 .sim-map-actions .link-button { margin-left: 0; font-size: 13px; }
-.sim-celebrate { margin: 6px 0 16px; padding: 16px 18px; border-radius: 12px; background: var(--ink); color: var(--paper); }
+.sim-celebrate { margin: 6px 0 16px; padding: 16px 18px; border-radius: 0; background: var(--ink); color: var(--paper); }
 .sim-celebrate p { margin: 2px 0; }
 .sim-celebrate-title { font-size: 20px; font-weight: 700; }
 @media (max-width: 760px) {
@@ -318,3 +318,32 @@
 .sim-path-details { margin: 10px 0 0; }
 .sim-path-details summary { cursor: pointer; font-weight: 600; }
 .sim-path { max-width: 520px; }
+
+/* Versão 6 (D-049): quem decidiu cada palpite, em palavras */
+.sim-legend { display: grid; gap: 4px; margin: 10px 0 12px; font-size: 13px; color: var(--ink-soft); }
+.sim-legend span { display: flex; align-items: center; gap: 8px; }
+.sim-key { display: inline-block; width: 14px; height: 14px; flex: none; border-radius: 50%; border: 2px solid var(--ink); }
+.sim-key.is-own { background: var(--ink); }
+.sim-key.is-model { border-style: dashed; background: transparent; }
+.sim-key.is-blank { border-color: var(--rule); background: transparent; }
+.sim-review-summary { margin: 12px 0 14px; padding: 10px 12px; border-left: 3px solid var(--ink); background: var(--surface); }
+.sim-review-summary p { margin: 0; font-size: 15px; }
+.sim-review-summary p.note { margin-top: 4px; font-size: 13px; }
+.sim-decisions { margin: 18px 0 8px; }
+.sim-decisions summary { cursor: pointer; font-weight: 650; }
+.sim-origin-tag { font-size: 12px; padding: 2px 6px; border: 1px solid var(--rule); white-space: nowrap; }
+.sim-origin-tag.is-model { border-style: dashed; }
+.sim-origin-tag.is-blank { color: var(--ink-faint); }
+.sim-celebrate-next { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.sim-celebrate .sim-button { background: var(--paper); color: var(--ink); border-color: var(--paper); }
+.sim-celebrate .sim-button.is-secondary { background: transparent; color: var(--paper); border-color: var(--paper); }
+
+/* Versão 6 (D-049): o que a simulação tem de mais ousado */
+.sim-insights { margin: 18px 0 8px; padding-top: 12px; border-top: 3px solid var(--rule-strong); }
+.sim-insights h2 { font-size: 18px; margin: 0 0 6px; }
+.sim-insights > p.note { margin: 0 0 8px; font-size: 14px; }
+.sim-zebras { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.sim-zebras li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 8px 0; border-bottom: 1px solid var(--rule); font-size: 14px; }
+.sim-zebras li span { font-weight: 650; }
+.sim-zebras li strong { text-align: right; }
+.sim-zebras li em { grid-column: 1 / -1; font-style: normal; font-size: 12px; color: var(--ink-faint); }

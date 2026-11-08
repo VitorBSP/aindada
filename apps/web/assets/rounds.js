@@ -148,8 +148,9 @@
       const total = scale(values[index]);
       const fromStrength = Math.min(scale(strength[index]), total);
       const current = view.round_number === selected ? " current" : "";
-      return `<a href="#/rodadas/${view.round_number}" aria-label="${roundLabel(view)}: ${num(values[index] * 100)} pontos percentuais redistribuídos">
-        <rect class="move-bar${current}" x="${x}" y="${height - bottom - total}" width="${Math.max(slot - 2, 1)}" height="${total - fromStrength}"><title>${roundLabel(view)}: ${num(values[index] * 100)} p.p. (${num((values[index] - strength[index]) * 100)} dos resultados, ${num(strength[index] * 100)} da força)</title></rect>
+      const tip = `<strong>${roundLabel(view)}</strong><br>${num(values[index] * 100)} p.p. de chance trocaram de clube (${num((values[index] - strength[index]) * 100)} dos resultados, ${num(strength[index] * 100)} da força)`;
+      return `<a href="#/rodadas/${view.round_number}" data-tip="${escapeHtml(tip)}" aria-label="${roundLabel(view)}: ${num(values[index] * 100)} pontos percentuais redistribuídos">
+        <rect class="move-bar${current}" x="${x}" y="${height - bottom - total}" width="${Math.max(slot - 2, 1)}" height="${total - fromStrength}"></rect>
         <rect class="move-bar strength${current}" x="${x}" y="${height - bottom - fromStrength}" width="${Math.max(slot - 2, 1)}" height="${fromStrength}"></rect></a>`;
     }).join("");
     const ticks = views.filter((view) => view.round_number % 5 === 0).map((view) => {
@@ -243,6 +244,7 @@
       <div class="match-meta">${formatShortDate(match.match_date)}${offRound} · antes do jogo: mandante ${pct(pre.home)}, empate ${pct(pre.draw)}, visitante ${pct(pre.away)}</div>
       <div class="impact-row">${effect ? `<span class="impact-label">Efeito em ${METRIC_LABELS[metric]} (p.p.):</span> ${effect}` : `<span class="note">Sem efeito em ${METRIC_LABELS[metric]} que se distinga do ruído da simulação.</span>`}</div>
       ${stakes ? `<div class="impact-row"><span class="impact-label">Estava em jogo (melhor menos pior resultado, p.p.):</span> ${stakes}</div>` : ""}
+      <div class="match-actions"><button type="button" class="match-open" data-match-id="${match.match_id}">Ver o que aconteceu</button></div>
     </div>`;
   }
 

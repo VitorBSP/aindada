@@ -409,9 +409,15 @@
   }
   const STAR = (filled) => `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" fill="${filled ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
 
+  // Um botão só, com o estado escrito: "Tornar meu time" ou "Meu time (trocar)". Sem o nome dos botões, o visitante
+  // não sabe o que acontece ao tocar.
   function followButton(clubId) {
     const following = favoriteClub() === clubId;
-    return `<button type="button" class="follow-button${following ? " is-following" : ""}" data-follow="${escapeHtml(clubId)}" aria-pressed="${following}">${STAR(following)}<span>${following ? "Seu time" : "Seguir"}</span></button>`;
+    const label = following ? "Este é o meu time · trocar" : "Tornar este o meu time";
+    const hint = following
+      ? "Ele aparece no topo da home. Toque em outro clube para trocar."
+      : "Ao escolher, a home passa a abrir com ele.";
+    return `<div class="follow-box"><button type="button" class="follow-button${following ? " is-following" : ""}" data-follow="${escapeHtml(clubId)}" aria-pressed="${following}">${STAR(following)}<span>${label}</span></button><p class="follow-hint">${hint}</p></div>`;
   }
 
   function bindFollow(rerender) {
@@ -426,12 +432,20 @@
     return state.snapshot.matches.find((match) => match.status !== "finished" && !isPostponed(match) && (match.home_id === clubId || match.away_id === clubId));
   }
 
-  /* As três probabilidades que mais importam para o clube: título, vaga (G4) e queda, sem as que já não mudam nada. */
+  /* As disputas em que o clube tem chance real, a mais provável primeiro. Título e queda sempre aparecem em destaque
+     (são as que o torcedor mais procura); as demais ficam à frente só se a chance for relevante. */
   function teamChips(team) {
-    const chips = [["Título", team.title], ["G4", team.top4], ["Queda", team.relegation]]
-      .filter(([, value]) => value >= 0.005 && value <= 0.995);
-    const shown = chips.length ? chips : [["G4", team.top4], ["Queda", team.relegation]];
-    return shown.map(([label, value]) => `<span class="chance-chip"><span>${label}</span><strong>${pct(value)}</strong></span>`).join("");
+    const disputes = [
+      { label: "Título", value: team.title, key: "titulo", strong: true },
+      { label: "G4", value: team.top4, key: "g4" },
+      { label: "Libertadores", value: scenarioMid(team.libertadores_total), key: "liberta" },
+      { label: "Sul-Americana", value: scenarioMid(team.sudamericana), key: "sula" },
+      { label: "Queda", value: team.relegation, key: "queda", strong: true },
+    ].filter((item) => item.value >= 0.005 && item.value <= 0.995);
+    const sorted = disputes.sort((left, right) => (right.strong ? 1 : 0) - (left.strong ? 1 : 0) || right.value - left.value);
+    const TABLE_KEY = { titulo: "titulo", g4: "libertadores", liberta: "libertadores", sula: "sul-americana", queda: "rebaixamento" };
+    return sorted.map((item) => `<a class="chance-chip${item.strong ? " is-strong" : ""}" data-dispute="${item.key}" href="#/classificacao/${TABLE_KEY[item.key]}"><span>${item.label}</span><strong>${pct(item.value)}</strong></a>`).join("")
+      || `<span class="chance-chip"><span>Permanência</span><strong>definida</strong></span>`;
   }
 
   function yourTeamCard() {
@@ -730,9 +744,18 @@
       `<a href="#/classificacao/${id}" ${id === selected ? 'aria-current="page"' : ""}>${TABLE_VIEWS[id].label}</a>`).join("")}</nav>`).join("")}</div>`;
   }
 
+  /* Disputa em que o time escolhido tem mais chance (título e queda ganham no empate). */
+  function bestDisputeView() {
+    const team = teamById(favoriteClub());
+    if (!team) return "titulo";
+    const options = [["titulo", team.title], ["rebaixamento", team.relegation], ["libertadores", Math.max(team.top4, scenarioMid(team.libertadores_total))], ["sul-americana", scenarioMid(team.sudamericana)]];
+    return options.reduce((best, option) => (option[1] > best[1] ? option : best))[0];
+  }
+
   function renderStandings(requested) {
     const snapshot = state.snapshot;
-    const viewId = TABLE_VIEWS[requested] ? requested : "titulo";
+    const autoView = !TABLE_VIEWS[requested] && favoriteClub() ? bestDisputeView() : null;
+    const viewId = TABLE_VIEWS[requested] ? requested : autoView || "titulo";
     const view = TABLE_VIEWS[viewId];
     const columns = tableColumns(view);
     const chosen = state.tableSort && state.tableSort.view === viewId ? columns.find((column) => column.id === state.tableSort.id) : null;
@@ -767,6 +790,7 @@
       <span class="kicker">Tabela</span>
       <h1>Como está e como deve terminar</h1>
       <p class="lede">A tabela real em ${formatDate(snapshot.reference_date)} ao lado do que as simulações projetam para a última rodada. Escolha o que ver nas últimas colunas e clique no nome de uma coluna para ordenar.</p>
+      ${autoView && teamById(favoriteClub()) ? `<p class="note table-auto-note">Abrimos em <strong>${TABLE_VIEWS[viewId].label}</strong>, porque ${escapeHtml(teamById(favoriteClub()).name)} tem a maior chance nessa disputa. Para outra, toque na aba.</p>` : ""}
       ${tableTabs(viewId)}
       ${view.scenarios ? scenarioPanel() : ""}
       ${viewId === "dificuldade" ? difficultyNote() : ""}
@@ -866,7 +890,12 @@
         <text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" text-anchor="${toLeft ? "end" : "start"}">${escapeHtml(note.text)}</text></g>`;
     }).join("") : "";
     const description = series.map((item) => `${item.label} ${pct(item.values[item.values.length - 1])}`).join(", ");
-    return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Evolução das probabilidades de ${formatDate(first)} a ${formatDate(last)}: ${escapeHtml(description)}${reconstructionInfo() ? " (curva recalculada com o modelo atual)" : ""}">${grid}${lines}${notes}${labels}
+    const hitWidth = (width - left - right) / Math.max(points - 1, 1);
+    const hits = state.history.map((entry, index) => {
+      const tip = `<strong>${formatDate(entry.reference_date)}</strong>${series.map((item) => `<br>${escapeHtml(item.label)}: ${pct(item.values[index])}`).join("")}`;
+      return `<rect class="hit" x="${(x(index) - hitWidth / 2).toFixed(1)}" y="${top}" width="${hitWidth.toFixed(1)}" height="${height - top - bottom}" fill="transparent" data-tip="${escapeHtml(tip)}"></rect>`;
+    }).join("");
+    return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Evolução das probabilidades de ${formatDate(first)} a ${formatDate(last)}: ${escapeHtml(description)}${reconstructionInfo() ? " (curva recalculada com o modelo atual)" : ""}">${grid}${lines}${notes}${labels}${hits}
       <text x="${left}" y="${height - 6}">${formatDate(first)}</text><text x="${width - right}" y="${height - 6}" text-anchor="end">${formatDate(last)}</text></svg>
       ${annotated ? `<p class="note">Anotações marcam o pico e a maior virada em ${escapeHtml(annotated.label.toLowerCase())}; só aparecem variações acima de ${Math.round(MIN_ANNOTATED_JUMP * 100)} pontos percentuais e de ${NOISE_Z} vezes o erro da simulação.</p>` : ""}`;
   }
@@ -878,11 +907,63 @@
     const bars = probabilities.map((value, index) => {
       const barHeight = (value / peak) * (height - top - bottom);
       const color = index < 5 ? "var(--libertadores)" : index >= probabilities.length - 4 ? "var(--danger)" : "var(--ink-faint)";
-      return `<rect x="${left + index * barWidth + 2}" y="${height - bottom - barHeight}" width="${barWidth - 4}" height="${barHeight}" fill="${color}"><title>${index + 1}º: ${pct(value)}</title></rect>
+      return `<rect x="${left + index * barWidth + 2}" y="${height - bottom - barHeight}" width="${barWidth - 4}" height="${barHeight}" fill="${color}" data-tip="${escapeHtml(`<strong>${index + 1}º lugar</strong><br>${pct(value)} das simulações`)}"></rect>
         <text x="${left + index * barWidth + barWidth / 2}" y="${height - 6}" text-anchor="middle">${index + 1}</text>`;
     }).join("");
     return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Distribuição da posição final">${bars}</svg>`;
   }
+
+  /* Popup de jogo (D-049): o que o modelo dizia antes, o resultado e quanto ele mexeu nas chances de cada clube. */
+  function findRoundMatch(matchId) {
+    const views = state.rounds ? state.rounds.rounds : [];
+    for (let index = views.length - 1; index >= 0; index -= 1) {
+      const match = views[index].matches.find((item) => item.match_id === matchId);
+      if (match) return { match, view: views[index] };
+    }
+    return null;
+  }
+
+  function matchOpenButton(matchId) {
+    return `<button type="button" class="match-open" data-match-id="${escapeHtml(matchId)}">Ver o que aconteceu</button>`;
+  }
+
+  function openMatchDetail(matchId) {
+    const found = findRoundMatch(matchId);
+    const upcoming = state.snapshot.matches.find((item) => item.match_id === matchId);
+    const source = found ? found.match : upcoming;
+    if (!source) return;
+    const title = `${escapeHtml(nameOf(source.home_id))} × ${escapeHtml(nameOf(source.away_id))}`;
+    const when = `${formatShortDate(source.match_date)}${source.round ? ` · rodada ${source.round}` : ""}`;
+    let body;
+    if (found && found.match.pre_match && source.home_goals !== null && source.home_goals !== undefined) {
+      const pre = found.match.pre_match;
+      const winner = source.home_goals > source.away_goals ? `vitória do ${escapeHtml(nameOf(source.home_id))}`
+        : source.home_goals < source.away_goals ? `vitória do ${escapeHtml(nameOf(source.away_id))}` : "empate";
+      body = `<p class="match-popup-score">${source.home_goals} × ${source.away_goals}<span>${when}</span></p>
+        <p class="match-popup-line"><strong>Resultado:</strong> ${winner}.</p>
+        <p class="match-popup-line"><strong>Antes do jogo, o modelo dava:</strong> ${escapeHtml(nameOf(source.home_id))} ${pct(pre.home)} · empate ${pct(pre.draw)} · ${escapeHtml(nameOf(source.away_id))} ${pct(pre.away)}.</p>
+        <h3 class="match-popup-sub">O que o jogo mexeu nas chances</h3>
+        ${window.MatchPopup.effectRows(found.match.impacts, nameOf, [source.home_id, source.away_id])}
+        ${found.match.stakes ? `<h3 class="match-popup-sub">O que estava em jogo</h3>${window.MatchPopup.effectRows(found.match.stakes, nameOf, [source.home_id, source.away_id], 2)}` : ""}
+        <p class="match-popup-links">${clubLink(source.home_id)} · ${clubLink(source.away_id)}</p>`;
+    } else if (upcoming && upcoming.status !== "finished") {
+      const scores = (upcoming.top_scores || []).map((score) => `${score.home_goals} × ${score.away_goals} (${pct(score.probability)})`).join(" · ");
+      body = `<p class="match-popup-line"><strong>Ainda não jogado.</strong> ${when}.</p>
+        <div class="match-popup-triple"><span><strong>${pct(upcoming.p_home)}</strong>${escapeHtml(nameOf(upcoming.home_id))}</span><span><strong>${pct(upcoming.p_draw)}</strong>empate</span><span><strong>${pct(upcoming.p_away)}</strong>${escapeHtml(nameOf(upcoming.away_id))}</span></div>
+        <p class="match-popup-line"><strong>Gols esperados:</strong> ${num(upcoming.xg_home)} × ${num(upcoming.xg_away)}</p>
+        ${scores ? `<p class="match-popup-line"><strong>Placares mais prováveis:</strong> ${scores}</p>` : ""}
+        ${upcoming.p_three_plus_goals !== null && upcoming.p_three_plus_goals !== undefined ? `<p class="match-popup-line"><strong>3 gols ou mais:</strong> ${pct(upcoming.p_three_plus_goals)}</p>` : ""}`;
+    } else {
+      body = `<p class="match-popup-score">${source.home_goals} × ${source.away_goals}<span>${when}</span></p>
+        <p class="note">Não temos as probabilidades desta rodada para mostrar o efeito no jogo.</p>`;
+    }
+    window.MatchPopup.open(title, body);
+  }
+
+  main.addEventListener("click", (event) => {
+    const button = event.target.closest(".match-open");
+    if (button) openMatchDetail(button.dataset.matchId);
+  });
 
   function scoreOutlook(match) {
     if (!match.top_scores || !match.top_scores.length) {
@@ -903,7 +984,7 @@
           <span class="t-away" style="width:${match.p_away * 100}%">${Math.round(match.p_away * 100)}</span></div>`;
     const when = isPostponed(match) ? ` · <strong class="postponed">adiado, data a definir</strong>` : "";
     const meta = finished ? `Rodada ${match.round ?? "?"}` : `Rodada ${match.round ?? "?"}${when} · gols esperados ${num(match.xg_home)} × ${num(match.xg_away)}${scoreOutlook(match)}`;
-    return `<div class="match"><div class="home">${clubLink(match.home_id, 22, true)}</div><div class="triple-cell">${middle}</div><div class="away">${clubLink(match.away_id, 22)}</div><div class="match-meta">${meta}</div></div>`;
+    return `<div class="match"><div class="home">${clubLink(match.home_id, 22, true)}</div><div class="triple-cell">${middle}</div><div class="away">${clubLink(match.away_id, 22)}</div><div class="match-meta">${meta}</div><div class="match-actions">${matchOpenButton(match.match_id)}</div></div>`;
   }
 
   function signedPercent(value) {
@@ -921,12 +1002,13 @@
         ${crest(item.club_id, 40)}<span class="club-tile-name">${escapeHtml(item.name)}${item.club_id === favorite ? ` <span class="club-tile-star" aria-label="seu time">${STAR(true)}</span>` : ""}</span>
         <span class="club-tile-meta">${item.current_position}º · ${item.current_points} pts</span></a></li>`).join("");
       main.innerHTML = `<span class="kicker">Clubes</span><h1>Escolha um clube</h1>
-        <p class="lede">Abra um clube para ver as chances, os próximos jogos e como tudo mudou. Na página dele, toque em "Seguir" para ele abrir a home.</p>
+        <p class="lede">Abra um clube para ver as chances, os próximos jogos e como tudo mudou. Abra um clube e toque em "Tornar este o meu time" para ele abrir a home.</p>
         <ul class="club-grid">${tiles}</ul>`;
       return;
     }
     const picker = `<nav class="club-strip" aria-label="Trocar de clube">${byPosition.map((item) => `<a href="#/clubes/${encodeURIComponent(item.club_id)}" title="${escapeHtml(item.name)}" aria-label="${escapeHtml(item.name)}" ${item.club_id === clubId ? 'aria-current="page"' : ""}>${crest(item.club_id, 26)}</a>`).join("")}</nav>`;
     const remaining = snapshot.matches.filter((match) => match.status !== "finished" && (match.home_id === clubId || match.away_id === clubId));
+    const recentResults = snapshot.matches.filter((match) => match.status === "finished" && (match.home_id === clubId || match.away_id === clubId)).slice(-6).reverse();
     const upcoming = [...remaining.filter((match) => !isPostponed(match)).slice(0, 6), ...remaining.filter(isPostponed)];
     const scenarioRows = snapshot.scenarios.map((scenario) => ({ scenario, value: team.libertadores_total.by_scenario[scenario.scenario_id] }))
       .sort((left, right) => right.value - left.value);
@@ -945,9 +1027,10 @@
         <div class="stat"><span class="label">Rebaixamento</span><span class="big">${pct(team.relegation)}</span></div>
       </div>
       <nav class="jump-chips" aria-label="Nesta página">
-        <a href="#club-jogos" data-jump-to="club-jogos">Próximos jogos</a><a href="#club-posicao" data-jump-to="club-posicao">Posição final</a><a href="#club-evolucao" data-jump-to="club-evolucao">Evolução</a><a href="#club-forca" data-jump-to="club-forca">Força</a>${team.schedule ? `<a href="#club-dificuldade" data-jump-to="club-dificuldade">Dificuldade</a>` : ""}<a href="#club-cenarios" data-jump-to="club-cenarios">Cenários</a>
+        <a href="#club-jogos" data-jump-to="club-jogos">Próximos jogos</a><a href="#club-resultados" data-jump-to="club-resultados">Resultados</a><a href="#club-posicao" data-jump-to="club-posicao">Posição final</a><a href="#club-evolucao" data-jump-to="club-evolucao">Evolução</a><a href="#club-forca" data-jump-to="club-forca">Força</a>${team.schedule ? `<a href="#club-dificuldade" data-jump-to="club-dificuldade">Dificuldade</a>` : ""}<a href="#club-cenarios" data-jump-to="club-cenarios">Cenários</a>
       </nav>
       <h2 id="club-jogos">Próximos jogos</h2>${upcoming.length ? upcoming.map(matchRow).join("") : "<p class='note'>Sem jogos restantes.</p>"}
+      <h2 id="club-resultados">Últimos resultados</h2>${recentResults.length ? recentResults.map(matchRow).join("") : "<p class='note'>Nenhum jogo encerrado ainda.</p>"}
       <h2 id="club-posicao">Distribuição da posição final</h2>${positionChart(team.position_probabilities)}
       <h2 id="club-evolucao">Evolução ao longo da temporada</h2>
       ${(() => {
