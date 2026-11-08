@@ -525,3 +525,79 @@ main .elo-example p.formula { font-family: var(--sans); font-size: 14px; }
   .footer-tagline { display: block; margin: 2px 0 0; }
   .footer-facts div { grid-template-columns: 1fr; gap: 0; }
 }
+
+/* Barra de navegação no pé da tela, no celular (D-048; assets/mobile-nav.js). Itens com ícone e rótulo, área de toque
+   de 48 px; o resto do menu e as outras competições ficam em "Mais". */
+.tabbar, .tabbar-sheet { display: none; }
+@media (max-width: 560px) {
+  .masthead nav { display: none; }
+  body.has-tabbar { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .tabbar { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    background: var(--paper); border-top: 1px solid var(--rule); padding: 2px 4px calc(2px + env(safe-area-inset-bottom)); }
+  .tabbar-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 52px; padding: 4px 2px;
+    font: inherit; font-size: 11px; font-weight: 600; line-height: 1.1; color: var(--ink-faint); text-decoration: none; background: none; border: 0; cursor: pointer; }
+  .tabbar-item[aria-current="page"], .tabbar-item.is-active, .tabbar-item[aria-expanded="true"] { color: var(--ink); }
+  .tabbar-item[aria-current="page"] svg, .tabbar-item.is-active svg { color: var(--signal); }
+  .tabbar-sheet:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 39; background: color-mix(in srgb, var(--ink) 35%, transparent); }
+  .tabbar-sheet-panel { position: absolute; left: 0; right: 0; bottom: calc(56px + env(safe-area-inset-bottom)); max-height: 70vh; overflow-y: auto;
+    background: var(--paper); border-top: 3px solid var(--rule-strong); padding: 14px 16px 18px; }
+  .tabbar-sheet-title { margin: 6px 0 8px; font-size: 13px; font-weight: 650; color: var(--ink-soft); }
+  .tabbar-sheet-links { display: grid; gap: 2px; margin-bottom: 10px; }
+  .tabbar-sheet-links a { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 4px; font-size: 16px; font-weight: 600; text-decoration: none; border-bottom: 1px solid var(--rule); }
+  .tabbar-sheet-links a[aria-current="page"] { color: var(--ink); box-shadow: inset 3px 0 0 var(--signal); padding-left: 10px; }
+  .tabbar-sheet-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tabbar-sheet-chips a { padding: 8px 12px; border: 1px solid var(--rule); font-size: 14px; font-weight: 600; text-decoration: none; }
+  .tabbar-sheet-chips a[aria-current="page"] { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+  .sim-savebar { bottom: calc(56px + env(safe-area-inset-bottom)); }
+}
+
+/* Seu time, convites para explorar e atalhos da página do clube (D-048). Cantos retos e fios, como o resto do site. */
+.your-team { border: 1px solid var(--rule); border-left: 3px solid var(--signal); background: var(--surface); padding: 10px 12px; margin: 0 0 22px; }
+.your-team-head { display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 12px; text-decoration: none; }
+.your-team-name { display: flex; flex-direction: column; line-height: 1.2; font-size: 13px; color: var(--ink-soft); }
+.your-team-name strong { font-size: 18px; color: var(--ink); }
+.your-team-kicker { font-size: 12px; font-weight: 650; color: var(--signal); text-transform: none; }
+.your-team-go { font-size: 26px; color: var(--ink-faint); line-height: 1; }
+.your-team.is-empty { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; text-decoration: none; font-size: 15px; color: var(--ink-soft); }
+.your-team.is-empty svg { color: var(--signal); }
+.your-team.is-empty strong { color: var(--ink); }
+.chance-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; }
+.chance-chip { display: inline-flex; align-items: baseline; gap: 6px; padding: 4px 10px; border: 1px solid var(--rule); background: var(--paper); font-size: 13px; color: var(--ink-soft); }
+.chance-chip strong { font-size: 16px; color: var(--ink); font-variant-numeric: tabular-nums; }
+main p.your-team-next { font-family: var(--sans); font-size: 14px; color: var(--ink-soft); margin: 6px 0 0; }
+.your-team-next strong { color: var(--ink); font-weight: 600; }
+
+.explore { margin-top: 40px; }
+.explore-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.explore-card { position: relative; display: flex; flex-direction: column; gap: 4px; min-height: 96px; padding: 12px 34px 12px 12px; border: 1px solid var(--rule); background: var(--surface); text-decoration: none; }
+.explore-card strong { font-size: 16px; line-height: 1.25; }
+.explore-card span { font-size: 13px; color: var(--ink-soft); line-height: 1.4; }
+.explore-card .explore-go { position: absolute; right: 12px; top: 12px; font-size: 18px; color: var(--ink-faint); }
+.explore-card:hover { border-color: var(--ink); }
+.explore-card.is-primary { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.explore-card.is-primary span { color: color-mix(in srgb, var(--paper) 80%, transparent); }
+.explore-card.is-primary .explore-go { color: var(--signal); }
+
+.club-title { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.club-title .club-heading { margin-bottom: 0; }
+.follow-button { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 6px 14px; border: 1px solid var(--ink); background: transparent; color: var(--ink); font: inherit; font-size: 14px; font-weight: 650; cursor: pointer; }
+.follow-button.is-following { background: var(--ink); color: var(--paper); }
+.follow-button.is-following svg { color: var(--signal); }
+.club-title + .lede { margin-top: 12px; }
+.jump-chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 18px 0 0; padding-bottom: 2px; }
+.jump-chips::-webkit-scrollbar { display: none; }
+.jump-chips a { flex: none; padding: 7px 12px; border: 1px solid var(--rule); font-size: 14px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.jump-chips a:hover { border-color: var(--ink); }
+.club-tile-star { color: var(--signal); vertical-align: -3px; }
+.club-tile.is-favorite { box-shadow: inset 3px 0 0 var(--signal); padding-left: 8px; }
+main h2[id] { scroll-margin-top: 12px; }
+@media (max-width: 560px) {
+  .explore-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .explore-card { min-height: 112px; padding: 10px 26px 10px 10px; }
+  .explore-card.is-primary { grid-column: 1 / -1; min-height: 0; }
+  .explore-card strong { font-size: 15px; }
+  .jump-chips { margin-left: -16px; margin-right: -16px; padding-left: 16px; padding-right: 16px; }
+}
+.round-howto { margin: 0 0 12px; }
+.round-howto summary { cursor: pointer; font-weight: 600; color: var(--ink-soft); }
+.round-howto p { margin: 6px 0 0; }

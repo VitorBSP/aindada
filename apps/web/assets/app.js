@@ -394,6 +394,77 @@
     return { headline, lede: `${settledText}${openText} <span class="lede-method">${method}</span>` };
   }
 
+
+  /* ---------------- Seu time e convites para explorar (D-048) */
+
+  // Preferência do visitante, só neste aparelho: o clube que ele segue abre a home.
+  const FAVORITE_KEY = "ainda-da:meu-time:serie-a";
+  function favoriteClub() {
+    try { return window.localStorage.getItem(FAVORITE_KEY) || ""; } catch (error) { return ""; }
+  }
+  function setFavoriteClub(clubId) {
+    try {
+      if (clubId) window.localStorage.setItem(FAVORITE_KEY, clubId); else window.localStorage.removeItem(FAVORITE_KEY);
+    } catch (error) { /* sem armazenamento: a escolha vale só nesta visita */ }
+  }
+  const STAR = (filled) => `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" fill="${filled ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+
+  function followButton(clubId) {
+    const following = favoriteClub() === clubId;
+    return `<button type="button" class="follow-button${following ? " is-following" : ""}" data-follow="${escapeHtml(clubId)}" aria-pressed="${following}">${STAR(following)}<span>${following ? "Seu time" : "Seguir"}</span></button>`;
+  }
+
+  function bindFollow(rerender) {
+    main.querySelectorAll("[data-follow]").forEach((button) => button.addEventListener("click", () => {
+      const clubId = button.dataset.follow;
+      setFavoriteClub(favoriteClub() === clubId ? "" : clubId);
+      rerender();
+    }));
+  }
+
+  function nextMatchOf(clubId) {
+    return state.snapshot.matches.find((match) => match.status !== "finished" && !isPostponed(match) && (match.home_id === clubId || match.away_id === clubId));
+  }
+
+  /* As três probabilidades que mais importam para o clube: título, vaga (G4) e queda, sem as que já não mudam nada. */
+  function teamChips(team) {
+    const chips = [["Título", team.title], ["G4", team.top4], ["Queda", team.relegation]]
+      .filter(([, value]) => value >= 0.005 && value <= 0.995);
+    const shown = chips.length ? chips : [["G4", team.top4], ["Queda", team.relegation]];
+    return shown.map(([label, value]) => `<span class="chance-chip"><span>${label}</span><strong>${pct(value)}</strong></span>`).join("");
+  }
+
+  function yourTeamCard() {
+    const team = teamById(favoriteClub());
+    if (!team) {
+      return `<a class="your-team is-empty" href="#/clubes">${STAR(false)}<span><strong>Escolha o seu time</strong> e ele abre esta página com as chances e o próximo jogo.</span><span class="your-team-go" aria-hidden="true">›</span></a>`;
+    }
+    const match = nextMatchOf(team.club_id);
+    const home = match && match.home_id === team.club_id;
+    const opponent = match ? (home ? match.away_id : match.home_id) : null;
+    const win = match ? (home ? match.p_home : match.p_away) : null;
+    return `<section class="your-team" aria-label="Seu time">
+      <a class="your-team-head" href="#/clubes/${encodeURIComponent(team.club_id)}">
+        ${crest(team.club_id, 40)}
+        <span class="your-team-name"><span class="your-team-kicker">Seu time</span><strong>${escapeHtml(team.name)}</strong><span>${team.current_position}º · ${team.current_points} pts</span></span>
+        <span class="your-team-go" aria-hidden="true">›</span>
+      </a>
+      <div class="chance-chips">${teamChips(team)}</div>
+      ${match ? `<p class="your-team-next">Próximo: <strong>${home ? "em casa" : "fora"} contra ${escapeHtml(nameOf(opponent))}</strong> · ${escapeHtml(formatShortDate(match.match_date))} · vence em ${pct(win)}</p>` : ""}
+    </section>`;
+  }
+
+  function exploreCards() {
+    const cards = [
+      ["#/simular", "Simule o fim do campeonato", "Escolha campeão, G4 e rebaixados ou dê o placar de cada jogo. Leva um minuto.", true],
+      ["#/classificacao", "Tabela com as chances", "Título, Libertadores, Sul-Americana e queda de cada clube.", false],
+      ["#/partidas", "Jogos que faltam", "Quem é favorito em cada partida e os placares mais prováveis.", false],
+      ["#/rodadas", "Rodada a rodada", "Como cada resultado mexeu nas chances.", false],
+    ];
+    return `<section class="explore" aria-labelledby="explore-title"><h2 id="explore-title">Continue explorando</h2>
+      <div class="explore-grid">${cards.map(([href, title, text, primary]) => `<a class="explore-card${primary ? " is-primary" : ""}" href="${href}"><strong>${title}</strong><span>${text}</span><span class="explore-go" aria-hidden="true">→</span></a>`).join("")}</div></section>`;
+  }
+
   const ROUND_TAB = "rodada";
 
   function raceSwitch(selected, featured) {
@@ -453,11 +524,12 @@
       : "";
     if (tab === ROUND_TAB) {
       const renderer = window.CurrentRound.createRenderer({ escapeHtml, pct, crest, clubLink, nameOf, formatDate });
-      main.innerHTML = `${leadBlock}${raceSwitch(ROUND_TAB, featured)}${renderer.render(state.currentRound, state.snapshot, Date.now(), overdueWarning(), Boolean(lead))}`;
+      main.innerHTML = `${yourTeamCard()}${leadBlock}${raceSwitch(ROUND_TAB, featured)}${renderer.render(state.currentRound, state.snapshot, Date.now(), overdueWarning(), Boolean(lead))}${exploreCards()}`;
       return;
     }
     const heading = lead ? `<h2 class="race-heading">${story.headline}</h2>` : `<h1>${story.headline}</h1>`;
     main.innerHTML = `
+      ${yourTeamCard()}
       ${leadBlock}
       ${raceSwitch(raceId, featured)}
       ${heading}
@@ -466,7 +538,8 @@
       ${raceMosaic(race)}
       ${raceId === "g4" ? libertadoresRanges() : ""}
       <h2>O que mudou em ${race.noun} desde a última atualização</h2>
-      ${changesSinceLast(race.key)}`;
+      ${changesSinceLast(race.key)}
+      ${exploreCards()}`;
   }
 
   function scenarioStatus() {
@@ -843,11 +916,12 @@
     const byPosition = [...snapshot.teams].sort((left, right) => left.current_position - right.current_position);
     const team = teamById(clubId);
     if (!team) {
-      const tiles = byPosition.map((item) => `<li><a class="club-tile" href="#/clubes/${encodeURIComponent(item.club_id)}">
-        ${crest(item.club_id, 40)}<span class="club-tile-name">${escapeHtml(item.name)}</span>
+      const favorite = favoriteClub();
+      const tiles = byPosition.map((item) => `<li><a class="club-tile${item.club_id === favorite ? " is-favorite" : ""}" href="#/clubes/${encodeURIComponent(item.club_id)}">
+        ${crest(item.club_id, 40)}<span class="club-tile-name">${escapeHtml(item.name)}${item.club_id === favorite ? ` <span class="club-tile-star" aria-label="seu time">${STAR(true)}</span>` : ""}</span>
         <span class="club-tile-meta">${item.current_position}º · ${item.current_points} pts</span></a></li>`).join("");
       main.innerHTML = `<span class="kicker">Clubes</span><h1>Escolha um clube</h1>
-        <p class="lede">Probabilidades, força estimada, próximos jogos e como tudo mudou ao longo do campeonato. Em ordem de classificação.</p>
+        <p class="lede">Abra um clube para ver as chances, os próximos jogos e como tudo mudou. Na página dele, toque em "Seguir" para ele abrir a home.</p>
         <ul class="club-grid">${tiles}</ul>`;
       return;
     }
@@ -861,7 +935,7 @@
     const history = state.history.map((entry) => entry.teams[clubId] || { title: 0, top4: 0, relegation: 0 });
     main.innerHTML = `
       ${picker}
-      <h1 class="club-heading">${crest(clubId, 48)}<span>${escapeHtml(team.name)}</span></h1>
+      <div class="club-title"><h1 class="club-heading">${crest(clubId, 48)}<span>${escapeHtml(team.name)}</span></h1>${followButton(clubId)}</div>
       <p class="lede">${team.current_position}º lugar com ${team.current_points} pontos em ${team.played} jogos. Projeção: ${num(team.expected_points)} pontos (faixa provável de ${Math.round(team.points_interval_90[0])} a ${Math.round(team.points_interval_90[1])}).</p>
       <div class="stat-row">
         <div class="stat"><span class="label">Título</span><span class="big">${pct(team.title)}</span></div>
@@ -870,8 +944,12 @@
         <div class="stat"><span class="label">Sul-Americana</span><span class="big">${scenarioValue(team.sudamericana)}</span>${team.sudamericana_race ? `<span class="sub"><a href="#/classificacao/sul-americana">${team.sudamericana_race.rank}º na corrida</a></span>` : ""}</div>
         <div class="stat"><span class="label">Rebaixamento</span><span class="big">${pct(team.relegation)}</span></div>
       </div>
-      <h2>Distribuição da posição final</h2>${positionChart(team.position_probabilities)}
-      <h2>Evolução ao longo da temporada</h2>
+      <nav class="jump-chips" aria-label="Nesta página">
+        <a href="#club-jogos" data-jump-to="club-jogos">Próximos jogos</a><a href="#club-posicao" data-jump-to="club-posicao">Posição final</a><a href="#club-evolucao" data-jump-to="club-evolucao">Evolução</a><a href="#club-forca" data-jump-to="club-forca">Força</a>${team.schedule ? `<a href="#club-dificuldade" data-jump-to="club-dificuldade">Dificuldade</a>` : ""}<a href="#club-cenarios" data-jump-to="club-cenarios">Cenários</a>
+      </nav>
+      <h2 id="club-jogos">Próximos jogos</h2>${upcoming.length ? upcoming.map(matchRow).join("") : "<p class='note'>Sem jogos restantes.</p>"}
+      <h2 id="club-posicao">Distribuição da posição final</h2>${positionChart(team.position_probabilities)}
+      <h2 id="club-evolucao">Evolução ao longo da temporada</h2>
       ${(() => {
         const series = [
           { key: "title", label: "Título", color: "var(--title)", values: history.map((item) => item.title) },
@@ -882,7 +960,7 @@
         return lineChart(series, 240, series.find((item) => item.key === focus));
       })()}
       ${reconstructionNote(reconstructionInfo())}
-      <h2>Força estimada</h2>
+      <h2 id="club-forca">Força estimada</h2>
       <div class="stat-row">
         <div class="stat"><span class="label">Elo</span><span class="big">${Math.round(team.ratings.elo)}</span><span class="sub">média da liga = 1500</span></div>
         <div class="stat"><span class="label">Ataque</span><span class="big">${signedPercent(team.ratings.attack)}</span><span class="sub">gols marcados vs. média</span></div>
@@ -890,12 +968,17 @@
         <div class="stat"><span class="label">Gols projetados</span><span class="big">${Math.round(team.expected_goals_for)}–${Math.round(team.expected_goals_against)}</span><span class="sub">pró–contra no fim</span></div>
       </div>
       ${clubSchedule(team)}
-      <h2>Próximos jogos</h2>${upcoming.length ? upcoming.map(matchRow).join("") : "<p class='note'>Sem jogos restantes.</p>"}
-      <h2>Cenários externos</h2>
+      <h2 id="club-cenarios">Cenários externos</h2>
       ${variesByScenario ? `<p class="note">A probabilidade de Libertadores depende dos torneios ainda em disputa.</p>
         <h3>Mais favorável: ${pct(scenarioRows[0].value)}</h3><p class="note">${describe(scenarioRows[0].scenario)}</p>
         <h3>Menos favorável: ${pct(scenarioRows[scenarioRows.length - 1].value)}</h3><p class="note">${describe(scenarioRows[scenarioRows.length - 1].scenario)}</p>`
         : `<p class="note">Os resultados de Libertadores, Sul-Americana e Copa do Brasil praticamente não alteram a probabilidade de vaga deste clube (${scenarioValue(team.libertadores_total)}).</p>`}`;
+    bindFollow(() => renderClub(clubId));
+    main.querySelectorAll("[data-jump-to]").forEach((link) => link.addEventListener("click", (event) => {
+      event.preventDefault();
+      const target = document.getElementById(link.dataset.jumpTo);
+      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }));
   }
 
   function clubSchedule(team) {
@@ -903,7 +986,7 @@
     if (!schedule) return "";
     const venueStat = (label, value, rank, points, games) => (value === null || value === undefined ? "" : `<div class="stat"><span class="label">${label}</span><span class="big">${Math.round(value)}</span><span class="sub">${rank === 1 ? "a mais difícil" : `${rank}ª mais difícil`} · ${num(points)} pts esperados em ${games} ${games === 1 ? "jogo" : "jogos"}</span></div>`);
     const gap = schedule.expected_points - schedule.average_team_points;
-    return `<h2>Dificuldade do que falta</h2>
+    return `<h2 id="club-dificuldade">Dificuldade do que falta</h2>
       <div class="stat-row">
         <div class="stat"><span class="label">Tabela</span><span class="big">${Math.round(schedule.difficulty)}</span><span class="sub">${schedule.difficulty_rank === 1 ? "a mais difícil das 20" : `${schedule.difficulty_rank}ª mais difícil das 20`}</span></div>
         ${venueStat("Em casa", schedule.difficulty_home, schedule.difficulty_home_rank, schedule.expected_points_home, schedule.home_matches)}

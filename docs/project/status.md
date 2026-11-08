@@ -3438,3 +3438,17 @@ real com a chave anon: perfis, simulações, `sim_scores` e `sim_my_scores` nega
   depois: `sim_pick_max` existe; Vencedor empate 5 e vitória 3; Placar empate sem placar 5 e só o vencedor 3; view com
   máximo 102; trava da temporada fora de `sim_lock_picks`.
 - **Pendente**: 06 revisa (pontuação SQL x JS e deflator).
+
+## Agente 08: UX para o celular (D-048, 2026-11-08)
+
+- **Referências** vistas no navegador do app em 375 px: Sofascore (barra no pé, filtros, favoritos), OneFootball
+  (barra, seguir times), wcpredictor (uma ação principal por tela), ge (abas e simulador), Kick Pay (cartões).
+- **O que mudou**: `apps/web/assets/mobile-nav.js` (novo; incluído nos seis `index.html`), `apps/web/assets/app.js`
+  (Seu time, Continue explorando, página do clube com Seguir e atalhos, próximos jogos mais para cima),
+  `apps/web/assets/current-round.js` (explicação da rodada em andamento recolhida, "Não é ao vivo" à vista) e
+  `apps/web/assets/styles.css`.
+- **Evidência**: 375 px: 9 rotas da Série A sem rolagem horizontal e com o item certo ativo na barra; Série B,
+  Premier League, Champions e Mundial de LoL com a barra (4 itens + Mais) e o menu de cima escondido; seguir o Inter
+  leva o cartão dele para a home; folha "Mais" com o resto do menu e as competições. 1280 px: barra escondida, menu de
+  cima e "Continue explorando" em uma linha.
+

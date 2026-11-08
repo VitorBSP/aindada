@@ -235,10 +235,12 @@
     function updateBlock(info) {
       const stamp = info.updatedAt;
       const when = stamp === null ? "" : `<p class="note round-updated"><strong>Atualizado às ${brasiliaClock(stamp)} de ${escapeHtml(shortWeekdayDay(stamp))} (horário de Brasília).</strong></p>`;
-      const detail = info.inProgress
-        ? "O site não acompanha os jogos ao vivo. Cada placar entra aqui depois do apito final, na atualização seguinte do site, quando a fonte de dados registra o resultado e as simulações são refeitas. Isso pode levar algumas horas. Recarregue a página para ver a atualização mais recente."
-        : "Esta rodada não muda mais, a não ser que a fonte corrija um placar.";
-      return `${when}<p class="note">${detail}</p>`;
+      // No celular a explicação longa fica recolhida (D-048); a frase curta "não é ao vivo" continua à vista.
+      if (info.inProgress) {
+        return `${when}<details class="note round-howto"><summary>Não é ao vivo: cada placar entra algumas horas depois do apito.</summary>
+          <p class="note">O placar aparece na atualização seguinte do site, quando a fonte de dados registra o resultado e as simulações são refeitas. Recarregue a página para ver a atualização mais recente.</p></details>`;
+      }
+      return `${when}<p class="note">Esta rodada não muda mais, a não ser que a fonte corrija um placar.</p>`;
     }
 
     function comparisonNote(info, compared, snapshot, anyFinished) {

@@ -49,3 +49,9 @@ Tabela (`#/classificacao/{visão}`): todas as colunas, menos "Próximos jogos", 
 modelo" e a probabilidade do placar escolhido). Salva em `localStorage` e compartilha por link; nada vai para
 servidor. Sem palpites, a tabela calculada no navegador é igual a `standings` do snapshot (conferido em 26/10/2026,
 20 de 20 posições e pontos).
+
+Celular (D-048): `apps/web/assets/mobile-nav.js`, carregado pelos seis sites, monta a barra do pé da tela a partir do
+menu do cabeçalho (até 560 px) e a folha "Mais". Série A: "Seu time" em `localStorage` (`ainda-da:meu-time:serie-a`),
+cartão no topo da home, "Seguir" na página do clube, seção "Continue explorando" no fim da home e atalhos na página do
+clube.
+
