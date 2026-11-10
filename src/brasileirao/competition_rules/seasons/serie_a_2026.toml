@@ -45,9 +45,8 @@ sudamericana_finalists = ["atletico-mg", "foreign:Boca Juniors"]
 sudamericana_note = "Final em jogo único em 21/11/2026, Barranquilla."
 cup_champion = ""
 cup_runner_up = ""
-# Semifinais: cada par lista os possíveis vencedores. Grêmio venceu a sua (informado pelo dono em 2026-11-10);
-# a final é contra Palmeiras ou Vasco, ainda não confirmado (o resultado Palmeiras x Vasco precisa de conferência).
-cup_semifinals = [["palmeiras", "vasco"], ["gremio"]]
+# Semifinais decididas (informado pelo dono, 2026-11-10): Palmeiras e Grêmio disputam a final, em jogo único em 06/12.
+cup_semifinals = [["palmeiras"], ["gremio"]]
 cup_note = "Semifinais em 01/11 e 07–08/11/2026; final em jogo único em 06/12/2026, Brasília (após o fim da Série A)."
 sources = [
   "https://www.cnnbrasil.com.br/esportes/futebol/copa-do-brasil/copa-do-brasil-cbf-define-datas-das-semifinais-de-2026/",

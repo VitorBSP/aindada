@@ -55,7 +55,7 @@ Quando várias vagas são liberadas, as de fase de grupos são atribuídas antes
 |---|---|---|
 | Libertadores 2026 | Final Palmeiras x Estudiantes, 28/11, Montevidéu | 2 |
 | Sul-Americana 2026 | Final Atlético-MG x Boca Juniors, 21/11, Barranquilla | 2 |
-| Copa do Brasil 2026 | Grêmio na final (informado pelo dono, 2026-11-10); adversário Palmeiras ou Vasco, a confirmar; final 06/12, Brasília | 4 (campeão × vice) |
+| Copa do Brasil 2026 | Final Palmeiras x Grêmio (informado pelo dono, 2026-11-10); final 06/12, Brasília | 2 (campeão × vice) |
 
 São 32 cenários no total. Nenhuma probabilidade é atribuída aos torneios externos. Cada saída
 continental é publicada por cenário e como faixa (mínimo–máximo), e a interface permite escolher o

@@ -3487,9 +3487,7 @@ real com a chave anon: perfis, simulações, `sim_scores` e `sim_my_scores` nega
   (16 cenários externos); `docs/methodology/competition-rules.md` (item 5 e tabela de cenários).
 - **Substitui a regra anterior** (item 5 documentado: "rebaixado com vaga continental é permitido"). Encaminhar ao
   Agente 03 para confirmar com o texto do regulamento.
-- **A confirmar**: o adversário do Grêmio na final (Palmeiras ou Vasco). A busca pública indicou Palmeiras contra
-  Vasco com classificação do Palmeiras nos pênaltis, mas não achou o placar confirmado; precisa de conferência em
-  fonte oficial antes de publicar.
+- **Final confirmada**: Palmeiras x Grêmio (informado pelo dono, 2026-11-10).
 - **Efeito em Grêmio** (snapshot de teste, 10 mil simulações): rebaixamento 62,8%; vaga da Libertadores pela tabela
   37,2%, sem variar entre os cenários da Copa.
 - **Evidência**: `pytest` passou (ver commit); ruff e mypy sem erros.
