@@ -6,8 +6,8 @@ from brasileirao.competition_rules.scenarios import enumerate_external_scenarios
 from brasileirao.competition_rules.season_rules import SeasonRules
 
 
-def test_2026_has_32_external_scenarios(rules_2026: SeasonRules) -> None:
-    assert len(enumerate_external_scenarios(rules_2026)) == 32
+def test_2026_has_16_external_scenarios(rules_2026: SeasonRules) -> None:
+    assert len(enumerate_external_scenarios(rules_2026)) == 16
 
 
 def test_cup_champion_and_runner_up_come_from_different_semifinals(rules_2026: SeasonRules) -> None:

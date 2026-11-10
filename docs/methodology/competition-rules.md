@@ -43,8 +43,11 @@ Quando várias vagas são liberadas, as de fase de grupos são atribuídas antes
    entregaria a vaga de grupos ao clube seguinte. Essa divergência foi apontada pelo Agente 06 e está
    fixada no teste `test_freed_groups_slot_upgrades_best_placed_club`. Confirmar com a CBF.
 4. **Vice da Copa fora da Série A.** Ele mantém a própria vaga e não gera vaga extra na tabela.
-5. **Clube rebaixado com vaga continental.** É permitido (ex.: campeão da Copa no Z4). O clube
-   aparece nas duas categorias.
+5. **Clube rebaixado com vaga da Copa.** Não fica com a vaga (decisão do dono, 2026-11-10, conforme o novo
+   regulamento da CBF): a vaga de grupos (campeão) ou preliminar (vice) passa à tabela do Brasileirão e vai ao
+   próximo clube sem vaga continental, na ordem de classificação. Vale para o campeão e para o vice da Copa.
+   Vaga de título continental (Libertadores ou Sul-Americana) de clube rebaixado segue a regra anterior.
+   Revisar com o Agente 03 quando o texto do regulamento estiver disponível.
 
 ## Cenários externos (situação em 26/10/2026)
 
@@ -52,7 +55,7 @@ Quando várias vagas são liberadas, as de fase de grupos são atribuídas antes
 |---|---|---|
 | Libertadores 2026 | Final Palmeiras x Estudiantes, 28/11, Montevidéu | 2 |
 | Sul-Americana 2026 | Final Atlético-MG x Boca Juniors, 21/11, Barranquilla | 2 |
-| Copa do Brasil 2026 | Semifinais Palmeiras x Vasco e Grêmio x Atlético-MG; final 06/12, Brasília | 8 (campeão × vice de semifinais diferentes) |
+| Copa do Brasil 2026 | Grêmio na final (informado pelo dono, 2026-11-10); adversário Palmeiras ou Vasco, a confirmar; final 06/12, Brasília | 4 (campeão × vice) |
 
 São 32 cenários no total. Nenhuma probabilidade é atribuída aos torneios externos. Cada saída
 continental é publicada por cenário e como faixa (mínimo–máximo), e a interface permite escolher o

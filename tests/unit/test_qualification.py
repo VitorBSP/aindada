@@ -93,9 +93,17 @@ def test_continental_champion_who_wins_cup_broad_policy_upgrades_runner_up(
     assert allocate_slots(twenty_clubs, broad_rules, outcome).libertadores["c15"] == Phase.GROUPS
 
 
-def test_relegated_cup_champion_still_qualifies(rules_2026: SeasonRules, twenty_clubs: list[str]) -> None:
+def test_relegated_cup_champion_loses_the_slot(rules_2026: SeasonRules, twenty_clubs: list[str]) -> None:
     result = allocate_slots(twenty_clubs, rules_2026, ExternalOutcome(cup_champion="c19", cup_runner_up="c15"))
-    assert "c19" in result.libertadores and "c19" in result.relegated
+    assert "c19" not in result.libertadores and "c19" in result.relegated
+
+
+def test_relegated_cup_champion_slot_goes_to_next_in_table(rules_2026: SeasonRules, twenty_clubs: list[str]) -> None:
+    """A vaga de grupos do campeão rebaixado vai ao próximo clube da tabela, não some."""
+    with_champion = allocate_slots(twenty_clubs, rules_2026, ExternalOutcome(cup_champion="c19", cup_runner_up="c15"))
+    without_cup = allocate_slots(twenty_clubs, rules_2026, ExternalOutcome(cup_runner_up="c15"))
+    gained = set(with_champion.libertadores) - set(without_cup.libertadores)
+    assert gained == {"c06"}
 
 
 def test_foreign_or_missing_club_does_not_consume_league_slot(rules_2026: SeasonRules, twenty_clubs: list[str]) -> None:

@@ -33,7 +33,7 @@ class ExternalContext:
     sudamericana_finalists: tuple[str, ...]
     cup_champion: str
     cup_runner_up: str
-    cup_semifinals: tuple[tuple[str, str], ...]
+    cup_semifinals: tuple[tuple[str, ...], ...]
     notes: tuple[str, ...]
     sources: tuple[str, ...]
 
@@ -98,7 +98,7 @@ def load_season_rules(season: int, seasons_dir: Path = SEASONS_DIR) -> SeasonRul
             sudamericana_finalists=tuple(external.get("sudamericana_finalists", [])),
             cup_champion=str(external.get("cup_champion", "")),
             cup_runner_up=str(external.get("cup_runner_up", "")),
-            cup_semifinals=tuple((str(pair[0]), str(pair[1])) for pair in external.get("cup_semifinals", [])),
+            cup_semifinals=tuple(tuple(str(club) for club in pair) for pair in external.get("cup_semifinals", [])),
             notes=tuple(
                 str(external[key]) for key in ("libertadores_note", "sudamericana_note", "cup_note") if key in external
             ),

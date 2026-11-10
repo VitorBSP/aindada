@@ -61,6 +61,7 @@ def allocate_slots(final_order: Sequence[str], rules: SeasonRules, outcome: Exte
     extra_slots: list[Phase] = []
     cup_holders: dict[str, Phase] = {}
 
+    relegated = set(final_order[-rules.relegation_count :])
     champion = outcome.cup_champion if outcome.cup_champion in in_league else None
     runner_up = outcome.cup_runner_up if outcome.cup_runner_up in in_league else None
     runner_up_phase = rules.cup_runner_up_phase
@@ -83,6 +84,9 @@ def allocate_slots(final_order: Sequence[str], rules: SeasonRules, outcome: Exte
             runner_up_phase = rules.cup_champion_phase
             extra_slots.append(rules.cup_runner_up_phase)
             result.routes[champion] = "Brasileirão (campeão da Copa do Brasil, § 4º/§ 5º)"
+        elif champion is not None and champion in relegated:
+            extra_slots.append(rules.cup_champion_phase)
+            result.routes[champion] = "campeão da Copa do Brasil rebaixado: a vaga passa ao próximo da tabela"
         elif champion is not None:
             cup_holders[champion] = rules.cup_champion_phase
             result.routes[champion] = "campeão da Copa do Brasil"
@@ -90,6 +94,9 @@ def allocate_slots(final_order: Sequence[str], rules: SeasonRules, outcome: Exte
     if runner_up is not None:
         if runner_up in continental:
             extra_slots.append(runner_up_phase)
+        elif runner_up in relegated:
+            extra_slots.append(runner_up_phase)
+            result.routes[runner_up] = "vice da Copa do Brasil rebaixado: a vaga passa ao próximo da tabela"
         else:
             tentative = _league_allocation(final_order, league_slots, set(continental) | set(cup_holders))
             runner_up_league_phase = tentative.get(runner_up)

@@ -3476,3 +3476,21 @@ real com a chave anon: perfis, simulações, `sim_scores` e `sim_my_scores` nega
 - **Pendente**: as dicas de gráficos da Rodada atual (home) ainda não têm o balão; o simulador não foi refeito fluxo
   a fluxo (Classificação e Placar exato seguem como estavam, só com a legenda e o resumo novos).
 
+## Grêmio na final da Copa do Brasil e vaga de rebaixado (2026-11-10)
+
+- **Pedido do dono**: Grêmio está na final da Copa; se cair, a vaga da Copa não fica com ele. Confirmado depois, com
+  a resposta do dono: "de acordo com novo regulamento da CBF, a vaga do Grêmio iria para o brasileirão". Ou seja, a
+  vaga vai à tabela do Brasileirão, ao próximo clube sem vaga continental.
+- **O que mudou**: `competition_rules/qualification.py` (campeão e vice da Copa rebaixados passam a vaga à tabela);
+  `serie_a_2026.toml` (semifinal Grêmio já decidida, `cup_semifinals = [["palmeiras","vasco"],["gremio"]]`);
+  `season_rules.py` aceita semifinal com um só clube; testes em `test_qualification.py` e `test_scenarios.py`
+  (16 cenários externos); `docs/methodology/competition-rules.md` (item 5 e tabela de cenários).
+- **Substitui a regra anterior** (item 5 documentado: "rebaixado com vaga continental é permitido"). Encaminhar ao
+  Agente 03 para confirmar com o texto do regulamento.
+- **A confirmar**: o adversário do Grêmio na final (Palmeiras ou Vasco). A busca pública indicou Palmeiras contra
+  Vasco com classificação do Palmeiras nos pênaltis, mas não achou o placar confirmado; precisa de conferência em
+  fonte oficial antes de publicar.
+- **Efeito em Grêmio** (snapshot de teste, 10 mil simulações): rebaixamento 62,8%; vaga da Libertadores pela tabela
+  37,2%, sem variar entre os cenários da Copa.
+- **Evidência**: `pytest` passou (ver commit); ruff e mypy sem erros.
+
