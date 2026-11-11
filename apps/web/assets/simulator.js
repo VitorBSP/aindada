@@ -12,6 +12,12 @@
 (function () {
   "use strict";
 
+  const logic = window.SimulatorLogic;
+  const {
+    LIBERTADORES_GROUPS, LIBERTADORES_SLOTS, SUDAMERICANA_SLOTS, RELEGATED, POINTS, TABLE_POINTS,
+    outcomeOf, scoreSampler, draw, newRows, addResult, goalDifference, rankRows, matchPoints, maxForPick, encodeLink, decodeLink,
+  } = logic;
+
   const MODES = {
     classificacao: {
       label: "Classificação", effort: "1 minuto",
@@ -29,27 +35,17 @@
       scoring: "Placar exato 10; vencedor e gols do vencedor 7; vencedor e diferença de gols 6; vencedor e gols do perdedor 5; empate certo (sem o placar) 5; só o vencedor 3; placar invertido 2.",
     },
   };
-  const OUTCOME_LABEL = { H: "mandante", D: "empate", A: "visitante" };
-  // serie_a_2026.toml: Art. 6º (5 vagas de Libertadores pela liga), 7º (6 de Sul-Americana) e 8º (4 rebaixados).
-  const LIBERTADORES_GROUPS = 4;
-  const LIBERTADORES_SLOTS = 5;
-  const SUDAMERICANA_SLOTS = 6;
-  const RELEGATED = 4;
-  // Pontuação (igual a sim_match_points e sim_pick_max, migração 0006).
-  const POINTS = { exact: 10, winnerGoals: 7, difference: 6, loserGoals: 5, draw: 5, winner: 3, inverted: 2 };
-  const TABLE_POINTS = { exact: 3, near: 1, champion: 10, top4: 3, relegated: 5 };
   // Versão 5 (ADR-0015): até 10 simulações por pessoa desde o último jogo que travou; cada jogo trava 30 minutos antes
   // do início (mesmas regras de sim_lock_margin e sim_event_start, migração 0005).
   const EVENT_LIMIT = 10;
   const LOCK_MARGIN_MINUTES = 30;
   const MAX_GOALS_INPUT = 20;
-  const CODE_VERSION = "1";
   const MINUS = "−";
   // Mesma regra do banco (sim_profiles.nickname): letras com acento do português, números e _ . - espaço.
   const NICKNAME = /^[A-Za-zÀ-ÖØ-öø-ÿ0-9_. -]{3,20}$/;
   const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
-  const view = { store: null, season: null, link: null, linkNote: "" };
+  const view = { store: null, season: null, link: null, linkNote: "", refresh: null };
   const cloudState = { checked: false, user: null, profile: null, contact: null, community: null, scores: {}, status: "", open: "" };
   const cloudApi = () => (window.SimulatorCloud && window.SimulatorCloud.enabled ? window.SimulatorCloud : null);
 
@@ -66,93 +62,37 @@
     return { version: 2, drafts: {}, saved: [] };
   }
 
+  /* Antes de gravar, relê o armazenamento e mescla as simulações salvas pelo local_id: outra aba pode ter salvo
+     enquanto esta estava aberta. Rascunho e sessão em andamento são desta aba e ficam como estão. */
   function writeStore() {
-    try { window.localStorage.setItem(storageKey(view.season), JSON.stringify(view.store)); } catch (error) { /* só nesta aba */ }
+    try {
+      const raw = window.localStorage.getItem(storageKey(view.season));
+      const other = raw ? JSON.parse(raw) : null;
+      if (other && other.version === 2) {
+        const merged = logic.mergeStores(view.store, other);
+        view.store.saved = merged.saved;
+        view.store.removed = merged.removed;
+      }
+      window.localStorage.setItem(storageKey(view.season), JSON.stringify(view.store));
+    } catch (error) { /* só nesta aba */ }
   }
+
+  /* Outra aba gravou: traz as simulações dela para esta e atualiza a lista, se for a tela que a mostra. */
+  window.addEventListener("storage", (event) => {
+    if (!view.store || event.key !== storageKey(view.season) || !event.newValue) return;
+    try {
+      const other = JSON.parse(event.newValue);
+      if (!other || other.version !== 2) return;
+      const merged = logic.mergeStores(view.store, other);
+      view.store.saved = merged.saved;
+      view.store.removed = merged.removed;
+      if (view.refresh) view.refresh();
+    } catch (error) { /* gravação ilegível: mantém a desta aba */ }
+  });
 
   const newLocalId = () => Math.random().toString(36).slice(2, 6).toUpperCase();
 
   /* ---------------------------------------------------------------- Sorteio e tabela */
-
-  function scoreSampler(match) {
-    const matrix = match.score_probabilities;
-    if (!Array.isArray(matrix) || !matrix.length) return null;
-    const cells = [];
-    let total = 0;
-    matrix.forEach((row, home) => row.forEach((probability, away) => {
-      if (probability > 0) { total += probability; cells.push([total, home, away]); }
-    }));
-    return total > 0 ? { cells, total } : null;
-  }
-
-  function draw(distribution) {
-    const target = Math.random() * distribution.total;
-    const cells = distribution.cells;
-    let low = 0;
-    let high = cells.length - 1;
-    while (low < high) {
-      const middle = (low + high) >> 1;
-      if (cells[middle][0] < target) low = middle + 1; else high = middle;
-    }
-    return [cells[low][1], cells[low][2]];
-  }
-
-  const outcomeOf = (home, away) => (home > away ? "H" : home < away ? "A" : "D");
-
-  function newRows(clubIds) {
-    const rows = {};
-    clubIds.forEach((clubId) => { rows[clubId] = { club_id: clubId, played: 0, points: 0, wins: 0, draws: 0, losses: 0, goals_for: 0, goals_against: 0 }; });
-    return rows;
-  }
-
-  function addResult(rows, result) {
-    const home = rows[result.home];
-    const away = rows[result.away];
-    home.played += 1; away.played += 1;
-    if (result.outcome === "H") { home.points += 3; home.wins += 1; away.losses += 1; }
-    else if (result.outcome === "A") { away.points += 3; away.wins += 1; home.losses += 1; }
-    else { home.points += 1; away.points += 1; home.draws += 1; away.draws += 1; }
-    if (result.homeGoals !== null) {
-      home.goals_for += result.homeGoals; home.goals_against += result.awayGoals;
-      away.goals_for += result.awayGoals; away.goals_against += result.homeGoals;
-    }
-  }
-
-  const goalDifference = (row) => row.goals_for - row.goals_against;
-  const compareMain = (left, right) => right.points - left.points || right.wins - left.wins
-    || goalDifference(right) - goalDifference(left) || right.goals_for - left.goals_for;
-
-  /* Art. 15: pontos, vitórias, saldo, gols marcados e confronto direto só entre dois clubes (pontos e depois saldo
-     nos jogos entre eles). Cartões e sorteio não dá para saber: o empate fica marcado. */
-  function rankRows(rows, results) {
-    const sorted = Object.values(rows).sort((left, right) => compareMain(left, right) || left.club_id.localeCompare(right.club_id));
-    const ranked = [];
-    for (let start = 0; start < sorted.length;) {
-      let end = start + 1;
-      while (end < sorted.length && compareMain(sorted[start], sorted[end]) === 0) end += 1;
-      const group = sorted.slice(start, end);
-      if (group.length === 2) {
-        const [first, second] = group;
-        const duel = { [first.club_id]: { points: 0, goals: 0 }, [second.club_id]: { points: 0, goals: 0 } };
-        results.forEach((result) => {
-          if (!duel[result.home] || !duel[result.away]) return;
-          const points = { H: [3, 0], D: [1, 1], A: [0, 3] }[result.outcome];
-          duel[result.home].points += points[0]; duel[result.away].points += points[1];
-          if (result.homeGoals !== null) {
-            duel[result.home].goals += result.homeGoals - result.awayGoals;
-            duel[result.away].goals += result.awayGoals - result.homeGoals;
-          }
-        });
-        const edge = duel[first.club_id].points - duel[second.club_id].points || duel[first.club_id].goals - duel[second.club_id].goals;
-        if (edge !== 0) ranked.push(...(edge > 0 ? [first, second] : [second, first]).map((row) => ({ ...row, tie: null })));
-        else ranked.push(...group.map((row) => ({ ...row, tie: "cartões ou sorteio" })));
-      } else {
-        ranked.push(...group.map((row) => ({ ...row, tie: group.length > 2 ? "cartões ou sorteio" : null })));
-      }
-      start = end;
-    }
-    return ranked.map((row, index) => ({ ...row, position: index + 1 }));
-  }
 
   function zoneOf(position, total) {
     if (position === 1) return { key: "title", label: "Campeão" };
@@ -163,67 +103,9 @@
     return { key: "", label: "" };
   }
 
-  /* ---------------------------------------------------------------- Pontuação (igual a sim_match_points) */
+  /* ---------------------------------------------------------------- Pontuação (simulator-logic.js) */
 
-  function matchPoints(mode, pick, homeGoals, awayGoals) {
-    if (mode === "vencedor") {
-      if (pick !== outcomeOf(homeGoals, awayGoals)) return 0;
-      return homeGoals === awayGoals ? POINTS.draw : POINTS.winner;
-    }
-    const [home, away] = pick;
-    const sameWinner = Math.sign(home - away) === Math.sign(homeGoals - awayGoals);
-    const decided = homeGoals !== awayGoals;
-    if (home === homeGoals && away === awayGoals) return POINTS.exact;
-    if (sameWinner && decided && Math.max(home, away) === Math.max(homeGoals, awayGoals)) return POINTS.winnerGoals;
-    if (sameWinner && decided && home - away === homeGoals - awayGoals) return POINTS.difference;
-    if (sameWinner && decided && Math.min(home, away) === Math.min(homeGoals, awayGoals)) return POINTS.loserGoals;
-    if (home === away && homeGoals === awayGoals) return POINTS.draw;
-    if (sameWinner) return POINTS.winner;
-    if (home !== away && home === awayGoals && away === homeGoals) return POINTS.inverted;
-    return 0;
-  }
-
-  /* O que um palpite vale se o resultado sair como apostado (sim_pick_max). */
-  const maxForPick = (mode, pick) => (mode === "placar" ? POINTS.exact : pick === "D" ? POINTS.draw : POINTS.winner);
   const perMatchText = (mode) => (mode === "placar" ? `${POINTS.exact} por jogo` : `${POINTS.winner} por vitória, ${POINTS.draw} por empate`);
-
-  /* ---------------------------------------------------------------- Links */
-
-  function encodeLink(mode, entry, matchIndex, clubs) {
-    if (mode === "classificacao") return CODE_VERSION + entry.order.map((clubId) => clubs.indexOf(clubId).toString(36)).join("");
-    const picks = { ...(entry.sampled || {}), ...(entry.picks || {}) };
-    return CODE_VERSION + "m" + Object.entries(picks).filter(([matchId]) => matchIndex.has(matchId))
-      .map(([matchId, pick]) => matchIndex.get(matchId).toString(36).padStart(2, "0")
-        + (mode === "vencedor" ? pick : pick[0].toString(36) + pick[1].toString(36))).join("");
-  }
-
-  function decodeLink(mode, code, clubs, matchList) {
-    if (!code || code[0] !== CODE_VERSION) return null;
-    const body = code.slice(1);
-    if (mode === "classificacao") {
-      const order = [...body].map((char) => clubs[parseInt(char, 36)]);
-      const valid = order.length === clubs.length && new Set(order).size === clubs.length && order.every(Boolean);
-      return valid ? { entry: { order }, ignored: 0 } : null;
-    }
-    const step = mode === "vencedor" ? 3 : 4;
-    const picks = {};
-    let ignored = 0;
-    for (let start = 1; start + step <= body.length; start += step) {
-      const match = matchList[parseInt(body.slice(start, start + 2), 36)];
-      if (!match) return null;
-      if (match.status === "finished") { ignored += 1; continue; }
-      if (mode === "vencedor") {
-        if (!OUTCOME_LABEL[body[start + 2]]) return null;
-        picks[match.match_id] = body[start + 2];
-      } else {
-        const home = parseInt(body[start + 2], 36);
-        const away = parseInt(body[start + 3], 36);
-        if (Number.isNaN(home) || Number.isNaN(away)) return null;
-        picks[match.match_id] = [home, away];
-      }
-    }
-    return { entry: { picks, sampled: {}, model: false }, ignored };
-  }
 
   /* ---------------------------------------------------------------- Página */
 
@@ -271,6 +153,7 @@
     const currentSegments = () => location.hash.replace(/^#\/?/, "").split("/").slice(1).filter(Boolean);
     const onSimulator = () => location.hash.replace(/^#\/?/, "").startsWith("simular");
     const rerender = () => { if (onSimulator()) render(main, currentSegments(), context); };
+    view.refresh = () => { const [screen = ""] = currentSegments(); if (screen === "" || screen === "minhas") rerender(); };
     const go = (hash) => { if (location.hash === hash) rerender(); else location.hash = hash; };
     const formatDay = (iso) => new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
     const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -456,31 +339,7 @@
     }
 
     /* Classificação comparada com a tabela de hoje (como se o campeonato acabasse agora) e o teto que ainda dá. */
-    function tableScore(order) {
-      const total = order.length;
-      let points = 0;
-      let ceiling = 0;
-      order.forEach((clubId, index) => {
-        const predicted = index + 1;
-        const actual = standingsOrder.indexOf(clubId) + 1;
-        points += predicted === actual ? TABLE_POINTS.exact : Math.abs(predicted - actual) === 1 ? TABLE_POINTS.near : 0;
-        const range = reach[clubId];
-        if (predicted >= range.best && predicted <= range.worst) ceiling += TABLE_POINTS.exact;
-        else if (predicted + 1 >= range.best && predicted - 1 <= range.worst) ceiling += TABLE_POINTS.near;
-      });
-      if (order[0] === standingsOrder[0]) points += TABLE_POINTS.champion;
-      if (reach[order[0]].best === 1) ceiling += TABLE_POINTS.champion;
-      order.slice(0, LIBERTADORES_GROUPS).forEach((clubId) => {
-        if (standingsOrder.indexOf(clubId) < LIBERTADORES_GROUPS) points += TABLE_POINTS.top4;
-        if (reach[clubId].best <= LIBERTADORES_GROUPS) ceiling += TABLE_POINTS.top4;
-      });
-      order.slice(total - RELEGATED).forEach((clubId) => {
-        if (standingsOrder.indexOf(clubId) >= total - RELEGATED) points += TABLE_POINTS.relegated;
-        if (reach[clubId].worst > total - RELEGATED) ceiling += TABLE_POINTS.relegated;
-      });
-      const maximum = total * TABLE_POINTS.exact + TABLE_POINTS.champion + LIBERTADORES_GROUPS * TABLE_POINTS.top4 + RELEGATED * TABLE_POINTS.relegated;
-      return { points, ceiling, maximum };
-    }
+    function tableScore(order) { return logic.tableScore(order, standingsOrder, reach); }
 
     function impossiblePairs(order) {
       const problems = new Map();
@@ -1614,6 +1473,7 @@
           try { await cloud.deleteSimulation(item.server_id); } catch (error) { document.getElementById("sim-save-status").textContent = `Não deu para excluir no servidor (${error.message}).`; return; }
         }
         store.saved = store.saved.filter((saved) => saved !== item);
+        store.removed = [...(store.removed || []), item.local_id];
         if (store.active && store.active.savedId === localId) store.active = null;
         writeStore();
         go("#/simular");

@@ -3393,7 +3393,7 @@ real com a chave anon: perfis, simulações, `sim_scores` e `sim_my_scores` nega
   commit.
 - **No ar**: publish-site #41 com sucesso (sincronização e deploy), autorizado pelo dono; o site serve o `simulator.js`
   da versão 4.
-- **Pendente**: achados 4 (duas abas) e 6 (`final_order` não conferido) do 06; A e B.
+- **Pendente**: achados 4 (duas abas, tratado depois: ver "Testes de JS e achado 4") e 6 (`final_order` não conferido) do 06; A e B.
 
 ## Agente 08: rodapé enxuto e textos do simulador (D-047, 2026-11-07)
 
@@ -3492,3 +3492,26 @@ real com a chave anon: perfis, simulações, `sim_scores` e `sim_my_scores` nega
   37,2%, sem variar entre os cenários da Copa.
 - **Evidência**: `pytest` passou (ver commit); ruff e mypy sem erros.
 
+
+## Testes de JS do simulador e achado 4 do 06 (2026-11-11)
+
+- **O que mudou**: nova `apps/web/assets/simulator-logic.js` (carrega como script, `window.SimulatorLogic`, e como
+  módulo, `require`), incluída no `index.html` antes do `simulator.js`. Extraído sem mudar o comportamento:
+  `matchPoints` e `maxForPick`, `rankRows` (Art. 15) com `newRows`/`addResult`, `encodeLink`/`decodeLink`,
+  `scoreSampler`/`draw` (o `draw` aceita um gerador aleatório, para teste), a pontuação de Classificação
+  (`tableScore`) e as constantes `POINTS`/`TABLE_POINTS`. O `simulator.js` só usa essas funções.
+  `tests/js/simulator-logic.test.js` (54 testes, `node:test`, sem dependência) roda no CI
+  (`node --test tests/js/*.test.js`, `ci.yml` e a cópia em `infrastructure/github-workflows/`). Os testes ficam
+  fora de `apps/web` porque o deploy copia essa pasta inteira.
+- **Valores**: conferidos com a migração **0006** (`sim_match_points`, `sim_pick_max`, `sim_scores`), que substituiu a
+  `0003`: Placar exato 10/7/6/5, empate certo 5, só o vencedor 3, invertido 2; Vencedor 3 (vitória) e 5 (empate);
+  Classificação 3/1, campeão 10, G4 3, rebaixado 5, máximo 102 (a 0003 tinha 4 e 82, hoje desatualizados).
+- **Achado 4**: `writeStore` relê o `localStorage` e mescla as simulações salvas pelo `local_id` (`mergeStores`; em
+  conflito vale o `updated_at` maior), e exclusões ficam em `store.removed` (lápides) para não ressuscitarem pela
+  outra aba. Rascunho e sessão em andamento continuam por aba. O evento `storage` mescla e atualiza a lista
+  (Início e Minhas simulações). Coberto por 8 testes de mescla.
+- **Evidência**: `node --test`: 54 passam; `ruff check`, `ruff format --check`, `mypy`, `pytest -q` passam.
+  Navegador (Chromium, página de teste só com o `simulator.js` e um snapshot sintético fora do repositório, sem
+  Supabase): a segunda aba grava sem apagar a simulação salva pela primeira. Não abri o `index.html` completo: não há
+  snapshot em `apps/web/data` neste ambiente.
+- **Próximo responsável**: 06 conferir; sem publicação.

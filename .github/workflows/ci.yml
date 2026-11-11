@@ -25,6 +25,8 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+      # Lógica pura do simulador (apps/web/assets/simulator-logic.js); usa o Node que já vem no runner, sem dependências.
+      - run: node --test tests/js/*.test.js
       - run: pip install -e ".[api,sources,dev]"
       - run: ruff check src apps tests scripts infrastructure
       - run: ruff format --check src apps tests scripts infrastructure
