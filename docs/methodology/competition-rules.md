@@ -49,18 +49,42 @@ Quando várias vagas são liberadas, as de fase de grupos são atribuídas antes
    Vaga de título continental (Libertadores ou Sul-Americana) de clube rebaixado segue a regra anterior.
    Revisar com o Agente 03 quando o texto do regulamento estiver disponível.
 
+   **Conferência com o texto oficial (2026-11-11): NÃO CONCLUÍDA.** O PDF do regulamento
+   (`regulation_url`) não pôde ser baixado: o host `stcbfsiteprdimgbrs.blob.core.windows.net` é bloqueado pela
+   política de rede da sessão (403 no proxy; DNS sem resolução na ferramenta de leitura de páginas), e
+   `cbf.com.br` e `ge.globo.com` também ficaram inacessíveis. Portanto **nenhum trecho do Art. 6º foi lido**
+   e nada é citado aqui como texto do regulamento. Indício secundário, não oficial: reportagens de
+   dezembro/2025 sobre o REC 2026 descrevem o redirecionamento das vagas da Copa para a tabela quando os
+   finalistas já estão classificados, e uma delas diz que, se o clube com vaga da Copa cair para a Série B,
+   "o lugar será repassado pelo Brasileirão" (a Conmebol exige primeira divisão nacional). Isso é compatível
+   com a regra do dono e com `qualification.py`, mas **não é prova**. Nenhuma contradição foi encontrada e
+   nenhuma mudança de código é proposta. Pendente: reconferir o PDF (liberar o host ou leitura manual) e
+   citar artigo e trecho (Art. 6º e §§ 2º–5º).
+
 ## Cenários externos (situação em 26/10/2026)
 
 | Torneio | Situação | Opções enumeradas |
 |---|---|---|
 | Libertadores 2026 | Final Palmeiras x Estudiantes, 28/11, Montevidéu | 2 |
 | Sul-Americana 2026 | Final Atlético-MG x Boca Juniors, 21/11, Barranquilla | 2 |
-| Copa do Brasil 2026 | Final Palmeiras x Grêmio (informado pelo dono, 2026-11-10); final 06/12, Brasília | 2 (campeão × vice) |
+| Copa do Brasil 2026 | Final Palmeiras x Grêmio, jogo único, 06/12, Mané Garrincha, Brasília. Confirmada em 2026-11-11 apenas por imprensa (fontes secundárias, abaixo); fonte oficial CBF/ge não acessível | 2 (campeão × vice) |
 
 São 32 cenários no total. Nenhuma probabilidade é atribuída aos torneios externos. Cada saída
 continental é publicada por cenário e como faixa (mínimo–máximo), e a interface permite escolher o
 cenário. Quando um torneio terminar, basta preencher `libertadores_champion`, `sudamericana_champion`
 ou `cup_champion`/`cup_runner_up` no arquivo da temporada.
+
+Fatos da Copa do Brasil 2026 (consulta em 2026-11-11, via busca; fontes secundárias, não oficiais):
+
+- Semifinal Grêmio x Atlético-MG: 2 x 0 em Porto Alegre e 1 x 1 em Belo Horizonte (07/11), Grêmio avança por 3 x 1 no agregado.
+  [Folha de Pernambuco](https://www.folhape.com.br/esportes/gremio-mostra-porque-e-copeiro-segura-pressao-do-atletico-e/523024/)
+- Semifinal Palmeiras x Vasco (08/11): Vasco 2 x 1 no tempo normal; Palmeiras avança nos pênaltis por 5 x 4.
+  [O Povo](https://www.opovo.com.br/esportes/2026/11/08/palmeiras-bate-vasco-nos-penaltis-e-vai-a-final-da-copa-do-brasil.html)
+- Final em jogo único (primeira vez), 06/12/2026, Brasília; horário ainda não divulgado.
+  [Correio da Manhã](https://www.correiodamanha.com.br/esporte/esportes/2026/11/333356-gremio-e-palmeiras-decidirao-a-copa-do-brasil-2026.html),
+  [Band](https://www.band.com.br/esportes/futebol/copa-do-brasil/final-da-copa-do-brasil-data-local-e-regulamento-para-gremio-x-palmeiras)
+
+Pendente: confirmar em CBF/ge.globo (não acessíveis nesta sessão).
 
 Fontes da situação externa: listadas em `[external].sources` no arquivo da temporada.
 

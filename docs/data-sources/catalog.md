@@ -376,3 +376,12 @@ Até haver decisão, 2026 segue com a ordem imputada (ADR-0010, Decisão 1).
 - Série A: Bragantino, Corinthians e Vasco entram por `crests_provenance_serie_a.json`; os outros 17 seguem
   `crests_provenance.json` (domínio público).
 
+
+## Conferência do Art. 6º e da Copa do Brasil 2026 (2026-11-11)
+
+| Item | Resultado |
+|---|---|
+| PDF do Regulamento Específico da Série A 2026 (`regulation_url`, host `stcbfsiteprdimgbrs.blob.core.windows.net`) | **Não lido**: host bloqueado pela política de rede da sessão (403 no proxy). Art. 6º e §§ 2º–5º seguem sem conferência textual |
+| CBF (`cbf.com.br`) e ge.globo (`ge.globo.com`) | Inacessíveis nesta sessão (2026-11-11); nenhum fato foi confirmado por fonte oficial |
+| Imprensa (secundária, consulta 2026-11-11) | Semifinais, finalistas e final de 06/12 em Brasília: URLs em `docs/methodology/competition-rules.md`. Reportagens de dez/2025 sobre o REC 2026 (ex.: [Band](https://www.band.com.br/nacional/brasil/copa-do-brasil-de-2026-dara-vagas-na-libertadores-ao-campeao-e-ao-vice)) |
+| Conclusão | Regra do dono (rebaixado perde a vaga, ela passa à tabela) não confirmada nem contradita pelo texto oficial; compatível com a imprensa. Sem mudança de código |
