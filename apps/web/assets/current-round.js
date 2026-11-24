@@ -103,6 +103,7 @@
 
   function createRenderer(helpers) {
     const { escapeHtml, pct, crest, clubLink, nameOf, formatDate } = helpers;
+    const shortOf = helpers.shortOf || nameOf;
     const clubName = (clubId) => escapeHtml(nameOf(clubId));
     const ofClub = (clubId) => `${FEMININE_CLUBS.has(clubId) ? "da" : "do"} ${clubName(clubId)}`;
 
@@ -153,8 +154,8 @@
     function oddsPills(match) {
       if (![match.p_home, match.p_draw, match.p_away].every(isProbability)) return "";
       const top = Math.max(match.p_home, match.p_draw, match.p_away);
-      const pill = (value, label) => `<span class="mc-odd${value === top ? " is-top" : ""}"><strong>${pct(value)}</strong>${label}</span>`;
-      return `<div class="mc-odds" role="img" aria-label="Mandante ${pct(match.p_home)}, empate ${pct(match.p_draw)}, visitante ${pct(match.p_away)}">${pill(match.p_home, "Mandante")}${pill(match.p_draw, "Empate")}${pill(match.p_away, "Visitante")}</div>`;
+      const pill = (value, label) => `<span class="mc-odd${value === top ? " is-top" : ""}"><strong>${pct(value)}</strong><span>${escapeHtml(label)}</span></span>`;
+      return `<div class="mc-odds" role="img" aria-label="${clubName(match.home_id)} ${pct(match.p_home)}, empate ${pct(match.p_draw)}, ${clubName(match.away_id)} ${pct(match.p_away)}">${pill(match.p_home, shortOf(match.home_id))}${pill(match.p_draw, "Empate")}${pill(match.p_away, shortOf(match.away_id))}</div>`;
     }
 
     function byKickoff(left, right) {

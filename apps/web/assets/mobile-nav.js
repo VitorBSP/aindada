@@ -2,8 +2,9 @@
 
 /* Barra de navegação no pé da tela, no celular (D-048). Usada pelos sites de todas as competições: lê os links do menu
    do cabeçalho (.masthead nav), mostra até quatro com ícone e põe o resto em "Mais", junto com as outras competições.
-   No computador o menu de cima continua igual; a barra só aparece até 560 px (styles.css). Redesign v2 (T4): barra de
-   60 px translúcida, itens com área de toque de 44 × 44 px ou mais e "Mais" em folha inferior. */
+   No computador o menu de cima continua igual; a barra só aparece abaixo de 900 px (styles.css). REDESIGN_SPEC v2.1
+   §2.2: na Série A a ordem é sempre Início · Tabela · Jogos · Simular · Mais, seja qual for a ordem do menu; Ao vivo,
+   Rodadas, Clubes, "Trocar competição" e Método vão para a folha "Mais". */
 (function () {
   const ICONS = {
     home: '<path d="M4 11l8-7 8 7v9h-5v-6h-6v6H4z"/>',
@@ -15,11 +16,14 @@
     bracket: '<path d="M4 5h5v6h6M4 19h5v-6M15 11v2h5"/>',
     method: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
     more: '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
+    live: '<circle cx="12" cy="12" r="3"/><path d="M6.3 6.3a8 8 0 0 0 0 11.4M17.7 6.3a8 8 0 0 1 0 11.4"/>',
+    swap: '<path d="M4 8h13l-3-3M20 16H7l3 3"/>',
   };
   const iconFor = (label, route) => {
     const text = `${route || ""} ${label}`.toLowerCase();
     if (/home|início|inicio/.test(text) || route === "") return "home";
     if (/simul/.test(text)) return "simulator";
+    if (/ao-vivo|ao vivo/.test(text)) return "live";
     if (/tabela|classifica|fase de liga|times/.test(text)) return "table";
     if (/jogos|partidas/.test(text)) return "games";
     if (/clube/.test(text)) return "clubs";
@@ -42,8 +46,12 @@
     const rank = (link) => PRIORITY[iconFor(link.textContent.trim(), link.dataset.route)];
     // Quatro itens mais "Mais" (que também leva às outras competições): cinco alvos de toque no máximo.
     const chosen = links.length <= MAX_ITEMS ? links : [...links].sort((left, right) => rank(left) - rank(right)).slice(0, MAX_ITEMS);
-    const primary = links.filter((link) => chosen.includes(link));
-    const extra = links.filter((link) => !chosen.includes(link));
+    const primary = [...chosen].sort((left, right) => rank(left) - rank(right));
+    const MORE_ORDER = { live: 0, rounds: 1, clubs: 2, bracket: 3, table: 4, games: 4, more: 5, method: 7 };
+    const moreRank = (link) => MORE_ORDER[iconFor(link.textContent.trim(), link.dataset.route)] ?? 5;
+    const extra = links.filter((link) => !chosen.includes(link)).sort((left, right) => moreRank(left) - moreRank(right));
+    const beforeMethod = extra.filter((link) => moreRank(link) < 7);
+    const methodLinks = extra.filter((link) => moreRank(link) >= 7);
     const leagues = [...document.querySelectorAll(".leagues a")];
     const item = (link) => {
       const label = link.textContent.trim();
@@ -58,9 +66,10 @@
     sheet.className = "tabbar-sheet";
     sheet.id = "tabbar-more";
     sheet.hidden = true;
+    const row = (link) => `<a href="${link.getAttribute("href")}" data-mirror="${link.getAttribute("href")}">${svg(iconFor(link.textContent, link.dataset.route))}<span>${link.textContent.trim()}</span></a>`;
+    const swap = leagues.length ? `<button type="button" data-swap-league>${svg("swap")}<span>Trocar competição</span></button>` : "";
     sheet.innerHTML = `<div class="tabbar-sheet-panel" role="dialog" aria-modal="true" aria-label="Mais">
-        ${extra.length ? `<p class="tabbar-sheet-title">Nesta competição</p><div class="tabbar-sheet-links">${extra.map((link) => `<a href="${link.getAttribute("href")}" data-mirror="${link.getAttribute("href")}">${svg(iconFor(link.textContent, link.dataset.route))}<span>${link.textContent.trim()}</span></a>`).join("")}</div>` : ""}
-        ${leagues.length ? `<p class="tabbar-sheet-title">Outras competições</p><div class="tabbar-sheet-chips">${leagues.map((link) => `<a href="${link.getAttribute("href")}" ${link.getAttribute("aria-current") ? 'aria-current="page"' : ""}>${link.textContent.trim()}</a>`).join("")}</div>` : ""}
+        <div class="tabbar-sheet-links">${beforeMethod.map(row).join("")}${swap}${methodLinks.map(row).join("")}</div>
       </div>`;
     document.body.append(bar, sheet);
     document.body.classList.add("has-tabbar");
@@ -72,7 +81,14 @@
       sheet.hidden = !open;
       more.setAttribute("aria-expanded", String(open));
     });
-    sheet.addEventListener("click", (event) => { if (event.target === sheet || event.target.closest("a")) close(); });
+    sheet.addEventListener("click", (event) => {
+      if (event.target.closest("[data-swap-league]")) {
+        close();
+        if (window.AIndaDaShell) window.AIndaDaShell.openCompetitions();
+        return;
+      }
+      if (event.target === sheet || event.target.closest("a")) close();
+    });
     document.addEventListener("keydown", (event) => { if (event.key === "Escape") close(); });
 
     // O item ativo segue o menu de cima, que cada site já atualiza a cada troca de página.
