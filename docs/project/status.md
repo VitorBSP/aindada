@@ -3503,3 +3503,64 @@ real com a chave anon: perfis, simulações, `sim_scores` e `sim_my_scores` nega
   Validação completa no CI após push.
 
 
+
+## Agente 05 + 08: Redesign v2, fatia T4 — base dark-first, Home, Jogos e navegação (2026-11-24)
+
+Branch `feat/redesign-v2`, separada da T1 (Última Rodada Ao Vivo) para não conflitar. Executa só a Fatia T4 de
+`docs/ux/REDESIGN_SPEC.md`; a T5 (simulador) não foi tocada.
+
+- **O que mudou**:
+  - `apps/web/assets/theme.js` (novo): tema escuro por padrão; botão Sol/Lua de 44 × 44 px no cabeçalho; escolha
+    salva em `localStorage` (`ainda-da:tema`) e aplicada no `<head>` antes da primeira pintura, nos seis sites;
+    atualiza `theme-color`. A assinatura troca pelo CSS: compacta reversa no escuro, compacta no claro.
+  - `apps/web/assets/styles.css`: `:root` com os tokens escuros oficiais (`--paper #17191C`, `--surface #1D2024`,
+    `--surface-2 #24282E`, `--ink #F7F5EF`, `--signal #FF6A4D`, `--signal-fill #D9381E`) e `[data-theme="light"]`
+    com os claros; saiu a dependência de `prefers-color-scheme`. Cabeçalho de 56 px no celular (assinatura 32 px,
+    rodada e data da edição à direita, botão de tema); competições em pílulas roláveis (44 px de toque); barra
+    inferior de 60 px + área segura, translúcida com `backdrop-filter`, itens ≥ 44 × 44 px; Match Card v2; card
+    "Seu Time"; skeleton, vazio e erro; seletor segmentado com raio de 10 px; popup de jogo na escada de
+    superfícies. `.wrap` passa a 1080 px. Sem sombras, degradês, fotos nem verde.
+  - `apps/web/assets/app.js`: Match Card v2 em Jogos e Clubes (escudos de 36 px, placar ou horário central em
+    `tabular-nums`, 3 pílulas 1X2 com a maior em borda `--signal`; em jogo encerrado, as pílulas só aparecem com o
+    "antes do jogo" da revisão da rodada); card inteiro abre o `<dialog>` de detalhes; card "Seu Time" (escudo,
+    posição e pontos, Título · G4 · Queda com barra fina na cor funcional, próximo jogo, CTA "Simular os jogos do
+    <Time>"); seletor de um toque quando ainda não há time; skeleton por rota durante o carregamento; erro com
+    "Tentar novamente" que refaz o `fetch` sem recarregar; vazio em Jogos e Tabela; rota `#/jogos` como apelido de
+    `#/partidas`; a contagem de palpites (prova social) **não** aparece, porque esse dado não existe no export.
+  - `apps/web/assets/current-round.js`: jogos da rodada (aba da home) no mesmo Match Card v2, com o selo de estado
+    (encerrado, a jogar, aguardando placar, adiado) e as pílulas 1X2 dos jogos ainda não disputados.
+  - `apps/web/assets/mobile-nav.js`: rótulo "Simular", folha "Mais" com `aria-modal`.
+  - `apps/web/index.html` e `index.html` de `web-serie-b`, `web-ligas`, `web-champions`, `web-lol`: carregam
+    `theme.js` no `<head>`; Série A ganha o espaço da data no cabeçalho.
+  - Contratos JSON, modelo, simulação e regras: **sem mudança**.
+- **Evidência**:
+  - `ruff check`: sem achados; `ruff format --check`: 232 arquivos ok; `mypy`: sem erros em 93 arquivos;
+    `pytest -q`: 933 passaram, 6 pulados.
+  - Navegador (Chromium/Playwright), servindo `apps/web` com os sub-sites nos caminhos publicados e export
+    **sintético** das fixtures de teste (temporada 2032 renomeada só localmente; nada disso foi versionado):
+    rotas `#/`, `#/classificacao`, `#/partidas`, `#/jogos`, `#/rodadas`, `#/simular`, `#/ao-vivo`,
+    `#/metodologia`, `#/clubes/<id>` e os sites `serie-b/`, `premier-league/`, `la-liga/`, `champions-league/`,
+    `mundial-lol/` em 375 e 1280 px, nos dois temas: `scrollWidth` 375 (celular) e 1280 (desktop) em todas, zero
+    erro de JS no console. Série B testada com forecast sintético; Premier, LaLiga, Champions e LoL abriram sem
+    dados locais (estado de erro deles), sem erro e sem rolagem lateral.
+  - Fluxos: tema claro → `data-theme="light"`, assinatura normal visível e reversa oculta, `theme-color #fafaf7`,
+    preferência mantida ao abrir `serie-b/`; toque no card abre o popup; falha do `predictions.json` mostra o erro e
+    "Tentar novamente" carrega a tabela (20 linhas) sem recarregar a página; skeletons de Home, Tabela e Jogos com
+    resposta atrasada em 3 s; toque mínimo medido: itens da barra 73 × 59, pílulas 44 de altura, tema 44 × 44.
+  - Contraste (WCAG, calculado): escuro — `--ink-soft` sobre `--surface-2` 7,7:1; `--ink-faint` sobre `--surface`
+    5,2:1; Sul-Americana sobre o fundo suave 6,8:1; borda `--signal` sobre `--surface-2` 5,2:1. Claro — `--ink-soft`
+    sobre `--surface-2` 7,4:1; `--ink-faint` sobre `--surface` 5,1:1; borda `--signal` 4,1:1 (≥ 3:1 de gráfico).
+    `--ink-faint` sobre `--surface-2` no claro dá 4,46:1, e por isso nenhum texto usa esse par.
+- **Premissas e limitações**:
+  - Texto do botão primário em branco `#FFFFFF` (`--on-signal-fill`): sobre `#D9381E` dá 4,63:1 (AA em texto
+    normal). O `#F7F5EF` da spec dá 4,25:1, que só vale para texto grande.
+  - O selo vermelho `AO VIVO · 34'` (`.mc-badge.is-live`) ficou pronto no CSS, mas quem o usa é a T1.
+  - O "Seletor horizontal de rodadas" (§3.3) fica em `rounds.js`, fora dos arquivos-alvo da T4; não mudou. A
+    página Rodada a rodada e os sub-sites seguem com a linha de jogo antiga (`.match`), já no tema novo.
+  - Validação visual feita com dados sintéticos (o GitHub Pages está bloqueado neste ambiente); falta conferir com o
+    snapshot real e escudos reais.
+- **Decisões pendentes do dono / Agente 08**: registrar em `docs/brand/BRAND_DECISIONS.md` (1) o tema escuro como
+  padrão e os cards com raio (14/10 px), que substituem "sem cartões em caixa nem cantos arredondados" da D-024;
+  (2) o branco no texto do botão vermelho, no lugar do `#F7F5EF`.
+- **Próximo responsável**: Agente 06 (revisão independente de contraste e dos fluxos acima no snapshot real);
+  Agente 00 (aprovar o merge depois da T1); Agente 05 na T5 (simulador).

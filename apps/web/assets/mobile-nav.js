@@ -2,7 +2,8 @@
 
 /* Barra de navegação no pé da tela, no celular (D-048). Usada pelos sites de todas as competições: lê os links do menu
    do cabeçalho (.masthead nav), mostra até quatro com ícone e põe o resto em "Mais", junto com as outras competições.
-   No computador o menu de cima continua igual; a barra só aparece até 560 px (styles.css). */
+   No computador o menu de cima continua igual; a barra só aparece até 560 px (styles.css). Redesign v2 (T4): barra de
+   60 px translúcida, itens com área de toque de 44 × 44 px ou mais e "Mais" em folha inferior. */
 (function () {
   const ICONS = {
     home: '<path d="M4 11l8-7 8 7v9h-5v-6h-6v6H4z"/>',
@@ -28,7 +29,7 @@
     return "more";
   };
   const svg = (name) => `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]}</svg>`;
-  const SHORT = { "Rodada a rodada": "Rodadas", "Como calculamos": "Método", "Chave provável": "Chave", "Força das ligas": "Ligas" };
+  const SHORT = { "Rodada a rodada": "Rodadas", "Como calculamos": "Método", "Chave provável": "Chave", "Força das ligas": "Ligas", Simulador: "Simular" };
   const MAX_ITEMS = 4;
 
   function build() {
@@ -57,7 +58,7 @@
     sheet.className = "tabbar-sheet";
     sheet.id = "tabbar-more";
     sheet.hidden = true;
-    sheet.innerHTML = `<div class="tabbar-sheet-panel" role="dialog" aria-label="Mais">
+    sheet.innerHTML = `<div class="tabbar-sheet-panel" role="dialog" aria-modal="true" aria-label="Mais">
         ${extra.length ? `<p class="tabbar-sheet-title">Nesta competição</p><div class="tabbar-sheet-links">${extra.map((link) => `<a href="${link.getAttribute("href")}" data-mirror="${link.getAttribute("href")}">${svg(iconFor(link.textContent, link.dataset.route))}<span>${link.textContent.trim()}</span></a>`).join("")}</div>` : ""}
         ${leagues.length ? `<p class="tabbar-sheet-title">Outras competições</p><div class="tabbar-sheet-chips">${leagues.map((link) => `<a href="${link.getAttribute("href")}" ${link.getAttribute("aria-current") ? 'aria-current="page"' : ""}>${link.textContent.trim()}</a>`).join("")}</div>` : ""}
       </div>`;

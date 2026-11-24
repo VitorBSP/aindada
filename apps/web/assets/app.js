@@ -132,6 +132,15 @@
       <p class="edition-facts"><strong>${snapshot.observed_matches}</strong> de ${snapshot.observed_matches + snapshot.remaining_matches} jogos disputados ·
         <strong>${snapshot.n_simulations.toLocaleString("pt-BR")}</strong> simulações do resto do campeonato ·
         <span class="pill">modelo experimental</span></p>`;
+    const status = document.getElementById("masthead-status");
+    if (status) {
+      const views = state.rounds && state.rounds.rounds;
+      const latest = views && views[views.length - 1];
+      const round = editionRound(snapshot) && latest ? `Rodada ${latest.round_number} · ` : "";
+      status.textContent = `${round}${formatDay(snapshot.reference_date)}`;
+      status.title = `Edição de ${formatEditionDate(snapshot.reference_date)}`;
+      bar.classList.add("is-compact");
+    }
   }
 
   function raceRows(teams, accessor, kind) {
@@ -432,40 +441,75 @@
     return state.snapshot.matches.find((match) => match.status !== "finished" && !isPostponed(match) && (match.home_id === clubId || match.away_id === clubId));
   }
 
-  /* As disputas em que o clube tem chance real, a mais provável primeiro. Título e queda sempre aparecem em destaque
-     (são as que o torcedor mais procura); as demais ficam à frente só se a chance for relevante. */
-  function teamChips(team) {
-    const disputes = [
-      { label: "Título", value: team.title, key: "titulo", strong: true },
-      { label: "G4", value: team.top4, key: "g4" },
-      { label: "Libertadores", value: scenarioMid(team.libertadores_total), key: "liberta" },
-      { label: "Sul-Americana", value: scenarioMid(team.sudamericana), key: "sula" },
-      { label: "Queda", value: team.relegation, key: "queda", strong: true },
-    ].filter((item) => item.value >= 0.005 && item.value <= 0.995);
-    const sorted = disputes.sort((left, right) => (right.strong ? 1 : 0) - (left.strong ? 1 : 0) || right.value - left.value);
-    const TABLE_KEY = { titulo: "titulo", g4: "libertadores", liberta: "libertadores", sula: "sul-americana", queda: "rebaixamento" };
-    return sorted.map((item) => `<a class="chance-chip${item.strong ? " is-strong" : ""}" data-dispute="${item.key}" href="#/classificacao/${TABLE_KEY[item.key]}"><span>${item.label}</span><strong>${pct(item.value)}</strong></a>`).join("")
-      || `<span class="chance-chip"><span>Permanência</span><strong>definida</strong></span>`;
+  /* Card "Seu Time" (REDESIGN_SPEC §3.2): escudo, posição e pontos, três disputas com barra fina na cor funcional
+     e atalho para o simulador. Sem clube escolhido, vira um seletor de um toque. */
+  const YOUR_TEAM_STATS = [
+    { label: "Título", key: "title", view: "titulo", color: "var(--title)" },
+    { label: "G4", key: "top4", view: "libertadores", color: "var(--libertadores)" },
+    { label: "Queda", key: "relegation", view: "rebaixamento", color: "var(--danger)" },
+  ];
+  const FEMININE_CLUBS = new Set(["chapecoense"]);
+
+  function yourTeamPicker() {
+    const teams = [...state.snapshot.teams].sort((left, right) => left.current_position - right.current_position);
+    return `<section class="your-team is-picking" aria-labelledby="your-team-pick">
+      <p class="yt-pick-title" id="your-team-pick"><strong>Qual é o seu time?</strong> Toque no clube e esta página passa a abrir com as chances dele.</p>
+      <div class="yt-picker">${teams.map((team) => `<button type="button" class="yt-pick" data-pick-club="${escapeHtml(team.club_id)}" aria-label="${escapeHtml(team.name)}" title="${escapeHtml(team.name)}">${crest(team.club_id, 28)}<span>${escapeHtml(team.short_name || team.name)}</span></button>`).join("")}</div>
+    </section>`;
   }
 
   function yourTeamCard() {
     const team = teamById(favoriteClub());
-    if (!team) {
-      return `<a class="your-team is-empty" href="#/clubes">${STAR(false)}<span><strong>Escolha o seu time</strong> e ele abre esta página com as chances e o próximo jogo.</span><span class="your-team-go" aria-hidden="true">›</span></a>`;
-    }
+    if (!team) return yourTeamPicker();
     const match = nextMatchOf(team.club_id);
     const home = match && match.home_id === team.club_id;
     const opponent = match ? (home ? match.away_id : match.home_id) : null;
     const win = match ? (home ? match.p_home : match.p_away) : null;
+    const stats = YOUR_TEAM_STATS.map((stat) => {
+      const value = team[stat.key];
+      return `<a class="yt-stat" href="#/classificacao/${stat.view}"><span class="yt-stat-label">${stat.label}</span><strong>${pct(value)}</strong>
+        <span class="yt-bar" aria-hidden="true"><i style="width:${(Math.min(1, Math.max(0, value)) * 100).toFixed(1)}%;background:${stat.color}"></i></span></a>`;
+    }).join("");
+    const article = FEMININE_CLUBS.has(team.club_id) ? "da" : "do";
     return `<section class="your-team" aria-label="Seu time">
       <a class="your-team-head" href="#/clubes/${encodeURIComponent(team.club_id)}">
         ${crest(team.club_id, 40)}
         <span class="your-team-name"><span class="your-team-kicker">Seu time</span><strong>${escapeHtml(team.name)}</strong><span>${team.current_position}º · ${team.current_points} pts</span></span>
         <span class="your-team-go" aria-hidden="true">›</span>
       </a>
-      <div class="chance-chips">${teamChips(team)}</div>
-      ${match ? `<p class="your-team-next">Próximo: <strong>${home ? "em casa" : "fora"} contra ${escapeHtml(nameOf(opponent))}</strong> · ${escapeHtml(formatShortDate(match.match_date))} · vence em ${pct(win)}</p>` : ""}
+      <div class="yt-stats">${stats}</div>
+      ${match ? `<p class="your-team-next">Próximo: <strong>${home ? "em casa" : "fora"} contra ${escapeHtml(nameOf(opponent))}</strong> · ${escapeHtml(formatShortDate(match.match_date))}${isProbability(win) ? ` · vence em ${pct(win)}` : ""}</p>` : ""}
+      <a class="yt-cta button-primary" href="#/simular">Simular os jogos ${article} ${escapeHtml(team.name)}</a>
     </section>`;
+  }
+
+  function bindYourTeam() {
+    main.querySelectorAll("[data-pick-club]").forEach((button) => button.addEventListener("click", () => {
+      setFavoriteClub(button.dataset.pickClub);
+      route();
+    }));
+  }
+
+  /* Estados de carregamento, vazio e erro (REDESIGN_SPEC §3.5). Ícones geométricos de traço fino. */
+  const STATE_ICONS = {
+    calendar: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+    offline: '<path d="M3 9a14 14 0 0 1 18 0M6.5 12.5a9 9 0 0 1 11 0M10 16a4 4 0 0 1 4 0"/><path d="M4 4l16 16"/>',
+    table: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M4 14h16M10 9v11"/>',
+  };
+  function stateBlock({ icon, title, text, action = "", role = "" }) {
+    return `<div class="state"${role ? ` role="${role}"` : ""}>
+      <svg viewBox="0 0 24 24" width="36" height="36" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${STATE_ICONS[icon]}</svg>
+      <p class="state-title">${title}</p>${text ? `<p class="state-text">${text}</p>` : ""}${action}</div>`;
+  }
+
+  function skeleton(section) {
+    const line = (width) => `<span class="skeleton sk-line" style="width:${width}%"></span>`;
+    const head = `<span class="skeleton sk-kicker"></span><span class="skeleton sk-title"></span>${line(92)}${line(70)}`;
+    let body;
+    if (section === "classificacao") body = `<span class="skeleton sk-tabs"></span>${Array.from({ length: 10 }, () => `<span class="skeleton sk-row"></span>`).join("")}`;
+    else if (section === "partidas" || section === "jogos") body = `<div class="mc-list">${Array.from({ length: 4 }, () => `<span class="skeleton sk-card"></span>`).join("")}</div>`;
+    else body = `<span class="skeleton sk-team"></span><span class="skeleton sk-tabs"></span><span class="skeleton sk-block"></span>`;
+    return `<div class="skeleton-page" aria-busy="true"><span class="visually-hidden">Carregando as probabilidades…</span>${head}${body}</div>`;
   }
 
   function exploreCards() {
@@ -539,6 +583,7 @@
     if (tab === ROUND_TAB) {
       const renderer = window.CurrentRound.createRenderer({ escapeHtml, pct, crest, clubLink, nameOf, formatDate });
       main.innerHTML = `${yourTeamCard()}${leadBlock}${raceSwitch(ROUND_TAB, featured)}${renderer.render(state.currentRound, state.snapshot, Date.now(), overdueWarning(), Boolean(lead))}${exploreCards()}`;
+      bindYourTeam();
       return;
     }
     const heading = lead ? `<h2 class="race-heading">${story.headline}</h2>` : `<h1>${story.headline}</h1>`;
@@ -554,6 +599,7 @@
       <h2>O que mudou em ${race.noun} desde a última atualização</h2>
       ${changesSinceLast(race.key)}
       ${exploreCards()}`;
+    bindYourTeam();
   }
 
   function scenarioStatus() {
@@ -754,6 +800,11 @@
 
   function renderStandings(requested) {
     const snapshot = state.snapshot;
+    if (!snapshot.teams.length || !snapshot.standings.length) {
+      main.innerHTML = `<span class="kicker">Tabela</span><h1>Como está e como deve terminar</h1>
+        ${stateBlock({ icon: "table", title: "A tabela ainda não está nesta atualização", text: "Ela aparece aqui assim que a fonte de dados registrar os primeiros jogos.", action: `<a class="state-action button-secondary" href="#/">Voltar ao início</a>` })}`;
+      return;
+    }
     const autoView = !TABLE_VIEWS[requested] && favoriteClub() ? bestDisputeView() : null;
     const viewId = TABLE_VIEWS[requested] ? requested : autoView || "titulo";
     const view = TABLE_VIEWS[viewId];
@@ -923,8 +974,8 @@
     return null;
   }
 
-  function matchOpenButton(matchId) {
-    return `<button type="button" class="match-open" data-match-id="${escapeHtml(matchId)}">Ver o que aconteceu</button>`;
+  function matchOpenButton(matchId, label = "Ver o que aconteceu") {
+    return `<button type="button" class="match-open" data-match-id="${escapeHtml(matchId)}">${label} <span aria-hidden="true">→</span></button>`;
   }
 
   function openMatchDetail(matchId) {
@@ -962,7 +1013,10 @@
 
   main.addEventListener("click", (event) => {
     const button = event.target.closest(".match-open");
-    if (button) openMatchDetail(button.dataset.matchId);
+    if (button) { openMatchDetail(button.dataset.matchId); return; }
+    // O card inteiro abre os detalhes; links de clube e outros botões dentro dele seguem com a própria ação.
+    const card = event.target.closest(".mc[data-match-id]");
+    if (card && !event.target.closest("a, button")) openMatchDetail(card.dataset.matchId);
   });
 
   function scoreOutlook(match) {
@@ -974,18 +1028,52 @@
     return `<span class="score-outlook"><span class="score-label">Placares mais prováveis</span>${scores}${goals}</span>`;
   }
 
+  /* Match Card v2 (REDESIGN_SPEC §3.1): escudos com respiro, placar ou horário no centro e as 3 pílulas 1X2 do modelo.
+     Só mostra números que vêm do snapshot (ou da revisão da rodada, para o "antes do jogo" de um jogo encerrado). */
+  const kickoffClock = (match) => {
+    const stamp = match.kickoff_utc ? Date.parse(match.kickoff_utc) : NaN;
+    return Number.isNaN(stamp) ? "" : new Date(stamp).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+  };
+  const isProbability = (value) => typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
+
+  function oddsPills(home, draw, away, caption = "") {
+    if (![home, draw, away].every(isProbability)) return "";
+    const top = Math.max(home, draw, away);
+    const pill = (value, label) => `<span class="mc-odd${value === top ? " is-top" : ""}"><strong>${pct(value)}</strong>${label}</span>`;
+    return `<div class="mc-odds" role="img" aria-label="${caption ? `${escapeHtml(caption)}: ` : ""}mandante ${pct(home)}, empate ${pct(draw)}, visitante ${pct(away)}">
+        ${caption ? `<span class="mc-odds-caption" aria-hidden="true">${escapeHtml(caption)}</span>` : ""}
+        ${pill(home, "Mandante")}${pill(draw, "Empate")}${pill(away, "Visitante")}</div>`;
+  }
+
+  const cardTeam = (clubId) => `<a class="mc-team" href="#/clubes/${encodeURIComponent(clubId)}">${crest(clubId, 36)}<span>${escapeHtml(nameOf(clubId))}</span></a>`;
+
   function matchRow(match) {
     const finished = match.status === "finished";
-    const middle = finished
-      ? `<div class="score">${match.home_goals} × ${match.away_goals}</div>`
-      : `<div class="triple" role="img" aria-label="Mandante ${pct(match.p_home)}, empate ${pct(match.p_draw)}, visitante ${pct(match.p_away)}">
-          <span class="t-home" style="width:${match.p_home * 100}%">${Math.round(match.p_home * 100)}</span>
-          <span class="t-draw" style="width:${match.p_draw * 100}%">${Math.round(match.p_draw * 100)}</span>
-          <span class="t-away" style="width:${match.p_away * 100}%">${Math.round(match.p_away * 100)}</span></div>`;
-    const when = isPostponed(match) ? ` · <strong class="postponed">adiado, data a definir</strong>` : "";
-    const meta = finished ? `Rodada ${match.round ?? "?"}` : `Rodada ${match.round ?? "?"}${when} · gols esperados ${num(match.xg_home)} × ${num(match.xg_away)}${scoreOutlook(match)}`;
-    return `<div class="match"><div class="home">${clubLink(match.home_id, 22, true)}</div><div class="triple-cell">${middle}</div><div class="away">${clubLink(match.away_id, 22)}</div><div class="match-meta">${meta}</div><div class="match-actions">${matchOpenButton(match.match_id)}</div></div>`;
+    const postponed = isPostponed(match);
+    const clock = kickoffClock(match);
+    const badge = finished ? `<span class="mc-badge">Encerrado</span>`
+      : postponed ? `<span class="mc-badge is-alert">Adiado</span>`
+      : `<span class="mc-badge">Agendado</span>`;
+    const when = postponed ? "data a definir" : `${formatShortDate(match.match_date)}${clock ? ` · ${clock}` : ""}`;
+    const center = finished
+      ? `<span class="mc-center" aria-label="Placar final ${match.home_goals} a ${match.away_goals}">${match.home_goals} × ${match.away_goals}</span>`
+      : `<span class="mc-center is-vs">${clock || "×"}</span>`;
+    const found = finished ? findRoundMatch(match.match_id) : null;
+    const pre = found && found.match.pre_match;
+    const odds = finished
+      ? (pre ? oddsPills(pre.home, pre.draw, pre.away, "Antes do jogo, o modelo dava") : "")
+      : oddsPills(match.p_home, match.p_draw, match.p_away);
+    const extra = !finished && isProbability(match.p_home) && typeof match.xg_home === "number"
+      ? `<p class="mc-extra">Gols esperados ${num(match.xg_home)} × ${num(match.xg_away)}${scoreOutlook(match)}</p>` : "";
+    return `<article class="mc" data-match-id="${escapeHtml(match.match_id)}">
+        <div class="mc-top"><span>Rodada ${match.round ?? "?"} · ${when}</span>${badge}</div>
+        <div class="mc-teams">${cardTeam(match.home_id)}${center}${cardTeam(match.away_id)}</div>
+        ${odds}${extra}
+        <div class="mc-foot">${matchOpenButton(match.match_id, finished ? "Ver o que aconteceu" : "Ver detalhes")}</div>
+      </article>`;
   }
+
+  const matchList = (matches) => `<div class="mc-list">${matches.map(matchRow).join("")}</div>`;
 
   function signedPercent(value) {
     const rounded = Math.round(value * 100);
@@ -1029,8 +1117,8 @@
       <nav class="jump-chips" aria-label="Nesta página">
         <a href="#club-jogos" data-jump-to="club-jogos">Próximos jogos</a><a href="#club-resultados" data-jump-to="club-resultados">Resultados</a><a href="#club-posicao" data-jump-to="club-posicao">Posição final</a><a href="#club-evolucao" data-jump-to="club-evolucao">Evolução</a><a href="#club-forca" data-jump-to="club-forca">Força</a>${team.schedule ? `<a href="#club-dificuldade" data-jump-to="club-dificuldade">Dificuldade</a>` : ""}<a href="#club-cenarios" data-jump-to="club-cenarios">Cenários</a>
       </nav>
-      <h2 id="club-jogos">Próximos jogos</h2>${upcoming.length ? upcoming.map(matchRow).join("") : "<p class='note'>Sem jogos restantes.</p>"}
-      <h2 id="club-resultados">Últimos resultados</h2>${recentResults.length ? recentResults.map(matchRow).join("") : "<p class='note'>Nenhum jogo encerrado ainda.</p>"}
+      <h2 id="club-jogos">Próximos jogos</h2>${upcoming.length ? matchList(upcoming) : "<p class='note'>Sem jogos restantes.</p>"}
+      <h2 id="club-resultados">Últimos resultados</h2>${recentResults.length ? matchList(recentResults) : "<p class='note'>Nenhum jogo encerrado ainda.</p>"}
       <h2 id="club-posicao">Distribuição da posição final</h2>${positionChart(team.position_probabilities)}
       <h2 id="club-evolucao">Evolução ao longo da temporada</h2>
       ${(() => {
@@ -1087,16 +1175,18 @@
     const recent = snapshot.matches.filter((match) => match.status === "finished").slice(-10).reverse();
     const byDate = {};
     remaining.forEach((match) => { (byDate[match.match_date] = byDate[match.match_date] || []).push(match); });
+    const upcoming = Object.keys(byDate).length
+      ? Object.entries(byDate).map(([day, matches]) => `<section class="match-day"><h3>${formatShortDate(day)}</h3>${matchList(matches)}</section>`).join("")
+      : stateBlock({ icon: "calendar", title: "Sem jogos a disputar", text: `Todos os jogos com data já foram disputados até ${formatDate(snapshot.reference_date)}.`, action: `<a class="state-action button-secondary" href="#/classificacao">Ver a tabela</a>` });
     main.innerHTML = `
       <span class="kicker">Jogos</span>
       <h1>O que esperar de cada jogo</h1>
-      <p class="lede">Probabilidade de vitória do mandante, de empate e de vitória do visitante, com a força de cada clube em ${formatDate(snapshot.reference_date)}.</p>
-      <div class="legend"><span class="l-home">mandante</span><span class="l-draw">empate</span><span class="l-away">visitante</span></div>
+      <p class="lede">Probabilidade de vitória do mandante, de empate e de vitória do visitante, com a força de cada clube em ${formatDate(snapshot.reference_date)}. Toque num jogo para ver os detalhes.</p>
       ${overdueWarning()}
-      ${Object.entries(byDate).map(([day, matches]) => `<section class="match-day"><h3>${formatShortDate(day)}</h3>${matches.map(matchRow).join("")}</section>`).join("")}
-      ${postponed.length ? `<section class="match-day"><h3>Adiado, data a definir</h3>${postponed.map(matchRow).join("")}
+      ${upcoming}
+      ${postponed.length ? `<section class="match-day"><h3>Adiado, data a definir</h3>${matchList(postponed)}
         <p class="note">Nas simulações, ${postponed.length === 1 ? "este jogo conta" : "estes jogos contam"} como ainda a disputar.</p></section>` : ""}
-      <h2>Últimos resultados</h2>${recent.map(matchRow).join("")}`;
+      <h2>Últimos resultados</h2>${recent.length ? matchList(recent) : stateBlock({ icon: "calendar", title: "Nenhum jogo encerrado ainda", text: "Os resultados aparecem aqui depois da primeira rodada." })}`;
   }
 
   const PUBLISHABLE_LICENSES = ["verified_open", "licensed_with_attribution"];
@@ -1235,12 +1325,12 @@
     const [, section = "", parameter = "", ...rest] = location.hash.replace(/^#/, "").split("/");
     const isHome = !section || section === "inicio";
     document.querySelectorAll(".masthead nav a").forEach((link) => {
-      const active = (link.dataset.route === "home" && isHome) || link.dataset.route === section;
+      const active = (link.dataset.route === "home" && isHome) || link.dataset.route === section || (link.dataset.route === "partidas" && section === "jogos");
       if (active) link.setAttribute("aria-current", "page"); else link.removeAttribute("aria-current");
     });
     if (section === "classificacao") renderStandings(parameter);
     else if (section === "clubes") renderClub(decodeURIComponent(parameter));
-    else if (section === "partidas") renderMatches();
+    else if (section === "partidas" || section === "jogos") renderMatches();
     else if (section === "rodadas") {
       window.Rounds.render(main, [parameter, ...rest], { review: state.rounds, escapeHtml, pct, num, formatDate, formatShortDate, highlights: roundHighlights });
     }
@@ -1263,10 +1353,20 @@
   }
 
   async function start() {
+    const section = location.hash.replace(/^#\/?/, "").split("/")[0];
+    main.innerHTML = skeleton(section);
+    document.getElementById("reference-bar").textContent = "Carregando as simulações…";
     state.snapshot = await fetchJson(`/seasons/${SEASON}/predictions`);
     if (!state.snapshot) {
-      main.innerHTML = "<h1>Previsões indisponíveis</h1><p class='lede'>Nenhum snapshot encontrado. Rode <code>python -m brasileirao.cli simulate</code> e recarregue a página.</p>";
       document.getElementById("reference-bar").textContent = "";
+      main.innerHTML = stateBlock({
+        icon: "offline",
+        role: "alert",
+        title: "Não deu para carregar as probabilidades",
+        text: "A conexão falhou ou a atualização ainda não está no ar. Confira a internet e tente de novo.",
+        action: `<button type="button" class="state-action button-primary" id="retry">Tentar novamente</button>`,
+      });
+      document.getElementById("retry").addEventListener("click", start);
       return;
     }
     state.history = (await fetchJson(`/seasons/${SEASON}/probability-history`)) || [];
