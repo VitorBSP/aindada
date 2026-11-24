@@ -1,0 +1,50 @@
+/* Modo Ao vivo (#/ao-vivo). Só tokens de styles.css. Mobile primeiro: 375 px sem rolagem horizontal. */
+.live-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 16px; font-size: 14px; }
+.live-badge { display: inline-block; padding: 3px 8px; border: 1px solid var(--rule); background: var(--surface); font-variant-numeric: tabular-nums; }
+.live-refresh { font: inherit; font-size: 14px; font-weight: 600; min-height: 44px; padding: 0 14px; border: 1px solid var(--ink); background: var(--surface); color: var(--ink); cursor: pointer; }
+.live-refresh:disabled { opacity: 0.5; cursor: progress; }
+.live-refresh:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.live-empty { border-left: 3px solid var(--signal); background: var(--surface); padding: 10px 14px; font-size: 15px; margin: 0 0 16px; }
+.live-count { font-size: 14px; font-weight: 600; color: var(--signal); margin-left: 6px; white-space: nowrap; }
+
+.live-matches { list-style: none; margin: 0 0 24px; padding: 0; border-top: 1px solid var(--rule-strong); display: grid; grid-template-columns: minmax(0, 1fr); }
+.live-match { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-areas: "status status status" "home score away" "odds odds odds"; align-items: center; gap: 4px 10px; padding: 10px 0; border-bottom: 1px solid var(--rule); }
+.live-status { grid-area: status; font-size: 12px; color: var(--ink-faint); font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 6px; }
+.live-live .live-status, .live-ht .live-status { color: var(--signal); font-weight: 600; }
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--signal); }
+.live-home { grid-area: home; display: flex; align-items: center; justify-content: flex-end; gap: 6px; text-align: right; font-weight: 600; min-width: 0; }
+.live-away { grid-area: away; display: flex; align-items: center; gap: 6px; font-weight: 600; min-width: 0; }
+.live-home > span, .live-away > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.live-score { grid-area: score; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 64px; text-align: center; }
+.live-scheduled .live-score { color: var(--ink-faint); font-weight: 400; font-size: 16px; }
+.live-odds { grid-area: odds; display: flex; justify-content: center; flex-wrap: wrap; gap: 2px 14px; margin: 0; font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.live-odds strong { color: var(--ink); }
+
+.live-columns { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px 32px; }
+.live-columns h2 { margin-bottom: 4px; }
+.live-table { table-layout: auto; border-top: 1px solid var(--rule-strong); }
+.live-table th, .live-table td { padding: 6px 4px; }
+.live-table td.club { max-width: 0; overflow: hidden; text-overflow: ellipsis; width: 40%; }
+.live-table td.club .crest, .live-table td.club .crest-badge, .live-table td.club .crest-spacer { vertical-align: -4px; margin-right: 4px; }
+.live-move { font-size: 12px; font-weight: 600; }
+.live-move.up { color: var(--positive); }
+.live-move.down { color: var(--danger); }
+.live-move.same { color: var(--ink-faint); }
+.live-chances .prob { min-width: 0; padding: 2px 4px; }
+.live-delta { display: block; font-size: 11px; line-height: 1.1; }
+.live-name-short { display: none; }
+.live-method { margin-top: 28px; }
+
+@media (max-width: 560px) {
+  .live-name-long { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .live-name-short { display: inline; }
+  .live-table { font-size: 13px; }
+  .live-table th, .live-table td { padding: 6px 3px; }
+  .live-chances th { font-size: 11px; }
+  .live-score { font-size: 20px; min-width: 56px; }
+}
+
+@media (min-width: 900px) {
+  .live-matches { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; }
+  .live-columns { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); }
+}
