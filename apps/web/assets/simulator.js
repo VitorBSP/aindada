@@ -85,8 +85,8 @@
     return total > 0 ? { cells, total } : null;
   }
 
-  function draw(distribution) {
-    const target = Math.random() * distribution.total;
+  function draw(distribution, random = Math.random) {
+    const target = random() * distribution.total;
     const cells = distribution.cells;
     let low = 0;
     let high = cells.length - 1;
@@ -1732,5 +1732,6 @@
     initCloud();
   }
 
-  window.Simulator = { render };
+  /* Motor reaproveitado pelo modo Ao vivo (live-round.js): sorteio do placar, tabela e desempate do Art. 15. */
+  window.Simulator = { render, engine: { scoreSampler, draw, outcomeOf, newRows, addResult, rankRows, zoneOf, compareMain } };
 })();
