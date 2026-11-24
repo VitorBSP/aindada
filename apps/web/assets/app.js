@@ -525,9 +525,9 @@
   const TABLE_VIEWS = {
     geral: {
       label: "Geral",
-      head: [],
-      sort: [],
-      cells: () => [],
+      head: ["Título", "G4", "Z4"],
+      sort: [(team) => team.title, (team) => team.top4, (team) => team.relegation],
+      cells: (team) => [probCell(team.title, "title"), probCell(team.top4, "lib"), probCell(team.relegation, "danger")],
     },
     titulo: {
       label: "Título",
@@ -624,8 +624,10 @@
       const sorter = typeof spec === "function" ? { value: spec } : spec;
       return { id: `v${index}`, label, value: sorter.value, ascending: Boolean(sorter.ascending) };
     });
-    return [...FIXED_COLUMNS, ...extra];
+    // Colunas da visão logo depois de Pts: no celular o percentual principal aparece sem rolar a tabela de lado.
+    return [...FIXED_COLUMNS.slice(0, LEAD_COLUMNS), ...extra, ...FIXED_COLUMNS.slice(LEAD_COLUMNS)];
   }
+  const LEAD_COLUMNS = 3;
 
   function compareBy(column, direction) {
     return (left, right) => {
@@ -700,19 +702,25 @@
     const teams = chosen
       ? [...snapshot.teams].sort(compareBy(chosen, state.tableSort.direction))
       : [...snapshot.teams].sort((left, right) => order(left) - order(right) || left.current_position - right.current_position);
-    const fixedCount = FIXED_COLUMNS.length;
+    const viewCount = view.head.length;
+    const restStart = LEAD_COLUMNS + viewCount;
     const lastIsUpcoming = viewId === "dificuldade";
-    const cellClass = (index) => `${index === fixedCount ? "view-start" : ""}${lastIsUpcoming && index === columns.length - 1 ? " left" : ""}`;
+    const cellClass = (index) => [
+      viewCount && index === LEAD_COLUMNS ? "view-start" : "",
+      viewCount && index === restStart ? "rest-start" : "",
+      lastIsUpcoming && index === restStart - 1 ? "left" : "",
+    ].filter(Boolean).join(" ");
     const rows = teams.map((team) => {
       const zone = team.current_position <= 5 ? "zone-lib" : team.current_position <= 11 ? "zone-sula" : team.current_position > 16 ? "zone-z4" : "";
       const standing = standingOf(team);
       return `<tr class="${zone}">
         <td class="pos">${team.current_position}</td>
         <td class="left club"><a class="club-cell" href="#/clubes/${encodeURIComponent(team.club_id)}" title="${escapeHtml(team.name)}">${crest(team.club_id, 22)}<span class="name-full">${escapeHtml(team.name)}</span><span class="name-short" aria-hidden="true">${escapeHtml(shortOf(team.club_id))}</span></a></td>
-        <td><strong>${standing.points}</strong></td><td>${standing.played}</td><td>${standing.wins}</td><td>${standing.goal_difference > 0 ? "+" : ""}${standing.goal_difference}</td>
+        <td><strong>${standing.points}</strong></td>
+        ${view.cells(team).map((cell, index) => `<td class="${cellClass(LEAD_COLUMNS + index)}">${cell}</td>`).join("")}
+        <td class="${cellClass(restStart)}">${standing.played}</td><td>${standing.wins}</td><td>${standing.goal_difference > 0 ? "+" : ""}${standing.goal_difference}</td>
         <td><strong>${num(team.expected_points)}</strong><div class="range" title="Faixa provável">${Math.round(team.points_interval_90[0])}–${Math.round(team.points_interval_90[1])}</div></td>
         <td>${num(team.expected_position)}</td>
-        ${view.cells(team).map((cell, index) => `<td class="${cellClass(fixedCount + index)}">${cell}</td>`).join("")}
       </tr>`;
     }).join("");
     const head = columns.map((column, index) => {

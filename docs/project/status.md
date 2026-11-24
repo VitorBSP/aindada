@@ -3679,3 +3679,22 @@ T4 (`2bdf09a`), que só pintou o layout antigo de escuro.
 - **Próximo responsável**: dono do produto — antes de 02/12, `python scripts/update_live_scores.py --init-round 38 --predictions <URL do predictions.json>`.
   Agente 06 — revisão independente antes do deploy. Agente 08 — decidir se "Ao vivo" sobe para a barra do celular
   no dia da rodada (hoje fica em "Mais").
+
+## Agente 05: T4 v2.1 — Ao vivo no menu e colunas da disputa primeiro na Tabela (2026-11-24)
+
+- **O que mudou**:
+  - Mesclada a `origin/main` com a T1 (`#/ao-vivo`, `live-round.js` e `live-round.css`). Conflito em
+    `apps/web/index.html` resolvido mantendo o menu da v2.1 e acrescentando "Ao vivo" depois de Rodadas. A
+    folha "Mais" do celular fica Ao vivo · Rodadas · Clubes · Trocar competição · Como calculamos. Conflito em
+    `docs/project/status.md` resolvido mantendo as duas seções.
+  - `apps/web/assets/app.js` (Tabela): as colunas da visão entram logo depois de `Pts`, antes de
+    `J · V · SG · Pts proj. · Pos. média`. A visão Geral passa a ter `Título · G4 · Z4`. `styles.css`: fio fino no
+    começo da visão e do resto; células de percentual mais estreitas abaixo de 560 px.
+- **Evidência**:
+  - Colunas visíveis sem rolar, no Chromium, em 375 e em 390 px: Geral `# · Clube · Pts · Título · G4 · Z4`;
+    Título `… · Pts · Título`; Libertadores `… · Pts · G4 · Liberta. grupos`; Z4 `… · Pts · Rebaix.`.
+  - 18 rotas (Série A com `#/ao-vivo`, Tabela em Geral, Título, Sul-Americana e Dificuldade, mais os 5 sub-sites),
+    em 375 e 1280 px e nos dois temas, com dados sintéticos: 72 de 72 telas com `scrollWidth` igual à largura e
+    zero erro de JS.
+  - `ruff check` sem achados; `mypy` sem erros; `pytest -q` com 968 passados e 6 pulados.
+- **Próximo responsável**: Agente 06 (revisar no snapshot real); Agente 00 (merge).

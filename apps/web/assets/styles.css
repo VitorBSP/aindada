@@ -821,3 +821,11 @@ a.mc-team { text-decoration: none; }
 .round-mc .mc-team > span:last-child { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 700; }
 /* No claro, #D9381E sobre o fundo dá 4,43:1: links curtos ficam em tinta, com o vermelho só no sublinhado. */
 :root[data-theme="light"] .block-link { color: var(--ink); text-decoration: underline; text-decoration-color: var(--signal); text-underline-offset: 3px; }
+/* Tabela: colunas da visão logo depois de Pts; o fio separa o resto (J · V · SG · projeções) */
+.standings th.view-start, .standings td.view-start { border-left: 1px solid var(--rule); padding-left: 10px; }
+.standings th.rest-start, .standings td.rest-start { border-left: 1px solid var(--rule); padding-left: 10px; }
+@media (max-width: 560px) {
+  .table-card .prob { min-width: 0; padding: 2px 4px; }
+  .table-card th, .table-card td { padding-left: 5px; padding-right: 5px; }
+  .standings th.view-start, .standings td.view-start, .standings th.rest-start, .standings td.rest-start { padding-left: 7px; }
+}
