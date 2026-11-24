@@ -3492,3 +3492,14 @@ real com a chave anon: perfis, simulações, `sim_scores` e `sim_my_scores` nega
   37,2%, sem variar entre os cenários da Copa.
 - **Evidência**: `pytest` passou (ver commit); ruff e mypy sem erros.
 
+## Campeão da Sul-Americana 2026 definido (2026-11-23)
+
+- **O que mudou**: `src/brasileirao/competition_rules/seasons/serie_a_2026.toml` atualizado com
+  `sudamericana_champion = "foreign:Boca Juniors"` (2 x 0 sobre o Atlético-MG em 21/11/2026,
+  Barranquilla; fontes Agência Brasil e CBF) e `as_of = "2026-11-23"`. `tests/unit/test_scenarios.py`
+  atualizado para 4 cenários externos (Libertadores × Copa do Brasil).
+- **Evidência**: `enumerate_external_scenarios(load_season_rules(2026))` retorna exatamente 4 cenários
+  com `sudamericana_champion = None` (clube estrangeiro); `ruff check` e `ruff format --check` sem achados.
+  Validação completa no CI após push.
+
+

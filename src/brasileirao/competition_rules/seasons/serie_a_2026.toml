@@ -35,14 +35,14 @@ cup_redirect_policy = "equivalent_slot_only"
 count = 6
 
 [external]
-# Situação em 2026-10-26. club_id da Série A ou "foreign:<nome>" para clubes estrangeiros.
-as_of = "2026-10-26"
+# Situação em 2026-11-23. club_id da Série A ou "foreign:<nome>" para clubes estrangeiros.
+as_of = "2026-11-23"
 libertadores_champion = ""
 libertadores_finalists = ["palmeiras", "foreign:Estudiantes"]
 libertadores_note = "Final em jogo único em 28/11/2026, Estádio Centenário (Montevidéu)."
-sudamericana_champion = ""
+sudamericana_champion = "foreign:Boca Juniors"
 sudamericana_finalists = ["atletico-mg", "foreign:Boca Juniors"]
-sudamericana_note = "Final em jogo único em 21/11/2026, Barranquilla."
+sudamericana_note = "Boca Juniors campeão (2 x 0 sobre o Atlético-MG em 21/11/2026, Barranquilla)."
 cup_champion = ""
 cup_runner_up = ""
 # Semifinais decididas (informado pelo dono, 2026-11-10): Palmeiras e Grêmio disputam a final, em jogo único em 06/12.
@@ -51,5 +51,6 @@ cup_note = "Semifinais em 01/11 e 07–08/11/2026; final em jogo único em 06/12
 sources = [
   "https://www.cnnbrasil.com.br/esportes/futebol/copa-do-brasil/copa-do-brasil-cbf-define-datas-das-semifinais-de-2026/",
   "https://www.olympics.com/pt/noticias/copa-libertadores-2026-final-palmeiras-estudiantes",
-  "https://www.lance.com.br/futebol-nacional/atletico-mg-x-boca-juniors-ingressos-data-horario-e-local-da-final-da-sul-americana.html",
+  "https://agenciabrasil.ebc.com.br/esportes/noticia/2026-11/boca-juniors-vence-sul-americana-sobre-o-atletico-mg",
+  "https://www.cbf.com.br/futebol-brasileiro/noticias/campeonato-brasileiro/a/atletico-mg-e-vice-campeao-da-conmebol-sul-americana",
 ]
