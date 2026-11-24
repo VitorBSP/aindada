@@ -202,3 +202,52 @@ depois de salvar.
     - Vencedor: **3 por vitória certa, 5 por empate certo**. Placar exato: 10, 7, 6, 5 (gols do perdedor), **5 por
       empate certo sem o placar**, **3 só o vencedor**, 2 invertido. O máximo de cada palpite depende dele
       (`sim_pick_max`).
+
+## Endurecimento do consenso: achados A e 6 do Agente 06 (migração `0007`, 2026-11-24)
+
+**Problema (A).** Contas anônimas são baratas. Com o mínimo de 30 pessoas, quem criava 29 contas lia a escolha da 30ª:
+uma fração de 1/30 arredondava para 0,05 e aparecia, e a posição média com uma casa decimal revelava o participante.
+Medido no Postgres (ataque calibrado sem ruído, voto da vítima sorteado): **acerto de 100%** (40 de 40 rodadas).
+
+**Decisão.** Três camadas, em `0007_simulador_consenso.sql` (sem mudar tabelas de dados nem o formato da resposta;
+só entram chaves novas `noise_people`):
+
+1. **Mínimo de 50 pessoas** (`sim_privacy_min_users()`), contra 30. O ataque passa de 29 para 49 contas. É um valor
+   de produto: o dono pode mudar a função sem tocar no resto.
+2. **Ruído fixo e secreto.** Cada número publicado leva um deslocamento de até ±3 pessoas
+   (`sim_privacy_noise_people()`), × intervalo do valor ÷ número de pessoas (posição média: 3 × 19 ÷ n; frações: 3 ÷ n).
+   Vem de um sal secreto em `sim_private` (sem política e sem permissão para anon, authenticated nem service_role) e do
+   nome do número. Fixo, porque ruído novo a cada consulta se anula na média; secreto, porque quem calibra as contas
+   precisa saber onde fica a fronteira do arredondamento.
+3. **Menos precisão**: frações em passos de 0,05 e posição média em passos de 0,5 (antes, 0,1).
+
+**Medida depois.** Mesmo atacante, 49 contas falsas, 400 rodadas com sal e voto sorteados: **244 acertos (61%)**,
+contra 50% do chute. O teste falha se passar de 65%. O erro publicado fica a no máximo 3 pessoas de ruído mais o
+arredondamento do valor verdadeiro (testado). O custo é um viés fixo, que cai com n (com 200 pessoas, ±1,5 ponto
+percentual nas frações).
+
+**Risco que sobra** (não é zero):
+
+- **Antes e depois.** Quem já tem 50 contas e vê o número mudar quando outra pessoa entra sabe que "algo mudou"; com o
+  sal fixo, o ruído se cancela na diferença. Só o sal novo a cada versão evitaria isso, e aí quem edita as próprias
+  contas tira a média. Os dois lados não fecham juntos.
+- **Muitas contas** (centenas) permitem refinar a estimativa. A defesa de fundo é limitar a criação: CAPTCHA nas contas
+  anônimas e e-mail confirmado, já recomendados em `docs/architecture/simulator-supabase.md`. **Decisão pendente do dono.**
+- **Sal vazado** (acesso de dono ao banco) desfaz o ruído.
+- Viés: o consenso mostra a média dos visitantes com erro de alguns pontos; a página deve dizer "aproximado"
+  (**pendente para o Agente 05**; a resposta traz `noise_people`).
+- Os números do modelo oficial não são tocados.
+
+**Achado 6.** `sim_consensus` passou a usar a tabela final de Vencedor e Placar exato só se `sim_final_order_ok` a
+confirma: todo jogo que falta (exceto cancelado) tem palpite válido; pontos finais = pontos de hoje
+(`sim_standings.points`) + resultado dos palpites; nenhum clube passa de `max_points`; nenhum clube com menos pontos
+fica acima de outro com mais. Empate em pontos aceita qualquer ordem (o banco não tem os critérios de desempate).
+Consequências: a conferência é na leitura, então uma tabela cujo jogo terminou diferente do palpite sai do consenso
+(some da conta, não é apagada), e uma simulação salva com jogo em andamento (palpite descartado pela trava) não entra.
+Classificação continua usando `order`, agora conferido com `sim_valid_order` na leitura.
+
+**Extra.** A `0007` tira de anon e authenticated escrita, `TRUNCATE`, `REFERENCES` e `TRIGGER` nas tabelas do
+simulador (a RLS já barrava, mas a escrita nas tabelas do CI falhava em silêncio e `TRUNCATE` não passa pela RLS).
+
+**Evidência.** `infrastructure/supabase/tests/run.sh`: Postgres 16.15 temporário, migrações `0001` a `0007`, 112
+testes, 0 falhas. Não foi aplicada em produção.

@@ -3492,3 +3492,14 @@ real com a chave anon: perfis, simulações, `sim_scores` e `sim_my_scores` nega
   37,2%, sem variar entre os cenários da Copa.
 - **Evidência**: `pytest` passou (ver commit); ruff e mypy sem erros.
 
+
+## Agente 06/04: consenso endurecido e testes de SQL (ADR-0015, 2026-11-24)
+
+- **O que mudou**: `infrastructure/supabase/migrations/0007_simulador_consenso.sql` (a numeração pedida, 0005, já estava
+  usada por `0005_simulador_eventos` e `0006`; mínimo 50, ruído fixo secreto, `sim_final_order_ok`, privilégios
+  mínimos); `infrastructure/supabase/tests/` (stub do Supabase, `run.sh`, 5 arquivos de teste); ADR-0015 e
+  `docs/architecture/simulator-supabase.md`.
+- **Evidência**: `run.sh` em Postgres 16.15: 112 testes, 0 falhas. Ataque A: 100% (40/40) antes, 61% (244/400) depois.
+- **Premissas**: pontuação testada na versão da `0006` (Vencedor 3/5, só o vencedor 3), não a do pedido (4).
+- **Pendente**: dono aplica a `0007` (conferir SHA-256) e decide CAPTCHA/e-mail confirmado; Agente 05 avisa na página
+  que a média é aproximada; Agente 06 revisa. Não aplicada em produção.
