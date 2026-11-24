@@ -1238,6 +1238,7 @@
       const active = (link.dataset.route === "home" && isHome) || link.dataset.route === section;
       if (active) link.setAttribute("aria-current", "page"); else link.removeAttribute("aria-current");
     });
+    if (section !== "ao-vivo" && window.LiveRound) window.LiveRound.stop();
     if (section === "classificacao") renderStandings(parameter);
     else if (section === "clubes") renderClub(decodeURIComponent(parameter));
     else if (section === "partidas") renderMatches();
@@ -1245,6 +1246,7 @@
       window.Rounds.render(main, [parameter, ...rest], { review: state.rounds, escapeHtml, pct, num, formatDate, formatShortDate, highlights: roundHighlights });
     }
     else if (section === "simular") window.Simulator.render(main, [parameter, ...rest], { snapshot: state.snapshot, escapeHtml, pct, crest, nameOf, formatShortDate });
+    else if (section === "ao-vivo") window.LiveRound.render(main, { snapshot: state.snapshot, escapeHtml, pct, crest });
     else if (section === "metodologia") renderMethodology();
     else renderHome(parameter);
     revealActive(document.querySelector(".masthead nav"));

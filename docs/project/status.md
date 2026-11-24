@@ -3503,3 +3503,51 @@ real com a chave anon: perfis, simulações, `sim_scores` e `sim_my_scores` nega
   Validação completa no CI após push.
 
 
+
+## T1 — Última rodada ao vivo (#/ao-vivo), para 02/12/2026 (2026-11-24)
+
+- **O que mudou**:
+  - `infrastructure/supabase/migrations/0007_live_round.sql` (nova, **não aplicada**): tabela `live_round_scores`
+    (season, round, match_id PK, home_goals, away_goals, minute, status `scheduled|live|ht|finished`, updated_at
+    pelo relógio do servidor). Checks de integridade: `scheduled` sem placar (nunca 0 x 0 inventado), demais status
+    com os dois placares, `live` com minuto, temporada igual ao prefixo do `match_id`. RLS: SELECT para `anon` e
+    `authenticated`; escrita revogada desses papéis e bloqueada também por políticas restritivas; só `service_role`
+    escreve. SHA-256 `3ecd8bfe2297c44130463d366f63e210a7689b032ad593b868d0eb846f9d46e5`.
+  - `scripts/update_live_scores.py` (novo, só biblioteca padrão): lê `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` do
+    ambiente ou do `.env`; `--init-round 38 --predictions <arquivo|URL>` cria a rodada como `scheduled` sem apagar o
+    que já existe; `--match ID --score 1-0 --status live --minute 34` atualiza um jogo; `--from-json`, `--list` e
+    `--dry-run`.
+  - `apps/web/assets/live-round.js` e `live-round.css` (novos), rota `#/ao-vivo` em `app.js`, link "Ao vivo" em
+    `index.html`, ícone na barra do celular (`mobile-nav.js`, fica em "Mais"). `simulator.js` passa a expor o motor
+    (`window.Simulator.engine`: sorteio, tabela, desempate do Art. 15) e `draw` aceita um gerador com semente.
+  - O modo lê o `predictions.json` publicado + `live_round_scores` a cada 15 s (pausa com a aba escondida e ao sair
+    da rota), com "Atualizar agora" e selo "Atualizado às HH:MM:SS" (Brasília). Sem jogo `live`/`ht`: aviso "Sem
+    jogos ao vivo no momento". Com placares: tabela "como está agora" com ▲▼ vs. antes da rodada e chances de
+    título, G4, Libertadores e Sul-Americana (faixa entre os cenários externos do snapshot, regra de vagas portada de
+    `qualification.py`) e rebaixamento, em 20 mil simulações com semente fixa; variações contra o mesmo cálculo antes
+    da rodada. Jogo ao vivo: placar atual + gols restantes Poisson(xG × tempo que resta / 95 min). Jogo encerrado no
+    snapshot sempre ganha do placar ao vivo.
+- **Evidência**:
+  - `ruff check src apps tests scripts infrastructure`, `ruff format --check` e `mypy`: sem achados.
+    `pytest -q`: 985 passaram, 1 pulado. Novos: `tests/unit/test_update_live_scores.py` (22, envio HTTP falso) e
+    `tests/unit/test_live_round_js.py` (13, roda o JS no Node: 400 alocações de vaga idênticas às do Python, regras
+    iguais ao `serie_a_2026.toml`, placar parcial nunca diminui, rodada liquidada dá título 100% ao líder, semente
+    reproduzível, placar oficial ganha do ao vivo).
+  - Migração aplicada num PostgreSQL 16 local descartável (com papéis `anon`, `authenticated`, `service_role` e os
+    privilégios padrão do Supabase): idempotente; `service_role` insere e faz upsert; `anon`/`authenticated` leem e
+    recebem "permission denied" em INSERT/UPDATE/DELETE; com GRANT e política permissiva devolvidos de propósito, a
+    política restritiva continua negando; os seis checks de integridade recusam as linhas inválidas.
+  - Navegador (Playwright, snapshot SINTÉTICO gerado pelo pipeline com as regras de 2026, Supabase interceptado):
+    375 px e 1280 px, `scrollWidth` igual à largura em todos os passos; sem jogos → aviso; 10 jogos ao vivo aos 12',
+    intervalo e 4 encerrados + 6 aos 78' → tabela, movimentos e chances atualizados; um placar mudado sem clique
+    entrou no ciclo seguinte de 15 s (1 requisição); depois de sair da rota, 0 requisições em 16 s. Únicos erros de
+    console: 404 das tentativas de `/api/...` no servidor estático local (comportamento já existente de `fetchJson`).
+- **Premissas e limitações**: chances ao vivo são provisórias e mais simples que as oficiais (sem incerteza de
+  rating; Poisson independente para o resto do jogo; cartões e sorteio viram sorteio). Vagas usam as regras de
+  2026 fixas no JS (teste falha se o TOML mudar). O `match_id` digitado no script tem de ser o do snapshot
+  (`<temporada>-<mandante>-<visitante>`).
+- **Migração `0007` aplicada** pelo dono no SQL Editor do Supabase (informado em 2026-11-24; a verificação pela API
+  pública não foi feita deste ambiente, que não alcança o Supabase).
+- **Próximo responsável**: dono do produto — antes de 02/12, `python scripts/update_live_scores.py --init-round 38 --predictions <URL do predictions.json>`.
+  Agente 06 — revisão independente antes do deploy. Agente 08 — decidir se "Ao vivo" sobe para a barra do celular
+  no dia da rodada (hoje fica em "Mais").

@@ -13,12 +13,14 @@
     rounds: '<path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/>',
     bracket: '<path d="M4 5h5v6h6M4 19h5v-6M15 11v2h5"/>',
     method: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
+    live: '<circle cx="12" cy="12" r="3"/><path d="M6.3 6.3a8 8 0 0 0 0 11.4M17.7 6.3a8 8 0 0 1 0 11.4"/>',
     more: '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
   };
   const iconFor = (label, route) => {
     const text = `${route || ""} ${label}`.toLowerCase();
     if (/home|início|inicio/.test(text) || route === "") return "home";
     if (/simul/.test(text)) return "simulator";
+    if (/ao-vivo|ao vivo/.test(text)) return "live";
     if (/tabela|classifica|fase de liga|times/.test(text)) return "table";
     if (/jogos|partidas/.test(text)) return "games";
     if (/clube/.test(text)) return "clubs";
@@ -37,7 +39,7 @@
     const links = [...nav.querySelectorAll("a")];
     if (!links.length) return false;
     // Os mais usados no polegar: início, tabela, jogos e simulador; o resto vai para "Mais".
-    const PRIORITY = { home: 0, table: 1, games: 2, simulator: 3, bracket: 4, clubs: 5, rounds: 6, more: 7, method: 8 };
+    const PRIORITY = { home: 0, table: 1, games: 2, simulator: 3, bracket: 4, clubs: 5, rounds: 6, live: 7, more: 7, method: 8 };
     const rank = (link) => PRIORITY[iconFor(link.textContent.trim(), link.dataset.route)];
     // Quatro itens mais "Mais" (que também leva às outras competições): cinco alvos de toque no máximo.
     const chosen = links.length <= MAX_ITEMS ? links : [...links].sort((left, right) => rank(left) - rank(right)).slice(0, MAX_ITEMS);
