@@ -3546,7 +3546,8 @@ real com a chave anon: perfis, simulações, `sim_scores` e `sim_my_scores` nega
   rating; Poisson independente para o resto do jogo; cartões e sorteio viram sorteio). Vagas usam as regras de
   2026 fixas no JS (teste falha se o TOML mudar). O `match_id` digitado no script tem de ser o do snapshot
   (`<temporada>-<mandante>-<visitante>`).
-- **Próximo responsável**: dono do produto — rodar a `0007` no SQL Editor do Supabase (conferir o SHA-256 acima) e,
-  antes de 02/12, `python scripts/update_live_scores.py --init-round 38 --predictions <URL do predictions.json>`.
+- **Migração `0007` aplicada** pelo dono no SQL Editor do Supabase (informado em 2026-11-24; a verificação pela API
+  pública não foi feita deste ambiente, que não alcança o Supabase).
+- **Próximo responsável**: dono do produto — antes de 02/12, `python scripts/update_live_scores.py --init-round 38 --predictions <URL do predictions.json>`.
   Agente 06 — revisão independente antes do deploy. Agente 08 — decidir se "Ao vivo" sobe para a barra do celular
   no dia da rodada (hoje fica em "Mais").
