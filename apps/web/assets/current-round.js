@@ -103,6 +103,7 @@
 
   function createRenderer(helpers) {
     const { escapeHtml, pct, crest, clubLink, nameOf, formatDate } = helpers;
+    const shortOf = helpers.shortOf || nameOf;
     const clubName = (clubId) => escapeHtml(nameOf(clubId));
     const ofClub = (clubId) => `${FEMININE_CLUBS.has(clubId) ? "da" : "do"} ${clubName(clubId)}`;
 
@@ -137,14 +138,24 @@
           ? "O placar ainda não chegou da fonte de dados. Até chegar, as probabilidades tratam este jogo como não disputado."
           : `Começou às ${kickoffText(match)}. O placar entra aqui depois do fim do jogo, com atraso.`);
       }
-      const statusClass = status.kind === "postponed" || status.overdue ? " rm-status-alert" : "";
-      return `<li class="round-match is-${status.kind}">
-        <span class="rm-time">${kickoffText(match)}</span><span class="rm-status${statusClass}">${status.text}</span>
-        <span class="rm-home">${clubLink(match.home_id, 20)}</span>
-        <span class="rm-center" aria-hidden="true">${center}</span>${spoken}
-        <span class="rm-away">${clubLink(match.away_id, 20, true)}</span>
+      // Match Card v2 (REDESIGN_SPEC §3.1): mesmo cartão das outras telas, com o estado da rodada no selo.
+      const badgeClass = status.kind === "postponed" || status.overdue ? " is-alert" : "";
+      const team = (clubId) => `<a class="mc-team" href="#/clubes/${encodeURIComponent(clubId)}">${crest(clubId, 36)}<span>${clubName(clubId)}</span></a>`;
+      const centerClass = status.kind === "finished" ? "" : status.kind === "postponed" ? " is-vs is-postponed" : " is-vs";
+      const odds = status.kind === "finished" || status.kind === "postponed" ? "" : oddsPills(match);
+      return `<li class="mc round-mc is-${status.kind}" data-match-id="${escapeHtml(match.match_id)}">
+        <div class="mc-top"><span class="rm-time">${kickoffText(match)}</span><span class="mc-badge${badgeClass}">${status.text}</span></div>
+        <div class="mc-teams">${team(match.home_id)}<span class="mc-center${centerClass}" aria-hidden="true">${center}</span>${spoken}${team(match.away_id)}</div>
+        ${odds}
         ${meta.length ? `<p class="rm-meta">${meta.join(" ")}</p>` : ""}
       </li>`;
+    }
+
+    function oddsPills(match) {
+      if (![match.p_home, match.p_draw, match.p_away].every(isProbability)) return "";
+      const top = Math.max(match.p_home, match.p_draw, match.p_away);
+      const pill = (value, label) => `<span class="mc-odd${value === top ? " is-top" : ""}"><strong>${pct(value)}</strong><span>${escapeHtml(label)}</span></span>`;
+      return `<div class="mc-odds" role="img" aria-label="${clubName(match.home_id)} ${pct(match.p_home)}, empate ${pct(match.p_draw)}, ${clubName(match.away_id)} ${pct(match.p_away)}">${pill(match.p_home, shortOf(match.home_id))}${pill(match.p_draw, "Empate")}${pill(match.p_away, shortOf(match.away_id))}</div>`;
     }
 
     function byKickoff(left, right) {
@@ -166,12 +177,12 @@
         const heading = day ? escapeHtml(capitalize(longDay(day))) : "Data a definir";
         const anchor = `dia-${day || "sem-data"}`;
         const rows = days.get(day).slice().sort(byKickoff).map((match) => matchRow(match, info, now)).join("");
-        return `<section class="round-day" aria-labelledby="${anchor}"><h3 id="${anchor}">${heading}</h3><ol class="round-matches">${rows}</ol></section>`;
+        return `<section class="round-day" aria-labelledby="${anchor}"><h3 id="${anchor}">${heading}</h3><ol class="round-matches mc-list">${rows}</ol></section>`;
       });
       if (info.rescheduled.length) {
         const rows = info.rescheduled.slice().sort((left, right) => String(left.match_date).localeCompare(String(right.match_date)) || byKickoff(left, right))
           .map((match) => matchRow(match, info, now)).join("");
-        sections.push(`<section class="round-day" aria-labelledby="dia-fora-da-rodada"><h3 id="dia-fora-da-rodada">Fora das datas da rodada</h3><ol class="round-matches">${rows}</ol></section>`);
+        sections.push(`<section class="round-day" aria-labelledby="dia-fora-da-rodada"><h3 id="dia-fora-da-rodada">Fora das datas da rodada</h3><ol class="round-matches mc-list">${rows}</ol></section>`);
       }
       return `<h2>Jogos</h2><p class="note">Horários de Brasília.</p>${sections.join("")}`;
     }

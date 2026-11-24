@@ -1,14 +1,14 @@
 /* Modo Ao vivo (#/ao-vivo). Só tokens de styles.css. Mobile primeiro: 375 px sem rolagem horizontal. */
 .live-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 16px; font-size: 14px; }
-.live-badge { display: inline-block; padding: 3px 8px; border: 1px solid var(--rule); background: var(--surface); font-variant-numeric: tabular-nums; }
-.live-refresh { font: inherit; font-size: 14px; font-weight: 600; min-height: 44px; padding: 0 14px; border: 1px solid var(--ink); background: var(--surface); color: var(--ink); cursor: pointer; }
+.live-badge { display: inline-block; padding: 5px 10px; border: 1px solid var(--rule); border-radius: 999px; background: var(--surface-2, var(--surface)); font-variant-numeric: tabular-nums; font-size: 12px; color: var(--ink-soft); }
+.live-refresh { font: inherit; font-size: 14px; font-weight: 600; min-height: 44px; padding: 0 16px; border: 1px solid var(--rule); border-radius: var(--radius-control, 12px); background: var(--surface-2, var(--surface)); color: var(--ink); cursor: pointer; }
 .live-refresh:disabled { opacity: 0.5; cursor: progress; }
 .live-refresh:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-.live-empty { border-left: 3px solid var(--signal); background: var(--surface); padding: 10px 14px; font-size: 15px; margin: 0 0 16px; }
+.live-empty { border: 1px solid var(--rule); border-left: 3px solid var(--signal); border-radius: var(--radius-control, 12px); background: var(--surface); padding: 12px 14px; font-size: 14px; margin: 0 0 16px; }
 .live-count { font-size: 14px; font-weight: 600; color: var(--signal); margin-left: 6px; white-space: nowrap; }
 
-.live-matches { list-style: none; margin: 0 0 24px; padding: 0; border-top: 1px solid var(--rule-strong); display: grid; grid-template-columns: minmax(0, 1fr); }
-.live-match { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-areas: "status status status" "home score away" "odds odds odds"; align-items: center; gap: 4px 10px; padding: 10px 0; border-bottom: 1px solid var(--rule); }
+.live-matches { list-style: none; margin: 0 0 24px; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.live-match { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-areas: "status status status" "home score away" "odds odds odds"; align-items: center; gap: 6px 10px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius-card, 16px); }
 .live-status { grid-area: status; font-size: 12px; color: var(--ink-faint); font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 6px; }
 .live-live .live-status, .live-ht .live-status { color: var(--signal); font-weight: 600; }
 .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--signal); }

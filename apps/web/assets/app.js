@@ -132,47 +132,10 @@
       <p class="edition-facts"><strong>${snapshot.observed_matches}</strong> de ${snapshot.observed_matches + snapshot.remaining_matches} jogos disputados ·
         <strong>${snapshot.n_simulations.toLocaleString("pt-BR")}</strong> simulações do resto do campeonato ·
         <span class="pill">modelo experimental</span></p>`;
-  }
-
-  function raceRows(teams, accessor, kind) {
-    return teams.map((team) => {
-      const value = accessor(team);
-      return `<div class="race-row">
-        ${clubLink(team.club_id)}
-        <div class="bar-track" role="img" aria-label="${escapeHtml(team.name)}: ${pct(value)}">
-          <div class="bar-fill ${kind}" style="width:${(value * 100).toFixed(1)}%"></div>
-        </div>
-        <span class="value">${pct(value)}</span>
-      </div>`;
-    }).join("");
-  }
-
-  function changesSinceLast(onlyKey = null) {
-    if (state.history.length < 2) return "";
-    const latest = state.history[state.history.length - 1];
-    const previous = state.history[state.history.length - 2];
-    const changes = [];
-    const metrics = [["title", "título"], ["relegation", "rebaixamento"], ["top4", "G4"]].filter(([key]) => !onlyKey || key === onlyKey);
-    for (const [clubId, values] of Object.entries(latest.teams)) {
-      const before = previous.teams[clubId];
-      if (!before) continue;
-      for (const [key, label] of metrics) {
-        const delta = values[key] - before[key];
-        if (Math.abs(delta) >= 0.05) changes.push({ clubId, label, delta, now: values[key] });
-      }
-    }
-    changes.sort((left, right) => Math.abs(right.delta) - Math.abs(left.delta));
-    if (!changes.length) return `<p class="note">Nenhuma probabilidade andou mais de 5 pontos percentuais desde ${formatDate(previous.reference_date)}.</p>`;
-    const comparedTo = !reconstructionInfo()
-      ? `Comparado à atualização de ${formatDate(previous.reference_date)}.`
-      : sameModel(previous, latest)
-        ? `Comparado a ${formatDate(previous.reference_date)}, na curva recalculada com o mesmo modelo.`
-        : `Comparado a ${formatDate(previous.reference_date)}, na curva recalculada. Atenção: parte desta curva foi calculada com outra versão do modelo, então as variações entre pontos podem vir da troca de modelo, e não dos jogos.`;
-    return `<p class="note">${comparedTo} Só entram variações de 5 pontos percentuais ou mais.</p><ul class="changes">` + changes.slice(0, 8).map((change) => {
-      const sign = change.delta > 0 ? "+" : "−";
-      const css = (change.label === "rebaixamento") === (change.delta > 0) ? "change-down" : "change-up";
-      return `<li>${clubLink(change.clubId)}: probabilidade de ${change.label} <span class="${css}">${sign}${Math.round(Math.abs(change.delta) * 100)} p.p.</span> (agora ${pct(change.now)})</li>`;
-    }).join("") + "</ul>";
+    const views = state.rounds && state.rounds.rounds;
+    const latest = views && views[views.length - 1];
+    const round = editionRound(snapshot) && latest ? `Rodada ${latest.round_number} · ` : "";
+    bar.dataset.short = `${round}dados até ${formatDay(snapshot.reference_date)}`;
   }
 
   const matchName = (match) => `${escapeHtml(nameOf(match.home_id))} x ${escapeHtml(nameOf(match.away_id))}`;
@@ -186,8 +149,6 @@
     const count = pending.length === 1 ? "1 jogo recente ainda está" : `${pending.length} jogos recentes ainda estão`;
     return `<details class="warning"><summary><strong>${count} sem placar na fonte de dados.</strong> Entram na simulação como não disputados até o placar chegar.</summary><p>${list}.</p></details>`;
   }
-
-  const MAX_HOME_SECONDARY = 2;
 
   function currentInsights() {
     return (state.insights || []).filter((insight) => insight.snapshot_ref.reference_date === state.snapshot.reference_date);
@@ -225,9 +186,9 @@
   const NARROW_LAYOUT = 560;
 
   const RACES = {
-    titulo: { key: "title", label: "Título", noun: "título", slots: 1, color: "var(--title)" },
-    g4: { key: "top4", label: "G4", noun: "G4", slots: 4, color: "var(--libertadores)" },
-    rebaixamento: { key: "relegation", label: "Rebaixamento", noun: "rebaixamento", slots: 4, color: "var(--danger)" },
+    titulo: { key: "title", label: "Título", noun: "título", slots: 1, color: "var(--title)", table: "titulo" },
+    g4: { key: "top4", label: "G4", noun: "G4", slots: 4, color: "var(--libertadores)", table: "libertadores" },
+    rebaixamento: { key: "relegation", label: "Z4", noun: "rebaixamento", slots: 4, color: "var(--danger)", table: "rebaixamento" },
   };
   const RACE_MOVEMENT_THRESHOLD = 0.05;
 
@@ -360,41 +321,6 @@
     return { id: ranked.sort((left, right) => right.openness - left.openness)[0].id, reason: "openness" };
   }
 
-  const joinNames = (teams) => {
-    const names = teams.map((team) => escapeHtml(team.name));
-    return names.length > 1 ? `${names.slice(0, -1).join(", ")} e ${names[names.length - 1]}` : names.join("");
-  };
-  const NEAR_CERTAIN = 0.99;
-
-  function raceStory(raceId) {
-    const race = RACES[raceId];
-    const teams = raceTeams(race);
-    const simulations = state.snapshot.n_simulations.toLocaleString("pt-BR");
-    const method = `Jogamos os ${state.snapshot.remaining_matches} jogos que faltam ${simulations} vezes, a partir da tabela real. Cada porcentagem diz em quantas dessas simulações aquilo aconteceu.`;
-    if (raceId === "titulo") {
-      const [leader, challenger] = teams.filter((team) => team.title >= 0.005);
-      if (!leader) return { headline: "Quem ainda dá?", lede: method };
-      const headline = challenger
-        ? `${escapeHtml(leader.name)} na frente. ${escapeHtml(challenger.name)}: ainda dá${challenger.title < 0.05 ? ", por pouco" : ""}.`
-        : `Só ${escapeHtml(leader.name)} ainda aparece com o título nas simulações.`;
-      const detail = `O título fica com ${escapeHtml(leader.name)} em <strong>${pct(leader.title)}</strong> das simulações${challenger ? ` e com ${escapeHtml(challenger.name)} em <strong>${pct(challenger.title)}</strong>` : ""}.`;
-      return { headline, lede: `${detail} <span class="lede-method">${method}</span>` };
-    }
-    const settled = teams.filter((team) => team[race.key] >= NEAR_CERTAIN);
-    const open = teams.filter((team) => team[race.key] >= 0.01 && team[race.key] < NEAR_CERTAIN);
-    const spots = race.slots - settled.length;
-    const allSimulations = settled.every((team) => team[race.key] === 1) ? "todas as" : "praticamente todas as";
-    const verb = raceId === "g4" ? (settled.length > 1 ? "terminam no G4" : "termina no G4") : (settled.length > 1 ? "caem" : "cai");
-    const settledText = settled.length ? `${joinNames(settled)} ${verb} em ${allSimulations} simulações. ` : "";
-    const rest = raceId === "g4" ? (spots > 1 ? `As ${spots} vagas restantes` : "A vaga restante") : (spots > 1 ? `As outras ${spots} quedas` : "A outra queda");
-    const openText = open.length ? `${rest} ${spots > 1 ? "ficam" : "fica"} entre ${joinNames(open.slice(0, 6))}${open.length > 6 ? ` e mais ${open.length - 6}` : ""}.` : "";
-    const headline = raceId === "g4"
-      ? `G4: ${spots > 0 ? `${spots === 1 ? "uma vaga" : `${spots} vagas`} em aberto, ${open.length} ${open.length === 1 ? "clube" : "clubes"} na briga.` : "as quatro vagas já têm dono nas simulações."}`
-      : `Quatro caem. ${spots > 0 ? `${open.length} ${open.length === 1 ? "clube ainda corre" : "clubes ainda correm"} risco por ${spots === 1 ? "uma vaga" : `${spots} vagas`}.` : "As simulações já apontam os quatro."}`;
-    return { headline, lede: `${settledText}${openText} <span class="lede-method">${method}</span>` };
-  }
-
-
   /* ---------------- Seu time e convites para explorar (D-048) */
 
   // Preferência do visitante, só neste aparelho: o clube que ele segue abre a home.
@@ -432,177 +358,177 @@
     return state.snapshot.matches.find((match) => match.status !== "finished" && !isPostponed(match) && (match.home_id === clubId || match.away_id === clubId));
   }
 
-  /* As disputas em que o clube tem chance real, a mais provável primeiro. Título e queda sempre aparecem em destaque
-     (são as que o torcedor mais procura); as demais ficam à frente só se a chance for relevante. */
-  function teamChips(team) {
-    const disputes = [
-      { label: "Título", value: team.title, key: "titulo", strong: true },
-      { label: "G4", value: team.top4, key: "g4" },
-      { label: "Libertadores", value: scenarioMid(team.libertadores_total), key: "liberta" },
-      { label: "Sul-Americana", value: scenarioMid(team.sudamericana), key: "sula" },
-      { label: "Queda", value: team.relegation, key: "queda", strong: true },
-    ].filter((item) => item.value >= 0.005 && item.value <= 0.995);
-    const sorted = disputes.sort((left, right) => (right.strong ? 1 : 0) - (left.strong ? 1 : 0) || right.value - left.value);
-    const TABLE_KEY = { titulo: "titulo", g4: "libertadores", liberta: "libertadores", sula: "sul-americana", queda: "rebaixamento" };
-    return sorted.map((item) => `<a class="chance-chip${item.strong ? " is-strong" : ""}" data-dispute="${item.key}" href="#/classificacao/${TABLE_KEY[item.key]}"><span>${item.label}</span><strong>${pct(item.value)}</strong></a>`).join("")
-      || `<span class="chance-chip"><span>Permanência</span><strong>definida</strong></span>`;
+  /* Card "Seu Time" (REDESIGN_SPEC v2.1 §3.3): escudo, posição e pontos, "Trocar", três blocos (Título · G4 · Queda)
+     e o botão do simulador. Sem time escolhido, uma linha com o botão que abre a mesma folha de clubes. */
+  const YOUR_TEAM_STATS = [
+    { label: "Título", key: "title", view: "titulo", tone: "is-title" },
+    { label: "G4", key: "top4", view: "libertadores", tone: "is-g4" },
+    { label: "Queda", key: "relegation", view: "rebaixamento", tone: "is-z4" },
+  ];
+  const FEMININE_CLUBS = new Set(["chapecoense"]);
+
+  function openTeamSheet() {
+    const teams = [...state.snapshot.teams].sort((left, right) => left.current_position - right.current_position);
+    const current = favoriteClub();
+    const grid = teams.map((team) => `<button type="button" class="team-tile${team.club_id === current ? " is-current" : ""}" data-pick-club="${escapeHtml(team.club_id)}"${team.club_id === current ? ' aria-pressed="true"' : ""}>${crest(team.club_id, 32)}<span>${escapeHtml(team.name)}</span></button>`).join("");
+    window.AIndaDaShell.openSheet("Escolha seu time", `<div class="sheet-grid sheet-grid-teams">${grid}</div>`, (dialog) => {
+      dialog.querySelectorAll("[data-pick-club]").forEach((button) => button.addEventListener("click", () => {
+        setFavoriteClub(button.dataset.pickClub);
+        dialog.close();
+        route();
+      }));
+    });
   }
 
   function yourTeamCard() {
     const team = teamById(favoriteClub());
     if (!team) {
-      return `<a class="your-team is-empty" href="#/clubes">${STAR(false)}<span><strong>Escolha o seu time</strong> e ele abre esta página com as chances e o próximo jogo.</span><span class="your-team-go" aria-hidden="true">›</span></a>`;
+      return `<section class="card your-team is-empty" aria-label="Seu time"><p class="yt-empty">Escolha seu time</p><button type="button" class="btn-secondary btn-sm" data-open-teams>Escolher</button></section>`;
     }
-    const match = nextMatchOf(team.club_id);
-    const home = match && match.home_id === team.club_id;
-    const opponent = match ? (home ? match.away_id : match.home_id) : null;
-    const win = match ? (home ? match.p_home : match.p_away) : null;
-    return `<section class="your-team" aria-label="Seu time">
-      <a class="your-team-head" href="#/clubes/${encodeURIComponent(team.club_id)}">
-        ${crest(team.club_id, 40)}
-        <span class="your-team-name"><span class="your-team-kicker">Seu time</span><strong>${escapeHtml(team.name)}</strong><span>${team.current_position}º · ${team.current_points} pts</span></span>
-        <span class="your-team-go" aria-hidden="true">›</span>
-      </a>
-      <div class="chance-chips">${teamChips(team)}</div>
-      ${match ? `<p class="your-team-next">Próximo: <strong>${home ? "em casa" : "fora"} contra ${escapeHtml(nameOf(opponent))}</strong> · ${escapeHtml(formatShortDate(match.match_date))} · vence em ${pct(win)}</p>` : ""}
+    const stats = YOUR_TEAM_STATS.map((stat) => `<a class="yt-stat ${stat.tone}" href="#/classificacao/${stat.view}"><span>${stat.label}</span><strong>${pct(team[stat.key])}</strong></a>`).join("");
+    const article = FEMININE_CLUBS.has(team.club_id) ? "da" : "do";
+    return `<section class="card your-team" aria-label="Seu time">
+      <div class="yt-head">
+        <a class="yt-club" href="#/clubes/${encodeURIComponent(team.club_id)}">${crest(team.club_id, 40)}<span class="yt-name"><strong>${escapeHtml(team.name)}</strong><span>${team.current_position}º lugar · ${team.current_points} pts</span></span></a>
+        <button type="button" class="chip chip-sm" data-open-teams>Trocar</button>
+      </div>
+      <div class="yt-stats">${stats}</div>
+      <a class="btn-primary yt-cta" href="#/simular">Simular jogos ${article} ${escapeHtml(team.name)}</a>
     </section>`;
   }
 
-  function exploreCards() {
-    const cards = [
-      ["#/simular", "Simule o fim do campeonato", "Escolha campeão, G4 e rebaixados ou dê o placar de cada jogo. Leva um minuto.", true],
-      ["#/classificacao", "Tabela com as chances", "Título, Libertadores, Sul-Americana e queda de cada clube.", false],
-      ["#/partidas", "Jogos que faltam", "Quem é favorito em cada partida e os placares mais prováveis.", false],
-      ["#/rodadas", "Rodada a rodada", "Como cada resultado mexeu nas chances.", false],
-    ];
-    return `<section class="explore" aria-labelledby="explore-title"><h2 id="explore-title">Continue explorando</h2>
-      <div class="explore-grid">${cards.map(([href, title, text, primary]) => `<a class="explore-card${primary ? " is-primary" : ""}" href="${href}"><strong>${title}</strong><span>${text}</span><span class="explore-go" aria-hidden="true">→</span></a>`).join("")}</div></section>`;
+  /* Estados de carregamento, vazio e erro (REDESIGN_SPEC v2.1 §3.7). */
+  const STATE_ICONS = {
+    calendar: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+    offline: '<path d="M3 9a14 14 0 0 1 18 0M6.5 12.5a9 9 0 0 1 11 0M10 16a4 4 0 0 1 4 0"/><path d="M4 4l16 16"/>',
+    table: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M4 14h16M10 9v11"/>',
+  };
+  function stateBlock({ icon, title, text, action = "", role = "" }) {
+    return `<div class="state"${role ? ` role="${role}"` : ""}>
+      <svg viewBox="0 0 24 24" width="36" height="36" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${STATE_ICONS[icon]}</svg>
+      <p class="state-title">${title}</p>${text ? `<p class="state-text">${text}</p>` : ""}${action}</div>`;
+  }
+
+  function skeleton(section) {
+    const chips = `<span class="skeleton sk-chips"></span>`;
+    let body;
+    if (section === "classificacao") body = `<span class="skeleton sk-title"></span>${chips}${Array.from({ length: 10 }, () => `<span class="skeleton sk-row"></span>`).join("")}`;
+    else if (section === "partidas" || section === "jogos") body = `<span class="skeleton sk-title"></span>${chips}<div class="mc-list">${Array.from({ length: 4 }, () => `<span class="skeleton sk-card"></span>`).join("")}</div>`;
+    else body = `<span class="skeleton sk-team"></span><span class="skeleton sk-title"></span><div class="mc-list">${Array.from({ length: 2 }, () => `<span class="skeleton sk-card"></span>`).join("")}</div><span class="skeleton sk-block"></span>`;
+    return `<div class="skeleton-page" aria-busy="true"><span class="visually-hidden">Carregando as probabilidades…</span>${body}</div>`;
   }
 
   const ROUND_TAB = "rodada";
+  const TOP_RACE_ROWS = 5;
+  const HOME_MATCHES = 4;
 
-  function raceSwitch(selected, featured) {
-    const round = state.currentRound;
-    const roundLink = round ? `<a href="#/inicio/${ROUND_TAB}" ${selected === ROUND_TAB ? 'aria-current="page"' : ""}>${round.label}</a>` : "";
-    const links = roundLink + Object.entries(RACES).map(([id, race]) => `<a href="#/inicio/${id}" ${id === selected ? 'aria-current="page"' : ""}>${race.label}</a>`).join("");
-    const switchNav = `<nav class="segmented${round ? " has-round" : ""}" aria-label="${round ? "Escolha o que ver" : "Escolha a disputa"}">${links}</nav>`;
-    if (selected === ROUND_TAB) return `<div class="race-switch">${switchNav}</div>`;
-    const previous = state.history[state.history.length - 2];
-    const latest = state.history[state.history.length - 1];
-    const curve = !reconstructionInfo() ? "" : sameModel(previous, latest) ? ", na curva recalculada com o mesmo modelo" : ", na curva recalculada";
-    const why = featured.reason === "movement" && previous
-      ? `a disputa que mais mudou desde ${formatDate(previous.reference_date)}${curve}`
-      : "a disputa mais aberta agora";
-    const hint = selected === featured.id ? `Em destaque nesta edição: ${why}.` : `<a href="#/inicio/${featured.id}">Voltar ao destaque da edição</a> (${RACES[featured.id].noun}, ${why}).`;
-    return `<div class="race-switch">${switchNav}<p class="note">${hint}</p></div>`;
+  const byKickoff = (left, right) => String(left.match_date).localeCompare(String(right.match_date))
+    || String(left.kickoff_utc || "").localeCompare(String(right.kickoff_utc || ""));
+
+  /* Rodada em andamento, ou a próxima rodada com jogos a disputar, ou a última rodada encerrada. */
+  function homeRound() {
+    const info = state.currentRound;
+    if (info && info.inProgress) return { number: info.number, matches: info.listed };
+    const pending = state.snapshot.matches.filter((match) => match.status !== "finished" && !isPostponed(match) && Number.isInteger(match.round));
+    const finished = state.snapshot.matches.filter((match) => match.status === "finished" && Number.isInteger(match.round));
+    const pool = pending.length ? pending : finished;
+    if (!pool.length) return null;
+    const number = pending.length ? Math.min(...pool.map((match) => match.round)) : Math.max(...pool.map((match) => match.round));
+    return { number, matches: pool.filter((match) => match.round === number) };
   }
 
-  function libertadoresRanges() {
-    const fight = state.snapshot.teams.filter((team) => team.libertadores_total.max > 0.02 && team.libertadores_total.min < 0.98)
-      .sort((left, right) => scenarioMid(right.libertadores_total) - scenarioMid(left.libertadores_total)).slice(0, 8);
-    if (!fight.length) return "";
-    return `<h2>E a Libertadores?</h2>
-      <p class="note">Além do G4, há vagas que dependem de quem ganha Libertadores, Sul-Americana e Copa do Brasil. Por isso mostramos uma faixa: o menor e o maior valor entre os ${state.snapshot.scenarios.length} cenários possíveis. Não chutamos quem vence esses torneios.</p>
-      <div>${fight.map((team) => {
-        const range = team.libertadores_total;
-        return `<div class="race-row">${clubLink(team.club_id)}
-          <div class="bar-track" role="img" aria-label="${escapeHtml(team.name)}: ${scenarioValue(range)}">
-            <div class="bar-fill lib" style="width:${(range.min * 100).toFixed(1)}%"></div>
-            <div class="bar-range" style="left:${(range.min * 100).toFixed(1)}%;width:${((range.max - range.min) * 100).toFixed(1)}%"></div>
-          </div><span class="value">${scenarioValue(range)}</span></div>`;
-      }).join("")}</div>`;
+  function homeMatches() {
+    const round = homeRound();
+    if (!round) return "";
+    const analysis = state.currentRound ? `<a class="block-link" href="#/inicio/${ROUND_TAB}">O que mudou na rodada ${state.currentRound.number} ›</a>` : "";
+    return `<section class="home-block" aria-labelledby="home-round">
+      <div class="block-head"><h2 id="home-round">Rodada ${round.number}</h2><a class="block-link" href="#/jogos/${round.number}">Ver todos ›</a></div>
+      ${matchList([...round.matches].sort(byKickoff).slice(0, HOME_MATCHES))}
+      ${analysis}
+    </section>`;
   }
 
-  function homeTab(requested, featured) {
-    if (requested === ROUND_TAB && state.currentRound) return ROUND_TAB;
-    if (RACES[requested]) return requested;
-    if (!requested && window.CurrentRound.opensByDefault(state.currentRound, Date.now())) return ROUND_TAB;
-    return featured.id;
+  function disputesCard(raceId) {
+    const race = RACES[raceId];
+    const top = raceTeams(race).slice(0, TOP_RACE_ROWS);
+    const chips = Object.entries(RACES).map(([id, item]) => `<a class="chip" href="#/inicio/${id}"${id === raceId ? ' aria-current="page"' : ""}>${item.label}</a>`).join("");
+    const rows = top.map((team) => `<a class="race-line" href="#/clubes/${encodeURIComponent(team.club_id)}">
+        ${crest(team.club_id, 26)}<span class="race-line-name">${escapeHtml(team.name)}</span><strong>${pct(team[race.key])}</strong>
+        <span class="race-line-bar" aria-hidden="true"><i style="width:${(team[race.key] * 100).toFixed(1)}%;background:${race.color}"></i></span></a>`).join("");
+    return `<section class="card home-block disputes" aria-labelledby="home-races">
+      <div class="block-head"><h2 id="home-races">Disputas</h2><a class="block-link" href="#/classificacao/${race.table}">Tabela ›</a></div>
+      <nav class="chip-row" aria-label="Escolha a disputa">${chips}</nav>
+      <div class="race-lines">${rows || `<p class="state-text">Nenhum clube com probabilidade nesta disputa.</p>`}</div>
+      <details class="mosaic-details"><summary>Ver o mosaico da disputa</summary>${raceMosaic(race)}</details>
+    </section>`;
+  }
+
+  function bindHome() {
+    main.querySelectorAll("[data-open-teams]").forEach((button) => button.addEventListener("click", openTeamSheet));
+  }
+
+  function renderRoundAnalysis() {
+    const renderer = window.CurrentRound.createRenderer({ escapeHtml, pct, crest, clubLink, nameOf, shortOf, formatDate });
+    main.innerHTML = `<a class="back-link" href="#/">‹ Início</a>${renderer.render(state.currentRound, state.snapshot, Date.now(), overdueWarning(), false)}`;
   }
 
   function renderHome(requested) {
-    const featured = featuredRace();
-    const tab = homeTab(requested, featured);
-    const raceId = tab === ROUND_TAB ? featured.id : tab;
-    const race = RACES[raceId];
-    const story = raceStory(raceId);
-    const insights = currentInsights();
-    const lead = insights.find((insight) => insight.placement === "home_lead");
-    const secondary = insights.filter((insight) => insight.placement === "home_secondary").slice(0, MAX_HOME_SECONDARY);
-    const leadBlock = lead
-      ? `<span class="kicker">Destaques da rodada · dados até ${formatDate(state.snapshot.reference_date)}</span>
-        <h1>${escapeHtml(lead.headline)}</h1>
-        <p class="lede">${escapeHtml(lead.body)}</p>
-        ${insightLinks(lead)}
-        ${secondary.length ? `<div class="highlights">${secondary.map(insightArticle).join("")}</div>` : ""}`
-      : "";
-    if (tab === ROUND_TAB) {
-      const renderer = window.CurrentRound.createRenderer({ escapeHtml, pct, crest, clubLink, nameOf, formatDate });
-      main.innerHTML = `${yourTeamCard()}${leadBlock}${raceSwitch(ROUND_TAB, featured)}${renderer.render(state.currentRound, state.snapshot, Date.now(), overdueWarning(), Boolean(lead))}${exploreCards()}`;
+    if (requested === ROUND_TAB && state.currentRound) {
+      renderRoundAnalysis();
       return;
     }
-    const heading = lead ? `<h2 class="race-heading">${story.headline}</h2>` : `<h1>${story.headline}</h1>`;
-    main.innerHTML = `
-      ${yourTeamCard()}
-      ${leadBlock}
-      ${raceSwitch(raceId, featured)}
-      ${heading}
-      <p class="lede">${story.lede}</p>
-      ${overdueWarning()}
-      ${raceMosaic(race)}
-      ${raceId === "g4" ? libertadoresRanges() : ""}
-      <h2>O que mudou em ${race.noun} desde a última atualização</h2>
-      ${changesSinceLast(race.key)}
-      ${exploreCards()}`;
+    const raceId = RACES[requested] ? requested : featuredRace().id;
+    main.innerHTML = `<h1 class="visually-hidden">Início</h1>${yourTeamCard()}${homeMatches()}${disputesCard(raceId)}`;
+    bindHome();
   }
 
+  /* Cenários externos em chips (REDESIGN_SPEC v2.1 §3.4): só os torneios ainda em aberto aparecem. */
   function scenarioStatus() {
-    const total = state.snapshot.scenarios.length;
     const chosen = Object.keys(state.scenarioChoice).length;
     const remaining = matchingScenarios().length;
-    if (!chosen) return `Sem escolha, Libertadores e Sul-Americana aparecem como faixa entre os ${total} cenários possíveis.`;
-    if (remaining === 1) return "Cenário completo: as probabilidades de vaga abaixo valem se esses resultados acontecerem.";
-    return `Faixa entre os ${remaining} cenários que combinam com a sua escolha.`;
+    if (!chosen) return `Faixa entre ${state.snapshot.scenarios.length} cenários`;
+    if (remaining === 1) return "Cenário completo";
+    return `Faixa entre ${remaining} cenários`;
   }
 
   function scenarioPanel() {
     const choice = state.scenarioChoice;
-    const select = ([key, label]) => {
+    const open = SCENARIO_KEYS.filter(([key]) => new Set(state.snapshot.scenarios.map((scenario) => scenario[key])).size > 1);
+    if (!open.length) return "";
+    const LABELS = { libertadores_champion: "Liberta", sudamericana_champion: "Sul-Americana", cup_champion: "Copa BR", cup_runner_up: "Vice Copa BR" };
+    const rowFor = ([key]) => {
       const others = Object.fromEntries(Object.entries(choice).filter(([other]) => other !== key));
       const options = [...new Set(matchingScenarios(others).map((scenario) => scenario[key]))].sort((left, right) => left.localeCompare(right, "pt-BR"));
-      return `<label>${label}<select data-key="${key}">
-        <option value="">Ainda em aberto</option>
-        ${options.map((value) => `<option value="${escapeHtml(value)}" ${choice[key] === value ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
-      </select></label>`;
+      const chip = (value, label) => `<button type="button" class="chip chip-sm" data-scenario-key="${key}" data-scenario-value="${escapeHtml(value)}" aria-pressed="${(choice[key] || "") === value}">${escapeHtml(label)}</button>`;
+      return `<div class="scenario-row"><span class="scenario-label">${LABELS[key]}</span><div class="chip-row">${chip("", "Em aberto")}${options.map((value) => chip(value, value)).join("")}</div></div>`;
     };
-    const clear = Object.keys(choice).length ? `<button type="button" class="link-button" id="scenario-clear">Limpar escolhas</button>` : "";
-    return `<form class="scenario-panel" id="scenario-form" aria-labelledby="scenario-title">
-      <p class="scenario-title" id="scenario-title">E se os outros torneios terminarem assim?</p>
-      <fieldset>${SCENARIO_KEYS.map(select).join("")}</fieldset>
-      <p class="note" id="scenario-status" aria-live="polite">${scenarioStatus()} ${clear}</p>
-    </form>`;
+    return `<section class="card scenario-card" aria-labelledby="scenario-title">
+      <div class="block-head"><h2 id="scenario-title">Vagas extras</h2><span class="scenario-status" aria-live="polite">${scenarioStatus()}</span></div>
+      ${open.map(rowFor).join("")}
+    </section>`;
   }
 
   function bindScenarioPanel(rerender) {
-    const form = document.getElementById("scenario-form");
-    if (!form) return;
-    form.addEventListener("change", (event) => {
-      const key = event.target.dataset.key;
-      if (!key) return;
-      if (event.target.value) state.scenarioChoice[key] = event.target.value;
-      else delete state.scenarioChoice[key];
+    main.querySelectorAll("[data-scenario-key]").forEach((button) => button.addEventListener("click", () => {
+      const { scenarioKey, scenarioValue: value } = button.dataset;
+      if (value) state.scenarioChoice[scenarioKey] = value;
+      else delete state.scenarioChoice[scenarioKey];
       rerender();
-      const again = document.querySelector(`#scenario-form select[data-key="${key}"]`);
+      const again = main.querySelector(`[data-scenario-key="${scenarioKey}"][data-scenario-value="${CSS.escape(value)}"]`);
       if (again) again.focus();
-    });
-    const clear = document.getElementById("scenario-clear");
-    if (clear) clear.addEventListener("click", () => { state.scenarioChoice = {}; rerender(); });
+    }));
   }
 
   const elo = (team) => Math.round(team.ratings.elo);
   const rankOf = (team, accessor) => [...state.snapshot.teams].sort((left, right) => accessor(right) - accessor(left)).indexOf(team) + 1;
 
   const TABLE_VIEWS = {
+    geral: {
+      label: "Geral",
+      head: ["Título", "G4", "Z4"],
+      sort: [(team) => team.title, (team) => team.top4, (team) => team.relegation],
+      cells: (team) => [probCell(team.title, "title"), probCell(team.top4, "lib"), probCell(team.relegation, "danger")],
+    },
     titulo: {
       label: "Título",
       head: ["Título"],
@@ -636,7 +562,7 @@
       caption: "Ordenada pela corrida da Sul-Americana: a vaga depende de quem ganha Libertadores, Sul-Americana e Copa do Brasil, então a coluna Sul-Americana mostra a faixa entre os cenários (ou só os que combinam com a sua escolha), e Corrida mostra a posição do clube nessa disputa e, em cinza, a melhor e a pior conforme o cenário. Vale em todos os cenários = probabilidade de terminar com a vaga seja quem for campeão desses torneios.",
     },
     rebaixamento: {
-      label: "Rebaixamento",
+      label: "Z4",
       head: ["Rebaix."],
       sort: [(team) => team.relegation],
       cells: (team) => [probCell(team.relegation, "danger")],
@@ -698,8 +624,10 @@
       const sorter = typeof spec === "function" ? { value: spec } : spec;
       return { id: `v${index}`, label, value: sorter.value, ascending: Boolean(sorter.ascending) };
     });
-    return [...FIXED_COLUMNS, ...extra];
+    // Colunas da visão logo depois de Pts: no celular o percentual principal aparece sem rolar a tabela de lado.
+    return [...FIXED_COLUMNS.slice(0, LEAD_COLUMNS), ...extra, ...FIXED_COLUMNS.slice(LEAD_COLUMNS)];
   }
+  const LEAD_COLUMNS = 3;
 
   function compareBy(column, direction) {
     return (left, right) => {
@@ -709,7 +637,6 @@
     };
   }
 
-  const TABLE_GROUPS = [["Probabilidades", ["titulo", "libertadores", "sul-americana", "rebaixamento"]], ["Clubes", ["forca", "dificuldade"]]];
   const UPCOMING_SHOWN = 5;
 
   function difficultyCell(value, rank = null) {
@@ -740,8 +667,15 @@
   }
 
   function tableTabs(selected) {
-    return `<div class="table-tabs">${TABLE_GROUPS.map(([group, ids]) => `<nav class="tabs" aria-label="${group}"><span class="tabs-label">${group}</span>${ids.map((id) =>
-      `<a href="#/classificacao/${id}" ${id === selected ? 'aria-current="page"' : ""}>${TABLE_VIEWS[id].label}</a>`).join("")}</nav>`).join("")}</div>`;
+    return `<nav class="chip-strip" aria-label="Visão da tabela">${Object.entries(TABLE_VIEWS).map(([id, view]) =>
+      `<a class="chip" href="#/classificacao/${id}"${id === selected ? ' aria-current="page"' : ""}>${view.label}</a>`).join("")}</nav>`;
+  }
+
+  const infoButton = (label) => `<button type="button" class="icon-button" data-screen-info aria-label="${label}"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></button>`;
+
+  function bindScreenInfo(title, body) {
+    const button = main.querySelector("[data-screen-info]");
+    if (button) button.addEventListener("click", () => window.AIndaDaShell.openSheet(title, `<div class="sheet-info">${body}</div>`));
   }
 
   /* Disputa em que o time escolhido tem mais chance (título e queda ganham no empate). */
@@ -754,8 +688,13 @@
 
   function renderStandings(requested) {
     const snapshot = state.snapshot;
+    if (!snapshot.teams.length || !snapshot.standings.length) {
+      main.innerHTML = `<div class="screen-head"><h1 class="screen-title">Tabela</h1></div>
+        ${stateBlock({ icon: "table", title: "A tabela ainda não está nesta atualização", text: "Ela aparece aqui assim que a fonte de dados registrar os primeiros jogos.", action: `<a class="state-action btn-secondary" href="#/">Voltar ao início</a>` })}`;
+      return;
+    }
     const autoView = !TABLE_VIEWS[requested] && favoriteClub() ? bestDisputeView() : null;
-    const viewId = TABLE_VIEWS[requested] ? requested : autoView || "titulo";
+    const viewId = TABLE_VIEWS[requested] ? requested : autoView || "geral";
     const view = TABLE_VIEWS[viewId];
     const columns = tableColumns(view);
     const chosen = state.tableSort && state.tableSort.view === viewId ? columns.find((column) => column.id === state.tableSort.id) : null;
@@ -763,19 +702,25 @@
     const teams = chosen
       ? [...snapshot.teams].sort(compareBy(chosen, state.tableSort.direction))
       : [...snapshot.teams].sort((left, right) => order(left) - order(right) || left.current_position - right.current_position);
-    const fixedCount = FIXED_COLUMNS.length;
+    const viewCount = view.head.length;
+    const restStart = LEAD_COLUMNS + viewCount;
     const lastIsUpcoming = viewId === "dificuldade";
-    const cellClass = (index) => `${index === fixedCount ? "view-start" : ""}${lastIsUpcoming && index === columns.length - 1 ? " left" : ""}`;
+    const cellClass = (index) => [
+      viewCount && index === LEAD_COLUMNS ? "view-start" : "",
+      viewCount && index === restStart ? "rest-start" : "",
+      lastIsUpcoming && index === restStart - 1 ? "left" : "",
+    ].filter(Boolean).join(" ");
     const rows = teams.map((team) => {
       const zone = team.current_position <= 5 ? "zone-lib" : team.current_position <= 11 ? "zone-sula" : team.current_position > 16 ? "zone-z4" : "";
       const standing = standingOf(team);
       return `<tr class="${zone}">
         <td class="pos">${team.current_position}</td>
-        <td class="left club">${clubLink(team.club_id)}</td>
-        <td><strong>${standing.points}</strong></td><td>${standing.played}</td><td>${standing.wins}</td><td>${standing.goal_difference > 0 ? "+" : ""}${standing.goal_difference}</td>
+        <td class="left club"><a class="club-cell" href="#/clubes/${encodeURIComponent(team.club_id)}" title="${escapeHtml(team.name)}">${crest(team.club_id, 22)}<span class="name-full">${escapeHtml(team.name)}</span><span class="name-short" aria-hidden="true">${escapeHtml(shortOf(team.club_id))}</span></a></td>
+        <td><strong>${standing.points}</strong></td>
+        ${view.cells(team).map((cell, index) => `<td class="${cellClass(LEAD_COLUMNS + index)}">${cell}</td>`).join("")}
+        <td class="${cellClass(restStart)}">${standing.played}</td><td>${standing.wins}</td><td>${standing.goal_difference > 0 ? "+" : ""}${standing.goal_difference}</td>
         <td><strong>${num(team.expected_points)}</strong><div class="range" title="Faixa provável">${Math.round(team.points_interval_90[0])}–${Math.round(team.points_interval_90[1])}</div></td>
         <td>${num(team.expected_position)}</td>
-        ${view.cells(team).map((cell, index) => `<td class="${cellClass(fixedCount + index)}">${cell}</td>`).join("")}
       </tr>`;
     }).join("");
     const head = columns.map((column, index) => {
@@ -786,19 +731,19 @@
       const mark = active ? (state.tableSort.direction > 0 ? "▲" : "▼") : "";
       return `<th class="${classes}" aria-sort="${ariaSort}"><button type="button" class="sort-button" data-sort="${column.id}">${column.label}<span class="sort-mark" aria-hidden="true">${mark}</span></button></th>`;
     }).join("");
+    const explanation = `<p>A tabela real em ${formatDate(snapshot.reference_date)} ao lado do que as simulações projetam para o fim. Toque no nome de uma coluna para ordenar.</p>
+      <p>Pts proj. = média simulada de pontos no fim; embaixo, a faixa provável, onde terminam 90% das simulações. Nas temporadas passadas, a pontuação final ficou dentro dela menos vezes que isso. Pos. média = posição final média nas simulações.</p>
+      <p>Faixa lateral: azul = G5 (Libertadores pelo Brasileirão), âmbar = faixa típica da Sul-Americana, vermelho = Z4.</p>
+      ${view.caption ? `<p>${view.caption}</p>` : ""}${viewId === "dificuldade" ? difficultyNote() : ""}`;
     main.innerHTML = `
-      <span class="kicker">Tabela</span>
-      <h1>Como está e como deve terminar</h1>
-      <p class="lede">A tabela real em ${formatDate(snapshot.reference_date)} ao lado do que as simulações projetam para a última rodada. Escolha o que ver nas últimas colunas e clique no nome de uma coluna para ordenar.</p>
-      ${autoView && teamById(favoriteClub()) ? `<p class="note table-auto-note">Abrimos em <strong>${TABLE_VIEWS[viewId].label}</strong>, porque ${escapeHtml(teamById(favoriteClub()).name)} tem a maior chance nessa disputa. Para outra, toque na aba.</p>` : ""}
+      <div class="screen-head"><h1 class="screen-title">Tabela</h1>${infoButton("Como ler a tabela")}</div>
       ${tableTabs(viewId)}
       ${view.scenarios ? scenarioPanel() : ""}
-      ${viewId === "dificuldade" ? difficultyNote() : ""}
-      <div class="table-scroll"><table class="standings">
+      <div class="table-scroll table-card"><table class="standings">
         <thead><tr>${head}</tr></thead>
         <tbody>${rows}</tbody></table></div>
-      <div class="legend"><span class="l-lib">G5 (Libertadores via Brasileirão)</span><span class="l-sula">faixa típica da Sul-Americana</span><span class="l-z4">Z4</span></div>
-      <p class="note">Pts proj. = média simulada de pontos no fim. Embaixo, a faixa provável, onde terminam 90% das simulações; nas temporadas passadas, a pontuação final ficou dentro dela menos vezes que isso (<a href="#/metodologia">Como calculamos</a>). Pos. média = posição final média nas simulações.${view.caption ? ` ${view.caption}` : ""}${chosen ? ` <button type="button" class="link-button" id="sort-reset">Voltar à ordem padrão</button>` : ""}</p>`;
+      ${chosen ? `<button type="button" class="chip chip-sm table-reset" id="sort-reset">Voltar à ordem padrão</button>` : ""}`;
+    bindScreenInfo("Como ler a tabela", explanation);
     main.querySelector("thead").addEventListener("click", (event) => {
       const button = event.target.closest("[data-sort]");
       if (!button) return;
@@ -923,10 +868,6 @@
     return null;
   }
 
-  function matchOpenButton(matchId) {
-    return `<button type="button" class="match-open" data-match-id="${escapeHtml(matchId)}">Ver o que aconteceu</button>`;
-  }
-
   function openMatchDetail(matchId) {
     const found = findRoundMatch(matchId);
     const upcoming = state.snapshot.matches.find((item) => item.match_id === matchId);
@@ -942,7 +883,7 @@
       body = `<p class="match-popup-score">${source.home_goals} × ${source.away_goals}<span>${when}</span></p>
         <p class="match-popup-line"><strong>Resultado:</strong> ${winner}.</p>
         <p class="match-popup-line"><strong>Antes do jogo, o modelo dava:</strong> ${escapeHtml(nameOf(source.home_id))} ${pct(pre.home)} · empate ${pct(pre.draw)} · ${escapeHtml(nameOf(source.away_id))} ${pct(pre.away)}.</p>
-        <h3 class="match-popup-sub">O que o jogo mexeu nas chances</h3>
+        <h3 class="match-popup-sub">O que o jogo mexeu nas probabilidades</h3>
         ${window.MatchPopup.effectRows(found.match.impacts, nameOf, [source.home_id, source.away_id])}
         ${found.match.stakes ? `<h3 class="match-popup-sub">O que estava em jogo</h3>${window.MatchPopup.effectRows(found.match.stakes, nameOf, [source.home_id, source.away_id], 2)}` : ""}
         <p class="match-popup-links">${clubLink(source.home_id)} · ${clubLink(source.away_id)}</p>`;
@@ -952,7 +893,8 @@
         <div class="match-popup-triple"><span><strong>${pct(upcoming.p_home)}</strong>${escapeHtml(nameOf(upcoming.home_id))}</span><span><strong>${pct(upcoming.p_draw)}</strong>empate</span><span><strong>${pct(upcoming.p_away)}</strong>${escapeHtml(nameOf(upcoming.away_id))}</span></div>
         <p class="match-popup-line"><strong>Gols esperados:</strong> ${num(upcoming.xg_home)} × ${num(upcoming.xg_away)}</p>
         ${scores ? `<p class="match-popup-line"><strong>Placares mais prováveis:</strong> ${scores}</p>` : ""}
-        ${upcoming.p_three_plus_goals !== null && upcoming.p_three_plus_goals !== undefined ? `<p class="match-popup-line"><strong>3 gols ou mais:</strong> ${pct(upcoming.p_three_plus_goals)}</p>` : ""}`;
+        ${upcoming.p_three_plus_goals !== null && upcoming.p_three_plus_goals !== undefined ? `<p class="match-popup-line"><strong>3 gols ou mais:</strong> ${pct(upcoming.p_three_plus_goals)}</p>` : ""}
+        <p class="match-popup-links">${clubLink(upcoming.home_id)} · ${clubLink(upcoming.away_id)}</p>`;
     } else {
       body = `<p class="match-popup-score">${source.home_goals} × ${source.away_goals}<span>${when}</span></p>
         <p class="note">Não temos as probabilidades desta rodada para mostrar o efeito no jogo.</p>`;
@@ -960,32 +902,70 @@
     window.MatchPopup.open(title, body);
   }
 
+  // O card inteiro é o alvo de toque (REDESIGN_SPEC v2.1 §3.1); os botões antigos de Rodada a rodada seguem valendo.
   main.addEventListener("click", (event) => {
     const button = event.target.closest(".match-open");
-    if (button) openMatchDetail(button.dataset.matchId);
+    if (button) { openMatchDetail(button.dataset.matchId); return; }
+    const card = event.target.closest(".mc[data-match-id]");
+    if (card && !event.target.closest("a, button")) openMatchDetail(card.dataset.matchId);
+  });
+  main.addEventListener("keydown", (event) => {
+    const card = event.target.closest && event.target.closest(".mc[data-match-id]");
+    if (card && event.target === card && (event.key === "Enter" || event.key === " ")) {
+      event.preventDefault();
+      openMatchDetail(card.dataset.matchId);
+    }
   });
 
-  function scoreOutlook(match) {
-    if (!match.top_scores || !match.top_scores.length) {
-      return match.most_likely_score ? ` · placar mais provável ${match.most_likely_score.replace("-", " × ")} (${pct(match.most_likely_score_probability)})` : "";
-    }
-    const scores = match.top_scores.map((score) => `<span class="score-chip">${score.home_goals} × ${score.away_goals} <strong>${pct(score.probability)}</strong></span>`).join("");
-    const goals = match.p_three_plus_goals === null || match.p_three_plus_goals === undefined ? "" : `<span class="goals-chance">3 gols ou mais: <strong>${pct(match.p_three_plus_goals)}</strong></span>`;
-    return `<span class="score-outlook"><span class="score-label">Placares mais prováveis</span>${scores}${goals}</span>`;
+  /* Match Card v2.1 (REDESIGN_SPEC v2.1 §3.2): rodada e horário, escudos, placar ou "VS" e as 3 pílulas 1X2 com a
+     sigla dos clubes. Sem botão nem linha de gols esperados: o card inteiro abre o detalhe (xG, placares, impacto). */
+  const kickoffClock = (match) => {
+    const stamp = match.kickoff_utc ? Date.parse(match.kickoff_utc) : NaN;
+    return Number.isNaN(stamp) ? "" : new Date(stamp).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+  };
+  const cardDay = (iso) => {
+    const date = new Date(iso + "T12:00:00");
+    const weekday = date.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "");
+    return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`;
+  };
+  const isProbability = (value) => typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
+  const shortOf = (clubId) => { const team = teamById(clubId); return team && team.short_name ? team.short_name : nameOf(clubId); };
+
+  function oddsPills(match, values, caption = "") {
+    const [home, draw, away] = values;
+    if (![home, draw, away].every(isProbability)) return "";
+    const top = Math.max(home, draw, away);
+    const pill = (value, label) => `<span class="mc-odd${value === top ? " is-top" : ""}"><strong>${pct(value)}</strong><span>${escapeHtml(label)}</span></span>`;
+    return `${caption ? `<p class="mc-caption">${caption}</p>` : ""}<div class="mc-odds">${pill(home, shortOf(match.home_id))}${pill(draw, "Empate")}${pill(away, shortOf(match.away_id))}</div>`;
   }
+
+  const cardTeam = (clubId) => `<span class="mc-team">${crest(clubId, 38)}<span class="mc-team-name">${escapeHtml(nameOf(clubId))}</span></span>`;
 
   function matchRow(match) {
     const finished = match.status === "finished";
-    const middle = finished
-      ? `<div class="score">${match.home_goals} × ${match.away_goals}</div>`
-      : `<div class="triple" role="img" aria-label="Mandante ${pct(match.p_home)}, empate ${pct(match.p_draw)}, visitante ${pct(match.p_away)}">
-          <span class="t-home" style="width:${match.p_home * 100}%">${Math.round(match.p_home * 100)}</span>
-          <span class="t-draw" style="width:${match.p_draw * 100}%">${Math.round(match.p_draw * 100)}</span>
-          <span class="t-away" style="width:${match.p_away * 100}%">${Math.round(match.p_away * 100)}</span></div>`;
-    const when = isPostponed(match) ? ` · <strong class="postponed">adiado, data a definir</strong>` : "";
-    const meta = finished ? `Rodada ${match.round ?? "?"}` : `Rodada ${match.round ?? "?"}${when} · gols esperados ${num(match.xg_home)} × ${num(match.xg_away)}${scoreOutlook(match)}`;
-    return `<div class="match"><div class="home">${clubLink(match.home_id, 22, true)}</div><div class="triple-cell">${middle}</div><div class="away">${clubLink(match.away_id, 22)}</div><div class="match-meta">${meta}</div><div class="match-actions">${matchOpenButton(match.match_id)}</div></div>`;
+    const postponed = isPostponed(match);
+    const clock = kickoffClock(match);
+    const when = postponed ? "data a definir" : `${cardDay(match.match_date)}${clock ? ` ${clock}` : ""}`;
+    const badge = finished ? `<span class="mc-badge">Encerrado</span>` : postponed ? `<span class="mc-badge is-alert">Adiado</span>` : "";
+    const center = finished
+      ? `<span class="mc-center">${match.home_goals} × ${match.away_goals}</span>`
+      : `<span class="mc-center is-vs">VS</span>`;
+    const found = finished ? findRoundMatch(match.match_id) : null;
+    const pre = found && found.match.pre_match;
+    const odds = finished
+      ? (pre ? oddsPills(match, [pre.home, pre.draw, pre.away], "Antes do jogo") : "")
+      : oddsPills(match, [match.p_home, match.p_draw, match.p_away]);
+    const spoken = finished
+      ? `${nameOf(match.home_id)} ${match.home_goals}, ${nameOf(match.away_id)} ${match.away_goals}, encerrado`
+      : `${nameOf(match.home_id)} contra ${nameOf(match.away_id)}${isProbability(match.p_home) ? `: ${nameOf(match.home_id)} ${pct(match.p_home)}, empate ${pct(match.p_draw)}, ${nameOf(match.away_id)} ${pct(match.p_away)}` : ""}`;
+    return `<article class="mc" data-match-id="${escapeHtml(match.match_id)}" tabindex="0" role="button" aria-label="${escapeHtml(`Rodada ${match.round ?? "?"}, ${when}. ${spoken}. Ver detalhes`)}">
+        <div class="mc-top"><span>R${match.round ?? "?"} · ${when}</span><span class="mc-top-end">${badge}<span class="mc-go" aria-hidden="true">›</span></span></div>
+        <div class="mc-teams" aria-hidden="true">${cardTeam(match.home_id)}${center}${cardTeam(match.away_id)}</div>
+        <div aria-hidden="true">${odds}</div>
+      </article>`;
   }
+
+  const matchList = (matches) => `<div class="mc-list">${matches.map(matchRow).join("")}</div>`;
 
   function signedPercent(value) {
     const rounded = Math.round(value * 100);
@@ -1002,7 +982,7 @@
         ${crest(item.club_id, 40)}<span class="club-tile-name">${escapeHtml(item.name)}${item.club_id === favorite ? ` <span class="club-tile-star" aria-label="seu time">${STAR(true)}</span>` : ""}</span>
         <span class="club-tile-meta">${item.current_position}º · ${item.current_points} pts</span></a></li>`).join("");
       main.innerHTML = `<span class="kicker">Clubes</span><h1>Escolha um clube</h1>
-        <p class="lede">Abra um clube para ver as chances, os próximos jogos e como tudo mudou. Abra um clube e toque em "Tornar este o meu time" para ele abrir a home.</p>
+        <p class="lede">Toque num clube para ver as probabilidades e os próximos jogos.</p>
         <ul class="club-grid">${tiles}</ul>`;
       return;
     }
@@ -1029,8 +1009,8 @@
       <nav class="jump-chips" aria-label="Nesta página">
         <a href="#club-jogos" data-jump-to="club-jogos">Próximos jogos</a><a href="#club-resultados" data-jump-to="club-resultados">Resultados</a><a href="#club-posicao" data-jump-to="club-posicao">Posição final</a><a href="#club-evolucao" data-jump-to="club-evolucao">Evolução</a><a href="#club-forca" data-jump-to="club-forca">Força</a>${team.schedule ? `<a href="#club-dificuldade" data-jump-to="club-dificuldade">Dificuldade</a>` : ""}<a href="#club-cenarios" data-jump-to="club-cenarios">Cenários</a>
       </nav>
-      <h2 id="club-jogos">Próximos jogos</h2>${upcoming.length ? upcoming.map(matchRow).join("") : "<p class='note'>Sem jogos restantes.</p>"}
-      <h2 id="club-resultados">Últimos resultados</h2>${recentResults.length ? recentResults.map(matchRow).join("") : "<p class='note'>Nenhum jogo encerrado ainda.</p>"}
+      <h2 id="club-jogos">Próximos jogos</h2>${upcoming.length ? matchList(upcoming) : "<p class='note'>Sem jogos restantes.</p>"}
+      <h2 id="club-resultados">Últimos resultados</h2>${recentResults.length ? matchList(recentResults) : "<p class='note'>Nenhum jogo encerrado ainda.</p>"}
       <h2 id="club-posicao">Distribuição da posição final</h2>${positionChart(team.position_probabilities)}
       <h2 id="club-evolucao">Evolução ao longo da temporada</h2>
       ${(() => {
@@ -1080,23 +1060,21 @@
       ${difficultyNote()}`;
   }
 
-  function renderMatches() {
-    const snapshot = state.snapshot;
-    const remaining = snapshot.matches.filter((match) => match.status !== "finished" && !isPostponed(match));
-    const postponed = snapshot.matches.filter(isPostponed);
-    const recent = snapshot.matches.filter((match) => match.status === "finished").slice(-10).reverse();
-    const byDate = {};
-    remaining.forEach((match) => { (byDate[match.match_date] = byDate[match.match_date] || []).push(match); });
+  function renderMatches(requested) {
+    const matches = state.snapshot.matches;
+    const rounds = [...new Set(matches.map((match) => match.round).filter(Number.isInteger))].sort((left, right) => left - right);
+    const pending = matches.filter((match) => match.status !== "finished" && !isPostponed(match) && Number.isInteger(match.round));
+    const fallback = pending.length ? Math.min(...pending.map((match) => match.round)) : rounds[rounds.length - 1];
+    const selected = rounds.includes(Number(requested)) ? Number(requested) : fallback;
+    const list = matches.filter((match) => match.round === selected).sort(byKickoff);
+    const strip = rounds.length
+      ? `<nav class="chip-strip" aria-label="Rodadas">${rounds.map((round) => `<a class="chip" href="#/jogos/${round}"${round === selected ? ' aria-current="page"' : ""}>Rodada ${round}</a>`).join("")}</nav>`
+      : "";
     main.innerHTML = `
-      <span class="kicker">Jogos</span>
-      <h1>O que esperar de cada jogo</h1>
-      <p class="lede">Probabilidade de vitória do mandante, de empate e de vitória do visitante, com a força de cada clube em ${formatDate(snapshot.reference_date)}.</p>
-      <div class="legend"><span class="l-home">mandante</span><span class="l-draw">empate</span><span class="l-away">visitante</span></div>
+      <div class="screen-head"><h1 class="screen-title">Jogos</h1></div>
+      ${strip}
       ${overdueWarning()}
-      ${Object.entries(byDate).map(([day, matches]) => `<section class="match-day"><h3>${formatShortDate(day)}</h3>${matches.map(matchRow).join("")}</section>`).join("")}
-      ${postponed.length ? `<section class="match-day"><h3>Adiado, data a definir</h3>${postponed.map(matchRow).join("")}
-        <p class="note">Nas simulações, ${postponed.length === 1 ? "este jogo conta" : "estes jogos contam"} como ainda a disputar.</p></section>` : ""}
-      <h2>Últimos resultados</h2>${recent.map(matchRow).join("")}`;
+      ${list.length ? matchList(list) : stateBlock({ icon: "calendar", title: "Sem jogos nesta rodada", text: "Escolha outra rodada na faixa acima.", action: `<a class="state-action btn-secondary" href="#/classificacao">Ver a tabela</a>` })}`;
   }
 
   const PUBLISHABLE_LICENSES = ["verified_open", "licensed_with_attribution"];
@@ -1235,13 +1213,13 @@
     const [, section = "", parameter = "", ...rest] = location.hash.replace(/^#/, "").split("/");
     const isHome = !section || section === "inicio";
     document.querySelectorAll(".masthead nav a").forEach((link) => {
-      const active = (link.dataset.route === "home" && isHome) || link.dataset.route === section;
+      const active = (link.dataset.route === "home" && isHome) || link.dataset.route === section || (link.dataset.route === "jogos" && section === "partidas");
       if (active) link.setAttribute("aria-current", "page"); else link.removeAttribute("aria-current");
     });
     if (section !== "ao-vivo" && window.LiveRound) window.LiveRound.stop();
     if (section === "classificacao") renderStandings(parameter);
     else if (section === "clubes") renderClub(decodeURIComponent(parameter));
-    else if (section === "partidas") renderMatches();
+    else if (section === "partidas" || section === "jogos") renderMatches(parameter);
     else if (section === "rodadas") {
       window.Rounds.render(main, [parameter, ...rest], { review: state.rounds, escapeHtml, pct, num, formatDate, formatShortDate, highlights: roundHighlights });
     }
@@ -1250,6 +1228,7 @@
     else if (section === "metodologia") renderMethodology();
     else renderHome(parameter);
     revealActive(document.querySelector(".masthead nav"));
+    main.querySelectorAll(".chip-strip").forEach(revealActive);
     revealActive(document.querySelector(".leagues"));
     const sameView = (isHome ? "inicio" : section) === lastSection && section !== "clubes";
     lastSection = isHome ? "inicio" : section;
@@ -1265,10 +1244,20 @@
   }
 
   async function start() {
+    const section = location.hash.replace(/^#\/?/, "").split("/")[0];
+    main.innerHTML = skeleton(section);
+    document.getElementById("reference-bar").textContent = "Carregando as simulações…";
     state.snapshot = await fetchJson(`/seasons/${SEASON}/predictions`);
     if (!state.snapshot) {
-      main.innerHTML = "<h1>Previsões indisponíveis</h1><p class='lede'>Nenhum snapshot encontrado. Rode <code>python -m brasileirao.cli simulate</code> e recarregue a página.</p>";
       document.getElementById("reference-bar").textContent = "";
+      main.innerHTML = stateBlock({
+        icon: "offline",
+        role: "alert",
+        title: "Não deu para carregar as probabilidades",
+        text: "A conexão falhou ou a atualização ainda não está no ar. Confira a internet e tente de novo.",
+        action: `<button type="button" class="state-action btn-primary" id="retry">Tentar novamente</button>`,
+      });
+      document.getElementById("retry").addEventListener("click", start);
       return;
     }
     state.history = (await fetchJson(`/seasons/${SEASON}/probability-history`)) || [];

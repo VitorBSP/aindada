@@ -36,7 +36,7 @@
     const others = entries.filter((entry) => !focus.includes(entry.clubId)).sort((left, right) => right.weight - left.weight).slice(0, extra);
     const otherTitle = mine.length ? `<h3 class="match-popup-sub">Outros clubes que mais mexeram</h3>` : "";
     return mine.map(line).join("") + (others.length ? `${otherTitle}${others.map(line).join("")}` : "")
-      || `<p class="note">Este jogo não mexeu nas chances de título, G4 nem queda além do ruído da simulação.</p>`;
+      || `<p class="note">Este jogo não mexeu nas probabilidades de título, G4 nem queda além do ruído da simulação.</p>`;
   }
 
   function open(title, body) {
