@@ -2,7 +2,7 @@
   "use strict";
 
   const SEASON = 2026;
-  const state = { live: new Map(), prediction: null, snapshot: null, history: [], metrics: null, rounds: null, currentRound: null, insights: [], crests: {}, apiMode: false, scenarioChoice: {}, historyMode: null };
+  const state = { live: new Map(), prediction: null, whatIf: null, snapshot: null, history: [], metrics: null, rounds: null, currentRound: null, insights: [], crests: {}, apiMode: false, scenarioChoice: {}, historyMode: null };
   const main = document.getElementById("main");
 
   const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (char) => (
@@ -431,14 +431,109 @@
     </section>`;
   }
 
-  function teamNextMatch(team) {
+  function teamNextMatch(team, raceId) {
     const match = upcomingMatches().find((item) => !isPostponed(item) && (item.home_id === team.club_id || item.away_id === team.club_id));
     if (!match) return "";
     return `<section class="home-block" aria-labelledby="home-next">
       <div class="block-head"><h2 id="home-next">Próximo jogo</h2><a class="block-link" href="#/clubes/${encodeURIComponent(team.club_id)}">Todos os jogos ›</a></div>
       ${matchList([match])}
+      ${nextMatchWhatIf(team, match, raceId)}
     </section>`;
   }
+
+  /* ---------------- "E se…" do seu time (ADR-0016): probabilidades condicionadas calculadas no navegador, com o
+     motor do modo Ao vivo (window.LiveRound.simulate, semente fixa) sobre as probabilidades publicadas no snapshot.
+     Uma única rodada de simulações acompanha os próximos jogos: para cada resultado de cada jogo, a fração das
+     simulações em que o seu time terminou campeão, no G4 ou rebaixado. Não substitui o número publicado. */
+  const WHAT_IF_MATCHES = 20;
+  const WHAT_IF_MIN_SAMPLES = 300;
+  const WHAT_IF_MIN_SWING = 0.01;
+  const WHAT_IF_SHOWN = 3;
+
+  const whatIfKey = (team) => `${team.club_id}|${state.snapshot.generated_at}|${[...state.live.values()].map((row) => `${row.match_id}:${row.status}:${row.home_goals}:${row.away_goals}`).sort().join(",")}`;
+
+  async function computeWhatIf(team) {
+    const live = window.LiveRound;
+    if (!live || typeof live.simulate !== "function" || !window.Simulator) return;
+    const key = whatIfKey(team);
+    if (state.whatIf && state.whatIf.key === key) return;
+    state.whatIf = { key, status: "loading" };
+    try {
+      const model = live.prepare(state.snapshot, [...state.live.values()]);
+      const matchIds = upcomingMatches().filter((match) => !isPostponed(match)).slice(0, WHAT_IF_MATCHES).map((match) => match.match_id);
+      const own = upcomingMatches().find((match) => !isPostponed(match) && (match.home_id === team.club_id || match.away_id === team.club_id));
+      if (own && !matchIds.includes(own.match_id)) matchIds.push(own.match_id);
+      const result = await live.simulate(model, { track: { clubId: team.club_id, matchIds } });
+      if (!state.whatIf || state.whatIf.key !== key) return;
+      state.whatIf = { key, status: "done", simulations: result.simulations, byMatch: new Map(result.track.map((entry) => [entry.match_id, entry.outcomes])) };
+    } catch (error) {
+      if (state.whatIf && state.whatIf.key === key) state.whatIf = { key, status: "error" };
+    }
+    const [, section = ""] = location.hash.replace(/^#/, "").split("/");
+    if (!section || section === "inicio") route();
+  }
+
+  const whatIfReady = (team) => state.whatIf && state.whatIf.key === whatIfKey(team) && state.whatIf.status === "done";
+  const usable = (bucket, key) => bucket && bucket.n >= WHAT_IF_MIN_SAMPLES && isProbability(bucket[key]);
+
+  /* Os três finais possíveis do próximo jogo, do ponto de vista do seu time. */
+  function nextMatchWhatIf(team, match, raceId) {
+    if (!match) return "";
+    const key = RACES[raceId].key;
+    if (!whatIfReady(team)) {
+      return state.whatIf && state.whatIf.status === "loading" ? `<div class="whatif" aria-busy="true"><p class="mc-label">Se o jogo terminar em…</p><span class="skeleton sk-chips"></span></div>` : "";
+    }
+    const outcomes = state.whatIf.byMatch.get(match.match_id);
+    if (!outcomes) return "";
+    const home = match.home_id === team.club_id;
+    const options = [["Vitória", home ? "H" : "A"], ["Empate", "D"], ["Derrota", home ? "A" : "H"]];
+    const status = matchState(match);
+    const current = status.kind === "live" ? engineOutcome(status.home, status.away) : null;
+    const cells = options.map(([label, outcome]) => {
+      const bucket = outcomes[outcome];
+      const value = usable(bucket, key) ? pct(bucket[key]) : "–";
+      const now = current === outcome ? `<small>como está</small>` : "";
+      return `<span class="whatif-cell${current === outcome ? " is-now" : ""}"><span>${label}</span><strong>${value}</strong>${now}</span>`;
+    }).join("");
+    return `<div class="whatif"><p class="mc-label">Se o jogo terminar em… · probabilidade de ${HERO_NOUN[raceId]}</p><div class="whatif-row">${cells}</div></div>`;
+  }
+
+  const engineOutcome = (home, away) => (home > away ? "H" : home < away ? "A" : "D");
+
+  /* Os jogos cujo resultado mais muda a probabilidade do seu time na disputa escolhida. */
+  function mostImpactful(team, raceId) {
+    const key = RACES[raceId].key;
+    const noun = HERO_NOUN[raceId];
+    if (!whatIfReady(team)) {
+      if (!state.whatIf || state.whatIf.status !== "loading") return "";
+      return `<section class="card home-block impact" aria-busy="true"><h2 class="impact-title">O que mais mexe na sua probabilidade de ${noun}</h2><span class="skeleton sk-row"></span><span class="skeleton sk-row"></span><span class="skeleton sk-row"></span></section>`;
+    }
+    const byId = new Map(state.snapshot.matches.map((match) => [match.match_id, match]));
+    const good = raceId === "rebaixamento" ? (left, right) => left < right : (left, right) => left > right;
+    const rows = [...state.whatIf.byMatch.entries()].map(([matchId, outcomes]) => {
+      const match = byId.get(matchId);
+      const valid = Object.entries(outcomes).filter(([, bucket]) => usable(bucket, key));
+      if (!match || valid.length < 2) return null;
+      const sorted = [...valid].sort(([, left], [, right]) => (good(left[key], right[key]) ? -1 : good(right[key], left[key]) ? 1 : 0));
+      const best = sorted[0], worst = sorted[sorted.length - 1];
+      return { match, best, worst, swing: Math.abs(best[1][key] - worst[1][key]) };
+    }).filter((row) => row && row.swing >= WHAT_IF_MIN_SWING).sort((left, right) => right.swing - left.swing).slice(0, WHAT_IF_SHOWN);
+    const outcomeText = (match, outcome) => (outcome === "D" ? "empate" : `vitória do ${escapeHtml(shortOf(outcome === "H" ? match.home_id : match.away_id))}`);
+    const list = rows.map((row) => `<div class="impact-row">
+        <span class="impact-match">${escapeHtml(nameOf(row.match.home_id))} × ${escapeHtml(nameOf(row.match.away_id))}<small>${cardDay(row.match.match_date)} · R${row.match.round ?? "?"}</small></span>
+        <span class="impact-outcomes"><span class="is-best">${outcomeText(row.match, row.best[0])}: <strong>${pct(row.best[1][key])}</strong></span><span class="is-worst">${outcomeText(row.match, row.worst[0])}: <strong>${pct(row.worst[1][key])}</strong></span></span>
+      </div>`).join("");
+    const empty = `<p class="state-text">Nenhum dos próximos ${WHAT_IF_MATCHES} jogos muda a sua probabilidade de ${noun} em 1 ponto percentual ou mais.</p>`;
+    return `<section class="card home-block impact" aria-labelledby="impact-title">
+      <div class="block-head"><h2 class="impact-title" id="impact-title">O que mais mexe na sua probabilidade de ${noun}</h2>${infoButton("Como este cálculo é feito")}</div>
+      ${list || empty}
+      <p class="impact-note">Calculado no seu navegador: ${state.whatIf.simulations.toLocaleString("pt-BR")} simulações dos próximos jogos.</p>
+    </section>`;
+  }
+
+  const WHAT_IF_EXPLANATION = `<p>Estes números são calculados no seu navegador, com o mesmo motor do modo Ao vivo: ele sorteia o resto do campeonato com as probabilidades de cada jogo publicadas nesta edição (e, se houver, com o placar ao vivo).</p>
+    <p>Para cada resultado de um jogo, mostramos em que fração das simulações com aquele resultado o seu time terminou campeão, no G4 ou rebaixado. São probabilidades condicionadas: valem se aquele resultado acontecer.</p>
+    <p>Como é outra rodada de simulações, os números podem diferir um pouco do número grande publicado acima. Resultados com menos de ${WHAT_IF_MIN_SAMPLES} simulações aparecem como "–".</p>`;
 
   function emptyTeamCard() {
     return `<section class="card your-team is-empty" aria-label="Seu time"><p class="yt-empty">Escolha seu time</p><button type="button" class="btn-secondary btn-sm" data-open-teams>Escolher</button></section>`;
@@ -533,10 +628,13 @@
     const article = FEMININE_CLUBS.has(team.club_id) ? "da" : "do";
     main.innerHTML = `<h1 class="visually-hidden">Início</h1>
       ${teamHero(team, raceId)}
-      ${teamNextMatch(team)}
+      ${teamNextMatch(team, raceId)}
+      ${mostImpactful(team, raceId)}
       <a class="btn-primary yt-cta home-cta" href="#/simular">Simular jogos ${article} ${escapeHtml(team.name)}</a>
       ${homeMatches(next ? next.match_id : null)}`;
     bindHome();
+    bindScreenInfo("Como este cálculo é feito", WHAT_IF_EXPLANATION);
+    computeWhatIf(team);
   }
 
   /* Cenários externos em chips (REDESIGN_SPEC v2.1 §3.4): só os torneios ainda em aberto aparecem. */

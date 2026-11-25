@@ -312,6 +312,13 @@
     });
 
     const tally = clubIds.map(() => ({ title: 0, top4: 0, relegation: 0, positions: new Float64Array(size), libertadores: new Float64Array(scenarios.length), sudamericana: new Float64Array(scenarios.length) }));
+    // `track` (Home do seu time, ADR-0016): para cada jogo acompanhado e cada resultado sorteado nele, conta em quantas
+    // simulações o clube acompanhado terminou campeão, no G4 ou rebaixado. Só lê o sorteio; não muda o resultado.
+    const trackedClub = options.track && index.has(options.track.clubId) ? index.get(options.track.clubId) : null;
+    const trackedIds = new Set(trackedClub === null ? [] : options.track.matchIds || []);
+    const emptyOutcome = () => ({ n: 0, title: 0, top4: 0, relegation: 0 });
+    const tracked = draws.map((item, position) => ({ position, item })).filter(({ item }) => trackedIds.has(item.match.match_id))
+      .map(({ position, item }) => ({ position, matchId: item.match.match_id, outcomes: { H: emptyOutcome(), D: emptyOutcome(), A: emptyOutcome() } }));
     const drawn = new Array(draws.length);
     const points = new Float64Array(size), wins = new Float64Array(size), balance = new Float64Array(size), scored = new Float64Array(size), luck = new Float64Array(size);
     const sample = engine().draw;
@@ -344,6 +351,17 @@
         }
         start = end;
       }
+      if (tracked.length) {
+        const rank = order.indexOf(trackedClub);
+        tracked.forEach((entry) => {
+          const [home, away] = drawn[entry.position];
+          const bucket = entry.outcomes[engine().outcomeOf(home, away)];
+          bucket.n += 1;
+          if (rank === 0) bucket.title += 1;
+          if (rank < TOP4) bucket.top4 += 1;
+          if (rank >= size - RULES.relegationCount) bucket.relegation += 1;
+        });
+      }
       const finalOrder = order.map((club) => clubIds[club]);
       order.forEach((club, position) => {
         const entry = tally[club];
@@ -375,7 +393,16 @@
         sudamericana: range(entry.sudamericana),
       });
     });
-    return { simulations, scenarios: scenarios.length, clubs: result };
+    const track = tracked.map((entry) => ({
+      match_id: entry.matchId,
+      outcomes: Object.fromEntries(Object.entries(entry.outcomes).map(([outcome, bucket]) => [outcome, {
+        n: bucket.n,
+        title: bucket.n ? bucket.title / bucket.n : null,
+        top4: bucket.n ? bucket.top4 / bucket.n : null,
+        relegation: bucket.n ? bucket.relegation / bucket.n : null,
+      }])),
+    }));
+    return { simulations, scenarios: scenarios.length, clubs: result, track };
   }
 
   /* ---------------------------------------------------------------- Página */

@@ -913,3 +913,26 @@ details.rg-out[open] summary::after { transform: rotate(90deg); }
 }
 @media (prefers-reduced-motion: reduce) { details.rg-out summary::after { transition: none; } }
 .race-row-card.is-mine .rr-meta, .race-row-card.is-mine .rr-mine, .race-row-card.is-mine .rr-pos { color: var(--ink-soft); }
+
+/* "E se…" do seu time (ADR-0016) */
+.whatif { display: grid; gap: 6px; margin-top: 10px; }
+.whatif-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.whatif-cell { display: flex; flex-direction: column; align-items: center; gap: 1px; min-height: 52px; justify-content: center; padding: 6px 4px; border: 1px solid transparent; border-radius: var(--radius-control); background: var(--surface-2); font-size: 12px; font-weight: 650; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.whatif-cell strong { font-size: 17px; font-weight: 800; color: var(--ink); }
+.whatif-cell small { font-size: 10px; font-weight: 700; color: var(--signal); }
+.whatif-cell.is-now { border-color: var(--signal); }
+.impact { display: grid; gap: 4px; margin: 0 0 16px; }
+.impact .block-head { margin-bottom: 4px; }
+main .impact h2.impact-title { margin: 0; padding: 0; border: 0; font-size: 15px; font-weight: 750; }
+.impact .skeleton { margin-top: 6px; }
+.impact-row { display: grid; gap: 6px; padding: 10px 0; border-top: 1px solid var(--rule); }
+.impact-row:first-of-type { border-top: 0; }
+.impact-match { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 14px; font-weight: 700; }
+.impact-match small { flex: none; font-size: 11px; font-weight: 600; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.impact-outcomes { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.impact-outcomes strong { font-weight: 800; }
+.impact-outcomes .is-best strong { color: var(--libertadores); }
+.impact-outcomes .is-worst strong { color: var(--danger); }
+main p.impact-note { margin: 6px 0 0; font-family: var(--sans); font-size: 11px; color: var(--ink-faint); }
+@media (min-width: 900px) { .impact { max-width: 720px; } }
+main .whatif p.mc-label { margin: 0; font-family: var(--sans); font-size: 11px; font-weight: 650; line-height: 1.3; color: var(--ink-faint); }

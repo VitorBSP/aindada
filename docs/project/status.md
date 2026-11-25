@@ -3816,3 +3816,40 @@ C2 (Tabela).
   (contraria "cálculos estatísticos não dependem do frontend" do AGENTS.md). Não implementado até a escolha.
 - **Próximo responsável**: Agente 06 (revisar no snapshot real); Agente 00 (merge, depois da
   `feat/clareza-cards-jogos-por-dia`).
+
+## Agente 05: "E se…" do seu time calculado no navegador (ADR-0016, 2026-11-25)
+
+Branch `feat/ui-agenda-time-disputas`. O dono escolheu calcular no navegador (opção 2) os blocos condicionais da
+Home B3, em vez de um campo novo no snapshot.
+
+- **O que mudou**:
+  - `apps/web/assets/live-round.js`: `simulate(model, { track: { clubId, matchIds } })` conta, por jogo acompanhado e
+    resultado sorteado, as simulações em que o clube terminou em 1º, no G4 ou no Z4, e devolve `result.track`. Sem
+    `track`, o retorno é igual ao anterior (com `track: []`).
+  - `apps/web/assets/app.js` (Home com time):
+    - "Se o jogo terminar em… · probabilidade de <disputa>": vitória, empate e derrota no próximo jogo; o resultado
+      de agora fica marcado ("como está") em jogo ao vivo.
+    - "O que mais mexe na sua probabilidade de <disputa>": 3 jogos entre os próximos 20, com o melhor e o pior
+      resultado para o time (diferença mínima de 1 p.p.); `(i)` com a explicação.
+    - Skeleton enquanto calcula; resultado em cache por time, edição e placar ao vivo (trocar a disputa nos chips
+      não recalcula).
+  - `styles.css`: blocos `whatif` e `impact`.
+  - `tests/unit/test_live_round_js.py`: 4 testes do `track` (soma por resultado = total de simulações; lei da
+    probabilidade total; jogo encerrado fora; sem `track`, nada muda).
+  - `docs/decisions/ADR-0016-probabilidades-condicionais-no-navegador.md` (novo) e uma referência a ele na regra do
+    `AGENTS.md`.
+- **Evidência**:
+  - Playwright, export sintético (não versionado), relógio fixo em 23/09/2032 e placar ao vivo simulado, em 375 e
+    1280 px, nos dois temas:
+    - Sintético 07, disputa Z4: número publicado 26%; se vencer 13%, empatar 25%, perder 34%.
+    - Sintético 16, disputa G4, jogo ao vivo 1×0 aos 34': vitória 12% "como está", empate 7%, derrota "–" (menos de
+      300 simulações).
+    - "O que mais mexe" com 3 jogos e a nota de 20.000 simulações; cálculo pronto em cerca de 3 s, página incluída.
+  - Regressão: 84 de 84 telas sem rolagem lateral e sem erro; os roteiros de palpite e de Home/Jogos/Tabela continuam
+    sem falha.
+  - `ruff check` sem achados; `ruff format --check` com 235 arquivos ok; `mypy` sem erros; `pytest -q` com 977
+    passados e 6 pulados (4 novos).
+- **Limitações**: os condicionais vêm de outra rodada de simulações, e por isso podem diferir um pouco do número
+  publicado (dito no `(i)`). Faltam o snapshot real e uma medição de tempo num celular de entrada.
+- **Próximo responsável**: Agente 06 (revisar o método e os textos no snapshot real); Agente 00 (merge, depois da
+  `feat/clareza-cards-jogos-por-dia`).

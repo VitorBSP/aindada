@@ -81,7 +81,8 @@ ficam como "em andamento" ou "pendente" em `docs/project/status.md`.
   em `src/brasileirao/competition_rules/seasons/`.
 - Logs estruturados (JSON) via `brasileirao.logging_utils`.
 - Reprodutibilidade: toda simulação recebe semente e registra versões de modelo e dados.
-- Cálculos estatísticos não dependem da API nem do frontend.
+- Cálculos estatísticos não dependem da API nem do frontend (exceção aceita pelo dono: probabilidades
+  condicionais do "seu time" no navegador, ADR-0016).
 
 ## Regras de integridade (inegociáveis)
 

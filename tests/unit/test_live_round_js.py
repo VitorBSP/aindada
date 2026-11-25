@@ -60,6 +60,19 @@ const input = JSON.parse(fs.readFileSync(0, "utf8"));
     output.result = Object.fromEntries([...result.clubs].map(([clubId, value]) => [clubId, value]));
     output.repeatable = JSON.stringify([...result.clubs]) === JSON.stringify([...again.clubs]);
   }
+  if (input.track) {
+    const model = live.prepare(input.track.snapshot, input.track.rows || []);
+    const options = { simulations: input.track.simulations, yieldEvery: false };
+    const track = { clubId: input.track.clubId, matchIds: input.track.matchIds };
+    const result = await live.simulate(model, { ...options, track });
+    const plain = await live.simulate(model, options);
+    output.track = {
+      entries: result.track,
+      overall: result.clubs.get(input.track.clubId),
+      simulations: result.simulations,
+      plain: plain.track,
+    };
+  }
   process.stdout.write(JSON.stringify(output));
 })();
 """
@@ -280,3 +293,39 @@ def test_official_result_beats_live_row() -> None:
         }
     )
     assert _node({"snapshot": snapshot, "rows": rows, "simulations": 10})["table"] == _settled_run()["table"]
+
+
+TRACKED_CLUB = CLUBS[0]
+
+
+@cache
+def _tracked_run() -> dict[str, Any]:
+    snapshot = _synthetic_snapshot()
+    last_round = [match["match_id"] for match in snapshot["matches"] if match["round"] == 38]
+    finished = next(match["match_id"] for match in snapshot["matches"] if match["round"] == 37)
+    payload = {"snapshot": snapshot, "clubId": TRACKED_CLUB, "matchIds": [*last_round, finished], "simulations": 3000}
+    result: dict[str, Any] = _node({"track": payload})["track"]
+    return result
+
+
+def test_tracked_outcomes_cover_every_simulation() -> None:
+    run = _tracked_run()
+    totals = {sum(outcome["n"] for outcome in entry["outcomes"].values()) for entry in run["entries"]}
+    assert totals == {run["simulations"]}
+
+
+def test_conditional_probabilities_add_back_to_overall() -> None:
+    run = _tracked_run()
+    entry = run["entries"][0]
+    combined = (
+        sum(outcome["n"] * (outcome["relegation"] or 0) for outcome in entry["outcomes"].values()) / run["simulations"]
+    )
+    assert combined == pytest.approx(run["overall"]["relegation"])
+
+
+def test_finished_match_is_not_tracked() -> None:
+    assert len(_tracked_run()["entries"]) == 10
+
+
+def test_simulation_without_track_returns_empty_list() -> None:
+    assert _tracked_run()["plain"] == []
