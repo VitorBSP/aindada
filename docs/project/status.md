@@ -3853,3 +3853,65 @@ Home B3, em vez de um campo novo no snapshot.
   publicado (dito no `(i)`). Faltam o snapshot real e uma medição de tempo num celular de entrada.
 - **Próximo responsável**: Agente 06 (revisar o método e os textos no snapshot real); Agente 00 (merge, depois da
   `feat/clareza-cards-jogos-por-dia`).
+
+## Agente 05: telas D0 (Simulador), F0 (Ao vivo) e E0 (Rodada a rodada) (2026-11-25)
+
+Branch `feat/telas-simulador-aovivo-rodadas`, criada a partir de `feat/ui-agenda-time-disputas`. O dono aprovou as telas
+D0, E0 e F0 do canvas de opções de UI. Contratos JSON, modelo, pontuação e regras do Simulador ficaram iguais.
+
+- **O que mudou**:
+  - **D0, Simulador** (`simulator.js`, `simulator.css`):
+    - Passo 2 com barra de progresso ("N de M · X seus · Y do modelo"), "1 · Seu palpite neste jogo" e
+      "2 · Jogos da rodada N" agrupados por dia.
+    - Placar com setas ↑/↓ na vertical (52 × 44 px), escudo e número grande; pílulas "Probabilidade do modelo" com a
+      sigla dos clubes e "Mais provável a × b (p) · o seu x × y: q%".
+    - "Sortear" e "Próximo jogo →" no card; "← Anterior" e "Pular".
+    - No Vencedor, cada linha da lista vira 3 botões (palpite direto, sem mudar o card); "Sortear o resto (N)";
+      "Revisar →".
+    - Passo 3 começa pelo card grande "Probabilidade de tudo junto", com o mesmo cálculo de antes (campeão, G4 e
+      rebaixados contados juntos nas simulações, não a multiplicação). Depois vêm "Como termina a sua tabela",
+      "mais ousado" e destaques; a lista jogo a jogo fica recolhida.
+    - D-046: as quatro ocorrências de "chance" no texto visível viraram "probabilidade".
+  - **F0, Ao vivo** (`live-round.js`, `live-round.css`, `app.js` passa o time favorito):
+    - Título "Ao vivo · RN" e chips Tudo/Título/G4/Z4/Seu time.
+    - "O que está mudando agora · desde o início da rodada": maiores variações (≥ 1 p.p.) contra o mesmo cálculo
+      antes da rodada, com o jogo do clube em palavras ("vence o X por 1 × 0 · era 37%").
+    - Match Cards v2.1 com selo "Ao vivo · 34'", "Intervalo" ou "Fim · provisório"; "Probabilidade de agora (placar
+      e tempo que falta)" ou "Probabilidade do modelo"; e uma linha de efeito por jogo (a disputa mais aberta de cada
+      clube).
+    - "Tabela agora · se terminasse assim" compacta (#, ▲▼, Pts, Título e Z4 com variação). A tabela completa e
+      todas as probabilidades, incluindo as faixas de Libertadores e Sul-Americana, estão em "Tabela completa".
+    - Rodapé "calculado no seu navegador · não é a edição oficial"; método em "Como é calculado".
+    - O motor (`prepare`, `simulate`, `liveDistribution`) não mudou.
+  - **E0, Rodada a rodada** (`rounds.js`, `rounds.css`, `app.js` passa o time favorito):
+    - `#/rodadas` vira a visão geral: título + (i), com a explicação na folha; chips Título/G4/Z4; "Como a temporada
+      mudou" com as barras por rodada.
+    - Linha do tempo com a rodada mais recente e as 4 que mais mexeram. Os rótulos vêm só da soma de p.p. ("maior
+      mudança da temporada", "segunda maior mudança"…), com o jogo de maior efeito acima do ruído.
+    - "Ver todas as N rodadas ›" abre a lista completa e a avaliação de todas as rodadas.
+    - "Por time": chips com escudo, curvas de título/G4/queda e "Momentos que mudaram a temporada" (as 3 maiores
+      variações acima do ruído, com o placar do time).
+    - `#/rodadas/N` mantém o detalhe da rodada.
+    - Os dois `<select>` (`round-select` e `compare-round`) viraram chips de rodada; os botões de métrica viraram
+      chips.
+    - O nome do clube não invade mais a coluna Pts no celular.
+- **Evidência**:
+  - Playwright no export sintético (não versionado), em 375 e 1280 px, nos dois temas, sem erro de console e com
+    `scrollWidth` igual à largura:
+    - Simulador nos modos Vencedor e Placar, passos 2 e 3: 8 de 8; "Probabilidade de tudo junto" calculada.
+    - Ao vivo com 2 jogos rolando, 1 no intervalo e 1 encerrado, e sem placares: 6 de 6; o filtro Z4 e "Seu time"
+      responderam.
+    - Rodada a rodada: visão geral, rodada 12, Por time e Comparar, 16 de 16; nenhum `<select>` na página; a folha
+      (i) abriu.
+  - `check_g4_attribution` sem achados; nenhuma ocorrência nova de "chance" no texto visível.
+  - `ruff check` sem achados; `ruff format --check` com 236 arquivos ok; `mypy` sem erros; `pytest -q` com 977
+    passados e 6 pulados.
+- **Premissas e limitações**:
+  - A "probabilidade de tudo junto até agora" do topo da D0 não foi implementada: o cálculo só existe com a tabela
+    completa. A tela mostra que o número aparece na revisão.
+  - O "o que está mudando" compara duas rodadas de 20.000 simulações com semente fixa; variações abaixo de 1 p.p.
+    não aparecem.
+  - Faltam o snapshot real e um celular de entrada.
+- **Próximo responsável**: Agente 06 (auditar os rótulos da linha do tempo e o filtro de 1 p.p. no snapshot real);
+  Agente 08 (revisar os textos novos); Agente 00 (merge, nesta ordem: `feat/clareza-cards-jogos-por-dia` →
+  `feat/ui-agenda-time-disputas` → esta).

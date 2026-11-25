@@ -1406,7 +1406,7 @@
           ${locked ? `<p class="sim-card-lock">Este jogo fechou ${LOCK_MARGIN_MINUTES} minutos antes do início: não dá mais para mudar o palpite${cloud && cloudState.user ? ", e ele não conta para o ranking" : ""}.</p>` : ""}
           ${crowdForMatch(match)}
           ${controls}
-          ${modelPills(match)}
+          ${mode === "placar" ? modelPills(match) : ""}
           ${scoreLine}
           <div class="sim-card-state">${state}</div>
           <div class="sim-card-actions">
