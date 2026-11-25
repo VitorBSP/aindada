@@ -10,11 +10,18 @@
 .heat i { display: block; width: 7px; height: 16px; background: var(--ink); }
 .heat-wide i { width: 5px; }
 
-/* Blocos de disputa na página inicial */
-.races { display: grid; gap: 8px 40px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); margin: 8px 0 8px; }
+/* Blocos de disputa na página inicial: cards v2.1 (D-051), com a regra no botão (i) */
+.races { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); margin: 0 0 16px; }
 .race { border-top: 1px solid var(--rule-strong); padding-top: 10px; }
 .race h3 { font-size: 17px; margin: 0 0 2px; }
 main .race p.note { margin: 0 0 6px; }
+.race.comp-race { margin: 0 0 16px; padding: 12px 14px 8px; border: 1px solid var(--rule); border-radius: var(--radius-card); background: var(--surface); min-width: 0; }
+.races .race.comp-race { margin: 0; }
+.comp-race .block-head { margin: 0 0 4px; }
+main .comp-race .block-head h2 { margin: 0; padding: 0; border: 0; font-size: 16px; font-weight: 750; }
+.comp-race .icon-button { width: 36px; height: 36px; }
+.comp-race .race-row:last-child { border-bottom: 0; }
+.comp-race .bracket, .comp-race .sections-grid, .comp-race .rivals { margin-top: 4px; }
 .race-row .club-cell span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .race-row .club-cell { min-width: 0; }
 .more { font-size: 14px; font-weight: 600; margin: 10px 0 0; }
@@ -33,11 +40,11 @@ main .race p.note { margin: 0 0 6px; }
 .tie-side .club-cell { min-width: 0; font-weight: 600; }
 .tie-side .club-cell span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tie-side .score { font-size: 15px; font-weight: 700; }
-.tie-side .chance { font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.tie-side .series-prob { font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 .tie-side.won { box-shadow: inset 3px 0 0 var(--positive); background: color-mix(in srgb, var(--positive) 8%, transparent); }
 .tie-side.lost { color: var(--ink-faint); }
 .tie-side.lost .club-cell { font-weight: 500; }
-.tie-side.open { color: var(--ink-faint); font-style: italic; font-family: var(--serif); }
+.tie-side.open { color: var(--ink-faint); }
 .candidates { list-style: none; margin: 0; padding: 4px 8px 6px; font-size: 13px; }
 .candidates li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 2px 0; }
 .candidates .club-cell span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -60,7 +67,7 @@ main .race p.note { margin: 0 0 6px; }
 .section-card .candidates { padding: 0; }
 .section-card .candidates-label { padding: 6px 0 0; }
 
-.status-out { color: var(--ink-faint); font-style: italic; font-family: var(--serif); }
+.status-out { color: var(--ink-faint); }
 td.stage.strong { font-weight: 700; }
 .loading { color: var(--ink-soft); }
 
@@ -68,3 +75,27 @@ td.stage.strong { font-weight: 700; }
   .league-tag { margin-left: 6px; font-size: 12px; }
   .bracket { grid-template-columns: repeat(var(--rounds, 3), minmax(180px, 1fr)); }
 }
+
+/* Paridade v2.1 com a Série A: Seu Time, jogos por dia, aviso curto e links em chips */
+.screen-head.is-compact { margin: 0; }
+.comp-block { margin: 0 0 18px; }
+.comp-day { margin: 0 0 12px; }
+main h2.comp-day-title { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 4px 0 8px; padding: 0; border: 0; font-size: 14px; font-weight: 750; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+main h2.comp-day-title span { font-size: 12px; font-weight: 600; color: var(--ink-faint); }
+main p.comp-notice { margin: 0 0 12px; padding: 8px 12px; border-radius: var(--radius-control); background: var(--surface-2); font-family: var(--sans); font-size: 13px; color: var(--ink-soft); }
+.comp-links { margin: 4px 0 20px; }
+main p.comp-next-label { margin: 4px 0 6px; font-family: var(--sans); font-size: 12px; font-weight: 650; color: var(--ink-faint); }
+.your-team .mc-list { margin-bottom: 0; }
+.your-team .mc { background: var(--surface-2); border-color: transparent; }
+.your-team .mc .mc-odd, .your-team .mc .mc-center.is-vs { background: var(--surface-3); }
+.your-team .mc .mc-team .crest-spacer { background: var(--surface-3); }
+.yt-stat strong { font-size: 20px; }
+.your-team .mc .mc-top, .your-team .mc p.mc-caption, .your-team .mc .mc-go { color: var(--ink-soft); }
+@media (min-width: 900px) {
+  .your-team, .comp-block { max-width: 720px; }
+}
+.yt-stat.is-word strong { font-size: 15px; line-height: 1.2; }
+.your-team .mc { padding: 10px; }
+.your-team .mc .mc-odds { gap: 4px; }
+.your-team .mc .mc-odd { gap: 3px; padding: 8px 3px; font-size: 11px; }
+.your-team .mc .mc-odd strong { font-size: 14px; }

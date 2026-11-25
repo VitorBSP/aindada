@@ -56,7 +56,7 @@
       right = `<span class="score">${index === 0 ? series.score1 : series.score2}</span>`;
       cls = winner(series) === id ? " won" : " lost";
     } else if (series && series.p_team1 !== null) {
-      right = `<span class="chance">${pct(index === 0 ? series.p_team1 : 1 - series.p_team1)}</span>`;
+      right = `<span class="series-prob">${pct(index === 0 ? series.p_team1 : 1 - series.p_team1)}</span>`;
     }
     return `<div class="tie-side${cls}">${team(id, 20)}${right}</div>`;
   }
@@ -102,8 +102,7 @@
         <div class="bracket-round"><h3>Quartas de final</h3>${quarters.map(quarterBox).join("")}</div>
         <div class="bracket-round"><h3>Semifinais</h3>${semiBox(semis[0], halves[0])}${semiBox(semis[1], halves[1])}</div>
         <div class="bracket-round"><h3>Final</h3><div class="tie">${tieHead(final, "final")}${finalSide(0)}${finalSide(1)}</div></div>
-      </div>
-      <p class="note">Quartas 1 e 2 formam a semifinal 1; quartas 3 e 4, a semifinal 2. Todas em melhor de 5. Ao lado de cada time ainda sem série jogada: probabilidade de vencer o confronto; nas vagas a definir, probabilidade de cada candidato chegar ali.</p>`;
+      </div>`;
   }
 
   // Possíveis adversários de cada time vivo no mata-mata: na semi (o outro confronto do mesmo lado) e na final (o outro lado).
@@ -136,9 +135,7 @@
       .sort((a, b) => b.item.stages.semifinal - a.item.stages.semifinal || b.item.stages.champion - a.item.stages.champion)
       .map((card) => card.html)
       .join("");
-    return `<h2>Quem cada time pode enfrentar</h2>
-      <p class="note">Percentual de cada adversário: probabilidade de ele chegar àquela fase do mesmo lado (semifinal) ou do outro lado da chave (final).</p>
-      <div class="rivals">${cards}</div>`;
+    return S.raceCard("Quem cada time pode enfrentar", "Percentual de cada adversário: probabilidade de ele chegar àquela fase do mesmo lado (semifinal) ou do outro lado da chave (final).", `<div class="rivals">${cards}</div>`);
   }
 
   function home(data) {
@@ -148,13 +145,15 @@
     const latest = [...quarters].reverse().find(played);
     const latestLine = latest ? ` ${escapeHtml(S.nameOf(winner(latest)))} venceu ${escapeHtml(S.nameOf(loser(latest)))} por ${Math.max(latest.score1, latest.score2)} a ${Math.min(latest.score1, latest.score2)} e está na semifinal.` : "";
     const swiss = data.teams.filter((item) => item.status === "alive").sort((a, b) => b.stages.qualify - a.stages.qualify);
+    const info = `<p><strong>${escapeHtml(leader.name)}</strong> é quem mais leva o Mundial: título em ${pct(leader.stages.champion)} das simulações.${latestLine}</p>
+      <p>Na chave, quartas 1 e 2 formam a semifinal 1; quartas 3 e 4, a semifinal 2. Todas em melhor de 5. Ao lado de cada time ainda sem série jogada: probabilidade de vencer o confronto; nas vagas a definir, probabilidade de cada candidato chegar ali.</p>`;
+    const knockoutBlock = drawn(quarters)
+      ? S.raceCard("Chave do mata-mata", "Quartas 1 e 2 formam a semifinal 1; quartas 3 e 4, a semifinal 2. Todas em melhor de 5.", bracket(data))
+      : swiss.length ? S.raceCard("Vaga nas quartas", "% das simulações em que o time chega às quartas.", S.raceRows(swiss.map((item) => ({ id: item.team_id, value: item.stages.qualify })), "lib")) : "";
     return `
-      <h1>Quem ainda dá para ser campeão do mundo?</h1>
-      <p class="lede"><strong>${escapeHtml(leader.name)}</strong> é quem mais leva o Mundial: título em ${pct(leader.stages.champion)} das simulações.${latestLine}</p>
-      ${drawn(quarters) ? `<h2>Chave do mata-mata</h2>${bracket(data)}` : swiss.length ? `<h2>Vaga nas quartas</h2>${S.raceRows(swiss.map((item) => ({ id: item.team_id, value: item.stages.qualify })), "lib")}` : ""}
-      <div class="races">
-        <section class="race"><h3>Título</h3><p class="note">% das simulações em que é campeão</p>${S.raceRows(favorites.map((item) => ({ id: item.team_id, value: item.stages.champion })), "")}</section>
-      </div>
+      ${S.screenHead("Quem ainda dá?", info)}
+      ${knockoutBlock}
+      <div class="races">${S.raceCard("Título", "% das simulações em que o time é campeão.", S.raceRows(favorites.map((item) => ({ id: item.team_id, value: item.stages.champion })), ""))}</div>
       ${rivals(data)}`;
   }
 
@@ -171,20 +170,20 @@
         };
         const zone = item.status === "qualified" ? "zone-lib" : item.status === "eliminated" ? "zone-z4" : "";
         return `<tr class="${zone}">
-          <td class="left club">${team(item.team_id, 20)}</td>
-          <td class="left">${escapeHtml(item.league)}</td>
+          <td class="left club">${S.teamCell(item.team_id)}</td>
           <td><strong>${item.swiss_wins}–${item.swiss_losses}</strong></td>
+          <td class="view-start">${cell("qualify")}</td><td>${cell("semifinal")}</td><td>${cell("final")}</td><td>${cell("champion")}</td>
+          <td class="left rest-start">${escapeHtml(item.league)}</td>
           <td class="left">${out ? `<span class="status-out">eliminado ${{ "fase suíça": "na fase suíça", quartas: "nas quartas", semifinal: "na semifinal", final: "na final" }[out]}</span>` : item.status === "qualified" ? "no mata-mata" : "na disputa"}</td>
-          <td>${cell("qualify")}</td><td>${cell("semifinal")}</td><td>${cell("final")}</td><td>${cell("champion")}</td>
         </tr>`;
       })
       .join("");
+    const info = "<p>Na fase suíça, quem chega a 3 vitórias vai às quartas e quem chega a 3 derrotas sai. Percentuais: em quantas simulações o time chega a cada fase. \"Classificado\" e \"eliminado\" só aparecem por resultado já jogado.</p>";
     return `
-      <h1 class="race-heading">Fase suíça e mata-mata</h1>
-      <p class="note">Na fase suíça, quem chega a 3 vitórias vai às quartas e quem chega a 3 derrotas sai. Percentuais: em quantas simulações o time chega a cada fase.</p>
-      <div class="table-scroll" tabindex="0" role="region" aria-label="Times do Mundial">
+      ${S.screenHead("Fase suíça e mata-mata", info)}
+      <div class="table-scroll table-card" tabindex="0" role="region" aria-label="Times do Mundial">
         <table class="standings">
-          <thead><tr><th class="left">Time</th><th class="left">Liga</th><th>Suíça (V–D)</th><th class="left">Situação</th><th>Quartas</th><th>Semi</th><th>Final</th><th>Título</th></tr></thead>
+          <thead><tr><th class="left">Time</th><th>Suíça (V–D)</th><th class="view-start">Quartas</th><th>Semi</th><th>Final</th><th>Título</th><th class="left rest-start">Liga</th><th class="left">Situação</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>`;
@@ -197,9 +196,8 @@
       .map(([league, value]) => `<div class="race-row"><strong>${escapeHtml(league)}</strong><div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:${(((value - weakest) / Math.max(strongest - weakest, 1)) * 100).toFixed(1)}%"></div></div><span class="value">${value > 0 ? "+" : ""}${Math.round(value)}</span></div>`)
       .join("");
     return `
-      <h1 class="race-heading">Força das ligas</h1>
-      <p class="lede lede-method">Pontos de Elo de cada liga, aprendidos só nos confrontos entre regiões em MSI e Mundial. 100 pontos de diferença dão cerca de 64% de probabilidade de vencer um mapa.</p>
-      ${rows}`;
+      ${S.screenHead("Força das ligas", "<p>Pontos de Elo de cada liga, aprendidos só nos confrontos entre regiões em MSI e Mundial. 100 pontos de diferença dão cerca de 64% de probabilidade de vencer um mapa.</p>")}
+      <section class="race comp-race">${rows}</section>`;
   }
 
   function regression(value) {
