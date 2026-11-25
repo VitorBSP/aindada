@@ -347,3 +347,98 @@
 .sim-zebras li span { font-weight: 650; }
 .sim-zebras li strong { text-align: right; }
 .sim-zebras li em { grid-column: 1 / -1; font-style: normal; font-size: 12px; color: var(--ink-faint); }
+
+/* REDESIGN_SPEC v2.1 · D0 (D1 + D2 + D3): cartões planos (16), botões de 44 px (12), pílulas, sem sombra pesada. */
+.sim-button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: var(--signal-fill); color: var(--on-signal-fill); font-size: 15px; font-weight: 700; }
+.sim-button.is-secondary { background: var(--surface-2); color: var(--ink); border: 1px solid var(--rule); }
+.sim-button:focus-visible, .sim-vstep-btn:focus-visible, .sim-row-pick:focus-visible, .sim-day-row:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.sim-card { max-width: 560px; margin: 0; padding: 14px; border: 1px solid var(--rule); border-radius: 16px; background: var(--surface); box-shadow: none; text-align: left; display: flex; flex-direction: column; gap: 12px; animation: none; }
+.sim-card > * { margin: 0; }
+.sim-card-meta { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 12px; font-weight: 650; color: var(--ink-soft); }
+.sim-card-teams { margin: 0; font-size: 15px; font-weight: 700; text-align: center; }
+.sim-card-state { min-height: 0; margin: 0; }
+.sim-card-state:empty { display: none; }
+.sim-card-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; }
+.sim-card-actions .sim-button { width: 100%; }
+.sim-card-links { display: flex; justify-content: center; gap: 6px; font-size: 13px; color: var(--ink-faint); }
+.sim-card-links .link-button { margin-left: 0; font-size: 13px; color: var(--ink-soft); }
+.sim-card-lock { color: var(--danger); font-size: 13px; }
+.sim-mini-label { margin: 0; font-size: 12px; font-weight: 650; color: var(--ink-soft); }
+.sim-card .sim-mini-label { text-align: center; }
+.sim-section-title { display: flex; align-items: center; gap: 8px; margin: 20px 0 8px; font-size: 13px; font-weight: 750; color: var(--ink-soft); }
+.sim-section-title b { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; flex: none; border-radius: 50%; background: var(--surface-2); color: var(--ink); font-size: 12px; }
+.sim-deck-progress { margin: 10px 0 4px; }
+.sim-deck-count { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sim-progress { height: 8px; background: var(--surface-3); }
+.sim-progress .is-own { background: var(--signal-fill); }
+.sim-progress .is-model { background: repeating-linear-gradient(135deg, var(--signal) 0 3px, transparent 3px 6px); }
+
+.sim-score-pick { gap: 18px; margin: 0; align-items: flex-start; }
+.sim-score-x { align-self: center; font-size: 22px; font-weight: 700; color: var(--ink-faint); }
+.sim-vstep { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; width: 104px; }
+.sim-vstep-btn { font: inherit; display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 44px; padding: 0; border: 1px solid var(--rule); border-radius: 12px; background: var(--surface-2); color: var(--ink); cursor: pointer; }
+.sim-vstep-btn:hover:not(:disabled) { border-color: var(--ink-soft); }
+.sim-vstep-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.sim-vstep-num { font-size: 44px; font-weight: 900; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; min-width: 44px; text-align: center; }
+.sim-vstep-name { font-size: 13px; font-weight: 700; text-align: center; overflow-wrap: anywhere; }
+.sim-odds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.sim-odd { display: flex; align-items: baseline; justify-content: center; gap: 5px; min-height: 36px; padding: 7px 6px; border: 1px solid transparent; border-radius: 10px; background: var(--surface-2); font-size: 12px; font-weight: 650; color: var(--ink-soft); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sim-odd strong { font-size: 14px; font-weight: 800; color: var(--ink); }
+.sim-odd.is-top { border-color: var(--signal); }
+.sim-card .sim-odds + .sim-mini-label { margin-top: -6px; }
+.sim-quick-scores { justify-content: center; margin: 0; }
+.sim-quick-score { min-height: 36px; background: var(--surface-2); border-color: var(--rule); }
+.sim-outcomes { margin: 0; }
+.sim-outcome { min-height: 64px; border-radius: 12px; background: var(--surface-2); }
+.sim-outcome.is-chosen { background: var(--signal-fill); color: var(--on-signal-fill); border-color: var(--signal-fill); }
+.sim-outcome.is-chosen .sim-outcome-prob { color: var(--on-signal-fill); }
+.sim-outcome.is-model { border: 2px dashed var(--signal); }
+.sim-cheer { font-family: var(--sans); font-style: normal; font-size: 13px; margin: 8px 0 0; text-align: left; }
+.sim-legend { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); font-size: 12px; }
+.sim-key.is-own { background: var(--signal-fill); border-color: var(--signal-fill); }
+.sim-key.is-model { border-color: var(--signal); }
+
+.sim-day-title { display: flex; justify-content: space-between; margin: 14px 0 6px; font-size: 13px; font-weight: 750; text-transform: capitalize; }
+.sim-day-title span { font-weight: 600; color: var(--ink-faint); text-transform: none; }
+.sim-day-list { display: flex; flex-direction: column; border: 1px solid var(--rule); border-radius: 16px; background: var(--surface); overflow: hidden; }
+.sim-day-row { font: inherit; display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 52px; width: 100%; padding: 8px 12px; border: 0; border-top: 1px solid var(--rule); background: transparent; color: var(--ink); font-size: 13px; font-weight: 650; text-align: left; cursor: pointer; }
+.sim-day-row:first-child { border-top: 0; }
+.sim-day-row.is-current { background: var(--surface-2); box-shadow: inset 3px 0 0 var(--signal); }
+.sim-day-row.is-picks { display: flex; flex-direction: column; align-items: stretch; gap: 6px; cursor: default; }
+.sim-day-time { font-size: 12px; font-weight: 700; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.sim-day-teams { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sim-day-teams small, .sim-day-meta span:first-child { font-size: 11px; color: var(--ink-faint); font-weight: 650; }
+.sim-day-pick { display: flex; flex-direction: column; align-items: flex-end; font-size: 15px; font-weight: 850; font-variant-numeric: tabular-nums; }
+.sim-day-pick small { font-size: 10px; font-weight: 650; color: var(--ink-soft); }
+.sim-day-pick.is-empty { color: var(--ink-faint); font-weight: 650; }
+.sim-day-meta { display: flex; gap: 8px; margin: 0; min-width: 0; }
+.sim-day-meta span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sim-row-picks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.sim-row-pick { font: inherit; display: flex; align-items: baseline; justify-content: center; gap: 5px; min-height: 44px; padding: 6px; border: 1px solid var(--rule); border-radius: 10px; background: var(--surface-2); color: var(--ink); font-size: 13px; font-weight: 700; cursor: pointer; min-width: 0; white-space: nowrap; overflow: hidden; }
+.sim-row-pick small { font-size: 11px; font-weight: 600; color: var(--ink-soft); }
+.sim-row-pick.is-chosen { background: var(--signal-fill); border-color: var(--signal-fill); color: var(--on-signal-fill); }
+.sim-row-pick.is-chosen small { color: var(--on-signal-fill); }
+.sim-row-pick.is-model { border: 2px dashed var(--signal); }
+.sim-row-pick:disabled { opacity: 0.5; cursor: not-allowed; }
+.sim-map-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 12px 0 0; }
+.sim-savebar { border-top: 1px solid var(--rule); background: var(--paper); }
+.sim-savebar .sim-button:not(.is-secondary) { margin-left: auto; }
+
+.sim-joint { margin: 8px 0 14px; padding: 16px; border: 1px solid var(--rule); border-radius: 16px; background: var(--surface); }
+.sim-joint-label { margin: 0; font-size: 13px; font-weight: 750; color: var(--ink-soft); }
+.sim-joint-big { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 12px; margin: 4px 0 8px; }
+.sim-joint-big strong { font-size: 44px; font-weight: 900; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.sim-joint-big span { font-size: 13px; font-weight: 650; color: var(--ink-soft); }
+.sim-joint .note { font-size: 12px; }
+.sim-review-card { margin: 0 0 14px; padding: 14px; border: 1px solid var(--rule); border-radius: 16px; background: var(--surface); }
+.sim-review-card h2 { margin: 0 0 8px; font-size: 17px; }
+.sim-highlight, .sim-mode-card, .sim-choice-card, .sim-club-card, .sim-saved-card { border-radius: 16px; }
+.sim-mode-card:not(.is-locked):hover, .sim-club-card.is-selected { box-shadow: none; }
+.sim-review-summary { border-left: 0; border-radius: 16px; padding: 12px 14px; border: 1px solid var(--rule); }
+.sim-stepper li { border-radius: 999px; background: var(--surface-2); }
+.sim-stepper li.is-current { border-color: var(--signal); }
+.sim-stepper li.is-current .sim-step-number { background: var(--signal-fill); color: var(--on-signal-fill); border-color: var(--signal-fill); }
+@media (max-width: 760px) {
+  .sim-vstep { width: 96px; }
+  .sim-card { padding: 12px; }
+}

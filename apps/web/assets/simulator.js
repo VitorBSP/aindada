@@ -515,8 +515,8 @@
 
     function isComplete(entry) { const picks = effectivePicks(entry); return remaining.every((match) => picks[match.match_id] !== undefined); }
 
-    /* ---------------- Chance de tudo acontecer (versão 5): campeão, G4 e rebaixados da simulação, juntos.
-       Sorteia o resto do campeonato a partir das chances de cada jogo publicadas pelo modelo (o navegador não refaz
+    /* ---------------- Probabilidade de tudo junto (versão 5): campeão, G4 e rebaixados da simulação, juntos.
+       Sorteia o resto do campeonato a partir das probabilidades de cada jogo publicadas pelo modelo (o navegador não refaz
        o modelo, só sorteia delas, como na versão 1). A força fica a da data de referência e empate sem critério é
        sorteado; por isso o número pode diferir um pouco do oficial. */
 
@@ -632,7 +632,7 @@
       return `<div class="table-wrap"><table class="sim-table sim-path"><thead><tr><th class="num">Rod.</th><th>Jogo</th><th>Resultado</th></tr></thead><tbody>${rows}</tbody></table></div>`;
     }
 
-    const jointSlot = (id) => `<section class="sim-joint" id="${id}" aria-live="polite"><h2>Chance de tudo isso acontecer</h2><p class="note">Calculando ${JOINT_DRAWS.toLocaleString("pt-BR")} campeonatos sorteados…</p></section>`;
+    const jointSlot = (id) => `<section class="sim-joint" id="${id}" aria-live="polite"><p class="sim-joint-label">Probabilidade de tudo junto</p><p class="note">Calculando ${JOINT_DRAWS.toLocaleString("pt-BR")} campeonatos sorteados…</p></section>`;
 
     function fillJoint(id, order, withPath) {
       if (!canSample || !order || order.length !== clubIds.length) {
@@ -648,14 +648,17 @@
         const path = withPath && result.path ? `<details class="sim-path-details"><summary>Um caminho possível: vitórias, empates e derrotas que levam a essa tabela</summary>
             <p class="note">${result.leaned ? "Nenhum sorteio comum chegou a essa combinação; este caminho foi achado puxando os resultados a favor dela." : "O caminho mais provável entre os sorteios que chegaram a essa combinação."} É só um exemplo: outros resultados também levam ao mesmo campeão, G4 e rebaixados.</p>
             ${pathTable(result.path)}</details>` : "";
-        slot.innerHTML = `<h2>Chance de tudo isso acontecer</h2>
-          <p class="sim-joint-all">Campeão, G4 e rebaixados como na sua simulação, tudo junto: <strong>${chanceText(result.all, result.draws)}</strong></p>
+        const big = result.all > 0
+          ? `<p class="sim-joint-big"><strong>${pct(result.all)}</strong><span>1 em cada ${Math.round(1 / result.all).toLocaleString("pt-BR")} simulações</span></p>`
+          : `<p class="sim-joint-big"><strong>&lt; ${pct(1 / result.draws)}</strong><span>nenhuma em ${result.draws.toLocaleString("pt-BR")} simulações</span></p>`;
+        slot.innerHTML = `<p class="sim-joint-label">Probabilidade de tudo junto</p>
+          ${big}
+          <p class="note">Campeão, G4 e rebaixados como na sua simulação, contados juntos em ${result.draws.toLocaleString("pt-BR")} campeonatos sorteados com as probabilidades de cada jogo publicadas pelo modelo. Os jogos dependem uns dos outros, por isso não é a multiplicação das probabilidades de cada um. A força dos clubes fica fixa e empate sem critério é sorteado: o número pode diferir um pouco do oficial.</p>
           <ul class="sim-joint-parts">
             <li><span>Campeão: ${shortName(target.champion)}</span><strong>${chanceText(result.champion, result.draws)}</strong></li>
             <li><span>G4: ${names(target.top4)} (em qualquer ordem)</span><strong>${chanceText(result.top4, result.draws)}</strong></li>
             <li><span>Rebaixados: ${names(target.relegated)}</span><strong>${chanceText(result.relegated, result.draws)}</strong></li>
           </ul>
-          <p class="note">Em ${result.draws.toLocaleString("pt-BR")} campeonatos sorteados a partir das chances de cada jogo publicadas pelo modelo. Aqui a força dos clubes fica fixa e empate sem critério é sorteado, por isso o número pode diferir um pouco do oficial.</p>
           ${path}`;
       });
     }
@@ -1028,7 +1031,7 @@
       const team = escapeHtml(outcomeName(match, favorite));
       if (top >= 0.65) return `<strong>Favoritaço.</strong> O modelo dá ${pct(top)} para ${team}.`;
       if (top >= 0.5) return `<strong>${team} é favorito</strong> (${pct(top)}), mas zebra acontece.`;
-      if (match.p_draw >= 0.3) return `<strong>Cheiro de empate:</strong> ${pct(match.p_draw)} de chance de ficar tudo igual.`;
+      if (match.p_draw >= 0.3) return `<strong>Cheiro de empate:</strong> ${pct(match.p_draw)} de probabilidade de ficar tudo igual.`;
       return `<strong>Jogo parelho:</strong> ninguém passa de ${pct(top)} no modelo.`;
     }
 
@@ -1299,20 +1302,59 @@
 
     const deck = rounds.flatMap((item) => item.matches);
 
-    function deckMap(entry, cursor) {
-      const picks = effectivePicks(entry);
-      return rounds.map((item) => `<div class="sim-map-round"><span class="sim-map-label">${item.round ? `R${item.round}` : "?"}</span>${item.matches.map((match) => {
-        const index = deck.indexOf(match);
-        const state = entry.picks[match.match_id] !== undefined ? "is-own" : picks[match.match_id] !== undefined ? "is-model" : "";
-        return `<button type="button" class="sim-map-cell ${state}" data-jump="${index}" ${index === cursor ? 'aria-current="true"' : ""} title="${escapeHtml(`${nameOf(match.home_id)} x ${nameOf(match.away_id)}`)}">${escapeHtml(teamById[match.home_id].short_name || "")}</button>`;
-      }).join("")}</div>`).join("");
+    /* Placar com setas na vertical (REDESIGN_SPEC v2.1 §3.6): ↑ em cima, escudo, número e ↓ embaixo, 52 × 44 px. */
+    function scoreStepper(side, value, label, clubId) {
+      const arrow = (path) => `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${path}"/></svg>`;
+      return `<div class="sim-vstep" role="group" aria-label="${escapeHtml(label)}">
+        <button type="button" class="sim-vstep-btn" data-goal="${side}" data-delta="1" aria-label="Mais um gol de ${escapeHtml(nameOf(clubId))}">${arrow("M6 14l6-6 6 6")}</button>
+        ${crest(clubId, 44)}
+        <output class="sim-vstep-num">${value === null ? "–" : value}</output>
+        <button type="button" class="sim-vstep-btn" data-goal="${side}" data-delta="-1" aria-label="Menos um gol de ${escapeHtml(nameOf(clubId))}">${arrow("M6 10l6 6 6-6")}</button>
+        <span class="sim-vstep-name">${escapeHtml(nameOf(clubId))}</span></div>`;
     }
 
-    function scoreStepper(side, value, label) {
-      return `<div class="sim-stepper-goals" role="group" aria-label="${escapeHtml(label)}">
-        <button type="button" data-goal="${side}" data-delta="-1" aria-label="Menos um gol">−</button>
-        <output>${value === null ? "–" : value}</output>
-        <button type="button" data-goal="${side}" data-delta="1" aria-label="Mais um gol">+</button></div>`;
+    const kickoffClock = (match) => (match.kickoff_utc ? new Date(match.kickoff_utc).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" }) : "");
+
+    // As 3 pílulas 1X2 com a sigla dos clubes, como no Match Card; a maior ganha a borda de destaque.
+    function modelPills(match) {
+      const values = [match.p_home, match.p_draw, match.p_away];
+      if (!values.every((value) => typeof value === "number")) return "";
+      const top = Math.max(...values);
+      const pill = (value, label) => `<span class="sim-odd${value === top ? " is-top" : ""}"><strong>${pct(value)}</strong>${escapeHtml(label)}</span>`;
+      return `<p class="sim-mini-label">Probabilidade do modelo</p><div class="sim-odds">${pill(match.p_home, shortName(match.home_id))}${pill(match.p_draw, "Empate")}${pill(match.p_away, shortName(match.away_id))}</div>`;
+    }
+
+    // Seção 2 da D0: todos os jogos, agrupados por dia, com o palpite de cada um. No Vencedor, os 3 botões ficam na
+    // própria linha (D2); no Placar, tocar na linha leva o card até o jogo.
+    function dayList(mode, entry, cursor) {
+      const picks = effectivePicks(entry);
+      const groups = new Map();
+      const roundOfCard = (deck[cursor] || {}).round;
+      deck.forEach((match, index) => {
+        if (match.round !== roundOfCard) return;
+        const day = match.match_date || "";
+        if (!groups.has(day)) groups.set(day, []);
+        groups.get(day).push({ match, index });
+      });
+      const dayTitle = (day) => (day ? new Date(`${day}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" }).replace(".", "") : "Sem data");
+      return [...groups.entries()].map(([day, items]) => `<p class="sim-day-title">${escapeHtml(dayTitle(day))}<span>${items.length} ${items.length === 1 ? "jogo" : "jogos"}</span></p>
+        <div class="sim-day-list">${items.map(({ match, index }) => {
+          const origin = originOf(entry, match.match_id);
+          const pick = picks[match.match_id];
+          const locked = lockTime(match) <= new Date();
+          const teams = `${shortName(match.home_id)} × ${shortName(match.away_id)}`;
+          const when = `${kickoffClock(match) || "–"}`;
+          if (mode === "vencedor") {
+            const option = (key, label, probability) => `<button type="button" class="sim-row-pick${pick === key ? (origin === "model" ? " is-model" : " is-chosen") : ""}" data-row-pick="${key}" data-match="${escapeHtml(match.match_id)}" aria-pressed="${pick === key}" ${locked ? "disabled" : ""}>${label}<small>${pct(probability)}</small></button>`;
+            return `<div class="sim-day-row is-picks${index === cursor ? " is-current" : ""}">
+              <p class="sim-day-meta">${kickoffClock(match) ? `<span>${escapeHtml(kickoffClock(match))}</span>` : ""}<span>${escapeHtml(nameOf(match.home_id))} × ${escapeHtml(nameOf(match.away_id))}</span></p>
+              <div class="sim-row-picks" role="group" aria-label="${escapeHtml(`Palpite: ${nameOf(match.home_id)} × ${nameOf(match.away_id)}`)}">${option("H", shortName(match.home_id), match.p_home)}${option("D", "Empate", match.p_draw)}${option("A", shortName(match.away_id), match.p_away)}</div></div>`;
+          }
+          const value = pick === undefined ? `<span class="sim-day-pick is-empty">—</span>`
+            : `<span class="sim-day-pick">${pick[0]} × ${pick[1]}<small>${index === cursor ? "neste card" : origin === "model" ? "do modelo" : "seu"}</small></span>`;
+          return `<button type="button" class="sim-day-row${index === cursor ? " is-current" : ""}" data-jump="${index}" ${index === cursor ? 'aria-current="true"' : ""}>
+            <span class="sim-day-time">${escapeHtml(when)}</span><span class="sim-day-teams">${teams}</span>${value}</button>`;
+        }).join("")}</div>`).join("");
     }
 
     function renderDeck(active, cheer) {
@@ -1326,53 +1368,59 @@
       const value = own !== undefined ? own : sampled;
       const tally = counts(entry);
       const filled = tally.own + tally.sampled;
-      const roundLabel = match.round ? `Rodada ${match.round}` : "Sem rodada";
       const locked = lockTime(match) <= new Date();
       const off = locked ? "disabled" : "";
       const state = sampled !== undefined ? `<span class="sim-tag is-model">sorteado pelo modelo: confirme ou troque</span>` : own !== undefined ? `<span class="sim-tag is-own">seu palpite</span>` : "";
       let controls;
       if (mode === "vencedor") {
         const option = (key, text, probability) => `<button type="button" class="sim-outcome ${value === key ? (sampled !== undefined ? "is-model" : "is-chosen") : ""}" data-pick="${key}" aria-pressed="${value === key}" ${off}><span class="sim-outcome-label">${text}</span><span class="sim-outcome-prob">${pct(probability)}</span></button>`;
-        controls = `<div class="sim-outcomes">${option("H", `Vitória do ${shortName(match.home_id)}`, match.p_home)}${option("D", "Empate", match.p_draw)}${option("A", `Vitória do ${shortName(match.away_id)}`, match.p_away)}</div>`;
+        controls = `<div class="sim-card-teams"><span class="sim-card-team">${crest(match.home_id, 44)}<span>${escapeHtml(nameOf(match.home_id))}</span></span><span class="sim-card-vs">×</span><span class="sim-card-team">${crest(match.away_id, 44)}<span>${escapeHtml(nameOf(match.away_id))}</span></span></div>
+          <div class="sim-outcomes">${option("H", `Vitória do ${shortName(match.home_id)}`, match.p_home)}${option("D", "Empate", match.p_draw)}${option("A", `Vitória do ${shortName(match.away_id)}`, match.p_away)}</div>`;
       } else {
         const goals = active.draftScore && active.draftScore.match_id === match.match_id ? active.draftScore.value : value !== undefined ? value : [null, null];
         const quick = locked ? "" : (match.top_scores || []).map((score) => `<button type="button" class="sim-quick-score" data-score="${score.home_goals}-${score.away_goals}">${score.home_goals} × ${score.away_goals} <span>${pct(score.probability)}</span></button>`).join("");
         const probability = goals[0] !== null && goals[1] !== null && match.score_probabilities && match.score_probabilities[goals[0]] ? match.score_probabilities[goals[0]][goals[1]] || 0 : null;
-        controls = `<div class="sim-score-pick${locked ? " is-locked" : ""}">${scoreStepper(0, goals[0], `Gols de ${nameOf(match.home_id)}`)}<span class="sim-score-x" aria-hidden="true">×</span>${scoreStepper(1, goals[1], `Gols de ${nameOf(match.away_id)}`)}</div>
-          <p class="sim-score-prob">${probability !== null ? `O modelo dá ${pct(probability)} para esse placar.` : "Use + e − ou um dos placares mais prováveis:"}</p>
-          <div class="sim-quick-scores">${quick}</div>
-          ${locked ? "" : active.cursor === deck.length - 1
-            ? `<button type="button" class="sim-button" id="sim-confirm-score">Revisar</button>`
-            : `<button type="button" class="sim-button" id="sim-confirm-score" ${goals[0] === null || goals[1] === null ? "disabled" : ""}>Confirmar placar</button>`}`;
+        controls = `<div class="sim-score-pick${locked ? " is-locked" : ""}">${scoreStepper(0, goals[0], `Gols de ${nameOf(match.home_id)}`, match.home_id)}<span class="sim-score-x" aria-hidden="true">×</span>${scoreStepper(1, goals[1], `Gols de ${nameOf(match.away_id)}`, match.away_id)}</div>
+          ${probability === null ? `<p class="sim-mini-label">Use as setas ou um dos placares mais prováveis.</p>` : ""}
+          ${quick ? `<p class="sim-mini-label">Placares mais prováveis (toque para escolher)</p><div class="sim-quick-scores">${quick}</div>` : ""}`;
       }
       const message = cheer || progressCheer(filled, deck.length);
+      const lockText = locked ? "fechado" : isPostponedMatch(match) ? "adiado, data a definir" : `trava às ${lockTime(match).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}`;
+      const scoreLine = mode === "placar" && match.top_scores && match.top_scores.length
+        ? `<p class="sim-mini-label">Mais provável: ${match.top_scores[0].home_goals} × ${match.top_scores[0].away_goals} (${pct(match.top_scores[0].probability)})${(() => {
+            const goals = active.draftScore && active.draftScore.match_id === match.match_id ? active.draftScore.value : value;
+            if (!goals || goals[0] === null || goals[1] === null || !match.score_probabilities || !match.score_probabilities[goals[0]]) return "";
+            return ` · o seu, ${goals[0]} × ${goals[1]}: ${pct(match.score_probabilities[goals[0]][goals[1]] || 0)}`;
+          })()}</p>` : "";
+      const primary = mode === "placar"
+        ? (locked ? "" : `<button type="button" class="sim-button" id="sim-confirm-score">${active.cursor === deck.length - 1 ? "Revisar →" : "Próximo jogo →"}</button>`)
+        : `<button type="button" class="sim-button" id="sim-forward">${active.cursor === deck.length - 1 ? "Revisar →" : "Próximo jogo →"}</button>`;
       shell("", MODES[mode].label, "", `${sessionHeader(active)}
         <div class="sim-deck-progress"><div class="sim-progress" role="img" aria-label="${tally.own} seus, ${tally.sampled} sorteados, ${tally.blank} em branco"><span class="is-own" style="width:${tally.own / deck.length * 100}%"></span><span class="is-model" style="width:${tally.sampled / deck.length * 100}%"></span></div>
-          <span class="note">${filled} de ${deck.length}</span></div>
-        ${originLegend()}
+          <span class="sim-deck-count">${filled} de ${deck.length}</span></div>
+        <p class="sim-mini-label">${tally.own} seus · ${tally.sampled} do modelo · a probabilidade de tudo junto aparece na revisão, com todos os jogos preenchidos</p>
+        <p class="sim-section-title"><b>1</b>Seu palpite neste jogo</p>
         <article class="sim-card" aria-labelledby="sim-card-title">
-          <p class="sim-card-meta">Jogo ${active.cursor + 1} de ${deck.length} · ${roundLabel} · ${escapeHtml(formatShortDate(match.match_date))}${isPostponedMatch(match) ? " · adiado, data a definir" : ""}</p>
-          <h2 class="sim-card-teams" id="sim-card-title">
-            <span class="sim-card-team">${crest(match.home_id, 56)}<span>${escapeHtml(nameOf(match.home_id))}</span></span>
-            <span class="sim-card-vs">×</span>
-            <span class="sim-card-team">${crest(match.away_id, 56)}<span>${escapeHtml(nameOf(match.away_id))}</span></span>
-          </h2>
-          <p class="sim-card-hint">${hintFor(match)}</p>
+          <p class="sim-card-meta"><span>Jogo ${active.cursor + 1} de ${deck.length} · ${match.round ? `R${match.round}` : "sem rodada"} · ${escapeHtml(formatShortDate(match.match_date))}${kickoffClock(match) ? ` ${kickoffClock(match)}` : ""}</span><span>${lockText}</span></p>
+          <h2 class="visually-hidden" id="sim-card-title">${escapeHtml(nameOf(match.home_id))} × ${escapeHtml(nameOf(match.away_id))}</h2>
           ${locked ? `<p class="sim-card-lock">Este jogo fechou ${LOCK_MARGIN_MINUTES} minutos antes do início: não dá mais para mudar o palpite${cloud && cloudState.user ? ", e ele não conta para o ranking" : ""}.</p>` : ""}
           ${crowdForMatch(match)}
           ${controls}
+          ${modelPills(match)}
+          ${scoreLine}
           <div class="sim-card-state">${state}</div>
+          <div class="sim-card-actions">
+            ${canSample && !locked ? `<button type="button" class="sim-button is-secondary" id="sim-roll">Sortear</button>` : ""}
+            ${primary}
+          </div>
+          <p class="sim-card-links"><button type="button" class="link-button" id="sim-prev" ${active.cursor === 0 ? "disabled" : ""}>← Anterior</button>${locked ? "" : ` · <button type="button" class="link-button" id="sim-skip">${value === undefined ? "Pular" : "Deixar em branco"}</button>`}</p>
         </article>
         <p class="sim-cheer" aria-live="polite">${message}</p>
-        <div class="sim-deck-actions">
-          <button type="button" class="sim-button is-secondary" id="sim-prev" ${active.cursor === 0 ? "disabled" : ""}>← Anterior</button>
-          ${locked ? "" : `<button type="button" class="link-button" id="sim-skip">${value === undefined ? "Pular" : "Deixar em branco"}</button>`}
-          ${canSample && !locked ? `<button type="button" class="link-button" id="sim-roll">Deixar o modelo escolher este</button>` : ""}
-          <button type="button" class="sim-button is-secondary" id="sim-forward">${active.cursor === deck.length - 1 ? "Revisar →" : "Próximo →"}</button>
-        </div>
-        <details class="sim-deck-map"><summary>Ver todos os jogos (${filled} de ${deck.length} preenchidos)</summary>${deckMap(entry, active.cursor)}
-          ${canSample ? `<p class="sim-map-actions"><button type="button" class="link-button" id="sim-fill-rest">Modelo sorteia todos os jogos em branco</button> · <button type="button" class="link-button" id="sim-clear-model">Tirar os sorteados</button></p>` : ""}</details>
-        ${navBar("Mudar o jeito de jogar", "Revisar a tabela", "")}`, { focus: true });
+        <p class="sim-section-title"><b>2</b>${match.round ? `Jogos da rodada ${match.round}` : "Jogos sem rodada"} · ${mode === "vencedor" ? "toque no resultado de cada jogo" : "toque para palpitar"}</p>
+        ${originLegend()}
+        ${dayList(mode, entry, active.cursor)}
+        ${canSample ? `<p class="sim-map-actions"><button type="button" class="sim-button is-secondary" id="sim-fill-rest">Sortear o resto${tally.blank ? ` (${tally.blank})` : ""}</button> <button type="button" class="link-button" id="sim-clear-model">Tirar os sorteados</button></p>` : ""}
+        ${navBar("Mudar o jeito de jogar", "Revisar →", "")}`, { focus: true });
       bindSession(active, () => moveStep(active, 1), () => { if (entry.model) fillWithModel(mode, entry, false); moveStep(active, 3); });
       const goTo = (index, nextCheer) => { active.cursor = index; active.draftScore = null; writeStore(); renderDeck(active, nextCheer); const card = main.querySelector(".sim-card"); if (card) card.scrollIntoView({ block: "nearest" }); };
       const advance = (nextCheer) => {
@@ -1380,7 +1428,8 @@
         else { writeStore(); renderDeck(active, nextCheer || "Último jogo! Revise a tabela quando quiser."); }
       };
       document.getElementById("sim-prev").addEventListener("click", () => goTo(active.cursor - 1));
-      document.getElementById("sim-forward").addEventListener("click", () => {
+      const forward = document.getElementById("sim-forward");
+      if (forward) forward.addEventListener("click", () => {
         if (active.cursor === deck.length - 1) { if (entry.model) fillWithModel(mode, entry, false); moveStep(active, 3); }
         else goTo(active.cursor + 1);
       });
@@ -1388,7 +1437,7 @@
       if (skip) skip.addEventListener("click", () => {
         delete entry.picks[match.match_id];
         delete entry.sampled[match.match_id];
-        goTo(Math.min(deck.length - 1, active.cursor + 1), "Pulado. Dá para voltar depois pelo mapa de jogos.");
+        goTo(Math.min(deck.length - 1, active.cursor + 1), "Pulado. Dá para voltar depois pela lista de jogos.");
       });
       const roll = document.getElementById("sim-roll");
       if (roll) roll.addEventListener("click", () => {
@@ -1404,6 +1453,16 @@
       if (fillRest) fillRest.addEventListener("click", () => { entry.model = true; fillWithModel(mode, entry, false); writeStore(); renderDeck(active, "O modelo sorteou os jogos em branco. Eles aparecem tracejados."); });
       const clearModel = document.getElementById("sim-clear-model");
       if (clearModel) clearModel.addEventListener("click", () => { entry.model = false; entry.sampled = {}; writeStore(); renderDeck(active, "Sorteados removidos. Ficaram só os seus palpites."); });
+      main.querySelectorAll("[data-row-pick]").forEach((button) => button.addEventListener("click", () => {
+        const target = matchById.get(button.dataset.match);
+        if (!target) return;
+        entry.picks[target.match_id] = button.dataset.rowPick;
+        delete entry.sampled[target.match_id];
+        writeStore();
+        renderDeck(active, cheerFor(target, button.dataset.rowPick));
+        const again = main.querySelector(`[data-row-pick="${button.dataset.rowPick}"][data-match="${CSS.escape(target.match_id)}"]`);
+        if (again) again.focus();
+      }));
       main.querySelectorAll("[data-pick]").forEach((button) => button.addEventListener("click", () => {
         entry.picks[match.match_id] = button.dataset.pick;
         delete entry.sampled[match.match_id];
@@ -1433,7 +1492,7 @@
         const goals = active.draftScore && active.draftScore.match_id === match.match_id ? active.draftScore.value : value;
         const filledScore = goals && goals[0] !== null && goals[1] !== null;
         const last = active.cursor === deck.length - 1;
-        if (!filledScore && !last) return;
+        if (!filledScore && !last) { goTo(active.cursor + 1); return; }
         if (filledScore) {
           entry.picks[match.match_id] = [goals[0], goals[1]];
           delete entry.sampled[match.match_id];
@@ -1478,7 +1537,7 @@
     function originLegend() {
       return `<p class="sim-legend" aria-label="Legenda">
         <span><i class="sim-key is-own"></i>Seu palpite: você escolheu</span>
-        <span><i class="sim-key is-model"></i>Sorteado pelo modelo: ele escolheu com as chances dele; você pode trocar</span>
+        <span><i class="sim-key is-model"></i>Sorteado pelo modelo: ele escolheu com as probabilidades dele; você pode trocar</span>
         <span><i class="sim-key is-blank"></i>Em branco: fica fora da conta</span></p>`;
     }
 
@@ -1551,9 +1610,12 @@
         return ` Como Classificação, esta tabela faria ${tableEval.points} pontos hoje (até ${tableEval.ceiling} de ${tableEval.maximum}).`;
       })() : "";
       const goalsNote = mode === "vencedor" ? `<p class="note">No modo Vencedor não há placar, então o saldo de gols da tabela é só o dos jogos já disputados.</p>` : "";
-      shell("", "Revise e salve", `${tally.own} seus · ${tally.sampled} sorteados pelo modelo · ${tally.blank} em branco. Esta simulação vale até ${score.total} pontos (${perMatchText(mode)}).${asTable}`, `${sessionHeader(active)}
-        ${warning}${reviewSummary(mode, entry, tally)}${insightsBlock(mode, entry)}${picksHighlights(mode, entry)}${complete ? jointSlot("sim-joint") : ""}<h2>Sua tabela final</h2>${goalsNote}${finalTableHtml(mode, entry)}
-        ${decisionsTable(mode, entry)}
+      shell("", "Revise e salve", `Vale até ${score.total} pontos (${perMatchText(mode)}).${asTable}`, `${sessionHeader(active)}
+        <p class="sim-section-title"><b>3</b>Revisão</p>
+        ${warning}${complete ? jointSlot("sim-joint") : ""}
+        <section class="sim-review-card"><h2>Como termina a sua tabela</h2>${goalsNote}${finalTableHtml(mode, entry)}</section>
+        ${insightsBlock(mode, entry)}${picksHighlights(mode, entry)}${reviewSummary(mode, entry, tally)}
+        ${decisionsTable(mode, entry).replace("<details class=\"sim-decisions\" open>", "<details class=\"sim-decisions\">")}
         ${navBar("Voltar aos jogos", active.savedId ? "Salvar alterações" : "Salvar simulação", blocked)}`, { focus: true });
       bindSession(active, () => moveStep(active, 2), () => saveActive());
       if (complete) fillJoint("sim-joint", finalOrderOf(mode, entry), false);
