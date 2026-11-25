@@ -62,20 +62,37 @@
     strip.textContent = bar.dataset.short || (edition ? edition.textContent : bar.textContent).replace(/\s+/g, " ").trim();
   }
 
+  function currentLeagueLink() {
+    const links = leagueLinks();
+    const marked = links.find((link) => link.getAttribute("aria-current") === "page");
+    if (marked) return marked;
+    const segments = location.pathname.replace(/\/+$/, "").split("/").filter(Boolean);
+    const slug = segments[segments.length - 1] || "";
+    return links.find((link) => link.dataset.league === slug) || null;
+  }
+
+  function syncChip(chip) {
+    const current = currentLeagueLink();
+    const name = current ? current.textContent.trim() : "Competições";
+    chip.setAttribute("aria-label", current ? `Competição: ${name}. Trocar de competição` : "Trocar de competição");
+    chip.innerHTML = `<span>${SHORT[name] || name}</span>${CHEVRON}`;
+  }
+
   function mount() {
     const inner = document.querySelector(".masthead-inner");
     if (!inner || inner.querySelector(".league-chip")) return;
     const brand = inner.querySelector(".brand");
-    const current = leagueLinks().find((link) => link.getAttribute("aria-current") === "page");
-    if (current) {
-      const name = current.textContent.trim();
+    const leaguesEl = document.querySelector(".leagues");
+    if (leagueLinks().length) {
       const chip = document.createElement("button");
       chip.type = "button";
       chip.className = "league-chip";
-      chip.setAttribute("aria-label", `Competição: ${name}. Trocar de competição`);
-      chip.innerHTML = `<span>${SHORT[name] || name}</span>${CHEVRON}`;
+      syncChip(chip);
       chip.addEventListener("click", openCompetitions);
       (brand || inner.firstChild).after(chip);
+      if (leaguesEl) {
+        new MutationObserver(() => syncChip(chip)).observe(leaguesEl, { subtree: true, attributes: true, attributeFilter: ["aria-current"] });
+      }
     }
     let tools = inner.querySelector(".masthead-tools");
     if (!tools) {

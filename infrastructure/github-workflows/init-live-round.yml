@@ -1,0 +1,58 @@
+# Inicializa uma rodada do modo Ao vivo (`live_round_scores`, migração 0007) no Supabase.
+#
+# Disparado apenas manualmente (`workflow_dispatch`) na branch `main` com `PUBLISH_ENABLED=true`.
+# Usa `scripts/update_live_scores.py --init-round`, que cria as linhas como `scheduled` sem sobrescrever
+# placares já gravados (`ignore-duplicates`).
+name: init-live-round
+
+on:
+  workflow_dispatch:
+    inputs:
+      round:
+        description: "Número da rodada (1 a 38)"
+        required: true
+        default: "38"
+      season:
+        description: "Temporada"
+        required: false
+        default: "2026"
+
+permissions: {}
+
+jobs:
+  init:
+    if: github.ref == 'refs/heads/main' && vars.PUBLISH_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Conferir os inputs
+        env:
+          ROUND_INPUT: ${{ inputs.round }}
+          SEASON_INPUT: ${{ inputs.season }}
+        run: |
+          [[ "$ROUND_INPUT" =~ ^([1-9]|[1-2][0-9]|3[0-8])$ ]] || { echo "rodada inválida"; exit 1; }
+          [[ "$SEASON_INPUT" =~ ^20[2-9][0-9]$ ]] || { echo "temporada inválida"; exit 1; }
+          echo "rodada=${ROUND_INPUT}; temporada=${SEASON_INPUT}"
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Inicializar rodada no Supabase
+        env:
+          ROUND_INPUT: ${{ inputs.round }}
+          SEASON_INPUT: ${{ inputs.season }}
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PYTHONUTF8: "1"
+        run: |
+          predictions_url="https://${GITHUB_REPOSITORY%%/*}.github.io/${GITHUB_REPOSITORY#*/}/data/api/seasons/${SEASON_INPUT}/predictions.json"
+          python -I scripts/update_live_scores.py \
+            --init-round "$ROUND_INPUT" \
+            --predictions "${predictions_url,,}"
