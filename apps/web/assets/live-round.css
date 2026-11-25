@@ -48,3 +48,51 @@
   .live-matches { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; }
   .live-columns { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); }
 }
+
+/* F0 (REDESIGN_SPEC v2.1): o que está mudando no topo, Match Cards e tabela agora compacta. */
+.live-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.live-head h1 { margin: 0; }
+.live-stamp { margin: 4px 0 14px; font-size: 13px; }
+.live-chips { display: flex; gap: 6px; overflow-x: auto; margin: 0 0 12px; padding-bottom: 2px; scrollbar-width: none; }
+.live-chips .chip { flex: none; }
+.live-impact { margin: 0 0 20px; padding: 14px; border: 1px solid var(--rule); border-radius: 16px; background: var(--surface); }
+main .live-impact p.live-impact-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; margin: 0 0 8px; font-family: var(--sans); font-size: 15px; }
+.live-impact-head span { font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+main p.live-impact-empty { margin: 0; font-family: var(--sans); font-size: 13px; color: var(--ink-soft); }
+.live-impact-list { list-style: none; margin: 0; padding: 0; }
+.live-impact-list li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--rule); }
+.live-impact-list li:first-child { border-top: 0; padding-top: 2px; }
+.live-impact-list .crest, .live-impact-list .crest-spacer { width: 28px; height: 28px; }
+.live-impact-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.live-impact-text strong { font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.live-impact-text span { font-size: 12px; color: var(--ink-soft); }
+.live-impact-value { display: flex; flex-direction: column; align-items: flex-end; font-variant-numeric: tabular-nums; }
+.live-impact-value strong { font-size: 20px; font-weight: 850; line-height: 1.1; }
+.live-impact-value span { font-size: 12px; font-weight: 700; white-space: nowrap; }
+.live-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0 0 10px; font-size: 17px; }
+.live-h span { font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+.live-matches.mc-list { margin: 0 0 24px; gap: 10px; }
+.live-mc { cursor: default; }
+.live-mc:hover { background: var(--surface); }
+main .live-mc p.live-effect { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 14px; margin: 0; padding-top: 10px; border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 12px; font-weight: 650; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+main .live-mc p.live-effect[hidden] { display: none; }
+.live-effect b { font-weight: 650; color: var(--ink-faint); }
+.live-now { margin: 0 0 12px; }
+.live-compact { width: 100%; border: 1px solid var(--rule); border-radius: 16px; border-collapse: separate; border-spacing: 0; background: var(--surface); overflow: hidden; }
+.live-compact th, .live-compact td { padding: 8px 6px; border-top: 1px solid var(--rule); border-bottom: 0; }
+.live-compact thead th { border-top: 0; font-size: 11px; color: var(--ink-faint); }
+.live-compact td.pos { white-space: nowrap; }
+.live-compact td.pos .live-move { margin-left: 4px; font-size: 11px; }
+.live-compact td { font-variant-numeric: tabular-nums; }
+.live-compact .live-delta { display: inline; margin-left: 4px; }
+.live-full { margin: 10px 0 0; }
+.live-full > summary { display: flex; align-items: center; min-height: 44px; font-size: 14px; font-weight: 650; color: var(--ink-soft); cursor: pointer; }
+.live-full h3 { margin: 18px 0 4px; font-size: 16px; }
+main p.live-foot { margin: 20px 0 6px; font-family: var(--sans); font-size: 12px; color: var(--ink-faint); }
+.live-method { margin-top: 0; }
+.live-method > summary { min-height: 44px; display: flex; align-items: center; font-size: 13px; color: var(--ink-soft); cursor: pointer; }
+@media (min-width: 900px) {
+  .live-matches.mc-list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 16px; }
+}
+main h2.live-h { margin: 0 0 10px; padding: 0; border: 0; font-size: 17px; font-weight: 750; }
+.live-mc { align-content: start; }

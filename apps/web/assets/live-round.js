@@ -442,47 +442,66 @@
 
     main.innerHTML = `
       <section class="live" aria-labelledby="live-title">
-        <span class="kicker">Brasileirão Série A · modo enxuto</span>
-        <h1 id="live-title">Ao vivo</h1>
-        <p class="lede">Os placares da rodada entram na tabela na hora, e as probabilidades de título, G4, vaga continental e queda são recalculadas aqui no seu navegador.</p>
-        <div class="live-toolbar">
-          <span class="live-stamp" id="live-stamp" aria-live="polite">Buscando os placares…</span>
-          <button type="button" class="live-refresh" id="live-refresh">Atualizar agora</button>
+        <div class="live-head">
+          <h1 id="live-title">Ao vivo</h1>
+          <button type="button" class="live-refresh" id="live-refresh">Atualizar</button>
         </div>
+        <p class="live-stamp" id="live-stamp" aria-live="polite">Buscando os placares…</p>
         <div id="live-body" aria-busy="true"></div>
-        <p class="note live-method">Provisório: o oficial continua sendo a edição publicada. Jogo em andamento termina no sorteio com o placar atual mais os gols que faltam (Poisson com o xG do modelo, proporcional ao tempo que resta, ${MATCH_MINUTES} minutos com acréscimos); jogo que não começou usa as probabilidades de placar da edição. ${SIMULATIONS.toLocaleString("pt-BR")} simulações com semente fixa; empate que os critérios do Art. 15 não desfazem (cartões, sorteio) é sorteado. Libertadores e Sul-Americana aparecem como faixa entre os cenários dos outros torneios ainda em aberto. As variações comparam com o mesmo cálculo antes da rodada.</p>
+        <p class="live-foot">Calculado no seu navegador com os placares de agora · ${SIMULATIONS.toLocaleString("pt-BR")} simulações · não é a edição oficial</p>
+        <details class="live-method"><summary>Como é calculado</summary><p class="note">Provisório: o oficial continua sendo a edição publicada. Jogo em andamento termina no sorteio com o placar atual mais os gols que faltam (Poisson com o xG do modelo, proporcional ao tempo que resta, ${MATCH_MINUTES} minutos com acréscimos); jogo que não começou usa as probabilidades de placar da edição. ${SIMULATIONS.toLocaleString("pt-BR")} simulações com semente fixa; empate que os critérios do Art. 15 não desfazem (cartões, sorteio) é sorteado. Libertadores e Sul-Americana aparecem como faixa entre os cenários dos outros torneios ainda em aberto. As variações comparam com o mesmo cálculo antes da rodada.</p></details>
       </section>`;
     const body = main.querySelector("#live-body");
     const stamp = main.querySelector("#live-stamp");
+    const favorite = context.favorite || "";
+    controller.filter = "all";
 
-    function statusLabel(item) {
-      if (item.state === "finished") return item.official ? "Encerrado (oficial)" : "Encerrado";
-      if (item.state === "ht") return "Intervalo";
-      if (item.state === "live") return item.minute === null ? "Ao vivo" : `${item.minute}'`;
-      return item.match.kickoff_utc ? `Começa às ${brasiliaTime(item.match.kickoff_utc, false)}` : "Não começou";
+    const kickoffText = (match) => {
+      if (match.kickoff_utc) {
+        const when = new Date(match.kickoff_utc);
+        const day = when.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "short", day: "2-digit", month: "2-digit" }).replace(".", "").replace(",", "");
+        return `${day.charAt(0).toUpperCase()}${day.slice(1)} ${brasiliaTime(match.kickoff_utc, false)}`;
+      }
+      return match.match_date ? new Date(`${match.match_date}T12:00:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : "";
+    };
+
+    function badge(item) {
+      if (item.state === "finished") return `<span class="mc-badge is-final">${item.official ? "Encerrado" : "Fim · provisório"}</span>`;
+      if (item.state === "ht") return `<span class="mc-badge is-live">Intervalo</span>`;
+      if (item.state === "live") return `<span class="mc-badge is-live">Ao vivo${item.minute === null ? "" : ` · ${item.minute}'`}</span>`;
+      return "";
     }
 
+    // Match Card v2.1 (F1): placar no centro, probabilidade de agora em pílulas e, quando a conta termina, o efeito do jogo.
     function matchCard(item) {
+      const { match } = item;
       const scored = item.state !== "scheduled";
-      const score = scored ? `${item.homeGoals}<span aria-hidden="true">–</span><span class="visually-hidden"> a </span>${item.awayGoals}` : `<span class="live-vs">x</span>`;
-      let chances = "";
+      const center = scored
+        ? `<div class="mc-result"><span class="mc-center">${item.homeGoals} × ${item.awayGoals}</span>${badge(item)}</div>`
+        : `<span class="mc-center is-vs">VS</span>`;
+      let odds = "";
       if (item.state !== "finished") {
-        const distribution = LIVE_STATUSES.has(item.state)
-          ? liveDistribution(item.match, { status: item.state, minute: item.minute, home_goals: item.homeGoals, away_goals: item.awayGoals })
-          : preMatchDistribution(item.match);
+        const isLive = LIVE_STATUSES.has(item.state);
+        const distribution = isLive
+          ? liveDistribution(match, { status: item.state, minute: item.minute, home_goals: item.homeGoals, away_goals: item.awayGoals })
+          : preMatchDistribution(match);
         if (distribution) {
-          const odds = outcomeChances(distribution);
-          chances = `<p class="live-odds"><span>${shortName(item.match.home_id)} vence <strong>${pct(odds.H)}</strong></span><span>Empate <strong>${pct(odds.D)}</strong></span><span>${shortName(item.match.away_id)} vence <strong>${pct(odds.A)}</strong></span></p>`;
+          const chances = outcomeChances(distribution);
+          const top = Math.max(chances.H, chances.D, chances.A);
+          const pill = (value, label) => `<span class="mc-odd${value === top ? " is-top" : ""}"><strong>${pct(value)}</strong><span>${label}</span></span>`;
+          odds = `<p class="mc-caption">${isLive ? "Probabilidade de agora (placar e tempo que falta)" : "Probabilidade do modelo"}</p>
+            <div class="mc-odds">${pill(chances.H, shortName(match.home_id))}${pill(chances.D, "Empate")}${pill(chances.A, shortName(match.away_id))}</div>`;
         }
       }
-      return `<li class="live-match live-${item.state}">
-        <span class="live-status">${LIVE_STATUSES.has(item.state) ? '<span class="live-dot" aria-hidden="true"></span>' : ""}${escapeHtml(statusLabel(item))}</span>
-        <span class="live-home">${clubName(item.match.home_id)}${crest(item.match.home_id, 22)}</span>
-        <span class="live-score">${score}</span>
-        <span class="live-away">${crest(item.match.away_id, 22)}${clubName(item.match.away_id)}</span>
-        ${chances}
+      const team = (clubId) => `<span class="mc-team">${crest(clubId, 38)}<span class="mc-team-name">${shortName(clubId)}</span></span>`;
+      return `<li class="mc live-mc is-${item.state}">
+        <div class="mc-top"><span>R${roundShown} · ${escapeHtml(kickoffText(match))}</span></div>
+        <div class="mc-teams" aria-label="${longName(match.home_id)} ${scored ? `${item.homeGoals} a ${item.awayGoals}` : "contra"} ${longName(match.away_id)}">${team(match.home_id)}${center}${team(match.away_id)}</div>
+        ${odds}
+        <p class="live-effect" data-effect="${escapeHtml(match.match_id)}" hidden></p>
       </li>`;
     }
+    let roundShown = "";
 
     function movement(row) {
       if (row.before === undefined || row.before === row.position) return `<span class="live-move same" aria-label="mesma posição">=</span>`;
@@ -535,33 +554,148 @@
       </table>`;
     }
 
+    /* ---- F2: o que está mudando agora (só dados: variação desde antes da rodada, sem adjetivo) */
+    const METRICS = [
+      { key: "title", filter: "title", label: "título", short: "Título" },
+      { key: "top4", filter: "top4", label: "G4", short: "G4" },
+      { key: "relegation", filter: "z4", label: "queda", short: "Queda" },
+    ];
+    const FILTERS = [["all", "Tudo"], ["title", "Título"], ["top4", "G4"], ["z4", "Z4"], ["mine", "Seu time"]];
+
+    // O que o jogo do clube está fazendo, em palavras: vence/empata/perde (passado se acabou), ou ainda não jogou.
+    function gameNote(model, clubId) {
+      const item = model.roundMatches.find((entry) => entry.match.home_id === clubId || entry.match.away_id === clubId);
+      if (!item || item.state === "scheduled") return "ainda não jogou na rodada";
+      const home = item.match.home_id === clubId;
+      const own = home ? item.homeGoals : item.awayGoals;
+      const other = home ? item.awayGoals : item.homeGoals;
+      const rival = longName(home ? item.match.away_id : item.match.home_id);
+      const done = item.state === "finished";
+      if (own > other) return `${done ? "venceu" : "vence"} o ${rival} por ${own} × ${other}`;
+      if (own < other) return `${done ? "perdeu" : "perde"} para o ${rival} por ${own} × ${other}`;
+      return `${done ? "empatou" : "empata"} com o ${rival} por ${own} × ${other}`;
+    }
+
+    function impactHtml(model, result, baseline) {
+      const filter = controller.filter;
+      if (filter === "mine" && !favorite) return `<p class="live-impact-empty">Escolha o seu time na página do clube (estrela ao lado do nome) para ver só ele aqui.</p>`;
+      const moves = [];
+      result.clubs.forEach((now, clubId) => {
+        if (filter === "mine" && clubId !== favorite) return;
+        const before = baseline.clubs.get(clubId);
+        METRICS.forEach((metric) => {
+          if (filter !== "all" && filter !== "mine" && metric.filter !== filter) return;
+          const delta = now[metric.key] - before[metric.key];
+          if (filter !== "mine" && Math.abs(delta) < 0.01) return;
+          const settledValue = (value) => value < 0.005 || value > 0.995;
+          if (settledValue(now[metric.key]) && settledValue(before[metric.key])) return;
+          moves.push({ clubId, metric, now: now[metric.key], before: before[metric.key], delta });
+        });
+      });
+      moves.sort((left, right) => Math.abs(right.delta) - Math.abs(left.delta));
+      const shown = moves.slice(0, filter === "all" ? 5 : 6);
+      if (!shown.length) return `<p class="live-impact-empty">Nenhuma probabilidade mudou 1 ponto percentual ou mais desde o início da rodada${filter === "all" ? "" : " neste filtro"}.</p>`;
+      return `<ul class="live-impact-list">${shown.map((move) => {
+        const points = Math.round(Math.abs(move.delta) * 100);
+        const arrow = Math.abs(move.delta) < 0.005 ? "=" : move.delta > 0 ? "▲" : "▼";
+        const bad = move.metric.key === "relegation" ? move.delta > 0 : move.delta < 0;
+        return `<li>${crest(move.clubId, 28)}
+          <span class="live-impact-text"><strong>${longName(move.clubId)} · ${move.metric.label}</strong><span>${escapeHtml(gameNote(model, move.clubId))} · era ${pct(move.before)}</span></span>
+          <span class="live-impact-value"><strong>${pct(move.now)}</strong><span class="${Math.abs(move.delta) < 0.005 ? "" : bad ? "change-down" : "change-up"}">${arrow} ${points} p.p.</span></span></li>`;
+      }).join("")}</ul>`;
+    }
+
+    function chipsHtml() {
+      return FILTERS.map(([key, label]) => `<button type="button" class="chip" data-live-filter="${key}" aria-pressed="${controller.filter === key}">${label}</button>`).join("");
+    }
+
+    // Por clube, a disputa mais aberta entre título, G4 e queda (a mais longe de 0% e de 100%).
+    function effectLine(match, result) {
+      const groups = new Map();
+      [match.home_id, match.away_id].forEach((clubId) => {
+        const values = result.clubs.get(clubId);
+        const metric = METRICS.map((item) => ({ item, value: values[item.key] }))
+          .filter((entry) => entry.value >= 0.01 && entry.value <= 0.99)
+          .sort((left, right) => Math.min(right.value, 1 - right.value) - Math.min(left.value, 1 - left.value))[0];
+        if (!metric) return;
+        if (!groups.has(metric.item.short)) groups.set(metric.item.short, []);
+        groups.get(metric.item.short).push(`${shortName(clubId)} ${pct(metric.value)}`);
+      });
+      return [...groups.entries()].map(([label, parts]) => `<span><b>${label}:</b> ${parts.join(" · ")}</span>`).join("");
+    }
+
+    // Tabela agora (compacta): só quem mudou de posição ou de probabilidade; a completa fica logo abaixo.
+    function compactTable(rows, result, baseline) {
+      const changed = rows.filter((row) => {
+        const now = result.clubs.get(row.club_id);
+        const before = baseline.clubs.get(row.club_id);
+        return (row.before !== undefined && row.before !== row.position) || Math.abs(now.title - before.title) >= 0.01 || Math.abs(now.relegation - before.relegation) >= 0.01;
+      });
+      const list = changed.length ? changed : rows.slice(0, 4);
+      const value = (clubId, key, inverse) => {
+        const now = result.clubs.get(clubId)[key];
+        return `<td>${pct(now)}${deltaHtml(now, baseline.clubs.get(clubId)[key], inverse)}</td>`;
+      };
+      return `<table class="live-table live-compact">
+        <caption class="visually-hidden">Clubes que mudaram de posição ou de probabilidade com os placares de agora</caption>
+        <thead><tr><th scope="col">#</th><th scope="col" class="left">Clube</th><th scope="col">Pts</th><th scope="col">Título</th><th scope="col">Z4</th></tr></thead>
+        <tbody>${list.map((row) => `<tr><td class="pos"><span>${row.position}</span>${movement(row)}</td>
+          <td class="left club">${crest(row.club_id, 18)} ${clubName(row.club_id)}</td><td><strong>${row.points}</strong></td>
+          ${value(row.club_id, "title", false)}${value(row.club_id, "relegation", true)}</tr>`).join("")}</tbody>
+      </table>`;
+    }
+
     async function draw(model) {
       const run = ++controller.run;
       const rows = tables(model);
       const hasScores = model.live > 0 || model.liveFinished > 0;
-      const roundTitle = `Rodada ${model.round}`;
+      roundShown = model.round;
+      main.querySelector("#live-title").textContent = `Ao vivo · R${model.round}`;
+      const rolling = model.roundMatches.filter((item) => LIVE_STATUSES.has(item.state)).length;
+      const ended = model.roundMatches.filter((item) => item.state === "finished").length;
+      const waiting = model.roundMatches.filter((item) => item.state === "scheduled").length;
+      const tally = [rolling ? `${rolling} rolando` : "", ended ? `${ended} ${ended === 1 ? "encerrado" : "encerrados"}` : "", waiting ? `${waiting} a jogar` : ""].filter(Boolean).join(" · ");
       const notices = [];
-      if (!model.live) notices.push(`<p class="live-empty" role="status"><strong>Sem jogos ao vivo no momento.</strong> ${model.liveFinished ? "A tabela abaixo já tem os jogos encerrados que ainda não estão na edição publicada." : "Quando a bola rolar, os placares aparecem aqui sozinhos (a página confere a cada 15 segundos)."}</p>`);
       if (model.ignored) notices.push(`<p class="note">${model.ignored === 1 ? "1 placar ignorado" : `${model.ignored} placares ignorados`}: jogo desconhecido, de outra temporada ou já encerrado de forma diferente.</p>`);
       body.innerHTML = `
         ${notices.join("")}
-        <h2>${escapeHtml(roundTitle)}${model.live ? ` <span class="live-count">${model.live} ${model.live === 1 ? "jogo" : "jogos"} ao vivo</span>` : ""}</h2>
-        <ul class="live-matches">${model.roundMatches.map(matchCard).join("")}</ul>
+        <div class="live-chips" role="group" aria-label="Mostrar mudanças de">${chipsHtml()}</div>
+        <section class="live-impact" aria-labelledby="live-impact-title">
+          <p class="live-impact-head"><strong id="live-impact-title">O que está mudando agora</strong><span>desde o início da rodada</span></p>
+          <div id="live-impact">${hasScores ? `<p class="live-impact-empty">Calculando…</p>` : `<p class="live-impact-empty">${model.liveFinished ? "" : "Sem jogos ao vivo no momento. "}Quando a bola rolar, as mudanças aparecem aqui sozinhas (a página confere a cada 15 segundos).</p>`}</div>
+        </section>
+        <h2 class="live-h">Jogos <span>${escapeHtml(tally)}</span></h2>
+        <ul class="mc-list live-matches">${model.roundMatches.map(matchCard).join("")}</ul>
         ${hasScores ? `
-          <div class="live-columns">
-            <section><h2>Tabela agora</h2><p class="note">Como fica se os jogos acabarem com os placares de agora. ▲▼ = posições ganhas ou perdidas desde antes da rodada.</p>
+          <section class="live-now" aria-labelledby="live-now-title">
+            <h2 class="live-h" id="live-now-title">Tabela agora <span>se terminasse assim</span></h2>
+            <div id="live-now"><p class="live-impact-empty">Calculando…</p></div>
+            <details class="live-full"><summary>Tabela completa e todas as probabilidades</summary>
               <div class="legend"><span class="l-lib">Libertadores (1º–5º)</span><span class="l-sula">Sul-Americana (6º–11º)</span><span class="l-z4">Rebaixamento</span></div>
-              ${tableHtml(rows)}</section>
-            <section><h2>Probabilidades agora</h2><p class="note" id="live-chances-note">Calculando…</p><div id="live-chances"></div></section>
-          </div>` : ""}`;
+              ${tableHtml(rows)}
+              <h3>Probabilidades agora</h3><p class="note" id="live-chances-note">Calculando…</p><div id="live-chances"></div>
+            </details>
+          </section>` : ""}`;
       body.setAttribute("aria-busy", hasScores ? "true" : "false");
-      if (!hasScores) return;
+      const bindChips = (result) => body.querySelectorAll("[data-live-filter]").forEach((button) => button.addEventListener("click", () => {
+        controller.filter = button.dataset.liveFilter;
+        body.querySelectorAll("[data-live-filter]").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+        if (result) body.querySelector("#live-impact").innerHTML = impactHtml(model, result, controller.baseline);
+      }));
+      if (!hasScores) { bindChips(null); return; }
       if (!controller.baseline) controller.baseline = await simulate(model, { baseline: true });
       const result = await simulate(model);
       if (controller.stopped || run !== controller.run) return;
-      const target = body.querySelector("#live-chances");
+      bindChips(result);
+      body.querySelector("#live-impact").innerHTML = impactHtml(model, result, controller.baseline);
+      body.querySelector("#live-now").innerHTML = compactTable(rows, result, controller.baseline);
+      body.querySelectorAll("[data-effect]").forEach((slot) => {
+        const item = model.roundMatches.find((entry) => entry.match.match_id === slot.dataset.effect);
+        const line = item ? effectLine(item.match, result) : "";
+        if (line) { slot.innerHTML = line; slot.hidden = false; }
+      });
       body.querySelector("#live-chances-note").textContent = `${result.simulations.toLocaleString("pt-BR")} simulações no seu navegador. O número pequeno é a variação em pontos percentuais desde antes da rodada. Vagas continentais: faixa entre ${result.scenarios} cenários dos outros torneios; as vagas pela tabela podem descer se o campeão da Copa do Brasil ou da Libertadores já estiver classificado.`;
-      target.innerHTML = chancesHtml(rows, result, controller.baseline);
+      body.querySelector("#live-chances").innerHTML = chancesHtml(rows, result, controller.baseline);
       body.setAttribute("aria-busy", "false");
     }
 
@@ -583,7 +717,7 @@
       if (controller.stopped) return;
       if (button) button.disabled = false;
       stamp.innerHTML = controller.updatedAt
-        ? `<span class="live-badge">Atualizado às ${brasiliaTime(controller.updatedAt)}</span>${controller.error ? ` <span class="sim-warning">${escapeHtml(controller.error)}</span>` : ""}`
+        ? `<span class="live-badge">${brasiliaTime(controller.updatedAt)} · a cada 15 s</span>${controller.error ? ` <span class="sim-warning">${escapeHtml(controller.error)}</span>` : ""}`
         : `<span class="sim-warning">${escapeHtml(controller.error)}</span>`;
       const signature = JSON.stringify([...controller.rows].sort((left, right) => String(left.match_id).localeCompare(String(right.match_id)))
         .map((row) => [row.match_id, row.status, row.home_goals, row.away_goals, row.minute]));
