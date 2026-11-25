@@ -2,7 +2,7 @@
   "use strict";
 
   const SEASON = 2026;
-  const state = { live: new Map(), prediction: null, finishedShown: 0, snapshot: null, history: [], metrics: null, rounds: null, currentRound: null, insights: [], crests: {}, apiMode: false, scenarioChoice: {}, historyMode: null };
+  const state = { live: new Map(), prediction: null, snapshot: null, history: [], metrics: null, rounds: null, currentRound: null, insights: [], crests: {}, apiMode: false, scenarioChoice: {}, historyMode: null };
   const main = document.getElementById("main");
 
   const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (char) => (
@@ -186,9 +186,9 @@
   const NARROW_LAYOUT = 560;
 
   const RACES = {
-    titulo: { key: "title", label: "Título", noun: "título", slots: 1, color: "var(--title)", table: "titulo" },
-    g4: { key: "top4", label: "G4", noun: "G4", slots: 4, color: "var(--libertadores)", table: "libertadores" },
-    rebaixamento: { key: "relegation", label: "Z4", noun: "rebaixamento", slots: 4, color: "var(--danger)", table: "rebaixamento" },
+    titulo: { key: "title", label: "Título", noun: "título", slots: 1, color: "var(--title)", table: "titulo", briga: "briga-titulo" },
+    g4: { key: "top4", label: "G4", noun: "G4", slots: 4, color: "var(--libertadores)", table: "libertadores", briga: "briga-g4" },
+    rebaixamento: { key: "relegation", label: "Z4", noun: "rebaixamento", slots: 4, color: "var(--danger)", table: "rebaixamento", briga: "briga-z4" },
   };
   const RACE_MOVEMENT_THRESHOLD = 0.05;
 
@@ -354,17 +354,12 @@
     }));
   }
 
-  function nextMatchOf(clubId) {
-    return state.snapshot.matches.find((match) => match.status !== "finished" && !isPostponed(match) && (match.home_id === clubId || match.away_id === clubId));
-  }
-
-  /* Card "Seu Time" (REDESIGN_SPEC v2.1 §3.3): escudo, posição e pontos, "Trocar", três blocos (Título · G4 · Queda)
-     e o botão do simulador. Sem time escolhido, uma linha com o botão que abre a mesma folha de clubes. */
-  const YOUR_TEAM_STATS = [
-    { label: "Título", key: "title", view: "titulo", tone: "is-title" },
-    { label: "G4", key: "top4", view: "libertadores", tone: "is-g4" },
-    { label: "Queda", key: "relegation", view: "rebaixamento", tone: "is-z4" },
-  ];
+  /* Home centrada no seu time (opção B3 do canvas de UI, escolhida pelo dono em 2026-11-25): a probabilidade da
+     disputa em destaque, a variação desde a atualização anterior, a curva recente, o próximo jogo e o simulador. */
+  const HERO_LABEL = { titulo: "Título", g4: "G4", rebaixamento: "Queda" };
+  const HERO_NOUN = { titulo: "título", g4: "G4", rebaixamento: "queda" };
+  const HERO_TONE = { titulo: "", g4: "is-g4", rebaixamento: "is-z4" };
+  const HISTORY_POINTS = 10;
   const FEMININE_CLUBS = new Set(["chapecoense"]);
 
   function openTeamSheet() {
@@ -380,21 +375,73 @@
     });
   }
 
-  function yourTeamCard() {
-    const team = teamById(favoriteClub());
-    if (!team) {
-      return `<section class="card your-team is-empty" aria-label="Seu time"><p class="yt-empty">Escolha seu time</p><button type="button" class="btn-secondary btn-sm" data-open-teams>Escolher</button></section>`;
-    }
-    const stats = YOUR_TEAM_STATS.map((stat) => `<a class="yt-stat ${stat.tone}" href="#/classificacao/${stat.view}"><span>${stat.label}</span><strong>${pct(team[stat.key])}</strong></a>`).join("");
-    const article = FEMININE_CLUBS.has(team.club_id) ? "da" : "do";
-    return `<section class="card your-team" aria-label="Seu time">
+  /* A disputa que mais diz sobre o time: a mais aberta (p·(1−p)), com o título na frente no empate. */
+  function openRaceFor(team) {
+    const spread = (id) => { const value = team[RACES[id].key]; return value * (1 - value); };
+    return Object.keys(RACES).reduce((best, id) => (spread(id) > spread(best) + 1e-9 ? id : best), "titulo");
+  }
+
+  function teamHistory(clubId, key) {
+    return state.history
+      .map((point) => ({ date: point.reference_date, value: point.teams && point.teams[clubId] ? point.teams[clubId][key] : null }))
+      .filter((point) => isProbability(point.value));
+  }
+
+  function heroDelta(points, key) {
+    if (points.length < 2) return "";
+    const [previous, latest] = points.slice(-2);
+    const delta = latest.value - previous.value;
+    const since = formatDay(previous.date);
+    if (Math.abs(delta) < 0.005) return `<span class="hero-delta">estável desde ${since}</span>`;
+    const good = key === "relegation" ? delta < 0 : delta > 0;
+    return `<span class="hero-delta ${good ? "is-good" : "is-bad"}">${delta > 0 ? "+" : "−"}${Math.round(Math.abs(delta) * 100)} p.p. desde ${since}</span>`;
+  }
+
+  /* Curva das últimas atualizações, na escala de 0 a 100% (sem esticar variações pequenas). */
+  function sparkline(points, noun) {
+    const recent = points.slice(-HISTORY_POINTS);
+    if (recent.length < 2) return "";
+    const width = 150, height = 64, pad = 5;
+    const x = (index) => pad + (index * (width - 2 * pad)) / (recent.length - 1);
+    const y = (value) => pad + (1 - value) * (height - 2 * pad);
+    const line = recent.map((point, index) => `${x(index).toFixed(1)},${y(point.value).toFixed(1)}`).join(" ");
+    const last = recent[recent.length - 1];
+    const label = `Probabilidade de ${noun} de ${formatDay(recent[0].date)} a ${formatDay(last.date)}: de ${pct(recent[0].value)} para ${pct(last.value)}`;
+    return `<svg class="hero-spark" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-label="${escapeHtml(label)}">
+        <line x1="${pad}" x2="${width - pad}" y1="${y(0)}" y2="${y(0)}" class="hero-spark-axis"/><line x1="${pad}" x2="${width - pad}" y1="${y(1)}" y2="${y(1)}" class="hero-spark-axis"/>
+        <polyline points="${line}" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+        <circle cx="${x(recent.length - 1).toFixed(1)}" cy="${y(last.value).toFixed(1)}" r="3.5" class="hero-spark-dot"/></svg>`;
+  }
+
+  function teamHero(team, raceId) {
+    const key = RACES[raceId].key;
+    const points = teamHistory(team.club_id, key);
+    const remaining = state.snapshot.matches.filter((match) => match.status !== "finished" && (match.home_id === team.club_id || match.away_id === team.club_id)).length;
+    const chips = Object.keys(RACES).map((id) => `<a class="chip chip-sm" href="#/inicio/${id}"${id === raceId ? ' aria-current="page"' : ""}>${HERO_LABEL[id]}</a>`).join("");
+    return `<section class="card team-hero" aria-label="Seu time">
       <div class="yt-head">
-        <a class="yt-club" href="#/clubes/${encodeURIComponent(team.club_id)}">${crest(team.club_id, 40)}<span class="yt-name"><strong>${escapeHtml(team.name)}</strong><span>${team.current_position}º lugar · ${team.current_points} pts</span></span></a>
+        <a class="yt-club" href="#/clubes/${encodeURIComponent(team.club_id)}">${crest(team.club_id, 44)}<span class="yt-name"><strong>${escapeHtml(team.name)}</strong><span>${team.current_position}º lugar · ${team.current_points} pts · ${remaining} ${remaining === 1 ? "jogo" : "jogos"}</span></span></a>
         <button type="button" class="chip chip-sm" data-open-teams>Trocar</button>
       </div>
-      <div class="yt-stats">${stats}</div>
-      <a class="btn-primary yt-cta" href="#/simular">Simular jogos ${article} ${escapeHtml(team.name)}</a>
+      <nav class="chip-row" aria-label="Disputa">${chips}</nav>
+      <div class="hero-main">
+        <p class="hero-number ${HERO_TONE[raceId]}"><span class="hero-label">Probabilidade de ${HERO_NOUN[raceId]}</span><strong>${pct(team[key])}</strong>${heroDelta(points, key)}</p>
+        ${sparkline(points, HERO_NOUN[raceId])}
+      </div>
     </section>`;
+  }
+
+  function teamNextMatch(team) {
+    const match = upcomingMatches().find((item) => !isPostponed(item) && (item.home_id === team.club_id || item.away_id === team.club_id));
+    if (!match) return "";
+    return `<section class="home-block" aria-labelledby="home-next">
+      <div class="block-head"><h2 id="home-next">Próximo jogo</h2><a class="block-link" href="#/clubes/${encodeURIComponent(team.club_id)}">Todos os jogos ›</a></div>
+      ${matchList([match])}
+    </section>`;
+  }
+
+  function emptyTeamCard() {
+    return `<section class="card your-team is-empty" aria-label="Seu time"><p class="yt-empty">Escolha seu time</p><button type="button" class="btn-secondary btn-sm" data-open-teams>Escolher</button></section>`;
   }
 
   /* Estados de carregamento, vazio e erro (REDESIGN_SPEC v2.1 §3.7). */
@@ -430,15 +477,15 @@
   const HOME_FINISHED = 4;
 
   /* Próximos jogos da Home: os HOME_MATCHES mais cedo, agrupados por dia; no fim da temporada, os últimos resultados. */
-  function homeMatches() {
-    const upcoming = upcomingMatches().filter((match) => !isPostponed(match));
+  function homeMatches(skipId = null) {
+    const upcoming = upcomingMatches().filter((match) => !isPostponed(match) && match.match_id !== skipId);
     const recent = finishedMatches().slice(0, HOME_FINISHED);
     const list = upcoming.length ? upcoming.slice(0, HOME_MATCHES) : recent;
     if (!list.length) return "";
     const analysis = state.currentRound ? `<a class="block-link" href="#/inicio/${ROUND_TAB}">O que mudou na rodada ${state.currentRound.number} ›</a>` : "";
     const title = upcoming.length ? "Próximos jogos" : "Últimos resultados";
     return `<section class="home-block" aria-labelledby="home-round">
-      <div class="block-head"><h2 id="home-round">${title}</h2><a class="block-link" href="#/jogos${upcoming.length ? "" : "/encerrados"}">Ver todos ›</a></div>
+      <div class="block-head"><h2 id="home-round">${title}</h2><a class="block-link" href="#/jogos">Ver a agenda ›</a></div>
       ${predictionNote()}
       ${matchesByDay(list)}
       ${analysis}
@@ -453,7 +500,7 @@
         ${crest(team.club_id, 26)}<span class="race-line-name">${escapeHtml(team.name)}</span><strong>${pct(team[race.key])}</strong>
         <span class="race-line-bar" aria-hidden="true"><i style="width:${(team[race.key] * 100).toFixed(1)}%;background:${race.color}"></i></span></a>`).join("");
     return `<section class="card home-block disputes" aria-labelledby="home-races">
-      <div class="block-head"><h2 id="home-races">Disputas</h2><a class="block-link" href="#/classificacao/${race.table}">Tabela ›</a></div>
+      <div class="block-head"><h2 id="home-races">Disputas</h2><a class="block-link" href="#/classificacao/${race.briga}">Tabela ›</a></div>
       <nav class="chip-row" aria-label="Escolha a disputa">${chips}</nav>
       <div class="race-lines">${rows || `<p class="state-text">Nenhum clube com probabilidade nesta disputa.</p>`}</div>
       <details class="mosaic-details"><summary>Ver o mosaico da disputa</summary>${raceMosaic(race)}</details>
@@ -474,8 +521,21 @@
       renderRoundAnalysis();
       return;
     }
-    const raceId = RACES[requested] ? requested : featuredRace().id;
-    main.innerHTML = `<h1 class="visually-hidden">Início</h1>${yourTeamCard()}${homeMatches()}${disputesCard(raceId)}`;
+    const team = teamById(favoriteClub());
+    if (!team) {
+      const raceId = RACES[requested] ? requested : featuredRace().id;
+      main.innerHTML = `<h1 class="visually-hidden">Início</h1>${emptyTeamCard()}${homeMatches()}${disputesCard(raceId)}`;
+      bindHome();
+      return;
+    }
+    const raceId = RACES[requested] ? requested : openRaceFor(team);
+    const next = upcomingMatches().find((item) => !isPostponed(item) && (item.home_id === team.club_id || item.away_id === team.club_id));
+    const article = FEMININE_CLUBS.has(team.club_id) ? "da" : "do";
+    main.innerHTML = `<h1 class="visually-hidden">Início</h1>
+      ${teamHero(team, raceId)}
+      ${teamNextMatch(team)}
+      <a class="btn-primary yt-cta home-cta" href="#/simular">Simular jogos ${article} ${escapeHtml(team.name)}</a>
+      ${homeMatches(next ? next.match_id : null)}`;
     bindHome();
   }
 
@@ -664,7 +724,7 @@
   }
 
   function tableTabs(selected) {
-    return `<nav class="chip-strip" aria-label="Visão da tabela">${Object.entries(TABLE_VIEWS).map(([id, view]) =>
+    return `<nav class="chip-strip" aria-label="Visão da tabela"><a class="chip" href="#/classificacao">‹ Disputas</a>${Object.entries(TABLE_VIEWS).map(([id, view]) =>
       `<a class="chip" href="#/classificacao/${id}"${id === selected ? ' aria-current="page"' : ""}>${view.label}</a>`).join("")}</nav>`;
   }
 
@@ -675,23 +735,72 @@
     if (button) button.addEventListener("click", () => window.AIndaDaShell.openSheet(title, `<div class="sheet-info">${body}</div>`));
   }
 
-  /* Disputa em que o time escolhido tem mais chance (título e queda ganham no empate). */
-  function bestDisputeView() {
-    const team = teamById(favoriteClub());
-    if (!team) return "titulo";
-    const options = [["titulo", team.title], ["rebaixamento", team.relegation], ["libertadores", Math.max(team.top4, scenarioMid(team.libertadores_total))], ["sul-americana", scenarioMid(team.sudamericana)]];
-    return options.reduce((best, option) => (option[1] > best[1] ? option : best))[0];
+  /* Classificação por disputa (opção C2): quem já está garantido nas simulações, quem está na briga e quem está fora.
+     A tabela completa continua a um toque (#/classificacao/geral e as outras visões). */
+  const SURE = 0.99;
+  const OUT = 0.01;
+  const BRIGA_RACE = { "briga-titulo": "titulo", "briga-g4": "g4", "briga-z4": "rebaixamento" };
+  const RACE_GROUPS = {
+    titulo: { sure: "Campeão em quase todas as simulações", open: "Na briga pelo título", out: "Sem probabilidade relevante de título", unit: ["vaga", "vagas"] },
+    g4: { sure: "No G4 em quase todas as simulações", open: "Na briga pelo G4", out: "Fora da briga pelo G4", unit: ["vaga", "vagas"] },
+    rebaixamento: { sure: "Caem em quase todas as simulações", open: "Ainda correm risco de queda", out: "Longe da queda", unit: ["queda", "quedas"] },
+  };
+
+  function raceRow(team, race, withNext) {
+    const mine = team.club_id === favoriteClub();
+    const next = withNext ? upcomingMatches().find((match) => !isPostponed(match) && (match.home_id === team.club_id || match.away_id === team.club_id)) : null;
+    const nextText = next ? ` · próximo: ${escapeHtml(shortOf(next.home_id === team.club_id ? next.away_id : next.home_id))} (${next.home_id === team.club_id ? "casa" : "fora"})` : "";
+    const [low, high] = team.points_interval_90 || [];
+    const range = Number.isFinite(low) && Number.isFinite(high) ? ` · termina com ${Math.round(low)} a ${Math.round(high)}` : "";
+    const value = team[race.key];
+    return `<a class="race-row-card${mine ? " is-mine" : ""}" href="#/clubes/${encodeURIComponent(team.club_id)}">
+        <span class="rr-pos">${team.current_position}</span>${crest(team.club_id, 26)}
+        <span class="rr-name">${escapeHtml(team.name)}${mine ? ` <span class="rr-mine">· seu time</span>` : ""}</span>
+        <span class="rr-meta">${team.current_points} pts${withNext ? nextText : range}</span>
+        <strong class="rr-value">${pct(value)}</strong>
+        <span class="rr-bar" aria-hidden="true"><i style="width:${(Math.min(1, Math.max(0, value)) * 100).toFixed(1)}%;background:${race.color}"></i></span></a>`;
+  }
+
+  function renderRaces(raceId) {
+    const race = RACES[raceId];
+    const words = RACE_GROUPS[raceId];
+    const teams = [...state.snapshot.teams].sort((left, right) => right[race.key] - left[race.key] || left.current_position - right.current_position);
+    const sure = teams.filter((team) => team[race.key] >= SURE);
+    const open = teams.filter((team) => team[race.key] >= OUT && team[race.key] < SURE);
+    const out = teams.filter((team) => team[race.key] < OUT).sort((left, right) => left.current_position - right.current_position);
+    const left = Math.max(0, race.slots - sure.length);
+    const chips = Object.entries(RACES).map(([id, item]) => `<a class="chip" href="#/classificacao/${item.briga}"${id === raceId ? ' aria-current="page"' : ""}>${item.label}</a>`).join("")
+      + `<a class="chip" href="#/classificacao/geral">Tabela completa</a>`;
+    const group = (title, aside, list, withNext) => (list.length
+      ? `<section class="race-group"><h2 class="rg-title">${title}<span>${aside}</span></h2><div class="rg-list">${list.map((team) => raceRow(team, race, withNext)).join("")}</div></section>` : "");
+    const outBlock = out.length
+      ? `<details class="race-group rg-out"><summary class="rg-title">${words.out}<span>${out.length} ${out.length === 1 ? "clube" : "clubes"} abaixo de 1%</span></summary><div class="rg-list">${out.map((team) => raceRow(team, race, false)).join("")}</div></details>` : "";
+    const explanation = `<p>Cada porcentagem diz em quantas das ${state.snapshot.n_simulations.toLocaleString("pt-BR")} simulações do resto do campeonato o clube terminou com ${race.noun}.</p>
+      <p>"Em quase todas as simulações" = 99% ou mais. Isso não é certeza matemática: o clube só está garantido quando a tabela não permite outro resultado.</p>
+      <p>"Na briga" = de 1% a 99%. Abaixo de 1%, o clube fica no grupo recolhido; 0% quer dizer que não aconteceu em nenhuma simulação, não que seja impossível.</p>
+      <p>"Termina com" = faixa de pontos onde terminam 90% das simulações.</p>`;
+    main.innerHTML = `
+      <div class="screen-head"><h1 class="screen-title">Classificação</h1>${infoButton("Como ler a classificação por disputa")}</div>
+      <nav class="chip-strip" aria-label="Disputa">${chips}</nav>
+      ${group(words.sure, "em 99% ou mais", sure, false)}
+      ${group(words.open, `${left} ${left === 1 ? words.unit[0] : words.unit[1]} · ${open.length} ${open.length === 1 ? "clube" : "clubes"}`, open, true)}
+      ${outBlock}`;
+    bindScreenInfo("Como ler a classificação por disputa", explanation);
   }
 
   function renderStandings(requested) {
     const snapshot = state.snapshot;
+    if (snapshot.teams.length && !TABLE_VIEWS[requested]) {
+      const team = teamById(favoriteClub());
+      renderRaces(BRIGA_RACE[requested] || (team ? openRaceFor(team) : featuredRace().id));
+      return;
+    }
     if (!snapshot.teams.length || !snapshot.standings.length) {
       main.innerHTML = `<div class="screen-head"><h1 class="screen-title">Tabela</h1></div>
         ${stateBlock({ icon: "table", title: "A tabela ainda não está nesta atualização", text: "Ela aparece aqui assim que a fonte de dados registrar os primeiros jogos.", action: `<a class="state-action btn-secondary" href="#/">Voltar ao início</a>` })}`;
       return;
     }
-    const autoView = !TABLE_VIEWS[requested] && favoriteClub() ? bestDisputeView() : null;
-    const viewId = TABLE_VIEWS[requested] ? requested : autoView || "geral";
+    const viewId = TABLE_VIEWS[requested] ? requested : "geral";
     const view = TABLE_VIEWS[viewId];
     const columns = tableColumns(view);
     const chosen = state.tableSort && state.tableSort.view === viewId ? columns.find((column) => column.id === state.tableSort.id) : null;
@@ -1182,37 +1291,61 @@
       ${difficultyNote()}`;
   }
 
-  const FINISHED_PAGE = 30;
+  /* Jogos (#/jogos e #/partidas): agenda de dias (opção B2) com os Match Cards (opção A1). Cada dia com jogo vira um
+     botão na faixa; o padrão é hoje, ou o próximo dia com jogo a disputar. Adiados sem data ficam num botão próprio. */
+  const POSTPONED_DAY = "adiados";
+  const ISO_DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-  /* Jogos (#/jogos e #/partidas): próximos jogos por dia, em ordem cronológica, e os encerrados num segundo chip. */
+  function agendaDays() {
+    const days = new Map();
+    state.snapshot.matches.filter((match) => match.status !== "cancelled" && !(match.status !== "finished" && isPostponed(match))).forEach((match) => {
+      if (!days.has(match.match_date)) days.set(match.match_date, []);
+      days.get(match.match_date).push(match);
+    });
+    return new Map([...days.entries()].sort(([left], [right]) => left.localeCompare(right)));
+  }
+
+  function defaultDay(days) {
+    const today = todayBrasilia();
+    if (days.has(today)) return today;
+    const keys = [...days.keys()];
+    const pending = keys.filter((day) => days.get(day).some((match) => match.status !== "finished"));
+    return pending.find((day) => day >= today) || pending[pending.length - 1] || keys[keys.length - 1] || null;
+  }
+
+  function dayChip(day, matches, selected) {
+    const date = new Date(`${day}T12:00:00`);
+    const weekday = day === todayBrasilia() ? "Hoje" : date.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "");
+    const month = date.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
+    const live = matches.some((match) => matchState(match).kind === "live");
+    const done = matches.every((match) => match.status === "finished");
+    const label = `${dayLabel(day)}: ${matches.length} ${matches.length === 1 ? "jogo" : "jogos"}${live ? ", com jogo ao vivo" : done ? ", todos encerrados" : ""}`;
+    return `<a class="day-chip${done ? " is-done" : ""}" href="#/jogos/${day}" aria-label="${escapeHtml(label)}"${day === selected ? ' aria-current="page"' : ""}>
+        <span>${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}</span><strong>${date.getDate()}</strong><small>${live ? '<i class="day-live" aria-hidden="true"></i>ao vivo' : month}</small></a>`;
+  }
+
   function renderMatches(requested) {
-    const showFinished = requested === "encerrados";
-    const chips = `<nav class="chip-row match-filter" aria-label="Quais jogos">
-        <a class="chip" href="#/jogos"${showFinished ? "" : ' aria-current="page"'}>Próximos</a>
-        <a class="chip" href="#/jogos/encerrados"${showFinished ? ' aria-current="page"' : ""}>Encerrados</a></nav>`;
+    const days = agendaDays();
+    const postponed = upcomingMatches().filter(isPostponed);
+    const keys = [...days.keys()];
+    let selected;
+    if (requested === POSTPONED_DAY && postponed.length) selected = POSTPONED_DAY;
+    else if (ISO_DAY_PATTERN.test(requested || "") && days.has(requested)) selected = requested;
+    else if (requested === "encerrados") selected = [...keys].reverse().find((day) => days.get(day).every((match) => match.status === "finished")) || defaultDay(days);
+    else selected = defaultDay(days);
+    const strip = `<nav class="chip-strip day-strip" aria-label="Dias com jogos">${keys.map((day) => dayChip(day, days.get(day), selected)).join("")}${postponed.length
+      ? `<a class="day-chip is-postponed" href="#/jogos/${POSTPONED_DAY}"${selected === POSTPONED_DAY ? ' aria-current="page"' : ""}><span>Adiados</span><strong>${postponed.length}</strong><small>sem data</small></a>` : ""}</nav>`;
+    const list = selected === POSTPONED_DAY ? postponed : selected ? [...days.get(selected)].sort(byKickoff) : [];
+    const title = selected === POSTPONED_DAY ? "Adiados · data a definir" : selected ? dayLabel(selected) : "";
     const action = state.prediction ? "" : `<a class="block-link" href="#/simular">Fazer meus palpites ›</a>`;
-    let body;
-    if (showFinished) {
-      const finished = finishedMatches();
-      if (!state.finishedShown) state.finishedShown = FINISHED_PAGE;
-      const shown = finished.slice(0, state.finishedShown);
-      body = finished.length
-        ? `${matchesByDay(shown)}${finished.length > shown.length ? `<button type="button" class="btn-secondary sheet-wide" id="more-finished">Mostrar mais ${Math.min(FINISHED_PAGE, finished.length - shown.length)} jogos</button>` : ""}`
-        : stateBlock({ icon: "calendar", title: "Nenhum jogo encerrado ainda", text: "Os resultados aparecem aqui depois da primeira rodada." });
-    } else {
-      const upcoming = upcomingMatches();
-      body = upcoming.length
-        ? matchesByDay(upcoming)
-        : stateBlock({ icon: "calendar", title: "Sem jogos a disputar", text: "Todos os jogos da temporada já foram disputados.", action: `<a class="state-action btn-secondary" href="#/jogos/encerrados">Ver os encerrados</a>` });
-    }
     main.innerHTML = `
       <div class="screen-head"><h1 class="screen-title">Jogos</h1>${action}</div>
-      ${chips}
+      ${keys.length || postponed.length ? strip : ""}
       ${predictionNote()}
-      ${showFinished ? "" : overdueWarning()}
-      ${body}`;
-    const more = document.getElementById("more-finished");
-    if (more) more.addEventListener("click", () => { state.finishedShown += FINISHED_PAGE; renderMatches("encerrados"); });
+      ${selected && selected !== POSTPONED_DAY && selected <= todayBrasilia() ? overdueWarning() : ""}
+      ${list.length
+        ? `<h2 class="day-title">${title}<span>${list.length} ${list.length === 1 ? "jogo" : "jogos"}</span></h2>${matchList(list)}`
+        : stateBlock({ icon: "calendar", title: "Sem jogos para mostrar", text: "A agenda aparece aqui quando a tabela da temporada estiver na edição." })}`;
   }
 
   const PUBLISHABLE_LICENSES = ["verified_open", "licensed_with_attribution"];

@@ -3760,3 +3760,59 @@ começar, conferido que nada disto já existia: os cards não liam o simulador e
   - Validação visual com dados sintéticos; falta conferir com o snapshot real.
 - **Próximo responsável**: Agente 06 (revisar no snapshot real, com uma simulação real no aparelho); Agente 00
   (merge).
+
+## Agente 05 + 08: opções de UI escolhidas — Home do seu time, agenda de dias e classificação por disputa (2026-11-25)
+
+Branch `feat/ui-agenda-time-disputas`, empilhada sobre `feat/clareza-cards-jogos-por-dia` (ainda fora da `main`),
+porque reaproveita o Match Card com rótulos, o palpite e o placar ao vivo de lá. As opções vêm do canvas de UI
+(https://claude.ai/artifact/NpfnKcW15a8gT52mPbXXYD), em que o dono escolheu A1 + agenda do B2 (Jogos), B3 (Home) e
+C2 (Tabela).
+
+- **O que mudou (`apps/web/assets/app.js`, `styles.css`)**:
+  - **Home (B3), com time escolhido**:
+    - Card do time com escudo 44 px, posição, pontos, jogos que faltam e `Trocar`.
+    - Chips `Título · G4 · Queda` (`#/inicio/<disputa>`). Abre na disputa mais aberta para o time (maior p·(1−p),
+      título no empate).
+    - Probabilidade em 52 px, na cor funcional, com a variação desde a atualização anterior do
+      `probability-history` (ex.: `−9 p.p. desde 13/09`; azul quando melhora, vermelho quando piora).
+    - Curva das últimas 10 atualizações, na escala de 0 a 100%, com descrição em texto para leitor de tela.
+    - Próximo jogo do time num Match Card (com palpite e placar ao vivo), botão `Simular jogos do <Time>` e os
+      próximos jogos por dia.
+  - **Home sem time**: card "Escolha seu time", próximos jogos e Disputas, como antes.
+  - **Jogos (A1 + agenda do B2)**:
+    - Faixa de dias com jogo (dia da semana ou "Hoje", número, mês, "ao vivo" com ponto vermelho). Dias já
+      encerrados ficam mais apagados, e um botão "Adiados" aparece quando há jogo sem data.
+    - Rotas: `#/jogos/<AAAA-MM-DD>`, `#/jogos/adiados` e `#/jogos/encerrados` (vai ao último dia encerrado).
+    - Abre em hoje ou no próximo dia com jogo a disputar; o dia escolhido sempre aparece na faixa.
+    - Os cards são os A1, com "Final", "Ao vivo", "Probabilidade do modelo" e "Seu palpite". Saíram os chips
+      `Próximos · Encerrados`.
+  - **Tabela (C2)**:
+    - `#/classificacao` abre a classificação por disputa: chips `Título · G4 · Z4 · Tabela completa`
+      (`#/classificacao/briga-titulo|briga-g4|briga-z4`).
+    - Grupos: "em quase todas as simulações" (99% ou mais), "na briga" (1% a 99%, com vagas ou quedas em aberto e
+      número de clubes) e um grupo recolhido abaixo de 1%.
+    - Cada linha mostra posição, escudo, nome, pontos e a faixa de pontos (`points_interval_90`) ou o próximo
+      adversário, além da probabilidade e de uma barra na cor da disputa. O seu time fica destacado.
+    - O botão `(i)` explica os limites; "99%" não é certeza matemática.
+    - A tabela antiga continua em `#/classificacao/geral` e nas outras visões, com o chip "‹ Disputas".
+  - Saíram `nextMatchOf` e a abertura automática da tabela pela disputa do time, que ficaram sem uso.
+- **Evidência**:
+  - Playwright, export sintético (não versionado), com relógio fixo em 23/09/2032, placar ao vivo simulado e um
+    histórico sintético de 8 pontos (só na cópia local), em 375 e 1280 px e nos dois temas:
+    - Home com time: "Probabilidade de queda 26% · −9 p.p. desde 13/09", curva presente, próximo jogo com
+      `Seu palpite (Placar) 2 × 1`.
+    - Jogos: 39 dias na faixa, abre em "Hoje · Qui 23/09" (10 jogos, com jogo ao vivo), dia ativo visível na faixa;
+      `#/jogos/2032-09-16` mostra `Final` e `Acertou o placar (+10)`.
+    - Classificação: abre em Z4 para o time em 15º, com o time marcado "seu time". `#/classificacao/geral` mantém
+      20 linhas e o chip "‹ Disputas".
+  - Regressão: 21 rotas (Série A com `#/classificacao/briga-z4`, `#/jogos/<dia>` e `#/ao-vivo`, mais os 5 sub-sites)
+    × 375/1280 px × 2 temas = 84 de 84 telas sem rolagem lateral e sem erro de JS. Os testes de palpite da branch
+    anterior continuam passando.
+  - `ruff check` sem achados; `ruff format --check` com 235 arquivos ok; `mypy` sem erros; `pytest -q` com 973
+    passados e 6 pulados; `check_g4_attribution` sobre o `index.html`: `[]`.
+- **Pendente (decisão do dono)**: no canvas, a B3 também tinha "se terminar assim, o título fica em ≈ 55%" e "O que
+  mais mexe no seu título". Esses números condicionais não existem no export. Há dois caminhos: um campo novo
+  calculado em Python (muda o contrato do JSON; Agentes 02 e 04) ou um cálculo no navegador com o motor do Ao vivo
+  (contraria "cálculos estatísticos não dependem do frontend" do AGENTS.md). Não implementado até a escolha.
+- **Próximo responsável**: Agente 06 (revisar no snapshot real); Agente 00 (merge, depois da
+  `feat/clareza-cards-jogos-por-dia`).

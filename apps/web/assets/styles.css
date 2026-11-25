@@ -852,3 +852,64 @@ main .day-title { margin: 18px 0 8px; padding: 0; border: 0; font-size: 14px; fo
 .match-filter { margin: 0 0 12px; }
 main p.pick-note { margin: 0 0 10px; font-family: var(--sans); font-size: 12px; color: var(--ink-faint); }
 .pick-note a { color: var(--ink-soft); }
+
+/* Opções escolhidas no canvas de UI (2026-11-25): Home centrada no seu time (B3), agenda de dias em Jogos (B2 + A1)
+   e classificação por disputa (C2). */
+.team-hero { display: grid; gap: 12px; margin: 0 0 16px; }
+.team-hero .yt-club .crest, .team-hero .yt-club .crest-spacer { width: 44px; height: 44px; }
+.hero-main { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+main p.hero-number { display: flex; flex-direction: column; margin: 0; font-family: var(--sans); }
+.hero-label { font-size: 12px; font-weight: 650; color: var(--ink-faint); }
+.hero-number strong { font-size: 52px; font-weight: 900; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.hero-number.is-g4 strong { color: var(--libertadores); }
+.hero-number.is-z4 strong { color: var(--danger); }
+.hero-delta { margin-top: 6px; font-size: 13px; font-weight: 650; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.hero-delta.is-good { color: var(--libertadores); }
+.hero-delta.is-bad { color: var(--danger); }
+.hero-spark { flex: none; max-width: 45%; height: auto; color: var(--ink); }
+.hero-spark-axis { stroke: var(--rule); stroke-width: 1; }
+.hero-spark-dot { fill: var(--signal); }
+.home-cta { width: 100%; margin: 0 0 20px; }
+
+.day-strip { gap: 6px; }
+.day-chip { flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; width: 56px; min-height: 64px; border: 1px solid var(--rule); border-radius: var(--radius-button); background: var(--surface); color: var(--ink-soft); font-size: 11px; font-weight: 650; text-decoration: none; font-variant-numeric: tabular-nums; }
+.day-chip strong { font-size: 19px; font-weight: 800; line-height: 1.1; color: var(--ink); }
+.day-chip small { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 650; color: var(--ink-faint); }
+.day-chip.is-done { background: var(--paper); }
+.day-chip.is-done strong { color: var(--ink-soft); }
+.day-chip:hover { border-color: var(--ink-faint); }
+.day-chip[aria-current="page"] { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+.day-chip[aria-current="page"] strong, .day-chip[aria-current="page"] small { color: var(--paper); }
+.day-chip.is-postponed { width: 72px; }
+.day-live { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--signal); }
+main h2.day-title { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 6px 0 10px; padding: 0; border: 0; font-size: 15px; font-weight: 750; color: var(--ink); }
+main h2.day-title span { font-size: 12px; font-weight: 600; color: var(--ink-faint); }
+
+.race-group { margin: 0 0 16px; }
+main .rg-title { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 4px 0 8px; padding: 0; border: 0; font-size: 14px; font-weight: 750; color: var(--ink-soft); }
+.rg-title span { font-size: 12px; font-weight: 600; color: var(--ink-faint); text-align: right; }
+details.rg-out summary { min-height: 44px; align-items: center; cursor: pointer; list-style: none; }
+details.rg-out summary::-webkit-details-marker { display: none; }
+details.rg-out summary::after { content: "›"; margin-left: 6px; color: var(--ink-faint); transition: transform 0.15s; }
+details.rg-out[open] summary::after { transform: rotate(90deg); }
+.rg-list { display: grid; border: 1px solid var(--rule); border-radius: var(--radius-card); background: var(--surface); overflow: hidden; }
+.race-row-card { display: grid; grid-template-columns: 22px 26px minmax(0, 1fr) auto; grid-template-areas: "p c n v" "p c m b"; column-gap: 10px; row-gap: 3px; align-items: center; min-height: 44px; padding: 10px 12px; border-top: 1px solid var(--rule); text-decoration: none; color: var(--ink); font-variant-numeric: tabular-nums; }
+.race-row-card:first-child { border-top: 0; }
+.race-row-card:hover { background: color-mix(in srgb, var(--surface) 70%, var(--surface-2)); }
+.race-row-card.is-mine { background: var(--surface-2); }
+.rr-pos { grid-area: p; font-size: 12px; font-weight: 700; color: var(--ink-faint); }
+.race-row-card .crest, .race-row-card .crest-spacer { grid-area: c; width: 26px; height: 26px; }
+.race-row-card .crest-spacer { display: block; border-radius: 50%; background: var(--surface-2); }
+.rr-name { grid-area: n; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 700; }
+.rr-mine { font-weight: 600; color: var(--ink-faint); }
+.rr-meta { grid-area: m; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 600; color: var(--ink-faint); }
+.rr-value { grid-area: v; font-size: 17px; font-weight: 800; text-align: right; }
+.rr-bar { grid-area: b; justify-self: end; display: block; width: 84px; height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.race-row-card.is-mine .rr-bar { background: var(--surface-3); }
+.rr-bar i { display: block; height: 100%; border-radius: 3px; }
+@media (min-width: 900px) {
+  .team-hero, .race-group { max-width: 720px; }
+  .home-cta { max-width: 720px; }
+}
+@media (prefers-reduced-motion: reduce) { details.rg-out summary::after { transition: none; } }
+.race-row-card.is-mine .rr-meta, .race-row-card.is-mine .rr-mine, .race-row-card.is-mine .rr-pos { color: var(--ink-soft); }
