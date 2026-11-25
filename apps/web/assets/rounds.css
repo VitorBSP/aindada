@@ -57,11 +57,53 @@ tr.selected-team td:first-child { box-shadow: inset 3px 0 0 var(--ink); }
 .data-table summary { cursor: pointer; font-size: 14px; font-weight: 600; padding: 6px 0; }
 
 @media (max-width: 560px) {
-  .metric-picker-wide { flex-wrap: wrap; border-right: 0; border-bottom: 0; }
-  .metric-picker-wide button { flex: 1 1 33%; border-left: 0 !important; border-right: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
   .team-heading { font-size: 22px; }
   .rounds-tabs { gap: 4px 14px; }
   .rounds-tabs a { font-size: 14px; }
   .compare-picker { gap: 4px 14px; }
   .compare-picker button { font-size: 13px; }
 }
+
+/* E0 (REDESIGN_SPEC v2.1): disputa em chips, barras da temporada, linha do tempo e Por time. */
+.rr-chips { margin-bottom: 12px; }
+.rr-chips .chip .crest, .rr-club-chips .chip .crest { margin-right: 6px; }
+.rr-block { margin: 0 0 24px; }
+main h2.rr-h { margin: 0 0 4px; padding: 0; border: 0; font-size: 17px; font-weight: 750; }
+main p.rr-sub { margin: 0 0 10px; font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+.rr-card { padding: 12px; border: 1px solid var(--rule); border-radius: 16px; background: var(--surface); }
+.rr-card .chart { margin: 0; }
+main p.rr-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 6px 0 0; font-family: var(--sans); font-size: 11px; color: var(--ink-soft); }
+.rr-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.rr-timeline { list-style: none; margin: 12px 0 0; padding: 0 0 0 14px; border-left: 2px solid var(--rule); display: grid; gap: 8px; }
+.rr-timeline li { position: relative; }
+.rr-timeline li::before { content: ""; position: absolute; left: -21px; top: 18px; width: 12px; height: 12px; border-radius: 50%; background: var(--paper); border: 2px solid var(--ink-faint); }
+.rr-timeline li:first-child::before { border-color: var(--signal); background: var(--signal); }
+.rr-node { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "title go" "line go"; align-items: center; gap: 2px 10px; min-height: 52px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 12px; background: var(--surface); color: var(--ink); text-decoration: none; }
+.rr-node:hover { border-color: var(--ink-soft); }
+.rr-node-title { grid-area: title; font-size: 14px; font-weight: 750; }
+.rr-node-title em { font-style: normal; font-weight: 650; color: var(--signal); }
+.rr-node-line { grid-area: line; font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.rr-node-line b { font-weight: 750; color: var(--ink); margin-left: 4px; white-space: nowrap; }
+.rr-node-go { grid-area: go; font-size: 20px; color: var(--ink-faint); }
+.rr-all { margin: 10px 0 0; }
+.rr-all > summary { display: flex; align-items: center; min-height: 44px; font-size: 14px; font-weight: 650; color: var(--signal); cursor: pointer; }
+.rr-all h3 { margin: 20px 0 6px; font-size: 16px; }
+.rr-club-chips { margin-bottom: 10px; }
+.rr-team-card { padding: 14px; border: 1px solid var(--rule); border-radius: 16px; background: var(--surface); }
+main p.rr-team-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 12px; margin: 0 0 8px; font-family: var(--sans); font-size: 14px; }
+.rr-team-head > span:first-child { display: inline-flex; align-items: center; gap: 8px; }
+.rr-team-head > span:last-child { font-size: 12px; color: var(--ink-faint); }
+main h3.rr-h3 { margin: 14px 0 6px; font-size: 14px; font-weight: 750; }
+.rr-moments { list-style: none; margin: 0; padding: 0; }
+.rr-moments a { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 44px; padding: 6px 0; border-top: 1px solid var(--rule); color: var(--ink); text-decoration: none; font-size: 13px; font-variant-numeric: tabular-nums; }
+.rr-moments li:first-child a { border-top: 0; }
+.rr-moments b { font-weight: 800; }
+.rr-moment-game span { color: var(--ink-faint); }
+.rr-moment-delta { font-weight: 700; white-space: nowrap; }
+.rr-round-chips { margin-bottom: 6px; }
+main p.rr-step { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 0 0 12px; font-family: var(--sans); font-size: 13px; color: var(--ink-faint); }
+.rr-step a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 650; color: var(--ink-soft); text-decoration: none; }
+.rounds-tabs { margin-bottom: 14px; }
+td.club .club-cell span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.summary-list .crest-spacer, .rr-node .crest-spacer { display: none; }
+main table td.club .club-cell { max-width: 100%; min-width: 0; }

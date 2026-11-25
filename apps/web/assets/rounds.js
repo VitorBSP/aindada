@@ -5,6 +5,9 @@
 
   const METRIC_LABELS = { title: "título", top4: "G4", relegation: "rebaixamento" };
   const METRIC_TITLES = { title: "Título", top4: "G4", relegation: "Rebaixamento" };
+  const DISPUTE_CHIPS = { title: "Título", top4: "G4", relegation: "Z4" };
+  const INFO_ICON = `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>`;
+  const RANK_WORDS = ["maior mudança da temporada", "segunda maior mudança", "terceira maior mudança", "quarta maior mudança"];
   const COMPARE_METRICS = {
     title: { label: "Título", kind: "share" },
     top4: { label: "G4", kind: "share" },
@@ -26,7 +29,7 @@
      Tinta, azul e vermelho também passam no validador de paleta (daltonismo) nos dois temas. */
   const TEAM_SERIES = [SERIES[0], SERIES[1], { color: "var(--danger)", dash: "2 4", marker: "triangle", name: "linha pontilhada, triângulo" }];
 
-  const ui = { metric: "title", teamMetric: {}, compare: null, compareMetric: "title", compareRound: null };
+  const ui = { metric: "title", teamMetric: {}, compare: null, compareMetric: "title", compareRound: null, focusClub: null };
   const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
   const BADGE_LABEL = /^[A-Z]{2,4}$/;
   let crests = {};
@@ -84,10 +87,10 @@
     return (value > 0 ? "+" : "−") + num(Math.abs(value), digits);
   }
 
-  function deltaSpan(delta, metric) {
+  function deltaSpan(delta, metric, digits = 1) {
     const good = metric === "relegation" ? delta < 0 : delta > 0;
     const css = Math.abs(delta) < 0.0005 ? "" : good ? "change-up" : "change-down";
-    return `<span class="${css}">${signedPp(delta)}</span>`;
+    return `<span class="${css}">${signedPp(delta, digits)}</span>`;
   }
 
   function positionText(values) {
@@ -95,8 +98,24 @@
   }
 
   function metricPicker(current, options, attribute, extraClass = "") {
-    return `<div class="metric-picker ${extraClass}" role="group" aria-label="Métrica">${Object.entries(options).map(([key, label]) =>
-      `<button type="button" data-${attribute}="${key}" aria-pressed="${key === current}">${escapeHtml(typeof label === "string" ? label : label.label)}</button>`).join("")}</div>`;
+    return `<div class="chip-strip rr-chips ${extraClass}" role="group" aria-label="Disputa">${Object.entries(options).map(([key, label]) =>
+      `<button type="button" class="chip chip-sm" data-${attribute}="${key}" aria-pressed="${key === current}">${escapeHtml(typeof label === "string" ? label : label.label)}</button>`).join("")}</div>`;
+  }
+
+  // Rodadas em chips (no lugar do <select>): links na visão por rodada, botões no comparativo.
+  function roundChips(selected, attribute) {
+    return `<nav class="chip-strip rr-round-chips" aria-label="Rodadas">${review.rounds.map((view) => {
+      const current = view.round_number === selected;
+      const label = shortRoundLabel(view);
+      return attribute
+        ? `<button type="button" class="chip chip-sm" data-${attribute}="${view.round_number}" aria-pressed="${current}" aria-label="${roundLabel(view)}">${label}</button>`
+        : `<a class="chip chip-sm" href="#/rodadas/${view.round_number}" ${current ? 'aria-current="page"' : ""} aria-label="${roundLabel(view)}">${label}</a>`;
+    }).join("")}</nav>`;
+  }
+
+  function centerCurrentChip() {
+    const chip = main.querySelector('.rr-round-chips [aria-current="page"], .rr-round-chips [aria-pressed="true"]');
+    if (chip) chip.parentElement.scrollLeft = chip.offsetLeft - chip.parentElement.clientWidth / 2 + chip.offsetWidth / 2;
   }
 
   function tabs(active) {
@@ -105,11 +124,22 @@
       `<a href="${href}" ${key === active ? 'aria-current="page"' : ""}>${label}</a>`).join("")}</nav>`;
   }
 
+  // Título + (i): o texto explicativo vai para a folha de informação (zero parede de texto na tela).
   function header(active, lede) {
-    return `<span class="kicker">Rodada a rodada</span>
-      <h1>${active === "time" ? "Cada time, rodada a rodada" : active === "comparar" ? "Times lado a lado" : "O que mudou em cada rodada"}</h1>
-      <p class="lede">${lede}</p>
+    return `<div class="screen-head"><h1 class="screen-title">${active === "time" ? "Por time" : active === "comparar" ? "Times lado a lado" : "Rodada a rodada"}</h1>
+      <button type="button" class="icon-button" data-rounds-info aria-label="Como ler a aba Rodada a rodada">${INFO_ICON}</button></div>
+      <template id="rounds-info">${lede}</template>
       ${tabs(active)}`;
+  }
+
+  function bindInfo() {
+    const button = main.querySelector("[data-rounds-info]");
+    const source = main.querySelector("#rounds-info");
+    if (!button || !source) return;
+    button.addEventListener("click", () => {
+      const body = `<div class="sheet-info"><p>${source.innerHTML}</p></div>`;
+      if (window.AIndaDaShell) window.AIndaDaShell.openSheet("Rodada a rodada", body);
+    });
   }
 
   /* ---------- intensidade de uma rodada em relação à temporada ---------- */
@@ -157,8 +187,8 @@
       const index = views.indexOf(view);
       return `<text x="${left + index * slot + slot / 2}" y="${height - 6}" text-anchor="middle">${view.round_number}</text>`;
     }).join("");
-    return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Probabilidade de ${METRIC_LABELS[metric]} redistribuída em cada rodada">${bars}${ticks}</svg>
-      <div class="note"><span class="swatch swatch-results"></span> resultados &nbsp; <span class="swatch swatch-strength"></span> reavaliação de força · altura = pontos percentuais (p.p.) de probabilidade de ${METRIC_LABELS[metric]} que trocaram de clube na rodada</div>`;
+    return `<svg class="chart rr-bars" viewBox="0 0 ${width} ${height}" role="img" aria-label="Probabilidade de ${METRIC_LABELS[metric]} redistribuída em cada rodada">${bars}${ticks}</svg>
+      <p class="rr-legend"><span><i class="swatch swatch-results"></i>resultados</span><span><i class="swatch swatch-strength"></i>reavaliação de força</span><span>altura = p.p. de ${METRIC_LABELS[metric]} que trocaram de clube</span></p>`;
   }
 
   function roundHeadline(view, metric) {
@@ -277,6 +307,140 @@
       <p class="note">"Rodada foi": agitada se ficou entre as 25% que mais mexeram na probabilidade de ${METRIC_LABELS[metric]} na temporada; calma se ficou entre as 25% que menos mexeram.</p>`;
   }
 
+  /* ---------- visão geral (E0 = E2 + Por time do E3) ---------- */
+
+  // Jogo da rodada que mais mexeu na disputa escolhida, só com efeitos acima do ruído da simulação.
+  function topMatch(view, metric, previous) {
+    return [...view.matches].map((match) => ({ match, impacts: relevantImpacts(match, metric, "impacts", 0.005, previous) }))
+      .filter((entry) => entry.impacts.length)
+      .sort((left, right) => right.impacts.reduce((sum, item) => sum + Math.abs(item.value), 0) - left.impacts.reduce((sum, item) => sum + Math.abs(item.value), 0))[0] || null;
+  }
+
+  function timelineNode(view, metric, label) {
+    const index = review.rounds.indexOf(view);
+    const previous = review.rounds[index - 1];
+    let line = `<span class="rr-node-line">Sem jogos com efeito em ${METRIC_LABELS[metric]} acima do ruído da simulação.</span>`;
+    if (view.summary && previous) {
+      const top = topMatch(view, metric, previous);
+      if (top) {
+        const chips = top.impacts.slice(0, 2).map((item) => `<b>${escapeHtml(clubShort(item.club))} ${deltaSpan(item.value, metric, 0)}</b>`).join(" ");
+        line = `<span class="rr-node-line">${matchLabel(top.match)} · ${METRIC_LABELS[metric]} ${chips}</span>`;
+      } else if (view.summary.risers[metric][0]) {
+        const riser = view.summary.risers[metric][0];
+        line = `<span class="rr-node-line">Quem mais subiu: ${escapeHtml(clubName(riser.club_id))} ${deltaSpan(riser.delta, metric, 0)}</span>`;
+      }
+    } else if (!view.summary) {
+      line = `<span class="rr-node-line">Antes do primeiro jogo, só com a força herdada da temporada anterior.</span>`;
+    }
+    return `<li><a class="rr-node" href="#/rodadas/${view.round_number}"><span class="rr-node-title">${roundLabel(view)}${label ? ` · <em>${label}</em>` : ""}</span>${line}<span class="rr-node-go" aria-hidden="true">›</span></a></li>`;
+  }
+
+  function seasonTimeline(metric) {
+    const views = review.rounds;
+    const latest = latestView();
+    const ranked = views.filter((view) => view.summary).sort((left, right) => movementOf(right, metric) - movementOf(left, metric));
+    const rankOf = new Map(ranked.map((view, rank) => [view, rank]));
+    const labelOf = (view) => {
+      const rank = rankOf.get(view);
+      const parts = [];
+      if (view === latest) parts.push(view.partial ? "em andamento" : "a mais recente");
+      if (rank !== undefined && rank < RANK_WORDS.length) parts.push(RANK_WORDS[rank]);
+      return parts.join(" · ");
+    };
+    const chosen = new Set([latest, ...ranked.filter((view) => view !== latest).slice(0, 4)]);
+    const shown = views.filter((view) => chosen.has(view)).reverse();
+    return `<ol class="rr-timeline">${shown.map((view) => timelineNode(view, metric, labelOf(view))).join("")}</ol>
+      <details class="rr-all"><summary>Ver todas as ${views.length} rodadas ›</summary>
+        <ol class="rr-timeline">${[...views].reverse().map((view) => timelineNode(view, metric, labelOf(view))).join("")}</ol>
+        <h3>Avaliação de todas as rodadas</h3>
+        ${seasonEvaluation(metric)}
+      </details>`;
+  }
+
+  // Momentos do time: rodadas em que a probabilidade mais mudou além do ruído, com o jogo dele naquela rodada.
+  function teamMoments(clubId, metric) {
+    const moments = review.rounds.map((view, index) => {
+      if (!view.summary) return null;
+      const previous = review.rounds[index - 1];
+      const delta = view.changes[clubId][metric];
+      if (Math.abs(delta) < Math.max(0.005, changeNoise(previous.teams[clubId][metric], view.teams[clubId][metric]))) return null;
+      return { view, delta };
+    }).filter(Boolean).sort((left, right) => Math.abs(right.delta) - Math.abs(left.delta)).slice(0, 3)
+      .sort((left, right) => right.view.round_number - left.view.round_number);
+    if (!moments.length) return `<p class="note">Nenhuma mudança em ${METRIC_LABELS[metric]} maior que o ruído da simulação.</p>`;
+    const gameText = (view) => {
+      const games = teamMatchesInRound(view, clubId);
+      if (!games.length) return "não jogou";
+      return games.map((match) => {
+        const home = match.home_id === clubId;
+        const own = home ? match.home_goals : match.away_goals;
+        const other = home ? match.away_goals : match.home_goals;
+        const rival = escapeHtml(clubName(home ? match.away_id : match.home_id));
+        const verb = own > other ? `no ${rival}` : own < other ? `para o ${rival}` : `com o ${rival}`;
+        return `${own} × ${other} ${verb}<span> · ${home ? "em casa" : "fora"}</span>`;
+      }).join("; ");
+    };
+    return `<ul class="rr-moments">${moments.map((moment) => `<li><a href="#/rodadas/${moment.view.round_number}"><b>${shortRoundLabel(moment.view)}</b><span class="rr-moment-game">${gameText(moment.view)}</span><span class="rr-moment-delta">${METRIC_LABELS[metric]} ${deltaSpan(moment.delta, metric, 0)}</span></a></li>`).join("")}</ul>`;
+  }
+
+  function teamPanel(clubId) {
+    const latest = latestView();
+    const now = latest.teams[clubId];
+    const views = review.rounds;
+    const first = views.find((view) => hasTable(view));
+    const span = first ? `${shortRoundLabel(first)} a ${shortRoundLabel(latest)}` : "";
+    return `<div class="rr-team-card">
+      <p class="rr-team-head"><span>${crest(clubId, 28)}<strong>${escapeHtml(clubName(clubId))}</strong>${hasTable(latest) ? ` · ${positionText(now)} · ${now.points ?? "–"} pts` : ""}</span><span>${span}</span></p>
+      ${seriesChart({
+        series: [
+          { label: "Título", club: clubId, values: views.map((view) => view.teams[clubId].title) },
+          { label: "G4", club: clubId, values: views.map((view) => view.teams[clubId].top4) },
+          { label: "Queda", club: clubId, values: views.map((view) => view.teams[clubId].relegation) },
+        ],
+        domain: [0, 1], format: shareFormat, styles: TEAM_SERIES, ariaLabel: `Probabilidades de título, G4 e queda de ${clubName(clubId)} por rodada`,
+        guides: [{ value: 0, label: "0%" }, { value: 0.5, label: "50%" }, { value: 1, label: "100%" }],
+      })}
+      <h3 class="rr-h3">Momentos que mudaram a temporada</h3>
+      ${teamMoments(clubId, ui.metric)}
+      <a class="block-link" href="#/rodadas/time/${encodeURIComponent(clubId)}">A temporada completa de ${escapeHtml(clubShort(clubId))} ›</a>
+    </div>`;
+  }
+
+  function renderOverview() {
+    chartTips.length = 0;
+    const metric = ui.metric;
+    const latest = latestView();
+    const byStanding = Object.keys(latest.teams).sort((left, right) => latest.teams[right].expected_points - latest.teams[left].expected_points);
+    if (!ui.focusClub || !latest.teams[ui.focusClub]) ui.focusClub = (helpers.favorite && latest.teams[helpers.favorite]) ? helpers.favorite : byStanding[0];
+    const quick = [...new Set([ui.focusClub, ...byStanding.slice(0, 7)])].slice(0, 8);
+    const clubChips = `<div class="chip-strip rr-club-chips" role="group" aria-label="Escolher time">${quick.map((club) =>
+      `<button type="button" class="chip chip-sm" data-focus-club="${escapeHtml(club)}" aria-pressed="${club === ui.focusClub}">${crest(club, 18)}${escapeHtml(clubShort(club))}</button>`).join("")}<a class="chip chip-sm" href="#/rodadas/time">Todos ›</a></div>`;
+    main.innerHTML = `
+      ${header("rodada", `Como o modelo atual vê o campeonato na véspera de cada rodada, desde a pré-temporada, e o que fez as probabilidades mudarem. ${review.rounds.length} visões com ${review.n_simulations.toLocaleString("pt-BR")} simulações cada; dados até ${formatDate(review.data_until)}.${review.model_version ? ` Tudo recalculado com a versão ${escapeHtml(review.model_version)} do modelo; não são as previsões publicadas na época.` : ""} Os rótulos das rodadas (maior mudança, segunda maior…) vêm só da soma de pontos percentuais que trocaram de clube.`)}
+      ${metricPicker(metric, DISPUTE_CHIPS, "metric")}
+      <section class="rr-block" aria-labelledby="rr-season">
+        <h2 class="rr-h" id="rr-season">Como a temporada mudou</h2>
+        <p class="rr-sub">Quanto cada rodada mexeu no ${METRIC_LABELS[metric]} · toque numa barra para abrir a rodada</p>
+        <div class="rr-card">${movementChart(metric, latest.round_number)}</div>
+        ${seasonTimeline(metric)}
+      </section>
+      <section class="rr-block" aria-labelledby="rr-team">
+        <h2 class="rr-h" id="rr-team">Por time</h2>
+        ${clubChips}
+        <div id="rr-team-panel">${teamPanel(ui.focusClub)}</div>
+      </section>`;
+    bindInfo();
+    bindPicker("metric", (value) => { ui.metric = value; renderOverview(); });
+    main.querySelectorAll("[data-focus-club]").forEach((button) => button.addEventListener("click", () => {
+      ui.focusClub = button.dataset.focusClub;
+      main.querySelectorAll("[data-focus-club]").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+      chartTips.length = 0;
+      main.querySelector("#rr-team-panel").innerHTML = teamPanel(ui.focusClub);
+      bindChartTips();
+    }));
+    bindChartTips();
+  }
+
   function renderRound(parameter) {
     const views = review.rounds;
     const requested = Number.parseInt(parameter, 10);
@@ -284,11 +448,8 @@
     const index = views.indexOf(view);
     const metric = ui.metric;
     const previous = views[index - 1], next = views[index + 1];
-    const navigation = `<div class="round-nav">
-      ${previous ? `<a class="button" href="#/rodadas/${previous.round_number}">← ${roundLabel(previous)}</a>` : "<span></span>"}
-      <label>Rodada <select id="round-select">${views.map((item) => `<option value="${item.round_number}" ${item === view ? "selected" : ""}>${roundLabel(item)} · ${formatDate(item.reference_date)}</option>`).join("")}</select></label>
-      ${next ? `<a class="button" href="#/rodadas/${next.round_number}">${roundLabel(next)} →</a>` : "<span></span>"}
-    </div>`;
+    const navigation = `${roundChips(view.round_number, "")}
+      <p class="rr-step">${previous ? `<a href="#/rodadas/${previous.round_number}">← ${roundLabel(previous)}</a>` : "<span></span>"}<span>${formatDate(view.reference_date)}</span>${next ? `<a href="#/rodadas/${next.round_number}">${roundLabel(next)} →</a>` : "<span></span>"}</p>`;
     const body = view.summary
       ? `<h2>Resumo: ${roundLabel(view)} ${intensityLabel(view, metric, intensityScale(metric))}</h2>${roundHeadline(view, metric)}
         <h2>Como ficou cada clube</h2>
@@ -300,16 +461,14 @@
       : `<h2>Pré-temporada</h2><p>Antes do primeiro jogo, só com a força herdada da temporada anterior (com regressão à média; promovidos recebem a média dos rebaixados).</p>
         ${roundTable(view, metric)}`;
     main.innerHTML = `
+      <a class="back-link" href="#/rodadas">← Rodada a rodada</a>
       ${header("rodada", `Como o modelo atual vê o campeonato na véspera de cada rodada, desde a pré-temporada, e o que fez as probabilidades mudarem. ${views.length} visões com ${review.n_simulations.toLocaleString("pt-BR")} simulações cada; dados até ${formatDate(review.data_until)}.${review.model_version ? ` Tudo recalculado com a versão ${escapeHtml(review.model_version)} do modelo; não são as previsões publicadas na época.` : ""}`)}
-      ${helpers.highlights ? helpers.highlights(view) : ""}
-      ${metricPicker(metric, METRIC_TITLES, "metric")}
-      <h2>Onde o campeonato mudou</h2>
-      ${movementChart(metric, view.round_number)}
       ${navigation}
-      ${body}
-      <h2>Avaliação de todas as rodadas</h2>
-      ${seasonEvaluation(metric)}`;
-    document.getElementById("round-select").addEventListener("change", (event) => { location.hash = `#/rodadas/${event.target.value}`; });
+      ${metricPicker(metric, DISPUTE_CHIPS, "metric")}
+      ${helpers.highlights ? helpers.highlights(view) : ""}
+      ${body}`;
+    bindInfo();
+    centerCurrentChip();
     bindPicker("metric", (value) => { ui.metric = value; renderRound(String(view.round_number)); });
   }
 
@@ -510,6 +669,7 @@
       `<a class="club-cell" href="#/rodadas/time/${encodeURIComponent(club)}" ${club === clubId ? 'aria-current="true"' : ""}>${crest(club, 18)}<span>${escapeHtml(clubName(club))}</span></a>`).join("")}</div>`;
     if (!latest.teams[clubId]) {
       main.innerHTML = `${header("time", "Escolha um time para ver como as probabilidades dele evoluíram em cada rodada e o que as fez mudar.")}${picker}`;
+      bindInfo();
       return;
     }
     const metric = ui.teamMetric[clubId] || openMetric(clubId);
@@ -546,11 +706,12 @@
         guides: [{ value: 1, label: "1º" }, { value: 4, label: "G4" }, { value: 16, label: "Z4" }, { value: 20, label: "20º" }],
       })}
       <h2>Momentos que mudaram a temporada</h2>
-      ${metricPicker(metric, METRIC_TITLES, "team-metric")}
+      ${metricPicker(metric, DISPUTE_CHIPS, "team-metric")}
       ${keyMoments(clubId, metric)}
       <h2>Rodada a rodada</h2>
       ${teamTable(clubId, metric)}
       <p class="note"><a href="#/rodadas/comparar/${encodeURIComponent(clubId)}">Comparar ${escapeHtml(clubName(clubId))} com outros times →</a></p>`;
+    bindInfo();
     bindPicker("team-metric", (value) => { ui.teamMetric[clubId] = value; renderTeam(clubId); });
     bindChartTips();
   }
@@ -642,11 +803,7 @@
       ${seriesChart({ series: selected.map((club) => ({ label: clubShort(club), club, values: views.map((view) => compareValue(view, club, metric)) })), format, ariaLabel: `${info.label} por rodada: ${selected.map(clubName).join(", ")}`, ...chartOptions })}
       ${compareDataTable(selected, metric)}
       <h2>Como cada time estava na rodada</h2>
-      <div class="round-nav">
-        ${views[views.indexOf(roundView) - 1] ? `<button type="button" class="button" data-compare-step="-1">← anterior</button>` : "<span></span>"}
-        <label>Rodada <select id="compare-round">${views.map((view) => `<option value="${view.round_number}" ${view === roundView ? "selected" : ""}>${roundLabel(view)} · ${formatDate(view.reference_date)}</option>`).join("")}</select></label>
-        ${views[views.indexOf(roundView) + 1] ? `<button type="button" class="button" data-compare-step="1">próxima →</button>` : "<span></span>"}
-      </div>
+      ${roundChips(roundView.round_number, "compare-round")}
       <p class="note">${roundView.round_number === 0 ? "Antes do primeiro jogo: sem tabela, ordenado pelos pontos projetados." : `Tabela real em ${formatDate(roundView.reference_date)} e as probabilidades recalculadas com o modelo atual para aquele dia.`} Os times escolhidos aparecem destacados, com o mesmo marcador do gráfico.</p>
       ${compareSnapshotTable(roundView, selected)}`;
     main.querySelectorAll("[data-club]").forEach((button) => button.addEventListener("click", () => {
@@ -663,12 +820,10 @@
       renderCompare("");
     }));
     bindPicker("compare-metric", (value) => { ui.compareMetric = value; renderCompare(""); });
-    document.getElementById("compare-round").addEventListener("change", (event) => { ui.compareRound = Number(event.target.value); renderCompare(""); });
+    bindPicker("compare-round", (value) => { ui.compareRound = Number(value); renderCompare(""); });
+    bindInfo();
+    centerCurrentChip();
     bindChartTips();
-    main.querySelectorAll("[data-compare-step]").forEach((button) => button.addEventListener("click", () => {
-      const target = views[views.indexOf(roundView) + Number(button.dataset.compareStep)];
-      if (target) { ui.compareRound = target.round_number; renderCompare(""); }
-    }));
   }
 
   function bindChartTips() {
@@ -718,6 +873,7 @@
     const draw = () => {
       if (first === "time") renderTeam(decodeURIComponent(second));
       else if (first === "comparar") renderCompare(second);
+      else if (first === "") renderOverview();
       else renderRound(first);
     };
     draw();

@@ -1591,7 +1591,7 @@
     else if (section === "clubes") renderClub(decodeURIComponent(parameter));
     else if (section === "partidas" || section === "jogos") renderMatches(parameter);
     else if (section === "rodadas") {
-      window.Rounds.render(main, [parameter, ...rest], { review: state.rounds, escapeHtml, pct, num, formatDate, formatShortDate, highlights: roundHighlights });
+      window.Rounds.render(main, [parameter, ...rest], { review: state.rounds, escapeHtml, pct, num, formatDate, formatShortDate, highlights: roundHighlights, favorite: favoriteClub() });
     }
     else if (section === "simular") window.Simulator.render(main, [parameter, ...rest], { snapshot: state.snapshot, escapeHtml, pct, crest, nameOf, formatShortDate });
     else if (section === "ao-vivo") window.LiveRound.render(main, { snapshot: state.snapshot, escapeHtml, pct, crest, favorite: favoriteClub() });
