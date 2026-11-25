@@ -417,7 +417,7 @@
       <section class="live" aria-labelledby="live-title">
         <span class="kicker">Brasileirão Série A · modo enxuto</span>
         <h1 id="live-title">Ao vivo</h1>
-        <p class="lede">Os placares da rodada entram na tabela na hora, e as chances de título, G4, vaga continental e queda são recalculadas aqui no seu navegador.</p>
+        <p class="lede">Os placares da rodada entram na tabela na hora, e as probabilidades de título, G4, vaga continental e queda são recalculadas aqui no seu navegador.</p>
         <div class="live-toolbar">
           <span class="live-stamp" id="live-stamp" aria-live="polite">Buscando os placares…</span>
           <button type="button" class="live-refresh" id="live-refresh">Atualizar agora</button>
@@ -499,7 +499,7 @@
         return `<td><span class="prob prob-${kind}" style="--p:${Math.min(1, middle)}">${rangeText(value)}</span>${before ? deltaHtml(middle, (before.min + before.max) / 2) : ""}</td>`;
       };
       return `<table class="live-table live-chances">
-        <caption class="visually-hidden">Chances com os placares de agora, em ${result.simulations.toLocaleString("pt-BR")} simulações</caption>
+        <caption class="visually-hidden">Probabilidades com os placares de agora, em ${result.simulations.toLocaleString("pt-BR")} simulações</caption>
         <thead><tr><th scope="col" class="left">Clube</th><th scope="col">Título</th><th scope="col">G4</th><th scope="col"><abbr title="Libertadores">Liberta.</abbr></th><th scope="col"><abbr title="Sul-Americana">Sul-Am.</abbr></th><th scope="col"><abbr title="Rebaixamento">Queda</abbr></th></tr></thead>
         <tbody>${rows.map((row) => `<tr>
           <td class="left club">${crest(row.club_id, 18)} ${clubName(row.club_id)}</td>
@@ -525,7 +525,7 @@
             <section><h2>Tabela agora</h2><p class="note">Como fica se os jogos acabarem com os placares de agora. ▲▼ = posições ganhas ou perdidas desde antes da rodada.</p>
               <div class="legend"><span class="l-lib">Libertadores (1º–5º)</span><span class="l-sula">Sul-Americana (6º–11º)</span><span class="l-z4">Rebaixamento</span></div>
               ${tableHtml(rows)}</section>
-            <section><h2>Chances agora</h2><p class="note" id="live-chances-note">Calculando…</p><div id="live-chances"></div></section>
+            <section><h2>Probabilidades agora</h2><p class="note" id="live-chances-note">Calculando…</p><div id="live-chances"></div></section>
           </div>` : ""}`;
       body.setAttribute("aria-busy", hasScores ? "true" : "false");
       if (!hasScores) return;
@@ -583,5 +583,5 @@
 
   function stop() { if (active) active.stop(); }
 
-  root.LiveRound = { render, stop, prepare, tables, simulate, allocateSlots, parseScenario, liveDistribution, outcomeChances, RULES };
+  root.LiveRound = { render, stop, fetchLiveRows, prepare, tables, simulate, allocateSlots, parseScenario, liveDistribution, outcomeChances, RULES };
 })(typeof window !== "undefined" ? window : globalThis);

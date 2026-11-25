@@ -829,3 +829,26 @@ a.mc-team { text-decoration: none; }
   .table-card th, .table-card td { padding-left: 5px; padding-right: 5px; }
   .standings th.view-start, .standings td.view-start, .standings th.rest-start, .standings td.rest-start { padding-left: 7px; }
 }
+
+/* Clareza dos Match Cards e jogos por dia: realizado (placar + selo), probabilidade do modelo e seu palpite, cada um
+   com o próprio rótulo. */
+.mc-top { justify-content: space-between; }
+.mc-result { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 64px; }
+.mc-result .mc-badge { font-size: 10px; padding: 2px 7px; }
+.mc-badge.is-final { background: var(--surface-3); color: var(--ink); }
+.mc-section { display: grid; gap: 6px; }
+main .mc p.mc-label { margin: 0; font-family: var(--sans); font-size: 11px; font-weight: 650; color: var(--ink-faint); }
+main .mc p.mc-pick { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin: 0; padding-top: 10px; border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 12px; color: var(--ink-soft); }
+.mc-pick-label { font-weight: 650; color: var(--ink-faint); }
+.mc-pick strong { font-size: 14px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+.mc-pick-origin { font-size: 11px; color: var(--ink-faint); }
+.mc-pick-origin::before { content: "· "; }
+.mc-pick-result { margin-left: auto; font-weight: 700; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.mc-pick.is-hit .mc-pick-result { color: var(--libertadores); }
+.mc-pick.is-miss .mc-pick-result { color: var(--ink-faint); }
+.mc-pick-result.is-pending { font-weight: 600; color: var(--ink-faint); }
+main .day-title { margin: 18px 0 8px; padding: 0; border: 0; font-size: 14px; font-weight: 750; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.match-day:first-of-type .day-title { margin-top: 4px; }
+.match-filter { margin: 0 0 12px; }
+main p.pick-note { margin: 0 0 10px; font-family: var(--sans); font-size: 12px; color: var(--ink-faint); }
+.pick-note a { color: var(--ink-soft); }

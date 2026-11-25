@@ -3698,3 +3698,65 @@ T4 (`2bdf09a`), que só pintou o layout antigo de escuro.
     zero erro de JS.
   - `ruff check` sem achados; `mypy` sem erros; `pytest -q` com 968 passados e 6 pulados.
 - **Próximo responsável**: Agente 06 (revisar no snapshot real); Agente 00 (merge).
+
+## Agente 05: clareza dos Match Cards, palpite do visitante e jogos por dia (2026-11-25)
+
+Branch `feat/clareza-cards-jogos-por-dia`, criada a partir da `main` (que já tinha a T4 v2.1 e o Ao vivo). Antes de
+começar, conferido que nada disto já existia: os cards não liam o simulador e a aba Jogos ainda era por rodada.
+
+- **O que mudou**:
+  - **Match Card (Home, Jogos e Clubes, `app.js`)**: cada número tem o próprio rótulo.
+    - Realizado: placar com selo logo abaixo — `Final` (placar oficial do snapshot), `Ao vivo · 34'` /
+      `Ao vivo · Intervalo`, `Fim · placar provisório`, `Aguardando placar` (jogo começou e não há placar) ou `Adiado`.
+    - Modelo: rótulo acima das pílulas 1X2 — `Probabilidade do modelo` (jogo futuro) ou `Antes do jogo · modelo`
+      (encerrado ou já começado).
+    - Palpite: rodapé `Seu palpite (Placar) 2 × 1` ou `Seu palpite (Vencedor) PAL`, com `sorteado pelo modelo` quando
+      veio de `entry.sampled`. Em jogo encerrado, o resultado: `Acertou o placar (+10)`, `Acertou o vencedor (+N)`,
+      `Acertou o empate (+5)`, `Placar invertido (+2)` ou `Errou`. Em jogo ao vivo ou sem placar oficial:
+      `em andamento` ou `aguarda o placar oficial`.
+  - **Qual simulação**: o card lê `ainda-da:simulador:serie-a:<season>:v2`, só para leitura. Usa a simulação de Placar
+    ou Vencedor mais recente (`updated_at`/`created_at` das salvas e `started_at` do rascunho ativo). Classificação é
+    ignorada. Uma linha acima dos cards diz qual simulação está em uso ("simulação de Placar de 14/09 · abrir ›"). Sem
+    simulação, os cards não mudam e Jogos mostra um link discreto "Fazer meus palpites ›".
+  - **Pontuação**: `simulator.js` agora exporta `matchPoints` em `window.Simulator.engine`; os cards chamam essa mesma
+    função (igual a `sim_match_points`, migração 0006), sem regra duplicada.
+  - **Placar ao vivo**: `live-round.js` exporta `fetchLiveRows`. O `app.js` faz uma única busca em `live_round_scores`
+    depois da primeira pintura, e só quando algum jogo sem placar oficial já pode ter começado. Se falhar, os cards
+    ficam só com a edição publicada. O placar oficial do snapshot sempre vence o ao vivo.
+  - **Jogos por dia**:
+    - `#/jogos` (e `#/partidas`) com os chips `Próximos · Encerrados`. Próximos: todos os jogos sem placar oficial, em
+      ordem cronológica real, agrupados por dia (`Hoje · Qui 23/09`, `Amanhã · Sex 24/09`, `Qui 30/09`…). No mesmo
+      dia, ordenados por horário, com os sem horário no fim. A rodada aparece como `R27` no topo de cada card; jogo
+      atrasado entra no dia em que cai, e adiado sem data fica num grupo próprio no fim.
+    - Encerrados (`#/jogos/encerrados`): do mais recente para o mais antigo, por dia, com "Mostrar mais 30 jogos".
+    - Home: bloco "Próximos jogos" com os 4 mais cedo, agrupados por dia; no fim da temporada vira "Últimos
+      resultados". A faixa de chips por número de rodada saiu.
+  - D-046: em `live-round.js`, "Chances agora", "as chances de título…" e a legenda da tabela viraram "probabilidades".
+  - `styles.css`: rótulos, selo `Final`, rodapé do palpite (acerto em `--libertadores`, erro em `--ink-faint`) e
+    títulos de dia.
+  - Contratos JSON, modelo, regras do simulador e `<footer>` (G4): sem mudança.
+- **Evidência**:
+  - Playwright, export sintético (não versionado) com relógio fixo em 23/09/2032 e `live_round_scores` simulado
+    (um jogo ao vivo 1×0 aos 34', outro encerrado 2×2 sem placar oficial), em 375 e 1280 px, com 5 estados do
+    `localStorage` (sem simulação; Placar mais recente; Vencedor mais recente com Placar e Classificação mais
+    antigos; só Classificação; rascunho de Vencedor mais recente que um Placar salvo):
+    - Classificação ignorada (0 rodapés de palpite) e a mais recente escolhida em cada caso.
+    - Placar 2×0 em 2×0 = `Acertou o placar (+10)`; 2×1 em 1×2 = `Placar invertido (+2)`; 1×0 em 2×0 =
+      `Acertou o vencedor (+5)`; 1×2 em 0×0 = `Errou`.
+    - Vencedor: empate certo +5; vitória certa +3; errado `Errou`.
+    - Palpite sorteado marcado como `sorteado pelo modelo`.
+    - "Hoje" traz primeiro o jogo atrasado da R27 (16:00) e depois os da R26 (19:00), com `Ao vivo · 34'` e
+      `Fim · placar provisório`.
+    - `scrollWidth` igual à largura em todas as telas; zero erro de JS.
+  - Regressão: 19 rotas (Série A com `#/jogos/encerrados` e `#/ao-vivo`, mais os 5 sub-sites) × 375/1280 px × 2
+    temas = 76 de 76 telas sem rolagem lateral e sem erro.
+  - `ruff check` sem achados; `ruff format --check` com 235 arquivos ok; `mypy` sem erros; `pytest -q` com 973
+    passados e 6 pulados. `check_g4_attribution` sobre o `index.html` com as atribuições exatas: `[]`.
+- **Premissas e limitações**:
+  - O placar ao vivo nos cards é buscado uma vez por carga (sem atualização a cada 15 s); a atualização contínua
+    continua no `#/ao-vivo`.
+  - O resultado do palpite usa a regra do simulador sobre o placar oficial do snapshot. O ranking do servidor pode
+    diferir se a simulação não foi enviada antes da trava de 30 minutos.
+  - Validação visual com dados sintéticos; falta conferir com o snapshot real.
+- **Próximo responsável**: Agente 06 (revisar no snapshot real, com uma simulação real no aparelho); Agente 00
+  (merge).

@@ -1733,5 +1733,5 @@
   }
 
   /* Motor reaproveitado pelo modo Ao vivo (live-round.js): sorteio do placar, tabela e desempate do Art. 15. */
-  window.Simulator = { render, engine: { scoreSampler, draw, outcomeOf, newRows, addResult, rankRows, zoneOf, compareMain } };
+  window.Simulator = { render, engine: { scoreSampler, draw, outcomeOf, newRows, addResult, rankRows, zoneOf, compareMain, matchPoints } };
 })();

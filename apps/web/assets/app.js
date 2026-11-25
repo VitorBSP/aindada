@@ -2,7 +2,7 @@
   "use strict";
 
   const SEASON = 2026;
-  const state = { snapshot: null, history: [], metrics: null, rounds: null, currentRound: null, insights: [], crests: {}, apiMode: false, scenarioChoice: {}, historyMode: null };
+  const state = { live: new Map(), prediction: null, finishedShown: 0, snapshot: null, history: [], metrics: null, rounds: null, currentRound: null, insights: [], crests: {}, apiMode: false, scenarioChoice: {}, historyMode: null };
   const main = document.getElementById("main");
 
   const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (char) => (
@@ -422,28 +422,25 @@
   const TOP_RACE_ROWS = 5;
   const HOME_MATCHES = 4;
 
+  // Mesmo dia: por horário de início; jogo sem horário confirmado vai para o fim do dia.
+  const kickoffStamp = (match) => { const stamp = Date.parse(match.kickoff_utc || ""); return Number.isNaN(stamp) ? Infinity : stamp; };
   const byKickoff = (left, right) => String(left.match_date).localeCompare(String(right.match_date))
-    || String(left.kickoff_utc || "").localeCompare(String(right.kickoff_utc || ""));
+    || (kickoffStamp(left) === kickoffStamp(right) ? 0 : kickoffStamp(left) < kickoffStamp(right) ? -1 : 1);
 
-  /* Rodada em andamento, ou a próxima rodada com jogos a disputar, ou a última rodada encerrada. */
-  function homeRound() {
-    const info = state.currentRound;
-    if (info && info.inProgress) return { number: info.number, matches: info.listed };
-    const pending = state.snapshot.matches.filter((match) => match.status !== "finished" && !isPostponed(match) && Number.isInteger(match.round));
-    const finished = state.snapshot.matches.filter((match) => match.status === "finished" && Number.isInteger(match.round));
-    const pool = pending.length ? pending : finished;
-    if (!pool.length) return null;
-    const number = pending.length ? Math.min(...pool.map((match) => match.round)) : Math.max(...pool.map((match) => match.round));
-    return { number, matches: pool.filter((match) => match.round === number) };
-  }
+  const HOME_FINISHED = 4;
 
+  /* Próximos jogos da Home: os HOME_MATCHES mais cedo, agrupados por dia; no fim da temporada, os últimos resultados. */
   function homeMatches() {
-    const round = homeRound();
-    if (!round) return "";
+    const upcoming = upcomingMatches().filter((match) => !isPostponed(match));
+    const recent = finishedMatches().slice(0, HOME_FINISHED);
+    const list = upcoming.length ? upcoming.slice(0, HOME_MATCHES) : recent;
+    if (!list.length) return "";
     const analysis = state.currentRound ? `<a class="block-link" href="#/inicio/${ROUND_TAB}">O que mudou na rodada ${state.currentRound.number} ›</a>` : "";
+    const title = upcoming.length ? "Próximos jogos" : "Últimos resultados";
     return `<section class="home-block" aria-labelledby="home-round">
-      <div class="block-head"><h2 id="home-round">Rodada ${round.number}</h2><a class="block-link" href="#/jogos/${round.number}">Ver todos ›</a></div>
-      ${matchList([...round.matches].sort(byKickoff).slice(0, HOME_MATCHES))}
+      <div class="block-head"><h2 id="home-round">${title}</h2><a class="block-link" href="#/jogos${upcoming.length ? "" : "/encerrados"}">Ver todos ›</a></div>
+      ${predictionNote()}
+      ${matchesByDay(list)}
       ${analysis}
     </section>`;
   }
@@ -931,38 +928,163 @@
   const isProbability = (value) => typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
   const shortOf = (clubId) => { const team = teamById(clubId); return team && team.short_name ? team.short_name : nameOf(clubId); };
 
-  function oddsPills(match, values, caption = "") {
+  function oddsPills(match, values, caption) {
     const [home, draw, away] = values;
     if (![home, draw, away].every(isProbability)) return "";
     const top = Math.max(home, draw, away);
     const pill = (value, label) => `<span class="mc-odd${value === top ? " is-top" : ""}"><strong>${pct(value)}</strong><span>${escapeHtml(label)}</span></span>`;
-    return `${caption ? `<p class="mc-caption">${caption}</p>` : ""}<div class="mc-odds">${pill(home, shortOf(match.home_id))}${pill(draw, "Empate")}${pill(away, shortOf(match.away_id))}</div>`;
+    return `<div class="mc-section"><p class="mc-label">${caption}</p><div class="mc-odds">${pill(home, shortOf(match.home_id))}${pill(draw, "Empate")}${pill(away, shortOf(match.away_id))}</div></div>`;
   }
 
   const cardTeam = (clubId) => `<span class="mc-team">${crest(clubId, 38)}<span class="mc-team-name">${escapeHtml(nameOf(clubId))}</span></span>`;
 
+  /* ---------------- Placar ao vivo (live_round_scores, o mesmo do modo Ao vivo) e palpite salvo no aparelho */
+
+  const LIVE_STATES = new Set(["live", "ht"]);
+  const todayBrasilia = () => window.CurrentRound.brasiliaDay(Date.now());
+
+  /* Estado do jogo para o card: placar oficial (snapshot), placar ao vivo (provisório) ou ainda sem placar. */
+  function matchState(match) {
+    if (match.status === "finished") return { kind: "final", home: match.home_goals, away: match.away_goals };
+    const row = state.live.get(match.match_id);
+    const scored = row && Number.isInteger(row.home_goals) && Number.isInteger(row.away_goals);
+    if (scored && LIVE_STATES.has(row.status)) {
+      const minute = row.status === "ht" ? "Intervalo" : Number.isFinite(row.minute) ? `${row.minute}'` : "";
+      return { kind: "live", home: row.home_goals, away: row.away_goals, minute };
+    }
+    if (scored && row.status === "finished") return { kind: "ended", home: row.home_goals, away: row.away_goals };
+    if (isPostponed(match)) return { kind: "postponed" };
+    const kickoff = match.kickoff_utc ? Date.parse(match.kickoff_utc) : NaN;
+    const started = Number.isNaN(kickoff) ? match.match_date < todayBrasilia() : Date.now() >= kickoff;
+    return { kind: started ? "waiting" : "upcoming" };
+  }
+
+  /* Busca o placar ao vivo uma vez por carga, só se algum jogo sem placar oficial já pode ter começado. */
+  async function loadLive() {
+    const live = window.LiveRound;
+    if (!live || typeof live.fetchLiveRows !== "function") return;
+    const today = todayBrasilia();
+    if (!state.snapshot.matches.some((match) => match.status !== "finished" && !isPostponed(match) && match.match_date <= today)) return;
+    try {
+      const rows = await live.fetchLiveRows(state.snapshot.season);
+      state.live = new Map((Array.isArray(rows) ? rows : []).filter((row) => row && row.match_id).map((row) => [row.match_id, row]));
+      if (state.live.size) route();
+    } catch (error) { /* sem servidor ou sem rede: os cards ficam só com a edição publicada */ }
+  }
+
+  const SIMULATOR_KEY = (season) => `ainda-da:simulador:serie-a:${season}:v2`;
+  const PICK_MODES = { placar: "Placar", vencedor: "Vencedor" };
+  const validPick = (mode, pick) => (mode === "vencedor"
+    ? pick === "H" || pick === "D" || pick === "A"
+    : Array.isArray(pick) && pick.length === 2 && pick.every((goals) => Number.isInteger(goals) && goals >= 0));
+  const stampOf = (value) => { const stamp = Date.parse(value || ""); return Number.isNaN(stamp) ? 0 : stamp; };
+
+  /* A simulação de Placar ou Vencedor mais recente deste aparelho (salva ou rascunho em andamento). Classificação não
+     tem palpite por jogo e fica de fora. Só lê o que o simulador gravou: não altera nada. */
+  function latestPrediction() {
+    let store = null;
+    try { store = JSON.parse(window.localStorage.getItem(SIMULATOR_KEY(state.snapshot.season)) || "null"); } catch (error) { return null; }
+    if (!store || store.version !== 2) return null;
+    const candidates = (Array.isArray(store.saved) ? store.saved : [])
+      .filter((item) => item && PICK_MODES[item.mode] && item.entry)
+      .map((item) => ({ mode: item.mode, entry: item.entry, at: stampOf(item.updated_at || item.created_at), draft: false }));
+    const active = store.active;
+    if (active && PICK_MODES[active.mode] && active.entry) candidates.push({ mode: active.mode, entry: active.entry, at: stampOf(active.updated_at || active.started_at), draft: true });
+    const withPicks = candidates.filter((item) => Object.keys({ ...(item.entry.sampled || {}), ...(item.entry.picks || {}) }).length);
+    return withPicks.sort((left, right) => right.at - left.at)[0] || null;
+  }
+
+  function predictionNote() {
+    const prediction = state.prediction;
+    if (!prediction) return "";
+    const when = prediction.at ? ` de ${new Date(prediction.at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}` : "";
+    return `<p class="pick-note">Seu palpite nos cards: ${prediction.draft ? "rascunho" : "simulação"} de ${PICK_MODES[prediction.mode]}${when} · <a href="#/simular">abrir ›</a></p>`;
+  }
+
+  /* Rodapé do card com o palpite. A pontuação é a do simulador (window.Simulator.engine.matchPoints, igual ao banco). */
+  function pickLine(match, status) {
+    const prediction = state.prediction;
+    if (!prediction) return "";
+    const own = (prediction.entry.picks || {})[match.match_id];
+    const sampled = (prediction.entry.sampled || {})[match.match_id];
+    const pick = own !== undefined ? own : sampled;
+    if (pick === undefined || !validPick(prediction.mode, pick)) return "";
+    const value = prediction.mode === "placar" ? `${pick[0]} × ${pick[1]}` : pick === "D" ? "Empate" : escapeHtml(shortOf(pick === "H" ? match.home_id : match.away_id));
+    const origin = own === undefined ? `<span class="mc-pick-origin">sorteado pelo modelo</span>` : "";
+    const engine = window.Simulator && window.Simulator.engine;
+    if (status.kind === "final" && engine && typeof engine.matchPoints === "function") {
+      const points = engine.matchPoints(prediction.mode, pick, status.home, status.away);
+      const pickOutcome = prediction.mode === "placar" ? engine.outcomeOf(pick[0], pick[1]) : pick;
+      const realOutcome = engine.outcomeOf(status.home, status.away);
+      const verdict = points === 0 ? "Errou"
+        : prediction.mode === "placar" && pick[0] === status.home && pick[1] === status.away ? "Acertou o placar"
+        : pickOutcome === realOutcome ? (realOutcome === "D" ? "Acertou o empate" : "Acertou o vencedor")
+        : "Placar invertido";
+      return `<p class="mc-pick ${points ? "is-hit" : "is-miss"}"><span class="mc-pick-label">Seu palpite (${PICK_MODES[prediction.mode]})</span><strong>${value}</strong>${origin}<span class="mc-pick-result">${verdict}${points ? ` (+${points})` : ""}</span></p>`;
+    }
+    const pending = status.kind === "live" ? "em andamento" : status.kind === "ended" || status.kind === "waiting" ? "aguarda o placar oficial" : "";
+    return `<p class="mc-pick"><span class="mc-pick-label">Seu palpite (${PICK_MODES[prediction.mode]})</span><strong>${value}</strong>${origin}${pending ? `<span class="mc-pick-result is-pending">${pending}</span>` : ""}</p>`;
+  }
+
+  /* Match Card com três partes rotuladas: o realizado (placar e selo), a probabilidade do modelo e o seu palpite. */
   function matchRow(match) {
-    const finished = match.status === "finished";
-    const postponed = isPostponed(match);
+    const status = matchState(match);
     const clock = kickoffClock(match);
-    const when = postponed ? "data a definir" : `${cardDay(match.match_date)}${clock ? ` ${clock}` : ""}`;
-    const badge = finished ? `<span class="mc-badge">Encerrado</span>` : postponed ? `<span class="mc-badge is-alert">Adiado</span>` : "";
-    const center = finished
-      ? `<span class="mc-center">${match.home_goals} × ${match.away_goals}</span>`
-      : `<span class="mc-center is-vs">VS</span>`;
+    const when = status.kind === "postponed" ? "data a definir" : `${cardDay(match.match_date)}${clock ? ` ${clock}` : ""}`;
+    const BADGES = {
+      final: `<span class="mc-badge is-final">Final</span>`,
+      live: `<span class="mc-badge is-live">Ao vivo${status.minute ? ` · ${status.minute}` : ""}</span>`,
+      ended: `<span class="mc-badge">Fim · placar provisório</span>`,
+      waiting: `<span class="mc-badge">Aguardando placar</span>`,
+      postponed: `<span class="mc-badge is-alert">Adiado</span>`,
+      upcoming: "",
+    };
+    const scored = status.kind === "final" || status.kind === "live" || status.kind === "ended";
+    const center = scored
+      ? `<span class="mc-result"><span class="mc-center">${status.home} × ${status.away}</span>${BADGES[status.kind]}</span>`
+      : `<span class="mc-result"><span class="mc-center is-vs">VS</span>${BADGES[status.kind]}</span>`;
+    const finished = status.kind === "final";
     const found = finished ? findRoundMatch(match.match_id) : null;
     const pre = found && found.match.pre_match;
     const odds = finished
-      ? (pre ? oddsPills(match, [pre.home, pre.draw, pre.away], "Antes do jogo") : "")
-      : oddsPills(match, [match.p_home, match.p_draw, match.p_away]);
-    const spoken = finished
-      ? `${nameOf(match.home_id)} ${match.home_goals}, ${nameOf(match.away_id)} ${match.away_goals}, encerrado`
-      : `${nameOf(match.home_id)} contra ${nameOf(match.away_id)}${isProbability(match.p_home) ? `: ${nameOf(match.home_id)} ${pct(match.p_home)}, empate ${pct(match.p_draw)}, ${nameOf(match.away_id)} ${pct(match.p_away)}` : ""}`;
-    return `<article class="mc" data-match-id="${escapeHtml(match.match_id)}" tabindex="0" role="button" aria-label="${escapeHtml(`Rodada ${match.round ?? "?"}, ${when}. ${spoken}. Ver detalhes`)}">
-        <div class="mc-top"><span>R${match.round ?? "?"} · ${when}</span><span class="mc-top-end">${badge}<span class="mc-go" aria-hidden="true">›</span></span></div>
+      ? (pre ? oddsPills(match, [pre.home, pre.draw, pre.away], "Antes do jogo · modelo") : "")
+      : oddsPills(match, [match.p_home, match.p_draw, match.p_away], status.kind === "upcoming" || status.kind === "postponed" ? "Probabilidade do modelo" : "Antes do jogo · modelo");
+    const result = scored ? `${nameOf(match.home_id)} ${status.home}, ${nameOf(match.away_id)} ${status.away}, ${finished ? "placar final" : "placar ao vivo"}` : `${nameOf(match.home_id)} contra ${nameOf(match.away_id)}`;
+    const model = isProbability(match.p_home) && !finished ? `. Probabilidade do modelo: ${nameOf(match.home_id)} ${pct(match.p_home)}, empate ${pct(match.p_draw)}, ${nameOf(match.away_id)} ${pct(match.p_away)}` : "";
+    const pick = pickLine(match, status);
+    return `<article class="mc" data-match-id="${escapeHtml(match.match_id)}" tabindex="0" role="button" aria-label="${escapeHtml(`Rodada ${match.round ?? "?"}, ${when}. ${result}${model}. Ver detalhes`)}">
+        <div class="mc-top"><span>R${match.round ?? "?"} · ${when}</span><span class="mc-go" aria-hidden="true">›</span></div>
         <div class="mc-teams" aria-hidden="true">${cardTeam(match.home_id)}${center}${cardTeam(match.away_id)}</div>
         <div aria-hidden="true">${odds}</div>
+        ${pick}
       </article>`;
+  }
+
+  /* ---------------- Jogos por dia */
+
+  const upcomingMatches = () => state.snapshot.matches.filter((match) => match.status !== "finished" && match.status !== "cancelled").sort(byKickoff);
+  const finishedMatches = () => state.snapshot.matches.filter((match) => match.status === "finished").sort((left, right) => byKickoff(right, left));
+
+  function dayLabel(iso) {
+    const today = todayBrasilia();
+    const shift = (days) => { const date = new Date(`${today}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + days); return date.toISOString().slice(0, 10); };
+    const relative = iso === today ? "Hoje · " : iso === shift(1) ? "Amanhã · " : iso === shift(-1) ? "Ontem · " : "";
+    return `${relative}${cardDay(iso)}`;
+  }
+
+  /* Agrupa por data real (não pela rodada): jogos atrasados ou de rodadas misturadas aparecem no dia em que caem.
+     Adiados sem data ficam num grupo próprio no fim. */
+  function matchesByDay(matches) {
+    const groups = new Map();
+    const postponed = matches.filter((match) => match.status !== "finished" && isPostponed(match));
+    matches.filter((match) => !postponed.includes(match)).forEach((match) => {
+      if (!groups.has(match.match_date)) groups.set(match.match_date, []);
+      groups.get(match.match_date).push(match);
+    });
+    const sections = [...groups.entries()].map(([day, list]) => `<section class="match-day" aria-label="${escapeHtml(dayLabel(day))}">
+        <h3 class="day-title">${dayLabel(day)}</h3>${matchList(list)}</section>`);
+    if (postponed.length) sections.push(`<section class="match-day" aria-label="Adiados"><h3 class="day-title">Adiados · data a definir</h3>${matchList(postponed)}</section>`);
+    return sections.join("");
   }
 
   const matchList = (matches) => `<div class="mc-list">${matches.map(matchRow).join("")}</div>`;
@@ -1060,21 +1182,37 @@
       ${difficultyNote()}`;
   }
 
+  const FINISHED_PAGE = 30;
+
+  /* Jogos (#/jogos e #/partidas): próximos jogos por dia, em ordem cronológica, e os encerrados num segundo chip. */
   function renderMatches(requested) {
-    const matches = state.snapshot.matches;
-    const rounds = [...new Set(matches.map((match) => match.round).filter(Number.isInteger))].sort((left, right) => left - right);
-    const pending = matches.filter((match) => match.status !== "finished" && !isPostponed(match) && Number.isInteger(match.round));
-    const fallback = pending.length ? Math.min(...pending.map((match) => match.round)) : rounds[rounds.length - 1];
-    const selected = rounds.includes(Number(requested)) ? Number(requested) : fallback;
-    const list = matches.filter((match) => match.round === selected).sort(byKickoff);
-    const strip = rounds.length
-      ? `<nav class="chip-strip" aria-label="Rodadas">${rounds.map((round) => `<a class="chip" href="#/jogos/${round}"${round === selected ? ' aria-current="page"' : ""}>Rodada ${round}</a>`).join("")}</nav>`
-      : "";
+    const showFinished = requested === "encerrados";
+    const chips = `<nav class="chip-row match-filter" aria-label="Quais jogos">
+        <a class="chip" href="#/jogos"${showFinished ? "" : ' aria-current="page"'}>Próximos</a>
+        <a class="chip" href="#/jogos/encerrados"${showFinished ? ' aria-current="page"' : ""}>Encerrados</a></nav>`;
+    const action = state.prediction ? "" : `<a class="block-link" href="#/simular">Fazer meus palpites ›</a>`;
+    let body;
+    if (showFinished) {
+      const finished = finishedMatches();
+      if (!state.finishedShown) state.finishedShown = FINISHED_PAGE;
+      const shown = finished.slice(0, state.finishedShown);
+      body = finished.length
+        ? `${matchesByDay(shown)}${finished.length > shown.length ? `<button type="button" class="btn-secondary sheet-wide" id="more-finished">Mostrar mais ${Math.min(FINISHED_PAGE, finished.length - shown.length)} jogos</button>` : ""}`
+        : stateBlock({ icon: "calendar", title: "Nenhum jogo encerrado ainda", text: "Os resultados aparecem aqui depois da primeira rodada." });
+    } else {
+      const upcoming = upcomingMatches();
+      body = upcoming.length
+        ? matchesByDay(upcoming)
+        : stateBlock({ icon: "calendar", title: "Sem jogos a disputar", text: "Todos os jogos da temporada já foram disputados.", action: `<a class="state-action btn-secondary" href="#/jogos/encerrados">Ver os encerrados</a>` });
+    }
     main.innerHTML = `
-      <div class="screen-head"><h1 class="screen-title">Jogos</h1></div>
-      ${strip}
-      ${overdueWarning()}
-      ${list.length ? matchList(list) : stateBlock({ icon: "calendar", title: "Sem jogos nesta rodada", text: "Escolha outra rodada na faixa acima.", action: `<a class="state-action btn-secondary" href="#/classificacao">Ver a tabela</a>` })}`;
+      <div class="screen-head"><h1 class="screen-title">Jogos</h1>${action}</div>
+      ${chips}
+      ${predictionNote()}
+      ${showFinished ? "" : overdueWarning()}
+      ${body}`;
+    const more = document.getElementById("more-finished");
+    if (more) more.addEventListener("click", () => { state.finishedShown += FINISHED_PAGE; renderMatches("encerrados"); });
   }
 
   const PUBLISHABLE_LICENSES = ["verified_open", "licensed_with_attribution"];
@@ -1210,6 +1348,7 @@
 
   function route() {
     if (!state.snapshot) return;
+    state.prediction = latestPrediction();
     const [, section = "", parameter = "", ...rest] = location.hash.replace(/^#/, "").split("/");
     const isHome = !section || section === "inicio";
     document.querySelectorAll(".masthead nav a").forEach((link) => {
@@ -1275,6 +1414,7 @@
     state.crests = await loadCrests();
     renderReferenceBar();
     route();
+    loadLive();
   }
 
   window.addEventListener("hashchange", route);
