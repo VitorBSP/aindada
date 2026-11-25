@@ -47,23 +47,25 @@
       .map((club) => ({ id: club.club_id, value: club.zones[zone.zone_id], label: zoneLabel(club, zone) }));
     const range = zone.first === zone.last ? `em ${zone.first}º lugar` : `entre ${zone.first}º e ${zone.last}º`;
     const title = zone.kind === "up" ? `${zone.label}: Liga dos Campeões` : zone.label;
-    return `<section class="race"><h3>${escapeHtml(title)}</h3><p class="note">% das simulações em que termina ${range}</p>${S.raceRows(items, KIND[zone.kind])}</section>`;
+    return S.raceCard(title, `% das simulações em que termina ${range}.${zone.note ? ` ${escapeHtml(zone.note)}` : ""}`, S.raceRows(items, KIND[zone.kind]));
   }
 
+  // Próximos jogos com data, em ordem cronológica (podem misturar rodadas).
+  const upcoming = (data) => data.remaining.filter((match) => match.status === "scheduled" && match.match_date);
+  const chronological = (a, b) => (a.kickoff_utc || a.match_date).localeCompare(b.kickoff_utc || b.match_date);
+  const HOME_MATCHES = 4;
+  const UPCOMING_ROUNDS = 2;
+
   function home(data) {
-    const title = data.zones.find((zone) => zone.kind === "title");
-    const leader = [...data.teams].sort((a, b) => b.zones[title.zone_id] - a.zones[title.zone_id])[0];
-    const leaderLine = leader.clinched[title.zone_id] === "in"
-      ? `<strong>${escapeHtml(leader.name)}</strong> já é campeão.`
-      : `<strong>${escapeHtml(leader.name)}</strong> é o favorito: fica com o título em ${pct(leader.zones[title.zone_id])} das simulações.`;
-    const notes = data.zones.filter((zone) => zone.note).map((zone) => `<p class="note">${escapeHtml(zone.note)}</p>`).join("");
-    const next = nextRound(data);
+    const down = data.zones.find((zone) => zone.kind === "down");
+    const info = `<p>Contamos cada posição do 1º ao ${data.teams.length}º em ${data.n_simulations.toLocaleString("pt-BR")} simulações do que falta da temporada. Sem playoff: os ${down.last - down.first + 1} últimos caem direto.</p>
+      <p>"Campeão", "já garantiu", "caiu", "não dá mais" e "não cai mais" só aparecem quando a conta de pontos fecha.</p>`;
+    const next = upcoming(data).sort(chronological).slice(0, HOME_MATCHES);
     return `
-      <h1>Título, vaga e queda: quem ainda dá?</h1>
-      <p class="lede">${leaderLine} Contamos cada posição do 1º ao ${data.teams.length}º em ${data.n_simulations.toLocaleString("pt-BR")} simulações do que falta da temporada. Sem playoff: os ${data.zones.find((zone) => zone.kind === "down").last - data.zones.find((zone) => zone.kind === "down").first + 1} últimos caem direto.</p>
-      <div class="races">${data.zones.map((zone) => race(data, zone)).join("")}</div>
-      ${notes}
-      ${next ? `<h2>Próxima rodada: rodada ${next.round}</h2><p class="note">Horários de Brasília. Mandante à esquerda.</p>${next.matches.slice(0, 4).map(S.matchRow).join("")}<p class="more"><a href="#/jogos">Todos os ${next.matches.length} jogos da rodada</a> · <a href="#/tabela">Tabela completa</a></p>` : ""}`;
+      ${S.screenHead("Quem ainda dá?", info)}
+      ${S.yourTeam(data)}
+      ${next.length ? `<section class="comp-block" aria-labelledby="comp-next"><div class="block-head"><h2 id="comp-next">Próximos jogos</h2><a class="block-link" href="#/jogos">Ver todos ›</a></div>${S.matchesByDay(next)}</section>` : ""}
+      <div class="races">${data.zones.map((zone) => race(data, zone)).join("")}</div>`;
   }
 
   function table(data) {
@@ -72,59 +74,48 @@
       const zone = zones.find((item) => position >= item.first && position <= item.last);
       return zone ? ROW_ZONE[zone.kind] : "";
     };
+    // Probabilidades logo depois de Pts: no celular o percentual aparece sem rolar a tabela de lado.
     const rows = data.teams.map((club) => {
       const goalDifference = club.goals_for - club.goals_against;
-      const cells = data.zones.map((zone) => `<td>${S.probCell(club.zones[zone.zone_id], KIND[zone.kind], club.clinched[zone.zone_id] ? zoneLabel(club, zone) : null)}</td>`).join("");
+      const cells = data.zones.map((zone, index) => `<td${index === 0 ? ' class="view-start"' : ""}>${S.probCell(club.zones[zone.zone_id], KIND[zone.kind], club.clinched[zone.zone_id] ? zoneLabel(club, zone) : null)}</td>`).join("");
       return `<tr class="${rowZone(club.position)}">
         <td class="pos">${club.position}</td>
-        <td class="left club">${team(club.club_id, 20)}</td>
-        <td><strong>${club.points}</strong></td><td>${club.played}</td><td>${club.wins}</td><td>${club.draws}</td><td>${club.losses}</td>
-        <td>${goalDifference > 0 ? "+" : ""}${goalDifference}</td>
-        <td class="view-start">${number.format(club.expected_points)}<span class="range">${club.points_interval_90[0]}–${club.points_interval_90[1]}</span></td>
+        <td class="left club">${S.teamCell(club.club_id)}</td>
+        <td><strong>${club.points}</strong></td>
         ${cells}
+        <td class="rest-start">${club.played}</td><td>${club.wins}</td><td>${club.draws}</td><td>${club.losses}</td>
+        <td>${goalDifference > 0 ? "+" : ""}${goalDifference}</td>
+        <td>${number.format(club.expected_points)}<span class="range">${club.points_interval_90[0]}–${club.points_interval_90[1]}</span></td>
         <td class="left">${S.heat(club.position_probabilities, club.name)}</td>
       </tr>`;
     }).join("");
-    const legend = zones.map((zone) => `<span class="${zone.kind === "up" ? "l-lib" : "l-z4"}">${escapeHtml(zone.label)} (${zone.first}º ao ${zone.last}º)</span>`).join("");
+    const legend = zones.map((zone) => `${escapeHtml(zone.label)} (${zone.first}º ao ${zone.last}º) em ${zone.kind === "up" ? "azul" : "vermelho"}`).join("; ");
+    const info = `<p>Faixa lateral: ${legend}.</p>
+      <p>Percentuais: em quantas simulações o clube termina em cada faixa. Pts proj. = média simulada de pontos no fim; embaixo, a faixa onde terminam 90% das simulações.</p>
+      <p>A faixa à direita mostra a probabilidade de cada posição final: quanto mais escura, mais provável.</p>`;
     return `
-      <h1 class="race-heading">Tabela</h1>
-      <div class="legend">${legend}</div>
-      <div class="table-scroll" tabindex="0" role="region" aria-label="Tabela de ${escapeHtml(data.competition_name)}">
+      ${S.screenHead("Tabela", info)}
+      <div class="table-scroll table-card" tabindex="0" role="region" aria-label="Tabela de ${escapeHtml(data.competition_name)}">
         <table class="standings">
-          <thead><tr><th>#</th><th class="left">Clube</th><th>Pts</th><th>J</th><th>V</th><th>E</th><th>D</th><th>SG</th><th class="view-start">Pts proj.</th>
-            ${data.zones.map((zone) => `<th>${escapeHtml(zone.label)}</th>`).join("")}<th class="left">Posição final (1º → ${data.teams.length}º)</th></tr></thead>
+          <thead><tr><th>#</th><th class="left">Clube</th><th>Pts</th>
+            ${data.zones.map((zone, index) => `<th${index === 0 ? ' class="view-start"' : ""}>${escapeHtml(zone.label)}</th>`).join("")}
+            <th class="rest-start">J</th><th>V</th><th>E</th><th>D</th><th>SG</th><th>Pts proj.</th><th class="left">Posição final (1º → ${data.teams.length}º)</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
-      </div>
-      <p class="note">Pts proj. = média simulada de pontos no fim; embaixo, a faixa onde terminam 90% das simulações. Percentuais: em quantas simulações o clube termina em cada faixa. A faixa à direita mostra a probabilidade de cada posição final: quanto mais escura, mais provável.</p>`;
-  }
-
-  function nextRound(data) {
-    const scheduled = data.remaining.filter((match) => match.status === "scheduled" && match.round !== null);
-    if (!scheduled.length) return null;
-    const round = Math.min(...scheduled.map((match) => match.round));
-    const matches = scheduled
-      .filter((match) => match.round === round)
-      .sort((a, b) => (a.kickoff_utc || a.match_date).localeCompare(b.kickoff_utc || b.match_date));
-    return { round, matches };
+      </div>`;
   }
 
   function matches(data) {
-    const next = nextRound(data);
-    if (!next) return `<h1 class="race-heading">Jogos</h1><p>Não há jogos marcados.</p>`;
-    let lastDay = "";
-    const rows = next.matches.map((match) => {
-      const day = match.match_date !== lastDay ? `<h3 class="round-day">${escapeHtml(S.formatDate(match.match_date, { weekday: "long", day: "numeric", month: "long" }))}</h3>` : "";
-      lastDay = match.match_date;
-      return day + S.matchRow(match);
-    }).join("");
+    const scheduled = upcoming(data).filter((match) => match.round !== null);
+    const info = "<p>Horários de Brasília. Probabilidade de vitória do mandante, de empate e de vitória do visitante, com a força de cada clube na data da edição. Toque num jogo para ver os detalhes.</p><p>Os jogos aparecem pelo dia em que caem, mesmo quando misturam rodadas.</p>";
+    if (!scheduled.length) return `${S.screenHead("Jogos", info)}<div class="state"><p class="state-title">Sem jogos marcados</p><p class="state-text">Os próximos jogos aparecem aqui quando a fonte trouxer as datas.</p></div>`;
+    const rounds = [...new Set(scheduled.map((match) => match.round))].sort((a, b) => a - b).slice(0, UPCOMING_ROUNDS);
+    const list = scheduled.filter((match) => rounds.includes(match.round));
     const pending = data.remaining.filter((match) => match.status !== "scheduled").length;
     return `
-      <h1 class="race-heading">Rodada ${next.round}</h1>
-      <p class="note">Horários de Brasília. Mandante à esquerda; probabilidade de vitória do mandante, empate e vitória do visitante.</p>
-      <div class="legend"><span class="l-home">mandante</span><span class="l-draw">empate</span><span class="l-away">visitante</span></div>
-      ${rows}
-      ${pending ? `<p class="note">${pending} jogo(s) adiado(s) ou cancelado(s) sem nova data: entram na simulação, mas não aparecem aqui.</p>` : ""}`;
+      ${S.screenHead("Próximos jogos", info)}
+      ${S.matchesByDay(list)}
+      ${pending ? `<p class="comp-notice">${pending} ${pending === 1 ? "jogo adiado ou cancelado" : "jogos adiados ou cancelados"} sem nova data: ${pending === 1 ? "entra" : "entram"} na simulação.</p>` : ""}`;
   }
 
   function method(data) {
@@ -163,6 +154,19 @@
         if (link.dataset.league === data.competition) link.setAttribute("aria-current", "page");
       });
       return Object.fromEntries(data.teams.map((club) => [club.club_id, club.name]));
+    },
+    shorts: (data) => Object.fromEntries(data.teams.map((club) => [club.club_id, club.short_name])),
+    favorite: {
+      code: (data) => data.competition,
+      clubs: (data) => data.teams.map((club) => ({ id: club.club_id, name: club.name, meta: `${club.position}º lugar · ${club.points} pts` })),
+      stats: (data, id) => {
+        const club = data.teams.find((item) => item.club_id === id);
+        const LABEL = { title: "Título", down: "Queda" };
+        const TONE = { title: "", up: "is-g4", down: "is-z4" };
+        return ["title", "up", "down"].map((kind) => data.zones.find((zone) => zone.kind === kind)).filter(Boolean)
+          .map((zone) => ({ label: LABEL[zone.kind] || zone.label, text: zoneLabel(club, zone), tone: TONE[zone.kind] }));
+      },
+      next: (data, id) => upcoming(data).filter((match) => match.home_id === id || match.away_id === id).sort(chronological)[0] || null,
     },
     edition,
     footer: (data) => `${data.sources.map((source) => `<a href="${S.safeUrl(source.origin)}">${escapeHtml(source.attribution || source.source_name)}</a>`).join("; ")}.`,

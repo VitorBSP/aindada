@@ -3915,3 +3915,66 @@ D0, E0 e F0 do canvas de opções de UI. Contratos JSON, modelo, pontuação e r
 - **Próximo responsável**: Agente 06 (auditar os rótulos da linha do tempo e o filtro de 1 p.p. no snapshot real);
   Agente 08 (revisar os textos novos); Agente 00 (merge, nesta ordem: `feat/clareza-cards-jogos-por-dia` →
   `feat/ui-agenda-time-disputas` → esta).
+
+## Agente 05: paridade v2.1 nas outras 5 competições (D-051, 2026-11-25)
+
+Branch `feat/paridade-outras-competicoes`, a partir da `main` (`76faed7`). Para não conflitar com
+`feat/clareza-cards-jogos-por-dia` e `feat/ui-agenda-time-disputas` (ainda fora da `main`), tudo ficou em
+`competition.js`, `competition.css` e nos `app.js` dos sub-sites; `styles.css` e `app.js` da Série A não mudaram.
+
+- **O que mudou**:
+  - `apps/web/assets/competition.js` (base dos 5 sites):
+    - **Match Card v2.1** (`matchCard`): rodada e horário, escudos ou siglas, "VS", 3 pílulas 1X2 rotuladas
+      "Probabilidade do modelo" com a sigla do clube e a maior em borda `--signal`. O card inteiro (toque, Enter ou
+      espaço) abre o detalhe (`match-popup.js`) com as probabilidades e os gols esperados quando a fonte traz.
+    - `matchesByDay`: jogos agrupados por dia real (`Hoje`, `Amanhã`, `Qui 28/10`).
+    - Card **"Seu Time"** (`yourTeam`): um clube por competição em `localStorage` (`ainda-da:meu-time:<competição>`);
+      o chip `Trocar` abre a folha de clubes (`AIndaDaShell.openSheet`); 3 blocos com as disputas da liga e o próximo
+      jogo quando há data.
+    - `screenHead` e `raceCard`: título curto com o botão `(i)`; as explicações saem do corpo e vão para a folha.
+    - `teamCell`: nome no computador e sigla no celular nas tabelas. Isso corrige o nome do clube que invadia a coluna
+      `Pts` em 375 px, defeito que já existia.
+    - Skeleton no carregamento; erro com "Tentar novamente" que refaz o `fetch` sem recarregar a página.
+  - **Série B**:
+    - Seu Time: Acesso · Playoff · Queda.
+    - Home: disputas e chave do playoff em cards com `(i)`.
+    - Tabela: `# · Clube · Pts · Sobe direto · Playoff · Sobe · Cai · J · V · E · D · SG · Pts proj. · posição final`.
+    - Jogos: cards e o aviso de uma linha "Sem datas na fonte: jogos na ordem da tabela" (a fonte não traz datas).
+  - **Premier League e LaLiga**:
+    - Seu Time: Título · vaga europeia · Queda, mais o próximo jogo.
+    - Home: próximos 4 jogos por dia e disputas em cards.
+    - Tabela: zonas logo depois de `Pts`.
+    - Jogos: as 2 próximas rodadas por dia, com aviso curto de adiados.
+  - **Champions**:
+    - Seu Time: Top 8 · Playoff · Título.
+    - Home: próximos jogos por dia, disputas em cards e chips para Chave e Fase de liga.
+    - Chave provável e Fase de liga: explicações e legendas no `(i)`; Top 8 · Playoff · Eliminado depois de `Pts`.
+    - Jogos: por dia.
+  - **Mundial de LoL** (sem Seu Time, por não ser futebol):
+    - Home: introdução e notas no `(i)`; chave, título e possíveis adversários em cards.
+    - Times: Quartas · Semi · Final · Título logo depois do V–D da fase suíça.
+    - Força das ligas: explicação no `(i)`.
+    - D-046: a classe `.chance` virou `.series-prob`; não sobrou "chance" visível em nenhum sub-site.
+  - `apps/web/assets/competition.css`: disputas em cards, títulos de dia, aviso curto, links em chips e o
+    acabamento do Seu Time. Sem itálico nem serifa na chave.
+  - "Como calculamos" de cada site continua completa. Contratos JSON, modelos e regras: sem mudança.
+- **Evidência**:
+  - Playwright com previsões **sintéticas** dos 5 sites (Série B e ligas pelo `build_forecast` de produção sobre o
+    histórico sintético; Champions e LoL montadas pelos esquemas pydantic). Nada foi versionado.
+  - Troca de competição: o chip passou pelos 6 sites em ciclo (Série A → B → Premier → LaLiga → Champions → LoL →
+    Série A), com URL, rótulo do chip e item atual da folha corretos em todos, inclusive Premier League e LaLiga.
+    "Mais → Trocar competição" funcionou a partir de cada um dos 6.
+  - Seu Time: salvo por competição (o da Premier não aparece na LaLiga). Blocos conferidos: PL "Título · Top 4 ·
+    Queda", Champions "Top 8 · Playoff · Título", Série B "Acesso · Playoff · Queda". O toque no card abre o detalhe
+    com gols esperados.
+  - Tabelas em 375 px, colunas visíveis sem rolar: Série B `# · Clube · Pts · Sobe direto · Playoff`; Premier
+    `# · Clube · Pts · Título · Top 4`; Champions `# · Clube · Pts · Top 8 · Playoff · Eliminado · J`; LoL
+    `Time · Suíça · Quartas · Semi · Final · Título`.
+  - 5 sites × todas as abas × 375/1280 px × 2 temas = 84 de 84 telas carregadas, com chip, sem rolagem lateral e sem
+    erro de JS. A bateria da Série A (rotas e sub-sites) passou sem falha.
+  - `ruff check` sem achados; `ruff format --check` com 235 arquivos ok; `mypy` sem erros; `pytest -q` com 973
+    passados e 6 pulados. O `index.html` da Série A não mudou (G4 inalterado).
+- **Limitações**: os sub-sites só listam jogos por disputar (o export não traz resultados), então o card não tem
+  placar, "Final" nem palpite (o simulador só existe na Série A). Falta validar com as previsões reais.
+- **Próximo responsável**: Agente 06 (revisar com as previsões reais); Agente 00 (merge, junto com as branches de
+  clareza e de UI).

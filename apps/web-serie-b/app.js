@@ -59,21 +59,19 @@
     const direct = open("promotion_direct", (club) => club.clinched.out_of_top6).slice(0, 6);
     const total = open("promotion", (club) => club.clinched.out_of_top6).slice(0, 8);
     const drop = data.teams.filter((club) => !club.clinched.safe).sort((a, b) => b.relegation - a.relegation).slice(0, 8);
-    const leader = [...data.teams].sort((a, b) => b.promotion - a.promotion)[0];
-    const relegated = data.teams.filter((club) => club.clinched.relegated);
-    const dropLine = relegated.length ? ` ${relegated.map((club) => escapeHtml(club.name)).join(", ").replace(/, ([^,]*)$/, " e $1")} já ${relegated.length > 1 ? "caíram" : "caiu"}.` : "";
+    const info = `<p>Dois sobem direto; do 3º ao 6º, playoff em ida e volta vale mais duas vagas na Série A de ${data.season + 1}. Os quatro últimos caem.</p>
+      <p>Cada porcentagem diz em quantas das ${data.n_simulations.toLocaleString("pt-BR")} simulações do que falta (e dos playoffs) aquilo aconteceu. "Subiu", "caiu" e "não dá mais" só aparecem quando a conta de pontos fecha.</p>`;
+    const playoffInfo = "Quem pode ocupar cada lugar do playoff e quanto disso acontece nas simulações. Ida na casa do pior colocado, volta na casa do melhor; empatou em pontos e saldo, passa o melhor colocado. Não tem pênaltis.";
     return `
-      <h1>Quatro sobem, quatro caem. Quem ainda dá?</h1>
-      <p class="lede">Dois sobem direto; do 3º ao 6º, playoff em ida e volta vale mais duas vagas na Série A de ${data.season + 1}. <strong>${escapeHtml(leader.name)}</strong> ${leader.clinched.promoted_direct ? "já subiu." : `é quem está mais perto: sobe em ${pct(leader.promotion)} das simulações.`}${dropLine}</p>
+      ${S.screenHead("Quem sobe, quem cai", info)}
+      ${S.yourTeam(data)}
       <div class="races">
-        <section class="race"><h3>Sobe direto</h3><p class="note">% das simulações em que termina em 1º ou 2º</p>${S.raceRows(direct.map((club) => ({ id: club.club_id, value: club.promotion_direct, label: directLabel(club) })), "lib")}</section>
-        <section class="race"><h3>Sobe (direto ou pelo playoff)</h3><p class="note">% das simulações em que termina com o acesso</p>${S.raceRows(total.map((club) => ({ id: club.club_id, value: club.promotion, label: promotionLabel(club) })), "lib")}</section>
-        <section class="race"><h3>Cai</h3><p class="note">% das simulações em que termina entre 17º e 20º</p>${S.raceRows(drop.map((club) => ({ id: club.club_id, value: club.relegation, label: relegationLabel(club) })), "danger")}</section>
+        ${S.raceCard("Sobe direto", "% das simulações em que termina em 1º ou 2º.", S.raceRows(direct.map((club) => ({ id: club.club_id, value: club.promotion_direct, label: directLabel(club) })), "lib"))}
+        ${S.raceCard("Sobe (direto ou pelo playoff)", "% das simulações em que termina com o acesso, direto ou pelo playoff.", S.raceRows(total.map((club) => ({ id: club.club_id, value: club.promotion, label: promotionLabel(club) })), "lib"))}
+        ${S.raceCard("Cai", "% das simulações em que termina entre 17º e 20º.", S.raceRows(drop.map((club) => ({ id: club.club_id, value: club.relegation, label: relegationLabel(club) })), "danger"))}
       </div>
-      <h2>Chave do playoff</h2>
-      <p class="note">Quem pode ocupar cada lugar do playoff e quanto disso acontece nas simulações. Ida na casa do pior colocado, volta na casa do melhor; empatou em pontos e saldo, passa o melhor colocado. Não tem pênaltis.</p>
-      ${playoffBracket(data, byId)}
-      <p class="more"><a href="#/tabela">Tabela completa</a> · <a href="#/jogos">Jogos que faltam</a></p>`;
+      ${S.raceCard("Chave do playoff", playoffInfo, playoffBracket(data, byId))}
+      <nav class="chip-row comp-links" aria-label="Mais"><a class="chip" href="#/tabela">Tabela completa ›</a><a class="chip" href="#/jogos">Jogos que faltam ›</a></nav>`;
   }
 
   function table(data) {
@@ -81,41 +79,44 @@
     const playoffLast = Math.max(...data.rules.playoff_groups.map((group) => group[1]));
     const safeLast = data.teams.length - data.rules.relegation;
     const zone = (position) => (position <= direct ? "zone-lib" : position <= playoffLast ? "zone-sula" : position > safeLast ? "zone-z4" : "");
+    // Probabilidades logo depois de Pts: no celular o percentual aparece sem rolar a tabela de lado.
     const rows = data.teams.map((club) => {
       const goalDifference = club.goals_for - club.goals_against;
       return `<tr class="${zone(club.position)}">
         <td class="pos">${club.position}</td>
-        <td class="left club">${team(club.club_id, 20)}</td>
-        <td><strong>${club.points}</strong></td><td>${club.played}</td><td>${club.wins}</td><td>${club.draws}</td><td>${club.losses}</td>
-        <td>${goalDifference > 0 ? "+" : ""}${goalDifference}</td>
-        <td class="view-start">${number.format(club.expected_points)}<span class="range">${club.points_interval_90[0]}–${club.points_interval_90[1]}</span></td>
-        <td>${S.probCell(club.promotion_direct, "lib", directLabel(club))}</td>
+        <td class="left club">${S.teamCell(club.club_id)}</td>
+        <td><strong>${club.points}</strong></td>
+        <td class="view-start">${S.probCell(club.promotion_direct, "lib", directLabel(club))}</td>
         <td>${S.probCell(club.playoff, "sula", club.clinched.out_of_top6 ? "não dá mais" : null)}</td>
         <td>${S.probCell(club.promotion, "lib", promotionLabel(club))}</td>
         <td>${S.probCell(club.relegation, "danger", relegationLabel(club))}</td>
+        <td class="rest-start">${club.played}</td><td>${club.wins}</td><td>${club.draws}</td><td>${club.losses}</td>
+        <td>${goalDifference > 0 ? "+" : ""}${goalDifference}</td>
+        <td>${number.format(club.expected_points)}<span class="range">${club.points_interval_90[0]}–${club.points_interval_90[1]}</span></td>
         <td class="left">${S.heat(club.position_probabilities, club.name)}</td>
       </tr>`;
     }).join("");
+    const info = `<p>Faixa lateral: azul = acesso direto (1º e 2º), âmbar = playoff (3º ao 6º), vermelho = rebaixamento (17º ao 20º).</p>
+      <p>"Sobe" soma o acesso direto e o pelo playoff. Pts proj. = média simulada de pontos no fim; embaixo, a faixa onde terminam 90% das simulações.</p>
+      <p>A faixa à direita mostra a probabilidade de cada posição final: quanto mais escura, mais provável.</p>`;
     return `
-      <h1 class="race-heading">Tabela</h1>
-      <div class="legend"><span class="l-lib">acesso direto (1º e 2º)</span><span class="l-sula">playoff (3º ao 6º)</span><span class="l-z4">rebaixamento (17º ao 20º)</span></div>
-      <div class="table-scroll" tabindex="0" role="region" aria-label="Tabela da Série B">
+      ${S.screenHead("Tabela", info)}
+      <div class="table-scroll table-card" tabindex="0" role="region" aria-label="Tabela da Série B">
         <table class="standings">
-          <thead><tr><th>#</th><th class="left">Clube</th><th>Pts</th><th>J</th><th>V</th><th>E</th><th>D</th><th>SG</th><th class="view-start">Pts proj.</th><th>Sobe direto</th><th>Playoff</th><th>Sobe</th><th>Cai</th><th class="left">Posição final (1º → 20º)</th></tr></thead>
+          <thead><tr><th>#</th><th class="left">Clube</th><th>Pts</th><th class="view-start">Sobe direto</th><th>Playoff</th><th>Sobe</th><th>Cai</th><th class="rest-start">J</th><th>V</th><th>E</th><th>D</th><th>SG</th><th>Pts proj.</th><th class="left">Posição final (1º → 20º)</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
-      </div>
-      <p class="note">Pts proj. = média simulada de pontos no fim; embaixo, a faixa onde terminam 90% das simulações. "Sobe" soma o acesso direto e o pelo playoff. A faixa à direita mostra a probabilidade de cada posição final: quanto mais escura, mais provável.</p>`;
+      </div>`;
   }
 
   function matches(data) {
     const byId = Object.fromEntries(data.teams.map((club) => [club.club_id, club]));
-    const rows = [...data.remaining].sort((a, b) => byId[a.home_id].position - byId[b.home_id].position).map(S.matchRow).join("");
+    const list = [...data.remaining].sort((a, b) => byId[a.home_id].position - byId[b.home_id].position);
+    const info = "<p>Probabilidade de vitória do mandante, de empate e de vitória do visitante, com a força de cada clube na data da edição. Toque num jogo para ver os detalhes.</p><p>A fonte da Série B não traz as datas dos jogos que faltam; por isso eles aparecem em ordem da tabela (pela posição do mandante).</p>";
     return `
-      <h1 class="race-heading">Os ${data.remaining.length} jogos que faltam</h1>
-      <p class="note">Mandante à esquerda; probabilidade de vitória do mandante, empate e vitória do visitante. A fonte não traz as datas, então os jogos aparecem pela posição do mandante na tabela.</p>
-      <div class="legend"><span class="l-home">mandante</span><span class="l-draw">empate</span><span class="l-away">visitante</span></div>
-      ${rows}`;
+      ${S.screenHead(`Jogos que faltam · ${data.remaining.length}`, info)}
+      <p class="comp-notice">Sem datas na fonte: jogos na ordem da tabela.</p>
+      ${S.matchList(list)}`;
   }
 
   function method(data) {
@@ -148,6 +149,19 @@
 
   S.start({
     names: (data) => Object.fromEntries(data.teams.map((club) => [club.club_id, club.name])),
+    shorts: (data) => Object.fromEntries(data.teams.map((club) => [club.club_id, club.short_name])),
+    favorite: {
+      code: () => "serie-b",
+      clubs: (data) => data.teams.map((club) => ({ id: club.club_id, name: club.name, meta: `${club.position}º lugar · ${club.points} pts` })),
+      stats: (data, id) => {
+        const club = data.teams.find((item) => item.club_id === id);
+        return [
+          { label: "Acesso", text: promotionLabel(club), tone: "is-g4" },
+          { label: "Playoff", text: club.clinched.out_of_top6 ? "não dá mais" : pct(club.playoff) },
+          { label: "Queda", text: relegationLabel(club), tone: "is-z4" },
+        ];
+      },
+    },
     edition,
     footer: (data) => `${data.sources.map((source) => `<a href="${S.safeUrl(source.origin)}">${escapeHtml(source.attribution || source.source_name)}</a>`).join("; ")}. Licenças: <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.pt-br">CC BY-SA 4.0</a> e <a href="https://creativecommons.org/publicdomain/zero/1.0/deed.pt-br">CC0 1.0</a>.`,
     routes: [
