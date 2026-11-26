@@ -27,10 +27,11 @@ OUTCOME_KEYS = ("libertadores_champion", "sudamericana_champion", "cup_champion"
 HARNESS = """
 const fs = require("fs");
 const vm = require("vm");
-const [simulatorPath, livePath] = process.argv.slice(1);
+const [logicPath, simulatorPath, livePath] = process.argv.slice(1);
 const context = { setTimeout, console, Math, Date, JSON, Map, Set, Float64Array };
 context.window = context;
 vm.createContext(context);
+vm.runInContext(fs.readFileSync(logicPath, "utf8"), context);
 vm.runInContext(fs.readFileSync(simulatorPath, "utf8"), context);
 vm.runInContext(fs.readFileSync(livePath, "utf8"), context);
 const live = context.LiveRound;
@@ -83,7 +84,14 @@ pytestmark = pytest.mark.skipif(NODE is None, reason="Node indisponível")
 def _node(payload: dict[str, Any]) -> dict[str, Any]:
     assert NODE is not None
     completed = subprocess.run(
-        [NODE, "-e", HARNESS, str(ASSETS / "simulator.js"), str(ASSETS / "live-round.js")],
+        [
+            NODE,
+            "-e",
+            HARNESS,
+            str(ASSETS / "simulator-logic.js"),
+            str(ASSETS / "simulator.js"),
+            str(ASSETS / "live-round.js"),
+        ],
         input=json.dumps(payload),
         capture_output=True,
         text=True,

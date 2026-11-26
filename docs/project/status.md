@@ -3393,7 +3393,8 @@ real com a chave anon: perfis, simulações, `sim_scores` e `sim_my_scores` nega
   commit.
 - **No ar**: publish-site #41 com sucesso (sincronização e deploy), autorizado pelo dono; o site serve o `simulator.js`
   da versão 4.
-- **Pendente**: achados 4 (duas abas) e 6 (`final_order` não conferido) do 06; A e B.
+- **Pendente**: achados 4 (duas abas) e 6 (`final_order` não conferido) do 06; A e B. (4, 6 e A tratados depois: ver
+  "Hardening do consenso (0008) e testes de JS do simulador".)
 
 ## Agente 08: rodapé enxuto e textos do simulador (D-047, 2026-11-07)
 
@@ -3978,3 +3979,58 @@ Branch `feat/paridade-outras-competicoes`, a partir da `main` (`76faed7`). Para 
   placar, "Final" nem palpite (o simulador só existe na Série A). Falta validar com as previsões reais.
 - **Próximo responsável**: Agente 06 (revisar com as previsões reais); Agente 00 (merge, junto com as branches de
   clareza e de UI).
+
+## Agentes 04/06/07: hardening do consenso (0008) e testes de JS do simulador (Kanban #37, 2026-11-26)
+
+Traz para a `main` as branches antigas `cloud/sql-hardening` (2195b23) e `cloud/js-tests` (86a6deb), adaptadas ao que
+mudou desde então (a `0007_live_round.sql` e o Simulador D0).
+
+- **O que mudou (SQL)**:
+  - `infrastructure/supabase/migrations/0008_simulador_consenso.sql`: é a `0007_simulador_consenso.sql` da branch
+    antiga, **renumerada** porque a `0007_live_round.sql` já está aplicada em produção. O conteúdo é byte a byte o
+    mesmo. Sobe o mínimo para 50 pessoas, põe ruído fixo e secreto, cria `sim_final_order_ok` e deixa só os
+    privilégios mínimos. Não toca na `live_round_scores`.
+  - `infrastructure/supabase/tests/`: stub do Supabase, TAP próprio, fixtures sintéticas e `run.sh`.
+    - O `run.sh` aplica `0001` a `0007` (com a `0007_live_round`), mede o ataque, aplica a `0008` e roda os testes.
+    - Teste novo `15_live_round.sql`, com 8 asserts: depois da `0008`, o Ao vivo continua com leitura pública,
+      escrita só pela `service_role`, `TRUNCATE` negado a anon e sem placar inventado.
+  - Referências de `0007` → `0008` em `docs/architecture/simulator-supabase.md` e no ADR-0015 (seção
+    "Endurecimento do consenso").
+- **O que mudou (JS)**:
+  - `apps/web/assets/simulator-logic.js` (da branch antiga, mais a exportação de `compareMain`, que o Ao vivo usa via
+    `Simulator.engine`). É a lógica pura: pontuação, `rankRows` (Art. 15), links (`encodeLink`/`decodeLink`, com a
+    validação), sorteio, pontuação de Classificação e `mergeStores`.
+  - `apps/web/assets/simulator.js`: só sai a cópia dessas funções e entram a mescla entre abas e a lápide ao excluir.
+    O redesign D0 não foi tocado (deck, steppers, lista do dia, revisão).
+  - Mescla entre abas: `writeStore` relê o `localStorage` e mescla pelo `local_id` (vale o `updated_at` maior).
+    Excluir grava a lápide em `store.removed`. O evento `storage` atualiza Início e Minhas simulações.
+  - `index.html` carrega `simulator-logic.js` antes do `simulator.js`. O harness de `tests/unit/test_live_round_js.py`
+    também passou a carregá-lo.
+  - `tests/js/simulator-logic.test.js`: os 54 testes da branch antiga, mais 2 novos (`compareMain` e uma guarda que
+    falha se o `simulator.js` voltar a ter cópia própria da lógica).
+  - CI: `node --test tests/js/*.test.js` em `.github/workflows/ci.yml` e na cópia `infrastructure/github-workflows/ci.yml`,
+    que continuam idênticas.
+- **Evidência**:
+  - `infrastructure/supabase/tests/run.sh` (Postgres 16.15 descartável): **120 testes, 0 falhas** (112 da branch antiga
+    + 8 do Ao vivo). Ataque A: 100% (40/40) antes da `0008` e 59% (234/400) depois, contra o limite de 65% e os 50% do chute.
+    O sal e os votos são sorteados a cada execução; a branch antiga mediu 61%.
+  - `node --test tests/js/*.test.js`: 56 testes passam.
+  - `ruff check` e `ruff format --check` sem achados; `mypy` sem erros; `pytest -q` com 977 passados e 6 pulados
+    (`tests/unit/test_workflows.py` incluído).
+  - Chromium, site sintético fora do repositório:
+    - duas abas no mesmo navegador: a A salva, a B salva, a A salva de novo sem recarregar, e as três ficam;
+    - a B exclui uma da A, a A grava de novo, e a excluída não volta;
+    - regressão do D0 (Vencedor e Placar × 375/1280 × 2 temas): 8 de 8 sem rolagem lateral, sem erro de JS e sem
+      "chance" visível;
+    - Ao vivo: 6 de 6.
+- **SHA-256 da `0008_simulador_consenso.sql`**: `62e5eb21480cc498980dede83163f1720f890c874c9efd8192cb40c2186867e2`
+  (12.924 bytes).
+- **Limitações**:
+  - O stub não é o Supabase: não testa PostgREST nem Auth real.
+  - O CI ainda não roda o `run.sh` (precisaria de Postgres no runner).
+  - `node --test tests/js/` (diretório) falha no Node 22; o CI usa o glob do shell.
+- **Pendente**:
+  - **Dono**: rodar a `0008` inteira no SQL Editor depois de conferir o SHA-256; decidir CAPTCHA ou e-mail confirmado.
+  - **Agente 05**: dizer "aproximado" na média dos visitantes (a resposta traz `noise_people`).
+  - **Agente 06**: revisar.
+  - Nada foi aplicado em produção.
