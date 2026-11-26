@@ -434,7 +434,7 @@
   function teamNextMatch(team, raceId) {
     const match = upcomingMatches().find((item) => !isPostponed(item) && (item.home_id === team.club_id || item.away_id === team.club_id));
     if (!match) return "";
-    return `<section class="home-block" aria-labelledby="home-next">
+    return `<section class="home-block home-next" aria-labelledby="home-next">
       <div class="block-head"><h2 id="home-next">Próximo jogo</h2><a class="block-link" href="#/clubes/${encodeURIComponent(team.club_id)}">Todos os jogos ›</a></div>
       ${matchList([match])}
       ${nextMatchWhatIf(team, match, raceId)}
@@ -579,7 +579,7 @@
     if (!list.length) return "";
     const analysis = state.currentRound ? `<a class="block-link" href="#/inicio/${ROUND_TAB}">O que mudou na rodada ${state.currentRound.number} ›</a>` : "";
     const title = upcoming.length ? "Próximos jogos" : "Últimos resultados";
-    return `<section class="home-block" aria-labelledby="home-round">
+    return `<section class="home-block home-matches" aria-labelledby="home-round">
       <div class="block-head"><h2 id="home-round">${title}</h2><a class="block-link" href="#/jogos">Ver a agenda ›</a></div>
       ${predictionNote()}
       ${matchesByDay(list)}
@@ -619,19 +619,25 @@
     const team = teamById(favoriteClub());
     if (!team) {
       const raceId = RACES[requested] ? requested : featuredRace().id;
-      main.innerHTML = `<h1 class="visually-hidden">Início</h1>${emptyTeamCard()}${homeMatches()}${disputesCard(raceId)}`;
+      main.innerHTML = `<h1 class="visually-hidden">Início</h1><div class="home-v43-empty">${emptyTeamCard()}${homeMatches()}${disputesCard(raceId)}</div>`;
       bindHome();
       return;
     }
     const raceId = RACES[requested] ? requested : openRaceFor(team);
     const next = upcomingMatches().find((item) => !isPostponed(item) && (item.home_id === team.club_id || item.away_id === team.club_id));
     const article = FEMININE_CLUBS.has(team.club_id) ? "da" : "do";
+    const nextBlock = teamNextMatch(team, raceId);
+    const impactBlock = mostImpactful(team, raceId);
+    const matchesBlock = homeMatches(next ? next.match_id : null);
     main.innerHTML = `<h1 class="visually-hidden">Início</h1>
-      ${teamHero(team, raceId)}
-      ${teamNextMatch(team, raceId)}
-      ${mostImpactful(team, raceId)}
-      <a class="btn-primary yt-cta home-cta" href="#/simular">Simular jogos ${article} ${escapeHtml(team.name)}</a>
-      ${homeMatches(next ? next.match_id : null)}`;
+      <div class="home-v43${nextBlock ? "" : " no-next"}">
+        ${teamHero(team, raceId)}
+        ${nextBlock}
+        ${impactBlock}
+        <a class="btn-primary yt-cta home-cta" href="#/simular">Simular jogos ${article} ${escapeHtml(team.name)}</a>
+        ${matchesBlock}
+        <div class="home-pc-disputes">${disputesCard(raceId)}</div>
+      </div>`;
     bindHome();
     bindScreenInfo("Como este cálculo é feito", WHAT_IF_EXPLANATION);
     computeWhatIf(team);

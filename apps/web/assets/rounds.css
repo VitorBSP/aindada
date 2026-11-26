@@ -30,12 +30,12 @@ td .club-cell + .range, td .club-cell ~ .range { display: inline; margin-left: 4
 .result-D { color: var(--ink-soft); }
 
 .series-chart .marker { stroke: var(--paper); stroke-width: 1.5; }
-.series-chart .series-label { fill: var(--ink); font-size: 12px; font-weight: 700; }
+.series-chart .series-label { font-size: 11px; font-weight: 750; font-variant-numeric: tabular-nums; }
 .series-chart .hit { fill: transparent; }
 .series-chart .hit:hover { fill: color-mix(in srgb, var(--ink) 6%, transparent); }
 .series-wrap { position: relative; }
 .series-chart { touch-action: pan-y; }
-.series-chart .tip-rule { stroke: var(--ink-faint); stroke-width: 1; stroke-dasharray: 2 3; pointer-events: none; }
+.series-chart .tip-rule { stroke: var(--ink-faint); stroke-width: 1.2; stroke-dasharray: 3 3; pointer-events: none; }
 .chart-tip { position: absolute; top: 8px; z-index: 2; min-width: 180px; max-width: min(320px, 90%); padding: 8px 10px; background: var(--surface); border: 1px solid var(--ink); font-size: 13px; line-height: 1.35; pointer-events: none; }
 .chart-tip p { margin: 0 0 4px; }
 .chart-tip-title { font-weight: 700; }
@@ -67,10 +67,10 @@ tr.selected-team td:first-child { box-shadow: inset 3px 0 0 var(--ink); }
 /* E0 (REDESIGN_SPEC v2.1): disputa em chips, barras da temporada, linha do tempo e Por time. */
 .rr-chips { margin-bottom: 12px; }
 .rr-chips .chip .crest, .rr-club-chips .chip .crest { margin-right: 6px; }
-.rr-block { margin: 0 0 24px; }
-main h2.rr-h { margin: 0 0 4px; padding: 0; border: 0; font-size: 17px; font-weight: 750; }
-main p.rr-sub { margin: 0 0 10px; font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--ink-soft); }
-.rr-card { padding: 12px; border: 1px solid var(--rule); border-radius: 16px; background: var(--surface); }
+.rr-block { margin: 0 0 22px; }
+main h2.rr-h { margin: 0 0 2px; padding: 0; border: 0; font-size: 17px; font-weight: 750; }
+main p.rr-sub { margin: 0; font-family: var(--sans); font-size: 12px; font-weight: 550; color: var(--ink-soft); }
+.rr-card { padding: 14px; border: 1px solid var(--rule); border-radius: var(--radius-card); background: var(--surface); }
 .rr-card .chart { margin: 0; }
 main p.rr-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 6px 0 0; font-family: var(--sans); font-size: 11px; color: var(--ink-soft); }
 .rr-legend span { display: inline-flex; align-items: center; gap: 6px; }
@@ -78,7 +78,7 @@ main p.rr-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 6px 0 
 .rr-timeline li { position: relative; }
 .rr-timeline li::before { content: ""; position: absolute; left: -21px; top: 18px; width: 12px; height: 12px; border-radius: 50%; background: var(--paper); border: 2px solid var(--ink-faint); }
 .rr-timeline li:first-child::before { border-color: var(--signal); background: var(--signal); }
-.rr-node { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "title go" "line go"; align-items: center; gap: 2px 10px; min-height: 52px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 12px; background: var(--surface); color: var(--ink); text-decoration: none; }
+.rr-node { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "title go" "line go"; align-items: center; gap: 2px 10px; min-height: 56px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 12px; background: var(--surface); color: var(--ink); text-decoration: none; }
 .rr-node:hover { border-color: var(--ink-soft); }
 .rr-node-title { grid-area: title; font-size: 14px; font-weight: 750; }
 .rr-node-title em { font-style: normal; font-weight: 650; color: var(--signal); }
@@ -88,22 +88,132 @@ main p.rr-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 6px 0 
 .rr-all { margin: 10px 0 0; }
 .rr-all > summary { display: flex; align-items: center; min-height: 44px; font-size: 14px; font-weight: 650; color: var(--signal); cursor: pointer; }
 .rr-all h3 { margin: 20px 0 6px; font-size: 16px; }
-.rr-club-chips { margin-bottom: 10px; }
-.rr-team-card { padding: 14px; border: 1px solid var(--rule); border-radius: 16px; background: var(--surface); }
-main p.rr-team-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 12px; margin: 0 0 8px; font-family: var(--sans); font-size: 14px; }
-.rr-team-head > span:first-child { display: inline-flex; align-items: center; gap: 8px; }
-.rr-team-head > span:last-child { font-size: 12px; color: var(--ink-faint); }
-main h3.rr-h3 { margin: 14px 0 6px; font-size: 14px; font-weight: 750; }
-.rr-moments { list-style: none; margin: 0; padding: 0; }
-.rr-moments a { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 44px; padding: 6px 0; border-top: 1px solid var(--rule); color: var(--ink); text-decoration: none; font-size: 13px; font-variant-numeric: tabular-nums; }
-.rr-moments li:first-child a { border-top: 0; }
-.rr-moments b { font-weight: 800; }
-.rr-moment-game span { color: var(--ink-faint); }
-.rr-moment-delta { font-weight: 700; white-space: nowrap; }
 .rr-round-chips { margin-bottom: 6px; }
 main p.rr-step { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 0 0 12px; font-family: var(--sans); font-size: 13px; color: var(--ink-faint); }
 .rr-step a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 650; color: var(--ink-soft); text-decoration: none; }
-.rounds-tabs { margin-bottom: 14px; }
 td.club .club-cell span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .summary-list .crest-spacer, .rr-node .crest-spacer { display: none; }
 main table td.club .club-cell { max-width: 100%; min-width: 0; }
+
+/* Kanban #43 (D-052): 4A (Corrida + Agito), 5B + Jornada (Por time), 6C expandida (Comparar). */
+.rr-screen-head { flex-wrap: wrap; gap: 10px 14px; }
+.rr-head-left { display: inline-flex; align-items: center; gap: 6px; }
+.rr-tabs { margin: 0; }
+
+.rr-card-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 12px; margin: 0 0 10px; }
+.rr-card-head-tight { align-items: center; }
+.rr-section-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 6px 12px; margin: 0 0 10px; }
+.rr-section-head .block-link { margin: 0; font-size: 13px; }
+
+.rr-seg { display: inline-flex; padding: 3px; border: 1px solid var(--rule); border-radius: 10px; background: var(--surface-2); gap: 2px; flex: none; }
+.rr-seg button { font: inherit; min-height: 30px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; color: var(--ink-soft); font-size: 12px; font-weight: 650; cursor: pointer; white-space: nowrap; }
+.rr-seg button:hover { color: var(--ink); }
+.rr-seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); font-weight: 750; }
+.rr-seg button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.rr-seg-sm button { min-height: 28px; padding: 0 8px; font-size: 11px; }
+
+.rr-readout { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; margin-top: 10px; padding: 9px 12px; border: 1px solid var(--rule); border-radius: 10px; background: var(--surface-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+.rr-readout-head { display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; }
+.rr-readout-date, .rr-readout-game { color: var(--ink-soft); font-size: 11px; }
+.rr-readout-items { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.rr-readout-item { display: inline-flex; align-items: center; gap: 5px; color: var(--ink-soft); }
+.rr-readout-item strong { color: var(--ink); font-weight: 750; }
+.rr-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex: none; }
+
+/* 4A: Agito em 1 cor suave (--libertadores) + pico em --signal */
+.agito-bar { fill: var(--libertadores); opacity: 0.5; transition: opacity 0.12s; }
+.agito-bar:hover, .agito-bar.is-current { opacity: 0.85; }
+.agito-bar.is-peak { fill: var(--signal); opacity: 1; }
+.rr-bars text.agito-peak-label { fill: var(--signal); font-size: 11px; font-weight: 750; font-variant-numeric: tabular-nums; }
+
+.rr-timeline-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+
+/* 5B + Jornada: Por time */
+.rr-team-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 14px; }
+.rr-team-btn { font: inherit; display: inline-flex; align-items: center; gap: 10px; min-height: 46px; padding: 6px 14px 6px 10px; border: 1px solid var(--rule); border-radius: 14px; background: var(--surface); color: var(--ink); font-size: 19px; font-weight: 850; letter-spacing: -0.01em; cursor: pointer; }
+.rr-team-btn:hover { border-color: var(--ink-soft); background: var(--surface-2); }
+.rr-team-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.rr-caret { font-size: 14px; color: var(--ink-soft); margin-left: 2px; }
+
+.rr-stat-4 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0 0 16px; }
+.rr-stat-pill { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border: 1px solid var(--rule); border-radius: 14px; background: var(--surface); font-variant-numeric: tabular-nums; }
+.rr-stat-pill > span { font-size: 11px; font-weight: 700; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.03em; }
+.rr-stat-pill > strong { font-size: 24px; font-weight: 900; line-height: 1.15; letter-spacing: -0.02em; }
+.rr-stat-pill > small { font-size: 12px; color: var(--ink-soft); }
+.rr-stat-pill.is-danger > strong { color: var(--danger); }
+.rr-stat-pill.is-lib > strong { color: var(--libertadores); }
+
+.rr-team-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-items: start; }
+.rr-stack { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+.rr-details-card { padding: 12px 14px; }
+.rr-details-card > summary { cursor: pointer; font-size: 14px; font-weight: 700; color: var(--ink); min-height: 28px; display: flex; align-items: center; }
+.rr-details-body { margin-top: 12px; }
+
+.rr-extremes { display: grid; gap: 8px; }
+.rr-extreme { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 12px; background: var(--surface-2); color: var(--ink); text-decoration: none; }
+.rr-extreme:hover:not(.is-empty) { border-color: var(--ink-soft); }
+.rr-extreme-kicker { font-size: 11px; font-weight: 750; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.03em; }
+.rr-extreme-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 13px; }
+.rr-extreme-val { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rr-extreme-empty { font-size: 12px; color: var(--ink-soft); }
+
+.rr-vtimeline { list-style: none; margin: 4px 0 0; padding: 0 0 0 18px; border-left: 2px solid var(--rule); display: grid; gap: 8px; }
+.rr-vtimeline li { position: relative; }
+.rr-vtimeline li::before { content: ""; position: absolute; left: -24px; top: 10px; width: 10px; height: 10px; border-radius: 50%; background: var(--surface); border: 2px solid var(--ink-faint); }
+.rr-vtimeline li.is-good::before { border-color: var(--positive); background: var(--positive); }
+.rr-vtimeline li.is-bad::before { border-color: var(--danger); background: var(--danger); }
+.rr-vtimeline li.is-now::before { border-color: var(--signal); background: var(--signal); }
+.rr-vtl-btn { font: inherit; width: 100%; display: flex; flex-direction: column; gap: 2px; padding: 6px 10px; border: 1px solid transparent; border-radius: 10px; background: transparent; color: var(--ink); text-align: left; cursor: pointer; }
+.rr-vtl-btn:hover { background: var(--surface-2); }
+.rr-vtl-btn.is-active { background: var(--surface-2); border-color: var(--signal); }
+.rr-vtl-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.rr-vtl-label { font-size: 13px; font-weight: 750; }
+.rr-vtl-note { font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+
+/* Sheet de escolha de clube (Por time e Comparar) */
+.rr-club-sheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px; }
+.rr-club-opt { font: inherit; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 12px; background: var(--surface-2); color: var(--ink); text-align: left; cursor: pointer; }
+.rr-club-opt:hover { border-color: var(--ink-soft); background: var(--surface-3); }
+.rr-club-opt.is-selected { border-color: var(--signal); background: color-mix(in srgb, var(--signal) 12%, var(--surface-2)); }
+.rr-club-opt-name { flex: 1; font-size: 13px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rr-club-opt-meta { font-size: 11px; color: var(--ink-faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* 6C expandida: Comparar */
+.rr-cmp-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; }
+.rr-cmp-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 3px 8px 3px 4px; border: 1px solid var(--rule); border-radius: 999px; background: var(--surface); font-size: 13px; font-weight: 750; }
+.rr-ring { display: inline-flex; align-items: center; justify-content: center; padding: 2px; border-radius: 50%; border: 2px solid var(--signal); background: var(--paper); }
+.rr-cmp-chip-name { padding-right: 2px; }
+.rr-cmp-x { font: inherit; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: 0; border-radius: 50%; background: var(--surface-2); color: var(--ink-soft); font-size: 14px; line-height: 1; cursor: pointer; }
+.rr-cmp-x:hover { background: var(--surface-3); color: var(--ink); }
+
+.rr-cmp-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-items: start; margin-bottom: 14px; }
+.rr-playback { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 12px; background: var(--surface-2); }
+.rr-play-btn { font: inherit; flex: none; min-height: 34px; padding: 0 12px; border: 0; border-radius: 9px; background: var(--signal-fill); color: var(--on-signal-fill); font-size: 12px; font-weight: 750; cursor: pointer; white-space: nowrap; }
+.rr-play-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.rr-slider { flex: 1; min-width: 0; accent-color: var(--signal); cursor: pointer; }
+.rr-rlabel { min-width: 34px; text-align: right; font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+.rr-snap-card { padding: 0; overflow: hidden; }
+.rr-snap-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 10px; padding: 12px 14px; border-bottom: 1px solid var(--rule); }
+.rr-snap-title { display: block; font-size: 15px; font-weight: 800; line-height: 1.2; }
+.rr-snap-date { display: block; font-size: 11px; color: var(--ink-faint); margin-top: 2px; }
+.rr-snap-scroll { max-height: 410px; overflow-y: auto; }
+.rr-snap-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.rr-snap-table th, .rr-snap-table td { padding: 8px 10px; border-bottom: 1px solid var(--rule); }
+.rr-snap-table th { position: sticky; top: 0; background: var(--surface); font-size: 11px; color: var(--ink-faint); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; z-index: 1; }
+.rr-snap-table tbody tr:last-child td { border-bottom: 0; }
+.rr-snap-table tr.is-compared { background: var(--surface-2); }
+.rr-snap-pos { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--ink-faint); }
+.rr-snap-table tr.is-compared .rr-snap-pos { color: var(--ink); font-weight: 800; }
+.rr-mv { display: inline-block; margin-left: 4px; font-size: 10px; font-weight: 750; }
+.rr-mv.is-up { color: var(--positive); }
+.rr-mv.is-dn { color: var(--danger); }
+
+@media (min-width: 900px) {
+  .rr-timeline-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rr-stat-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .rr-team-grid { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 18px; }
+  .rr-cmp-grid { grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); gap: 18px; }
+}
+

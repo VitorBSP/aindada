@@ -280,7 +280,7 @@
     });
     const winner = {
       id: "winner", label: "Título", color: "title",
-      words: { sure: "Campeão", open: "Na briga pelo título", out: "Sem chance relevante de título" },
+      words: { sure: "Campeão", open: "Na briga pelo título", out: "Sem probabilidade relevante de título" },
       value: (model) => byId[model.id].stages.winner,
       info: `<p>% das ${data.n_simulations.toLocaleString("pt-BR")} simulações (fase de liga e mata-mata até a final) em que o clube é campeão.</p>`,
     };
@@ -293,7 +293,7 @@
   }
 
   function leaguePhase(data) {
-    const info = `<p>Escolha a disputa: quem já está garantido, quem está na briga e quem está fora. "Tabela completa" traz a ordem atual por pontos, saldo e gols, com a chance de cada faixa. Faixa lateral: azul = direto às oitavas (1º ao 8º), âmbar = playoff (9º ao 24º), vermelho = eliminado (25º ao 36º).</p><p>Toque num clube para ver a ficha dele.</p>`;
+    const info = `<p>Escolha a disputa: quem já está garantido, quem está na briga e quem está fora. "Tabela completa" traz a ordem atual por pontos, saldo e gols, com a probabilidade de cada faixa. Faixa lateral: azul = direto às oitavas (1º ao 8º), âmbar = playoff (9º ao 24º), vermelho = eliminado (25º ao 36º).</p><p>Toque num clube para ver a ficha dele.</p>`;
     return `
       ${S.screenHead("Fase de liga", info + races(data).map((race) => `<p><strong>${escapeHtml(race.label)}.</strong> ${race.info.replace(/^<p>|<\/p>$/g, "")}</p>`).join(""))}
       ${S.disputeBoard("fase", { clubs: clubModels(data), races: races(data), full: () => leagueTable(data) })}`;

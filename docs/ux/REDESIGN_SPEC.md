@@ -134,3 +134,34 @@
 - **Desktop 1080/1280 px:** navegação em linha no topo, barra inferior oculta, Match Cards em grid de 2 colunas.
 - **Gate G4 e acessibilidade:** atribuições intactas no HTML estático, contraste WCAG AA (`>= 4,5:1` texto normal; `>= 3:1` elementos gráficos), área de toque `>= 44 px` nos controles principais, zero erro de JS no console.
 - **Testes:** `ruff check`, `ruff format --check`, `mypy` e `pytest -q` 100% verdes.
+
+---
+
+## 6. Adendo v2.2 — Polimento Desktop 1280 px, Simulador e Rodada a rodada (D-052, Kanban #43)
+
+Aprovado pelo dono do produto em 2026-11-26 na combinação **`1C · 2C · 3B · 4A · 5B+Jornada · 6C expandida`**. A Home mobile aprovada na v2.1 (`< 900 px`) permanece intacta.
+
+1. **Desktop `1C` (`>= 900 px`, `app.js` + `styles.css`):**
+   - Home com time escolhido: faixa Hero panorâmica (`.team-hero` à esquerda; `.home-next` + CTA `.home-cta` à direita) seguida de 2 colunas equilibradas (`Impacto + Disputas` | `Próximos jogos`).
+   - Home sem time escolhido: banner de escolha em largura cheia + 2 colunas (`Próximos jogos` | `Disputas`).
+   - Removidas travas antigas de `620/720 px` encostadas à esquerda no PC; Tabela `C2` (`.rg-list`) usa 2 colunas no PC.
+2. **Simulador `2C` + Passo 2 em 2 colunas (`simulator.js` + `simulator.css`):**
+   - Cabeçalho v2.1 com `Simulador`, botão `(i)` (regras/privacidade em sheet) e pílula compacta de conta (`@apelido` / `Entrar no ranking`) abrindo o sheet de conta (`openSheet`, mantendo Turnstile, apelido, avisos e exclusão).
+   - Abas `Início · Ranking · Agregado` em `.chip-row`.
+   - Início em 2 colunas no PC (`1.3fr | 1fr`, empilhado no celular): esquerda com preview interativo do próximo jogo aberto (`Placar exato`, `Vencedor` 1X2 ou resumo de `Classificação`) levando o 1º palpite direto ao Passo 2; direita com lista compacta `Minhas simulações`.
+   - Passo 2 (`renderDeck`) em 2 colunas no PC (`.sim-deck-grid`: card fixo à esquerda, lista de jogos agrupada por dia à direita).
+3. **Ranking e Agregado `3B` (`simulator.js` + `simulator.css`):**
+   - Destaques em 3 cards no topo (`Pódio` no Ranking; `"Onde a torcida mais discorda do modelo"` no Agregado quando o consenso está publicado) — 3 colunas no PC, faixa horizontal com `scroll-snap` no celular.
+   - Tabela em `.table-card` com pílula `vs. Modelo` (`+N`, `−N`, `=`) e estados vazios no padrão `.state`.
+4. **Rodada a rodada · Visão geral `4A` (`rounds.js` + `rounds.css`):**
+   - Abas `Visão geral · Por time · Comparar` em `.chip-row` no cabeçalho.
+   - Gráfico padrão **"Corrida rodada a rodada"** (4 clubes de maior pico na disputa escolhida `Título · G4 · Z4`, rótulos coloridos diretos no fim da linha com valor atual e barra de leitura viva ao passar o mouse/dedo).
+   - Alternância `Corrida | Agito`: `Agito` usa barras de 1 cor (`--libertadores`) destacando apenas a rodada de pico em `--signal` com anotação direta.
+   - Rodadas decisivas em grade de 2 colunas no PC, com expansão recolhível de todas as rodadas.
+5. **Rodada a rodada · Por time `5B + Jornada` (`rounds.js` + `rounds.css`):**
+   - Substitui a grade de 20 links por seletor `[escudo] Nome ▾` em sheet + atalho `Comparar ›` e 4 cards de resumo.
+   - Grid 2 colunas no PC (`1.3fr | 1fr`): esquerda com gráfico único alternando `Probabilidades | Posição` + tabela completa recolhível; direita com **Momentos decisivos** (2 extremos) e **Jornada na temporada** (linha do tempo cronológica clicável que foca a rodada no gráfico).
+6. **Rodada a rodada · Comparar `6C expandida` (`rounds.js` + `rounds.css`):**
+   - Até 4 clubes em chips com aro colorido da série (`×` e `+ time` em sheet).
+   - Grid 2 colunas no PC (`1.15fr | 0.85fr`): gráfico + barra `▶ Evoluir` e slider de rodada sincronizados ao vivo com a **Foto da Rodada** ao lado (`Comparados (N) | Tabela`), incluindo setas `▲/▼` de variação de posição frente à rodada anterior.
+

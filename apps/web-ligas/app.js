@@ -68,7 +68,7 @@
 
   const COLOR = { title: "title", up: "libertadores", down: "danger" };
   const WORDS = {
-    title: { sure: "Campeão em quase todas as simulações", open: "Na briga pelo título", out: "Sem chance relevante de título" },
+    title: { sure: "Campeão em quase todas as simulações", open: "Na briga pelo título", out: "Sem probabilidade relevante de título" },
     up: { sure: "Dentro em quase todas as simulações", open: "Na briga pela vaga", out: "Longe da vaga" },
     down: { sure: "Caem em quase todas as simulações", open: "Ainda correm risco de queda", out: "Longe da queda" },
   };

@@ -47,7 +47,7 @@
   const NICKNAME = /^[A-Za-zÀ-ÖØ-öø-ÿ0-9_. -]{3,20}$/;
   const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
-  const view = { store: null, season: null, link: null, linkNote: "", refresh: null };
+  const view = { store: null, season: null, link: null, linkNote: "", refresh: null, previewMode: "", previewMatchId: "", previewScore: [1, 0], previewPick: "H" };
   const cloudState = { checked: false, user: null, profile: null, contact: null, community: null, scores: {}, status: "", open: "" };
   const cloudApi = () => (window.SimulatorCloud && window.SimulatorCloud.enabled ? window.SimulatorCloud : null);
 
@@ -537,14 +537,16 @@
       return { own, sampled, blank: remaining.length - own - sampled };
     }
 
-    /* ---------------- Moldura */
+    /* ---------------- Moldura (v2.1 + Kanban #43) */
+
+    const INFO_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>`;
 
     function tabs(active) {
       const items = [["", "Início"]];
       if (cloud) items.push(["ranking", "Ranking"]);
       items.push(["agregado", "Agregado"]);
-      return `<nav class="tabs sim-tabs" aria-label="Simulador">${items.map(([key, label]) =>
-        `<a href="#/simular${key ? `/${key}` : ""}" ${key === active ? 'aria-current="page"' : ""}>${label}</a>`).join("")}</nav>`;
+      return `<nav class="chip-row sim-chips" aria-label="Simulador">${items.map(([key, label]) =>
+        `<a class="chip" href="#/simular${key ? `/${key}` : ""}" ${key === active ? 'aria-current="page"' : ""}>${label}</a>`).join("")}</nav>`;
     }
 
     function storageNote() {
@@ -552,40 +554,71 @@
       return "Suas simulações ficam salvas neste aparelho; se você participar, também no nosso servidor, ligadas a uma conta sem nome.";
     }
 
-    // Aviso de privacidade completo (ADR-0015): fica recolhido, para quem quiser os detalhes.
-    function privacyDetails() {
+    function infoSheetHtml() {
+      const rules = Object.values(MODES).map((item) => `<p><strong>${item.label}:</strong> ${item.scoring}</p>`).join("");
+      const cloudInfo = cloud
+        ? `<p><strong>Ranking e privacidade:</strong> até ${EVENT_LIMIT} simulações por pessoa a cada jogo novo; só contam palpites enviados antes da trava (${LOCK_MARGIN_MINUTES} min antes do início). Os sorteados pelo modelo contam como os seus. Ao participar, as simulações vão para o Supabase (EUA) ligadas a uma conta sem nome que você apaga quando quiser. <a href="#/privacidade">Política de privacidade completa</a>.</p>`
+        : `<p>${storageNote()}</p>`;
+      return `<div class="sheet-info">${rules}${cloudInfo}<p>As vagas seguem o regulamento de 2026; vagas extras que vêm das copas não entram na conta.</p></div>`;
+    }
+
+    function accountPill() {
       if (!cloud) return "";
-      return `<details class="sim-privacy"><summary>Como guardamos seus dados</summary>
-        <p class="note">Ao abrir o simulador, o navegador baixa a biblioteca do Supabase pelo jsDelivr e consulta a média dos visitantes no servidor do AInda dá? (Supabase, nos Estados Unidos). Se você participar, as simulações também vão para lá, ligadas a uma conta sem nome. O e-mail é opcional e nunca aparece para ninguém; no ranking só aparece o apelido. <a href="#/privacidade">Política de privacidade completa</a>.</p></details>`;
+      if (!cloudState.checked) return `<button type="button" class="sim-account-pill" id="sim-account-trigger" aria-busy="true"><span class="sim-account-dot is-guest"></span>Conta…</button>`;
+      const user = cloudState.user;
+      if (!user) return `<button type="button" class="sim-account-pill" id="sim-account-trigger"><span class="sim-account-dot is-guest"></span>Entrar no ranking</button>`;
+      const profile = cloudState.profile || {};
+      const label = profile.nickname ? `@${escapeHtml(profile.nickname)}` : "Participando";
+      const suffix = profile.show_in_ranking ? " · no ranking ▾" : " ▾";
+      return `<button type="button" class="sim-account-pill" id="sim-account-trigger"><span class="sim-account-dot"></span>${label}${suffix}</button>`;
     }
 
     function shell(active, title, lede, body, options = {}) {
-      main.innerHTML = `
-        <span class="kicker">Simulador</span>
-        <h1>${title}</h1>
-        ${lede ? `<p class="lede">${lede}</p>` : ""}
-        ${options.focus ? "" : tabs(active)}
-        ${options.focus ? "" : accountPanel()}
-        ${body}
-        <p class="note sim-footnote">${storageNote()} As vagas seguem o regulamento de 2026; vagas extras que vêm das copas não entram na conta.</p>
-        ${privacyDetails()}`;
-      if (!options.focus) bindAccount();
+      if (options.focus) {
+        main.innerHTML = `
+          <div class="screen-head sim-screen-head">
+            <div class="sim-head-left"><h1 class="screen-title">${title}</h1><button type="button" class="icon-button sim-info-btn" id="sim-info-trigger" aria-label="Regras e privacidade do simulador">${INFO_ICON}</button></div>
+          </div>
+          ${lede ? `<p class="sim-sub-lede">${lede}</p>` : ""}
+          ${body}`;
+      } else {
+        main.innerHTML = `
+          <div class="screen-head sim-screen-head">
+            <div class="sim-head-left"><h1 class="screen-title">${title}</h1><button type="button" class="icon-button sim-info-btn" id="sim-info-trigger" aria-label="Regras e privacidade do simulador">${INFO_ICON}</button></div>
+            ${accountPill()}
+          </div>
+          ${tabs(active)}
+          ${body}
+          <p class="note sim-footnote">${storageNote()} <a href="#/privacidade">Privacidade</a>.</p>`;
+      }
+      const infoBtn = document.getElementById("sim-info-trigger");
+      if (infoBtn) infoBtn.addEventListener("click", () => {
+        if (window.AIndaDaShell) window.AIndaDaShell.openSheet("Como funciona o Simulador", infoSheetHtml());
+      });
+      if (!options.focus) {
+        const accountBtn = document.getElementById("sim-account-trigger");
+        if (accountBtn) accountBtn.addEventListener("click", openAccountSheet);
+      }
     }
 
-    /* ---------------- Painel da conta */
+    /* ---------------- Painel da conta (folha modal v2.1) */
 
-    function accountPanel() {
+    const captchaSlot = () => (cloud && cloud.captchaEnabled ? '<div class="sim-captcha" id="sim-captcha"></div>' : "");
+    const captchaHost = (root = document) => root.querySelector("#sim-captcha");
+
+    function accountBodyHtml() {
       if (!cloud) return "";
       const status = `<p class="note" id="sim-cloud-status" aria-live="polite">${escapeHtml(cloudState.status)}</p>`;
-      if (!cloudState.checked) return `<div class="sim-account">${status}</div>`;
+      if (!cloudState.checked) return `<div class="sim-account-sheet">${status}</div>`;
       const user = cloudState.user;
       if (!user) {
         const login = cloudState.open === "login" ? `<form class="sim-form" id="sim-login-form">
             <label>E-mail ligado à sua participação <input type="email" required autocomplete="email" id="sim-login-email"></label>
-            <button type="submit">Enviar link de entrada</button></form>` : "";
-        return `<div class="sim-account"><p><strong>Entre no ranking e compare com os outros visitantes.</strong> Participe para enviar suas simulações ao servidor (até ${EVENT_LIMIT} a cada jogo novo), ver o que os outros visitantes acham e aparecer no ranking com um apelido. Não precisa de cadastro.</p>
-          <p><button type="button" class="sim-button" id="sim-join">Participar</button> <button type="button" class="link-button" id="sim-login-open">Já participo em outro aparelho</button></p>
-          <p class="note sim-consent">Ao participar, suas simulações vão para o Supabase, nos Estados Unidos, ligadas a uma conta sem nome que você apaga quando quiser. Veja a <a href="#/privacidade">política de privacidade</a>.</p>${captchaSlot()}${login}${status}</div>`;
+            <button type="submit" class="btn-secondary btn-sm">Enviar link de entrada</button></form>` : "";
+        return `<div class="sim-account-sheet">
+          <p><strong>Entre no ranking e compare com os outros visitantes.</strong> Participe para enviar suas simulações ao servidor (até ${EVENT_LIMIT} a cada jogo novo) e aparecer no ranking com um apelido. Não precisa de cadastro.</p>
+          <p class="sim-account-cta-row"><button type="button" class="btn-primary btn-sm" id="sim-join">Participar</button> <button type="button" class="btn-secondary btn-sm" id="sim-login-open">Já participo em outro aparelho</button></p>
+          <p class="note sim-consent">Ao participar, suas simulações vão para o Supabase (EUA), ligadas a uma conta sem nome que você apaga quando quiser. Veja a <a href="#/privacidade">política de privacidade</a>.</p>${captchaSlot()}${login}${status}</div>`;
       }
       const profile = cloudState.profile || {};
       const contact = cloudState.contact;
@@ -595,36 +628,52 @@
         profile: `<form class="sim-form" id="sim-profile-form">
           <label>Apelido <input type="text" id="sim-nickname" maxlength="20" minlength="3" value="${escapeHtml(profile.nickname || "")}" autocomplete="nickname"></label>
           <label class="sim-check"><input type="checkbox" id="sim-in-ranking" ${profile.show_in_ranking ? "checked" : ""}> Aparecer no ranking com este apelido</label>
-          <p class="note">De 3 a 20 letras, números, espaço, ponto, hífen ou _. Não use seu e-mail nem seu nome completo: o apelido é a única coisa que os outros veem. Apelidos ofensivos ou que imitam o site são recusados.</p>
-          <button type="submit">Salvar</button></form>`,
+          <p class="note">De 3 a 20 letras, números, espaço, ponto, hífen ou _. Não use e-mail nem nome completo. Apelidos ofensivos ou que imitam o site são recusados.</p>
+          <button type="submit" class="btn-primary btn-sm">Salvar apelido</button></form>`,
         contact: `<form class="sim-form" id="sim-contact-form">
           <label>E-mail para avisos <input type="email" required autocomplete="email" id="sim-contact-email" value="${escapeHtml(contact ? contact.email : "")}"></label>
           <label class="sim-check"><input type="checkbox" id="sim-contact-notify" ${!contact || contact.notify ? "checked" : ""}> Quero receber minha pontuação por e-mail</label>
           <p class="note">Usamos só para avisar da sua pontuação. Ninguém mais vê o e-mail, e ele sai do servidor quando você apagar a participação.</p>
-          <button type="submit">Salvar e-mail</button>${contact ? ` <button type="button" class="link-button" id="sim-contact-delete">Remover e-mail</button>` : ""}</form>`,
+          <button type="submit" class="btn-primary btn-sm">Salvar e-mail</button>${contact ? ` <button type="button" class="link-button" id="sim-contact-delete">Remover e-mail</button>` : ""}</form>`,
         email: `<form class="sim-form" id="sim-email-form">
           <label>E-mail para entrar em outro aparelho <input type="email" required autocomplete="email" id="sim-email"></label>
           <p class="note">Enviamos um link de confirmação. Depois, use o mesmo e-mail para entrar em outro aparelho.</p>
-          <button type="submit">Enviar link de confirmação</button></form>`,
+          <button type="submit" class="btn-primary btn-sm">Enviar link</button></form>`,
       };
-      const loginAction = user.hasEmail ? "login por e-mail ligado" : `<button type="button" class="link-button" id="sim-email-open">Usar em outro aparelho</button>`;
-      return `<div class="sim-account"><p>Participando ${who} · ${notices}.</p>
-        <p class="sim-account-actions"><button type="button" class="link-button" id="sim-profile-open">Apelido e ranking</button> · <button type="button" class="link-button" id="sim-contact-open">Avisos por e-mail</button> · ${loginAction} · <button type="button" class="link-button" id="sim-signout">Sair</button> · <button type="button" class="link-button" id="sim-delete">Apagar minha participação</button></p>
-        ${forms[cloudState.open] || ""}${status}</div>`;
+      const loginAction = user.hasEmail ? `<span class="note">Login por e-mail ligado</span>` : `<button type="button" class="btn-secondary btn-sm" id="sim-email-open">Usar em outro aparelho</button>`;
+      return `<div class="sim-account-sheet">
+        <p>Participando ${who} · ${notices}.</p>
+        <div class="sim-account-actions">
+          <button type="button" class="btn-secondary btn-sm" id="sim-profile-open">Apelido e ranking</button>
+          <button type="button" class="btn-secondary btn-sm" id="sim-contact-open">Avisos por e-mail</button>
+          ${loginAction}
+        </div>
+        ${forms[cloudState.open] || ""}
+        <p class="sim-account-danger"><button type="button" class="link-button" id="sim-signout">Sair</button> · <button type="button" class="link-button" id="sim-delete">Apagar minha participação</button></p>
+        ${status}</div>`;
     }
 
-    const captchaSlot = () => (cloud && cloud.captchaEnabled ? '<div class="sim-captcha" id="sim-captcha"></div>' : "");
-    const captchaHost = () => document.getElementById("sim-captcha");
+    function openAccountSheet() {
+      if (!cloud || !window.AIndaDaShell) return;
+      window.AIndaDaShell.openSheet("Conta do Simulador", accountBodyHtml(), (dialog) => {
+        bindAccount(dialog);
+      });
+    }
 
-    function bindAccount() {
-      if (!cloud) return;
-      const on = (id, event, handler) => { const element = document.getElementById(id); if (element) element.addEventListener(event, handler); };
-      const toggle = (panel) => () => { cloudState.open = cloudState.open === panel ? "" : panel; rerender(); };
+    function bindAccount(root) {
+      if (!cloud || !root) return;
+      const on = (id, event, handler) => { const element = root.querySelector(`#${id}`); if (element) element.addEventListener(event, handler); };
+      const refreshSheetAndPage = () => {
+        rerender();
+        const dialog = document.getElementById("app-sheet");
+        if (dialog && dialog.open) openAccountSheet();
+      };
+      const toggle = (panel) => () => { cloudState.open = cloudState.open === panel ? "" : panel; openAccountSheet(); };
       ["login", "profile", "contact", "email"].forEach((panel) => on(`sim-${panel}-open`, "click", toggle(panel)));
       on("sim-join", "click", async () => {
         setStatus("Entrando…");
         try {
-          cloudState.user = await cloud.join(captchaHost());
+          cloudState.user = await cloud.join(captchaHost(root));
           [cloudState.profile, cloudState.contact] = await Promise.all([cloud.profile(), cloud.contact()]);
           const notes = [];
           for (const item of store.saved) if (!item.server_id) notes.push(await pushToServer(item));
@@ -634,45 +683,45 @@
         } catch (error) {
           cloudState.status = `Não deu para participar agora (${error.message}).`;
         }
-        rerender();
+        refreshSheetAndPage();
       });
       on("sim-login-form", "submit", async (event) => {
         event.preventDefault();
         try {
-          await cloud.signInWithEmail(document.getElementById("sim-login-email").value.trim(), captchaHost());
+          await cloud.signInWithEmail(root.querySelector("#sim-login-email").value.trim(), captchaHost(root));
           setStatus("Enviamos um link para esse e-mail. Abra-o neste aparelho para entrar.");
         } catch (error) { setStatus(`Não deu para enviar o link (${error.message}).`); }
       });
       on("sim-email-form", "submit", async (event) => {
         event.preventDefault();
         try {
-          await cloud.linkEmail(document.getElementById("sim-email").value.trim());
+          await cloud.linkEmail(root.querySelector("#sim-email").value.trim());
           setStatus("Enviamos um link de confirmação. Depois de confirmar, use o mesmo e-mail para entrar em outro aparelho.");
         } catch (error) { setStatus(`Não deu para ligar o e-mail (${error.message}).`); }
       });
       on("sim-contact-form", "submit", async (event) => {
         event.preventDefault();
-        const email = document.getElementById("sim-contact-email").value.trim();
+        const email = root.querySelector("#sim-contact-email").value.trim();
         if (!EMAIL.test(email)) { setStatus("Confira o e-mail."); return; }
         try {
-          await cloud.saveContact(email, document.getElementById("sim-contact-notify").checked);
+          await cloud.saveContact(email, root.querySelector("#sim-contact-notify").checked);
           cloudState.contact = await cloud.contact();
           cloudState.open = "";
           cloudState.status = "E-mail salvo para os avisos de pontuação.";
-          rerender();
+          refreshSheetAndPage();
         } catch (error) { setStatus(`Não deu para salvar o e-mail (${error.message}).`); }
       });
       on("sim-contact-delete", "click", async () => {
         try {
           await cloud.deleteContact();
           cloudState.contact = null; cloudState.open = ""; cloudState.status = "E-mail removido.";
-          rerender();
+          refreshSheetAndPage();
         } catch (error) { setStatus(`Não deu para remover (${error.message}).`); }
       });
       on("sim-profile-form", "submit", async (event) => {
         event.preventDefault();
-        const nickname = document.getElementById("sim-nickname").value.trim();
-        const inRanking = document.getElementById("sim-in-ranking").checked;
+        const nickname = root.querySelector("#sim-nickname").value.trim();
+        const inRanking = root.querySelector("#sim-in-ranking").checked;
         if (nickname.includes("@")) { setStatus("O apelido não pode ter @: não use seu e-mail."); return; }
         if (nickname && !NICKNAME.test(nickname)) { setStatus("Apelido com 3 a 20 letras, números, espaço, ponto, hífen ou _."); return; }
         if (inRanking && !nickname) { setStatus("Para aparecer no ranking, escolha um apelido."); return; }
@@ -681,7 +730,7 @@
           cloudState.profile = await cloud.profile();
           cloudState.open = "";
           cloudState.status = "Apelido salvo.";
-          rerender();
+          refreshSheetAndPage();
         } catch (error) { setStatus(`Não deu para salvar (${error.message}).`); }
       });
       const leave = (message) => {
@@ -689,7 +738,7 @@
         cloudState.open = ""; cloudState.status = message;
         store.saved.forEach((item) => { if (item.server_id) item.detached = true; });
         writeStore();
-        rerender();
+        refreshSheetAndPage();
       };
       on("sim-signout", "click", async () => {
         const warning = cloudState.user && !cloudState.user.hasEmail
@@ -706,7 +755,7 @@
       });
     }
 
-    /* ---------------- Início */
+    /* ---------------- Início (Kanban #43 · 2C: prévia viva + lista compacta de simulações) */
 
     function simulationLabel(item) { return item.server_id ? `#${item.server_id}` : `#${item.local_id}`; }
 
@@ -725,8 +774,8 @@
     function scoreSummary(item) {
       if (item.mode === "classificacao") {
         const score = tableScore(item.entry.order);
-        const remaining = remainingAt(item.updated_at);
-        return `<strong>${score.points}</strong> pontos com a tabela de hoje (até <strong>${score.ceiling}</strong> de ${score.maximum}) × ${remaining}/${seasonMatches} ${remaining === 1 ? "jogo que faltava" : "jogos que faltavam"} = <strong>${weighted(score.points, remaining)}</strong> no ranking`;
+        const left = remainingAt(item.updated_at);
+        return `<strong>${score.points}</strong> pontos com a tabela de hoje (até <strong>${score.ceiling}</strong> de ${score.maximum}) × ${left}/${seasonMatches} ${left === 1 ? "jogo que faltava" : "jogos que faltavam"} = <strong>${weighted(score.points, left)}</strong> no ranking`;
       }
       const score = pickScore(item.mode, item.entry);
       const server = item.server_id && cloudState.scores[item.server_id];
@@ -735,60 +784,183 @@
       return `<strong>${score.points}</strong> de ${score.outOf} pontos em ${score.scored} ${score.scored === 1 ? "jogo" : "jogos"} · ainda dá para chegar a <strong>${score.ceiling}</strong>${counted}`;
     }
 
-    const MODE_ICONS = {
-      classificacao: '<svg viewBox="0 0 24 24" width="30" height="30"><path d="M8 4h8v4a4 4 0 0 1-8 0z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 12v4M9 20h6M10 16h4" stroke="currentColor" stroke-width="1.8"/><path d="M8 6H5v1a3 3 0 0 0 3 3M16 6h3v1a3 3 0 0 1-3 3" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>',
-      vencedor: '<svg viewBox="0 0 24 24" width="30" height="30"><rect x="3" y="6" width="5" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="9.5" y="6" width="5" height="12" rx="1.5" fill="currentColor"/><rect x="16" y="6" width="5" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>',
-      placar: '<svg viewBox="0 0 24 24" width="30" height="30"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 9v6M15 9h2v6h-2zM12 11v.01M12 13v.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
-    };
+    function compactScore(item) {
+      if (item.mode === "classificacao") {
+        const score = tableScore(item.entry.order);
+        const left = remainingAt(item.updated_at);
+        return { big: `${score.points} pts`, sub: `até ${score.ceiling} · ${weighted(score.points, left)} no ranking` };
+      }
+      const score = pickScore(item.mode, item.entry);
+      if (!score.scored) return { big: "—", sub: `aguardando · até ${score.ceiling} pts` };
+      return { big: `${score.points} pts`, sub: `de ${score.outOf} em ${score.scored} ${score.scored === 1 ? "jogo" : "jogos"}` };
+    }
 
-    function activeCard() {
-      const active = store.active;
-      const steps = stepsOf(active.mode);
-      const editing = active.savedId ? store.saved.find((item) => item.local_id === active.savedId) : null;
-      return `<section class="sim-active" aria-labelledby="sim-active-title">
-        <p class="sim-active-kicker">Simulação em andamento</p>
-        <h2 id="sim-active-title">${MODES[active.mode].label}${editing ? ` · editando ${escapeHtml(simulationLabel(editing))}` : ""}</h2>
-        <p>Passo ${Math.min(active.step, steps.length)} de ${steps.length}: ${steps[Math.min(active.step, steps.length) - 1]}. Para começar outro modo, termine esta simulação ou descarte o rascunho.</p>
-        <p><a class="sim-button" href="#/simular/fazer">Continuar de onde parei</a> <button type="button" class="link-button" id="sim-discard">Descartar rascunho</button></p>
-        ${store.pendingLink ? `<p class="note">Você abriu um link de simulação de ${MODES[store.pendingLink.mode].label}. <button type="button" class="link-button" id="sim-open-link">Descartar este rascunho e abrir o link</button></p>` : ""}
-      </section>`;
+    function nextOpenMatch() {
+      const now = new Date();
+      return deck.find((match) => lockTime(match) > now) || deck[0] || null;
+    }
+
+    function ensurePreviewDefaults(match) {
+      if (!view.previewMode) view.previewMode = match ? "placar" : "classificacao";
+      if (!match && view.previewMode !== "classificacao") view.previewMode = "classificacao";
+      if (match && view.previewMatchId !== match.match_id) {
+        view.previewMatchId = match.match_id;
+        const top = match.top_scores && match.top_scores[0];
+        view.previewScore = top ? [top.home_goals, top.away_goals] : [1, 0];
+        const probs = [["H", match.p_home || 0], ["D", match.p_draw || 0], ["A", match.p_away || 0]];
+        view.previewPick = probs.sort((a, b) => b[1] - a[1])[0][0];
+      }
+    }
+
+    function previewStageHtml(mode, match) {
+      if (mode === "classificacao" || !match) {
+        const lockedChamp = clubIds.filter((id) => lockLabelOf("champion", id));
+        const lockedG4 = clubIds.filter((id) => lockLabelOf("top4", id)).slice(0, LIBERTADORES_GROUPS);
+        const lockedZ4 = clubIds.filter((id) => lockLabelOf("relegated", id)).slice(0, RELEGATED);
+        const topModel = [...snapshot.teams].sort((a, b) => a.expected_position - b.expected_position);
+        const champShown = lockedChamp[0] || topModel[0].club_id;
+        const g4Shown = lockedG4.length ? lockedG4 : topModel.slice(0, LIBERTADORES_GROUPS).map((t) => t.club_id);
+        const z4Open = Math.max(0, RELEGATED - lockedZ4.length);
+        return `<div class="sim-live-stage">
+          <div class="sim-live-top"><span>Sem jogo a jogo · ~1 min</span><span class="mc-badge">Direto na tabela</span></div>
+          <div class="sim-class-rows">
+            <div class="sim-class-row"><span>Campeão</span><span class="sim-class-val">${crest(champShown, 22)}<strong>${escapeHtml(nameOf(champShown))}</strong>${lockedChamp.length ? `<small>(travado)</small>` : ""}</span></div>
+            <div class="sim-class-row"><span class="is-g4">G4</span><span class="sim-class-val">${g4Shown.map((id) => crest(id, 22)).join("")}</span></div>
+            <div class="sim-class-row"><span class="is-z4">Z4</span><span class="sim-class-val">${lockedZ4.map((id) => crest(id, 22)).join("")}${z4Open ? `<small class="is-open">+${z4Open} ${z4Open === 1 ? "vaga aberta" : "vagas abertas"}</small>` : ""}</span></div>
+          </div>
+        </div>`;
+      }
+      const when = `${formatShortDate(match.match_date)}${kickoffClock(match) ? ` · ${kickoffClock(match)}` : ""}${match.round ? ` · R${match.round}` : ""}`;
+      if (mode === "vencedor") {
+        const opt = (key, label, probability) => `<button type="button" class="sim-pick-btn${view.previewPick === key ? " is-on" : ""}" data-prev-pick="${key}" aria-pressed="${view.previewPick === key}"><span>${label}</span><small>${pct(probability)}</small></button>`;
+        return `<div class="sim-live-stage">
+          <div class="sim-live-top"><span>Próximo jogo · ${escapeHtml(when)}</span><span class="mc-badge">1 toque · já entra salvo</span></div>
+          <div class="sim-live-teams"><span class="sim-live-team">${crest(match.home_id, 34)}<span>${escapeHtml(nameOf(match.home_id))}</span></span><span class="sim-live-vs">VS</span><span class="sim-live-team">${crest(match.away_id, 34)}<span>${escapeHtml(nameOf(match.away_id))}</span></span></div>
+          <div class="sim-pick-1x2">${opt("H", shortName(match.home_id), match.p_home)}${opt("D", "Empate", match.p_draw)}${opt("A", shortName(match.away_id), match.p_away)}</div>
+        </div>`;
+      }
+      const [sh, sa] = view.previewScore;
+      return `<div class="sim-live-stage">
+        <div class="sim-live-top"><span>Próximo jogo · ${escapeHtml(when)}</span><span class="mc-badge">Já vale como 1º palpite</span></div>
+        <div class="sim-mini-score">
+          <div class="sim-mini-side">${crest(match.home_id, 34)}<span class="sim-mini-name">${escapeHtml(nameOf(match.home_id))}</span>
+            <div class="sim-mini-ctrl"><button type="button" data-prev-goal="0" data-delta="-1" aria-label="Menos um gol de ${escapeHtml(nameOf(match.home_id))}">−</button><strong>${sh}</strong><button type="button" data-prev-goal="0" data-delta="1" aria-label="Mais um gol de ${escapeHtml(nameOf(match.home_id))}">+</button></div>
+          </div>
+          <span class="sim-mini-x" aria-hidden="true">×</span>
+          <div class="sim-mini-side">${crest(match.away_id, 34)}<span class="sim-mini-name">${escapeHtml(nameOf(match.away_id))}</span>
+            <div class="sim-mini-ctrl"><button type="button" data-prev-goal="1" data-delta="-1" aria-label="Menos um gol de ${escapeHtml(nameOf(match.away_id))}">−</button><strong>${sa}</strong><button type="button" data-prev-goal="1" data-delta="1" aria-label="Mais um gol de ${escapeHtml(nameOf(match.away_id))}">+</button></div>
+          </div>
+        </div>
+        <p class="sim-live-probs">Modelo: ${shortName(match.home_id)} ${pct(match.p_home)} · Emp ${pct(match.p_draw)} · ${shortName(match.away_id)} ${pct(match.p_away)}</p>
+      </div>`;
     }
 
     function renderHome(notice) {
       const active = store.active;
-      const cards = Object.entries(MODES).map(([key, item]) => {
-        const count = store.saved.filter((saved) => saved.mode === key).length;
-        const locked = active && active.mode !== key;
-        const action = active
-          ? (active.mode === key ? `<a class="sim-button" href="#/simular/fazer">Continuar</a>` : `<span class="sim-locked">Termine a simulação em andamento para começar esta</span>`)
-          : `<button type="button" class="sim-button" data-start="${key}">Começar</button>`;
-        return `<article class="sim-mode-card is-${key} ${locked ? "is-locked" : ""} ${active && active.mode === key ? "is-active" : ""}">
-          <span class="sim-mode-icon" aria-hidden="true">${MODE_ICONS[key]}</span>
-          <h2>${item.label}</h2>
-          <p class="sim-mode-what">${item.what}</p>
-          <p class="note">${item.scoring}</p>
-          <p class="sim-mode-meta">${item.effort}${count ? ` · ${count} ${count === 1 ? "simulação salva" : "simulações salvas"}` : ""}</p>
-          ${action}
-        </article>`;
-      }).join("");
+      const previewMatch = nextOpenMatch();
+      ensurePreviewDefaults(previewMatch);
+      const pm = view.previewMode;
+      const [sh, sa] = view.previewScore;
+      const ctaText = pm === "classificacao" || !previewMatch
+        ? "Montar minha classificação ›"
+        : pm === "placar"
+          ? `Começar com ${shortName(previewMatch.home_id)} ${sh}×${sa} ${shortName(previewMatch.away_id)} ›`
+          : `Começar com ${view.previewPick === "D" ? "Empate" : shortName(view.previewPick === "H" ? previewMatch.home_id : previewMatch.away_id)} ›`;
+
+      const draftBlock = active ? (() => {
+        const steps = stepsOf(active.mode);
+        const editing = active.savedId ? store.saved.find((item) => item.local_id === active.savedId) : null;
+        return `<div class="sim-draft-note" role="region" aria-label="Simulação em andamento">
+          <span>Rascunho de <strong>${MODES[active.mode].label}</strong>${editing ? ` (${escapeHtml(simulationLabel(editing))})` : ""} · Passo ${Math.min(active.step, steps.length)}/${steps.length}</span>
+          <span class="sim-draft-actions"><a class="block-link" href="#/simular/fazer">Continuar ›</a><button type="button" class="link-button" id="sim-discard">Descartar</button></span>
+          ${store.pendingLink ? `<p class="note sim-draft-link">Link de ${MODES[store.pendingLink.mode].label} aguardando. <button type="button" class="link-button" id="sim-open-link">Abrir link</button></p>` : ""}
+        </div>`;
+      })() : "";
+
       const saved = [...store.saved].sort((left, right) => String(right.updated_at).localeCompare(String(left.updated_at)));
-      const list = saved.length ? `<div class="sim-saved-grid">${saved.map((item) => `<a class="sim-saved-card" href="#/simular/ver/${encodeURIComponent(item.local_id)}">
-            <span class="sim-saved-head"><span class="sim-mode-chip is-${item.mode}">${MODES[item.mode].label}</span><span class="sim-saved-id">${escapeHtml(simulationLabel(item))}</span></span>
-            <span class="sim-saved-score">${scoreSummary(item)}</span>
-            <span class="sim-saved-meta">${escapeHtml(formatDay(item.updated_at))}${item.server_id && !item.detached ? " · no ranking" : " · só neste aparelho"}${isClosed(item) ? " · fechada" : ""}</span></a>`).join("")}</div>`
-        : `<p class="sim-empty">Nenhuma simulação ainda. Escolha um modo acima: a primeira leva um minuto.</p>`;
-      shell("", "E se o campeonato terminar do seu jeito?", "Escolha um modo e simule do começo ao fim. Cada simulação salva ganha a sua pontuação, e dá para fazer quantas quiser.",
-        `${notice ? `<p class="sim-banner" role="status">${notice}</p>` : ""}
-         ${active ? activeCard() : ""}
-         <h2 class="sim-section-title">${active ? "Modos" : "Escolha um modo"}</h2>
-         <div class="sim-mode-grid">${cards}</div>
-         <h2 class="sim-section-title" id="sim-minhas">Minhas simulações</h2>
-         <p class="note">A pontuação conta os jogos que já terminaram. Na Classificação, compara com a tabela de hoje e mostra o máximo que ainda dá para fazer. Abra uma simulação para ver a tabela, editar ou excluir.</p>
-         ${list}`);
-      main.querySelectorAll("[data-start]").forEach((button) => button.addEventListener("click", () => {
-        startSession(button.dataset.start, null, null);
-        go("#/simular/fazer");
+      const savedHtml = saved.length
+        ? saved.map((item) => {
+            const sc = compactScore(item);
+            const originMeta = item.server_id && !item.detached ? "No ranking" : "Só neste aparelho";
+            const closedTag = isClosed(item) ? " · fechada" : "";
+            return `<a class="sim-saved-row" href="#/simular/ver/${encodeURIComponent(item.local_id)}">
+              <span class="sim-saved-left">
+                <span class="sim-saved-top"><span class="sim-mode-chip is-${item.mode}">${MODES[item.mode].label}</span><span class="sim-saved-id">${escapeHtml(simulationLabel(item))}</span><span class="sim-saved-origin">${originMeta}${closedTag}</span></span>
+                <span class="sim-saved-sub">${sc.sub} · ${escapeHtml(formatDay(item.updated_at))}</span>
+              </span>
+              <span class="sim-saved-right"><strong>${sc.big}</strong><span class="mc-go" aria-hidden="true">›</span></span>
+            </a>`;
+          }).join("")
+        : `<p class="sim-saved-empty">Nenhuma simulação salva ainda. Comece um palpite e salve para acompanhar sua pontuação aqui.</p>`;
+
+      const roundsLeft = rounds.length;
+      const heroSub = remaining.length
+        ? `${remaining.length} ${remaining.length === 1 ? "jogo restante" : "jogos restantes"}${roundsLeft ? ` em ${roundsLeft} ${roundsLeft === 1 ? "rodada" : "rodadas"}` : ""} · o modelo pode completar o que você pular`
+        : "Todos os jogos desta edição já terminaram.";
+
+      shell("", "Simulador", "", `
+        ${notice ? `<p class="sim-banner" role="status">${notice}</p>` : ""}
+        <div class="sim-home-grid">
+          <section class="card sim-hero-card" aria-labelledby="sim-hero-title">
+            <div>
+              <h2 class="sim-hero-title" id="sim-hero-title">Simule a reta final</h2>
+              <p class="sim-hero-sub">${heroSub}</p>
+            </div>
+            <div class="sim-mode-seg" role="tablist" aria-label="Modo de simulação">
+              <button type="button" data-prev-mode="placar" role="tab" aria-selected="${pm === "placar"}" ${!previewMatch ? "disabled" : ""}>Placar exato</button>
+              <button type="button" data-prev-mode="vencedor" role="tab" aria-selected="${pm === "vencedor"}" ${!previewMatch ? "disabled" : ""}>Vencedor</button>
+              <button type="button" data-prev-mode="classificacao" role="tab" aria-selected="${pm === "classificacao"}">Classificação</button>
+            </div>
+            ${previewStageHtml(pm, previewMatch)}
+            <button type="button" class="btn-primary sim-hero-cta" id="sim-start-preview">${ctaText}</button>
+            ${draftBlock}
+          </section>
+
+          <section class="sim-list-card" id="sim-minhas" aria-labelledby="sim-minhas-title">
+            <div class="sim-list-head">
+              <div>
+                <h2 id="sim-minhas-title">Minhas simulações</h2>
+                <p class="sim-list-sub">${saved.length ? `${saved.length} ${saved.length === 1 ? "salva" : "salvas"} neste aparelho` : "Acompanhe sua pontuação aqui"}</p>
+              </div>
+              ${cloud ? `<a class="block-link" href="#/simular/ranking">Ranking ›</a>` : ""}
+            </div>
+            <div class="sim-saved-list">${savedHtml}</div>
+          </section>
+        </div>`);
+
+      main.querySelectorAll("[data-prev-mode]").forEach((btn) => btn.addEventListener("click", () => {
+        view.previewMode = btn.dataset.prevMode;
+        renderHome();
       }));
+      main.querySelectorAll("[data-prev-pick]").forEach((btn) => btn.addEventListener("click", () => {
+        view.previewPick = btn.dataset.prevPick;
+        renderHome();
+      }));
+      main.querySelectorAll("[data-prev-goal]").forEach((btn) => btn.addEventListener("click", () => {
+        const side = Number(btn.dataset.prevGoal);
+        const delta = Number(btn.dataset.delta);
+        view.previewScore[side] = Math.max(0, Math.min(MAX_GOALS_INPUT, view.previewScore[side] + delta));
+        renderHome();
+      }));
+      const startBtn = document.getElementById("sim-start-preview");
+      if (startBtn) startBtn.addEventListener("click", () => {
+        if (store.active && !window.confirm(`Você já tem um rascunho de ${MODES[store.active.mode].label}. Descartar esse rascunho e começar uma nova simulação de ${MODES[pm].label}?`)) return;
+        if (pm === "classificacao" || !previewMatch) {
+          startSession("classificacao", null, null);
+          go("#/simular/fazer");
+          return;
+        }
+        const entry = emptyEntry(pm);
+        if (lockTime(previewMatch) > new Date()) {
+          entry.picks[previewMatch.match_id] = pm === "placar" ? [...view.previewScore] : view.previewPick;
+        }
+        startSession(pm, null, entry);
+        store.active.step = 2;
+        const firstIdx = deck.findIndex((m) => m.match_id === previewMatch.match_id);
+        store.active.cursor = firstIdx >= 0 && firstIdx + 1 < deck.length ? firstIdx + 1 : 0;
+        writeStore();
+        go("#/simular/fazer");
+      });
       const openLink = document.getElementById("sim-open-link");
       if (openLink) openLink.addEventListener("click", () => {
         if (!window.confirm("Descartar o rascunho em andamento e abrir a simulação do link?")) return;
@@ -801,7 +973,7 @@
       if (discard) discard.addEventListener("click", () => {
         if (!window.confirm(`Descartar o rascunho de ${MODES[active.mode].label}? O que você preencheu nele se perde.`)) return;
         endSession();
-        renderHome("Rascunho descartado. Escolha um modo para começar outra simulação.");
+        renderHome("Rascunho descartado.");
       });
     }
 
@@ -1264,27 +1436,33 @@
         <div class="sim-deck-progress"><div class="sim-progress" role="img" aria-label="${tally.own} seus, ${tally.sampled} sorteados, ${tally.blank} em branco"><span class="is-own" style="width:${tally.own / deck.length * 100}%"></span><span class="is-model" style="width:${tally.sampled / deck.length * 100}%"></span></div>
           <span class="sim-deck-count">${filled} de ${deck.length}</span></div>
         <p class="sim-mini-label">${tally.own} seus · ${tally.sampled} do modelo · a probabilidade de tudo junto aparece na revisão, com todos os jogos preenchidos</p>
-        <p class="sim-section-title"><b>1</b>Seu palpite neste jogo</p>
-        <article class="sim-card" aria-labelledby="sim-card-title">
-          <p class="sim-card-meta"><span>Jogo ${active.cursor + 1} de ${deck.length} · ${match.round ? `R${match.round}` : "sem rodada"} · ${escapeHtml(formatShortDate(match.match_date))}${kickoffClock(match) ? ` ${kickoffClock(match)}` : ""}</span><span>${lockText}</span></p>
-          <h2 class="visually-hidden" id="sim-card-title">${escapeHtml(nameOf(match.home_id))} × ${escapeHtml(nameOf(match.away_id))}</h2>
-          ${locked ? `<p class="sim-card-lock">Este jogo fechou ${LOCK_MARGIN_MINUTES} minutos antes do início: não dá mais para mudar o palpite${cloud && cloudState.user ? ", e ele não conta para o ranking" : ""}.</p>` : ""}
-          ${crowdForMatch(match)}
-          ${controls}
-          ${mode === "placar" ? modelPills(match) : ""}
-          ${scoreLine}
-          <div class="sim-card-state">${state}</div>
-          <div class="sim-card-actions">
-            ${canSample && !locked ? `<button type="button" class="sim-button is-secondary" id="sim-roll">Sortear</button>` : ""}
-            ${primary}
+        <div class="sim-deck-grid">
+          <div class="sim-deck-main">
+            <p class="sim-section-title"><b>1</b>Seu palpite neste jogo</p>
+            <article class="sim-card" aria-labelledby="sim-card-title">
+              <p class="sim-card-meta"><span>Jogo ${active.cursor + 1} de ${deck.length} · ${match.round ? `R${match.round}` : "sem rodada"} · ${escapeHtml(formatShortDate(match.match_date))}${kickoffClock(match) ? ` ${kickoffClock(match)}` : ""}</span><span>${lockText}</span></p>
+              <h2 class="visually-hidden" id="sim-card-title">${escapeHtml(nameOf(match.home_id))} × ${escapeHtml(nameOf(match.away_id))}</h2>
+              ${locked ? `<p class="sim-card-lock">Este jogo fechou ${LOCK_MARGIN_MINUTES} minutos antes do início: não dá mais para mudar o palpite${cloud && cloudState.user ? ", e ele não conta para o ranking" : ""}.</p>` : ""}
+              ${crowdForMatch(match)}
+              ${controls}
+              ${mode === "placar" ? modelPills(match) : ""}
+              ${scoreLine}
+              <div class="sim-card-state">${state}</div>
+              <div class="sim-card-actions">
+                ${canSample && !locked ? `<button type="button" class="sim-button is-secondary" id="sim-roll">Sortear</button>` : ""}
+                ${primary}
+              </div>
+              <p class="sim-card-links"><button type="button" class="link-button" id="sim-prev" ${active.cursor === 0 ? "disabled" : ""}>← Anterior</button>${locked ? "" : ` · <button type="button" class="link-button" id="sim-skip">${value === undefined ? "Pular" : "Deixar em branco"}</button>`}</p>
+            </article>
+            <p class="sim-cheer" aria-live="polite">${message}</p>
           </div>
-          <p class="sim-card-links"><button type="button" class="link-button" id="sim-prev" ${active.cursor === 0 ? "disabled" : ""}>← Anterior</button>${locked ? "" : ` · <button type="button" class="link-button" id="sim-skip">${value === undefined ? "Pular" : "Deixar em branco"}</button>`}</p>
-        </article>
-        <p class="sim-cheer" aria-live="polite">${message}</p>
-        <p class="sim-section-title"><b>2</b>${match.round ? `Jogos da rodada ${match.round}` : "Jogos sem rodada"} · ${mode === "vencedor" ? "toque no resultado de cada jogo" : "toque para palpitar"}</p>
-        ${originLegend()}
-        ${dayList(mode, entry, active.cursor)}
-        ${canSample ? `<p class="sim-map-actions"><button type="button" class="sim-button is-secondary" id="sim-fill-rest">Sortear o resto${tally.blank ? ` (${tally.blank})` : ""}</button> <button type="button" class="link-button" id="sim-clear-model">Tirar os sorteados</button></p>` : ""}
+          <div class="sim-deck-side">
+            <p class="sim-section-title"><b>2</b>${match.round ? `Jogos da rodada ${match.round}` : "Jogos sem rodada"} · ${mode === "vencedor" ? "toque no resultado de cada jogo" : "toque para palpitar"}</p>
+            ${originLegend()}
+            ${dayList(mode, entry, active.cursor)}
+            ${canSample ? `<p class="sim-map-actions"><button type="button" class="sim-button is-secondary" id="sim-fill-rest">Sortear o resto${tally.blank ? ` (${tally.blank})` : ""}</button> <button type="button" class="link-button" id="sim-clear-model">Tirar os sorteados</button></p>` : ""}
+          </div>
+        </div>
         ${navBar("Mudar o jeito de jogar", "Revisar →", "")}`, { focus: true });
       bindSession(active, () => moveStep(active, 1), () => { if (entry.model) fillWithModel(mode, entry, false); moveStep(active, 3); });
       const goTo = (index, nextCheer) => { active.cursor = index; active.draftScore = null; writeStore(); renderDeck(active, nextCheer); const card = main.querySelector(".sim-card"); if (card) card.scrollIntoView({ block: "nearest" }); };
@@ -1548,30 +1726,48 @@
       });
     }
 
-    /* ---------------- Ranking */
+    /* ---------------- Ranking (Kanban #43 · 3B) */
 
     async function renderRanking(requested) {
       const rankMode = MODES[requested] ? requested : "placar";
-      const subTabs = `<nav class="tabs sim-subtabs" aria-label="Ranking por modo">${Object.entries(MODES).map(([key, item]) =>
-        `<a href="#/simular/ranking/${key}" ${key === rankMode ? 'aria-current="page"' : ""}>${item.label}</a>`).join("")}</nav>`;
-      shell("ranking", "Ranking", `Cada simulação enviada ao servidor por quem escolheu aparecer no ranking (até ${EVENT_LIMIT} por pessoa a cada jogo novo), com o apelido e o ID da simulação.`,
-        `${subTabs}<p class="note">${MODES[rankMode].scoring} Só contam palpites salvos no servidor antes do horário de cada jogo; os sorteados pelo modelo contam como os outros.</p>
-         <div id="sim-ranking" aria-live="polite"><p class="note">Carregando o ranking…</p></div>`);
+      const subTabs = `<nav class="chip-row sim-subchips" aria-label="Ranking por modo">${Object.entries(MODES).map(([key, item]) =>
+        `<a class="chip chip-sm" href="#/simular/ranking/${key}" ${key === rankMode ? 'aria-current="page"' : ""}>${item.label}</a>`).join("")}</nav>`;
+      shell("ranking", "Simulador", "",
+        `${subTabs}<div id="sim-ranking" aria-live="polite"><div class="skeleton-page"><span class="skeleton sk-row"></span><span class="skeleton sk-row"></span><span class="skeleton sk-row"></span></div></div>`);
       const target = document.getElementById("sim-ranking");
       try {
         const rows = await cloud.ranking(season, rankMode);
+        if (!document.body.contains(target)) return;
+        if (!rows.length) {
+          target.innerHTML = `<div class="state"><p class="state-title">Ninguém pontuou ainda em ${MODES[rankMode].label}</p><p class="state-text">Os pontos entram assim que os jogos com palpite terminam${rankMode === "classificacao" ? " e, na Classificação, no fim da temporada" : ""}.</p><a class="btn-primary btn-sm state-action" href="#/simular">Fazer simulação</a></div>`;
+          return;
+        }
         const mine = new Set(store.saved.map((item) => item.server_id).filter(Boolean));
-        const exactLabel = rankMode === "placar" ? "Placares exatos" : rankMode === "vencedor" ? "Acertos" : "Posições exatas";
-        const body = rows.length ? `<div class="table-wrap"><table class="sim-table"><thead><tr><th class="num">#</th><th>Apelido · simulação</th><th class="num">Pontos</th><th class="num">${exactLabel}</th><th class="num">${rankMode === "classificacao" ? "Jogos que faltavam" : "Jogos"}</th></tr></thead>
-          <tbody>${rows.map((row) => `<tr${mine.has(row.simulation_id) ? ' class="selected-team"' : ""}><td class="num">${row.rank}</td><td>${escapeHtml(row.nickname)} · #${row.simulation_id}</td><td class="num">${rankMode === "classificacao" ? `${deflated(row.points)} de ${deflated(row.max_points)}` : `${row.points} de ${row.max_points}`}</td><td class="num">${row.exact_hits}</td><td class="num">${row.scored_picks}</td></tr>`).join("")}</tbody></table></div>`
-          : `<p>Ninguém pontuou ainda neste modo. Os pontos aparecem depois que os jogos com palpite terminam${rankMode === "classificacao" ? " e, na Classificação, no fim da temporada" : ""}.</p>`;
-        if (document.body.contains(target)) target.innerHTML = body;
+        const exactLabel = rankMode === "placar" ? "Exatos" : rankMode === "vencedor" ? "Acertos" : "Exatas";
+        const formatPts = (row) => (rankMode === "classificacao" ? `${deflated(row.points)} / ${deflated(row.max_points)}` : `${row.points} / ${row.max_points}`);
+        const podium = rows.length >= 3 ? `<div class="sim-highlights-3" aria-label="Pódio">${rows.slice(0, 3).map((row, idx) => `
+          <article class="sim-podium-card${idx === 0 ? " is-first" : ""}">
+            <span class="sim-podium-kicker">${row.rank}º lugar</span>
+            <strong class="sim-podium-name">${escapeHtml(row.nickname)} <small>#${row.simulation_id}</small></strong>
+            <span class="sim-podium-pts"><strong>${rankMode === "classificacao" ? deflated(row.points) : row.points}</strong> <small>/ ${rankMode === "classificacao" ? deflated(row.max_points) : row.max_points} pts · ${row.exact_hits} ${exactLabel.toLowerCase()}</small></span>
+          </article>`).join("")}</div>` : "";
+        const bestMine = rows.find((row) => mine.has(row.simulation_id));
+        const myStrip = bestMine
+          ? `<div class="sim-my-rank"><span>Sua melhor posição: <strong>#${bestMine.rank}</strong> · ${escapeHtml(bestMine.nickname)} (#${bestMine.simulation_id})</span><strong>${formatPts(bestMine)} pts</strong></div>`
+          : !cloudState.user
+            ? `<div class="sim-my-rank"><span>Entre no ranking com um apelido para aparecer aqui.</span><button type="button" class="btn-primary btn-sm" id="sim-rank-join">Participar</button></div>`
+            : "";
+        target.innerHTML = `${podium}${myStrip}
+          <div class="table-card table-scroll"><table class="sim-table sim-vtable"><thead><tr><th class="num">#</th><th>Apelido</th><th class="num">Pontos</th><th class="num">${exactLabel}</th><th class="num">${rankMode === "classificacao" ? "Faltavam" : "Jogos"}</th></tr></thead>
+          <tbody>${rows.map((row) => `<tr${mine.has(row.simulation_id) ? ' class="selected-team"' : ""}><td class="num sim-rank-pos${row.rank <= 3 ? " is-top" : ""}">${row.rank}º</td><td><strong>${escapeHtml(row.nickname)}</strong> <span class="sim-row-id">#${row.simulation_id}</span></td><td class="num"><strong>${rankMode === "classificacao" ? deflated(row.points) : row.points}</strong> <span class="sim-row-id">/ ${rankMode === "classificacao" ? deflated(row.max_points) : row.max_points}</span></td><td class="num">${row.exact_hits}</td><td class="num">${row.scored_picks}</td></tr>`).join("")}</tbody></table></div>`;
+        const joinBtn = document.getElementById("sim-rank-join");
+        if (joinBtn) joinBtn.addEventListener("click", openAccountSheet);
       } catch (error) {
-        if (document.body.contains(target)) target.innerHTML = `<p class="note">Ranking indisponível agora (${escapeHtml(error.message)}).</p>`;
+        if (document.body.contains(target)) target.innerHTML = `<div class="state" role="alert"><p class="state-title">Ranking indisponível agora</p><p class="state-text">${escapeHtml(error.message)}</p></div>`;
       }
     }
 
-    /* ---------------- Agregado: posição média das simulações */
+    /* ---------------- Agregado (Kanban #43 · 3B): posição média + onde a torcida discorda do modelo */
 
     function aggregate(tables) {
       const totals = Object.fromEntries(clubIds.map((clubId) => [clubId, { sum: 0, champion: 0, relegated: 0 }]));
@@ -1589,37 +1785,78 @@
       })).sort((left, right) => left.average_position - right.average_position || left.club_id.localeCompare(right.club_id));
     }
 
-    function aggregateTable(rows, note) {
+    function divergenceCards(rows, official) {
+      const diffs = rows.map((club, index) => ({
+        club_id: club.club_id,
+        crowd: index + 1,
+        model: official[club.club_id] || index + 1,
+        diff: (official[club.club_id] || index + 1) - (index + 1),
+      })).filter((item) => item.diff !== 0);
+      if (!diffs.length) return "";
+      const optimistic = [...diffs].filter((d) => d.diff > 0).sort((a, b) => b.diff - a.diff);
+      const pessimistic = [...diffs].filter((d) => d.diff < 0).sort((a, b) => a.diff - b.diff);
+      const chosen = [...optimistic.slice(0, 2), ...pessimistic.slice(0, 1)];
+      if (chosen.length < 3) {
+        for (const extra of [...optimistic.slice(2), ...pessimistic.slice(1)]) {
+          if (chosen.length >= 3) break;
+          chosen.push(extra);
+        }
+      }
+      return `<div class="sim-highlights-3" aria-label="Onde a torcida mais discorda do modelo">${chosen.map((item) => {
+        const up = item.diff > 0;
+        const sign = up ? `+${item.diff}` : `${MINUS}${Math.abs(item.diff)}`;
+        return `<article class="sim-podium-card">
+          <span class="sim-podium-kicker ${up ? "is-up" : "is-dn"}">${up ? "Torcida mais otimista" : "Torcida mais pessimista"}</span>
+          <strong class="sim-podium-club">${clubCell(item.club_id, 22)}</strong>
+          <span class="sim-podium-sub">${item.crowd}º na torcida vs. ${item.model}º modelo (${sign})</span>
+        </article>`;
+      }).join("")}</div>`;
+    }
+
+    function aggregateTable(rows, note, showDivergence) {
       const official = Object.fromEntries([...snapshot.teams].sort((left, right) => left.expected_position - right.expected_position).map((team, index) => [team.club_id, index + 1]));
-      return `<p class="note">${note}</p>
-        <div class="table-wrap"><table class="sim-table"><thead><tr><th class="num">#</th><th>Clube</th><th class="num" title="Posição média">Pos. média</th><th class="num">Campeão</th><th class="num" title="Rebaixado">Queda</th><th class="num" title="Posição na ordem do modelo oficial">Modelo</th></tr></thead>
-        <tbody>${rows.map((club, index) => { const zone = zoneOf(index + 1, rows.length); return `<tr class="${zone.key ? `zone-${zone.key}` : ""}"><td class="num">${index + 1}</td><td>${clubCell(club.club_id)}</td>
-          <td class="num">${Number(club.average_position).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</td><td class="num">${pct(club.champion)}</td><td class="num">${pct(club.relegated)}</td><td class="num">${official[club.club_id] || "–"}º</td></tr>`; }).join("")}</tbody></table></div>`;
+      const cards = showDivergence ? divergenceCards(rows, official) : "";
+      return `<p class="sim-agg-note">${note}</p>${cards}
+        <div class="table-card table-scroll"><table class="sim-table sim-vtable"><thead><tr><th class="num">#</th><th>Clube</th><th class="num" title="Posição média">Pos. média</th><th class="num">Título</th><th class="num" title="Rebaixado">Z4</th><th class="num" title="Diferença entre a torcida e o modelo oficial">vs. Modelo</th></tr></thead>
+        <tbody>${rows.map((club, index) => {
+          const rank = index + 1;
+          const zone = zoneOf(rank, rows.length);
+          const modelRank = official[club.club_id] || rank;
+          const diff = modelRank - rank;
+          const deltaBadge = diff > 0
+            ? `<span class="sim-delta-pill is-up" title="Modelo: ${modelRank}º">+${diff}</span>`
+            : diff < 0
+              ? `<span class="sim-delta-pill is-dn" title="Modelo: ${modelRank}º">${MINUS}${Math.abs(diff)}</span>`
+              : `<span class="sim-delta-pill is-eq" title="Igual ao modelo">=</span>`;
+          return `<tr class="${zone.key ? `zone-${zone.key}` : ""}"><td class="num">${rank}º</td><td>${clubCell(club.club_id)}</td>
+            <td class="num">${Number(club.average_position).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</td><td class="num">${pct(club.champion)}</td><td class="num">${pct(club.relegated)}</td><td class="num">${deltaBadge}</td></tr>`;
+        }).join("")}</tbody></table></div>`;
     }
 
     async function renderAggregate(scope) {
       const scopeName = scope === "minhas" ? "minhas" : "todas";
-      const subTabs = `<nav class="tabs sim-subtabs" aria-label="Agregado">${cloud ? `<a href="#/simular/agregado" ${scopeName === "todas" ? 'aria-current="page"' : ""}>Todas as simulações do site</a>` : ""}<a href="#/simular/agregado/minhas" ${scopeName === "minhas" || !cloud ? 'aria-current="page"' : ""}>As minhas</a></nav>`;
-      shell("agregado", "Simulador agregado", "A tabela final mais provável segundo as simulações: cada clube ordenado pela posição média. Entram as Classificações e as tabelas finais de Vencedor e Placar exato com todos os jogos preenchidos.",
-        `${subTabs}<div id="sim-aggregate" aria-live="polite"><p class="note">Carregando…</p></div>`);
+      const subTabs = `<nav class="chip-row sim-subchips" aria-label="Escopo do agregado">${cloud ? `<a class="chip chip-sm" href="#/simular/agregado" ${scopeName === "todas" ? 'aria-current="page"' : ""}>Visitantes</a>` : ""}<a class="chip chip-sm" href="#/simular/agregado/minhas" ${scopeName === "minhas" || !cloud ? 'aria-current="page"' : ""}>As minhas</a></nav>`;
+      shell("agregado", "Simulador", "",
+        `${subTabs}<div id="sim-aggregate" aria-live="polite"><div class="skeleton-page"><span class="skeleton sk-row"></span><span class="skeleton sk-row"></span><span class="skeleton sk-row"></span></div></div>`);
       const target = document.getElementById("sim-aggregate");
       if (scopeName === "minhas" || !cloud) {
         const tables = store.saved.map((item) => finalOrderOf(item.mode, item.entry)).filter((order) => Array.isArray(order) && order.length === clubIds.length);
         target.innerHTML = tables.length
-          ? aggregateTable(aggregate(tables), `Média das suas ${tables.length} ${tables.length === 1 ? "simulação completa" : "simulações completas"} neste aparelho. Na última coluna, a posição do clube na ordem do modelo oficial.`)
-          : `<p>Você ainda não tem simulação completa. Salve uma Classificação, ou um Vencedor ou Placar exato com todos os jogos preenchidos (o modelo pode completar).</p>`;
+          ? aggregateTable(aggregate(tables), `Média das suas ${tables.length} ${tables.length === 1 ? "simulação completa" : "simulações completas"} neste aparelho.`, false)
+          : `<div class="state"><p class="state-title">Sem simulação completa ainda</p><p class="state-text">Salve uma Classificação, ou um Vencedor / Placar exato com todos os jogos preenchidos (o modelo pode completar).</p><a class="btn-primary btn-sm state-action" href="#/simular">Criar simulação</a></div>`;
         return;
       }
       try {
         const data = await cloud.consensus(season);
         if (!document.body.contains(target)) return;
         if (!data.clubs || !data.clubs.length) {
-          target.innerHTML = `<p>Ainda são poucas pessoas: a média do site aparece com pelo menos ${data.min_users} participantes, para não expor a escolha de ninguém. Enquanto isso, veja a média das suas simulações em "As minhas".</p>`;
+          target.innerHTML = `<div class="state"><p class="state-title">Consenso ainda em formação</p><p class="state-text">A média dos visitantes aparece com pelo menos ${data.min_users} participantes, para proteger a escolha individual. Enquanto isso, veja a média das suas simulações.</p><a class="btn-secondary btn-sm state-action" href="#/simular/agregado/minhas">Ver as minhas ›</a></div>`;
           return;
         }
-        target.innerHTML = aggregateTable(data.clubs, `Média das simulações de pelo menos ${data.users_at_least} pessoas que participam; cada pessoa pesa igual, qualquer que seja o número de simulações dela. Na última coluna, a posição do clube na ordem do modelo oficial.`);
+        const approx = data.approximate ? " · aproximado" : "";
+        target.innerHTML = aggregateTable(data.clubs, `Consenso de pelo menos ${data.users_at_least} participantes${approx} · cada pessoa pesa igual.`, true);
       } catch (error) {
-        if (document.body.contains(target)) target.innerHTML = `<p class="note">Indisponível agora (${escapeHtml(error.message)}).</p>`;
+        if (document.body.contains(target)) target.innerHTML = `<div class="state" role="alert"><p class="state-title">Consenso indisponível agora</p><p class="state-text">${escapeHtml(error.message)}</p></div>`;
       }
     }
 

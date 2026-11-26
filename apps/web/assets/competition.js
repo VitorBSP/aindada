@@ -431,7 +431,7 @@
     if (segments[0] && clubs.some((club) => club.id === decodeURIComponent(segments[0]))) {
       state.choices.set("rodadas", { mode: "time", club: decodeURIComponent(segments[0]) });
     }
-    const info = `<p>Como a chance de cada disputa mudou a cada rodada. Cada ponto é a previsão refeita como se a edição fosse o último jogo daquela rodada, com ${state.history.n_simulations.toLocaleString("pt-BR")} simulações e o modelo de hoje.</p>
+    const info = `<p>Como a probabilidade de cada disputa mudou a cada rodada. Cada ponto é a previsão refeita como se a edição fosse o último jogo daquela rodada, com ${state.history.n_simulations.toLocaleString("pt-BR")} simulações e o modelo de hoje.</p>
       <p>É uma reconstrução: usa só jogos até a data de cada ponto, mas não é o que o site mostrava na época. O último ponto é a edição atual.</p>`;
     return `${screenHead("Rodadas", info)}
       ${widget("rodadas", (choice) => {
@@ -463,7 +463,7 @@
         const list = rows.length ? `<div class="rg-list is-two">${rows.map((row) => `<div class="race-row-card" data-club="${escapeHtml(row.club.id)}" role="button" tabindex="0">
             <span class="rr-pos">${row.entry.position}</span>${crest(row.club.id, 26)}<span class="rr-name">${escapeHtml(row.club.name)}</span>
             <span class="rr-meta">${row.entry.points} pts${row.delta === null ? "" : ` · <b class="${row.delta > 0.0005 ? "is-up" : row.delta < -0.0005 ? "is-down" : ""}">${row.delta > 0.0005 ? "▲" : row.delta < -0.0005 ? "▼" : "="} ${number.format(Math.abs(row.delta) * 100)} p.p.</b>`}</span>
-            <strong class="rr-value">${pct(row.value)}</strong><span class="rr-bar" aria-hidden="true"><i style="width:${(Math.min(1, row.value) * 100).toFixed(1)}%;background:var(--${metric.color || "title"})"></i></span></div>`).join("")}</div>` : '<p class="comp-notice">Nenhum clube com chance relevante nesta rodada.</p>';
+            <strong class="rr-value">${pct(row.value)}</strong><span class="rr-bar" aria-hidden="true"><i style="width:${(Math.min(1, row.value) * 100).toFixed(1)}%;background:var(--${metric.color || "title"})"></i></span></div>`).join("")}</div>` : '<p class="comp-notice">Nenhum clube com probabilidade relevante nesta rodada.</p>';
         return `${modeChips}${roundChips}${metricChips}<h2 class="comp-day-title">${escapeHtml(metric.label)} · rodada ${point.round}<span>${escapeHtml(S_formatShort(point.reference_date))}</span></h2>${list}${note}`;
       })}`;
   }
