@@ -230,6 +230,37 @@ def _export_publication(store: SnapshotStore, arguments: argparse.Namespace) -> 
     export_static_api(store, arguments.season)
 
 
+def command_export_match_priors(arguments: argparse.Namespace) -> int:
+    """Exporta as probabilidades pré-jogo por partida (point-in-time), com parquet e manifesto."""
+    from brasileirao.exports.match_priors import ExportError, export_match_priors  # noqa: PLC0415
+
+    seasons = sorted({int(item) for item in str(arguments.seasons).split(",") if item.strip()})
+    gold_path = PATHS.gold / "matches_model.csv"
+    try:
+        if not gold_path.exists():
+            raise ProvenanceError(f"{gold_path} ausente: rode `brasileirao ingest` antes")
+        paths, manifest = export_match_priors(
+            arguments.competition,
+            seasons,
+            Path(arguments.output),
+            read_matches(gold_path),
+            load_club_registry(),
+            load_model_config(),
+            gold_path,
+            PATHS.gold / "model_config.json",
+            PATHS.silver,
+            write_csv=arguments.csv,
+            expected_per_season=arguments.expected_matches_per_season or None,
+        )
+    except (ExportError, ProvenanceError) as error:
+        print(f"export-match-priors falhou: {error}")
+        return 1
+    for kind, path in paths.items():
+        print(f"{kind}: {path.resolve()}")
+    print(json.dumps(manifest["validation"], ensure_ascii=False, indent=2))
+    return 0
+
+
 def command_export_web(arguments: argparse.Namespace) -> None:
     store = SnapshotStore(PATHS.snapshots_db)
     for path in export_static_api(store, arguments.season):
@@ -473,6 +504,22 @@ def build_parser() -> argparse.ArgumentParser:
     export.add_argument("--season", type=int, default=2026)
     export.set_defaults(handler=command_export_web)
 
+    priors = commands.add_parser(
+        "export-match-priors",
+        help="exporta probabilidades pré-jogo por partida (point-in-time) em parquet + manifesto, somente leitura",
+    )
+    priors.add_argument("--competition", default="serie_a", help="competição (hoje: serie_a)")
+    priors.add_argument("--seasons", required=True, help="temporadas separadas por vírgula, ex.: 2024,2025,2026")
+    priors.add_argument("--output", required=True, help="arquivo .parquet de saída; o manifesto fica ao lado")
+    priors.add_argument("--csv", action="store_true", help="grava também o .csv")
+    priors.add_argument(
+        "--expected-matches-per-season",
+        type=int,
+        default=380,
+        help="falha se alguma temporada tiver outra contagem de partidas (0 desliga a checagem)",
+    )
+    priors.set_defaults(handler=command_export_match_priors)
+
     insights_generate = commands.add_parser(
         "insights-generate", help="08A: gera candidatos a insight do snapshot atual"
     )
@@ -522,7 +569,9 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> None:
     arguments = build_parser().parse_args(argv)
     configure_logging(logging.DEBUG if arguments.verbose else logging.INFO)
-    arguments.handler(arguments)
+    status = arguments.handler(arguments)
+    if isinstance(status, int) and status:
+        raise SystemExit(status)
 
 
 if __name__ == "__main__":
