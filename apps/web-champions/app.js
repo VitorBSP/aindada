@@ -1,7 +1,8 @@
 "use strict";
 
 // Champions League (ADR-0012) no desenho dos sites de competição (D-043): Início, Chave provável, Fase de liga,
-// Jogos e Como calculamos.
+// Jogos e Como calculamos. Com a fase de liga encerrada (data.phase = "knockout"), Início e Chave mostram os
+// confrontos reais do mata-mata, com placares de ida e volta e a probabilidade de cada clube passar.
 (function () {
   const S = window.AIndaDaSite;
   const { escapeHtml, pct, team } = S;
@@ -35,20 +36,130 @@
     return club.clinched[zone] ? DONE[zone][club.clinched[zone]] : pct(club.zones[zone]);
   }
   const matchday = (data) => Math.max(...data.clubs.map((club) => club.played));
+  const isKnockout = (data) => data.phase === "knockout";
+  const STAGE_NAMES = { PLAYOFFS: "Playoff", LAST_16: "Oitavas", QUARTER_FINALS: "Quartas", SEMI_FINALS: "Semifinal", FINAL: "Final" };
+  const STAGE_ORDER = Object.keys(STAGE_NAMES);
+  const NEXT = { PLAYOFFS: "round_of_16", LAST_16: "quarter_finals", QUARTER_FINALS: "semi_finals", SEMI_FINALS: "final", FINAL: "winner" };
+  const dayMonth = (iso) => S.formatDate(iso, { day: "2-digit", month: "2-digit" });
+
+  // Jogos do mata-mata por disputar, no formato dos jogos da fase de liga (cards, popup e "Próximo jogo" do Seu time).
+  const knockoutMatches = (data) => (data.knockout || []).flatMap((tie) => tie.legs
+    .filter((leg) => leg.status === "scheduled")
+    .map((leg) => ({ ...leg, round: null, stage: tie.stage })));
   const inPositions = (club, positions) => positions.reduce((sum, position) => sum + club.position_probabilities[position - 1], 0);
 
   function edition(data) {
-    return `<p class="edition"><span class="edition-name">Edição de ${escapeHtml(S.formatDate(data.reference_date, { weekday: "long", day: "numeric", month: "long", year: "numeric" }))}</span> · ${escapeHtml(data.competition_name)} · fase de liga, ${matchday(data)} de 8 rodadas</p>
+    const day = escapeHtml(S.formatDate(data.reference_date, { weekday: "long", day: "numeric", month: "long", year: "numeric" }));
+    if (isKnockout(data)) {
+      const ties = data.knockout || [];
+      const decided = ties.filter((tie) => tie.winner_id).length;
+      return `<p class="edition"><span class="edition-name">Edição de ${day}</span> · ${escapeHtml(data.competition_name)} · mata-mata, ${escapeHtml(STAGE_NAMES[data.current_stage] || "")}</p>
+        <p class="edition-facts"><strong>${decided}</strong> de ${ties.length} confrontos já decididos · <strong>${data.n_simulations.toLocaleString("pt-BR")}</strong> simulações até a final</p>`;
+    }
+    return `<p class="edition"><span class="edition-name">Edição de ${day}</span> · ${escapeHtml(data.competition_name)} · fase de liga, ${matchday(data)} de 8 rodadas</p>
       <p class="edition-facts"><strong>${data.observed_matches}</strong> de ${data.observed_matches + data.remaining_matches} jogos disputados · <strong>${data.n_simulations.toLocaleString("pt-BR")}</strong> simulações até a final</p>`;
   }
 
-  // Próximos jogos com data, em ordem cronológica.
-  const upcoming = (data) => data.remaining.filter((match) => match.match_date);
+  // Próximos jogos com data, em ordem cronológica: os que faltam da fase de liga e os do mata-mata.
+  const upcoming = (data) => [...data.remaining, ...knockoutMatches(data)].filter((match) => match.match_date);
+
+  /* ---------------- Mata-mata real */
+
+  // Gols de cada lado num jogo encerrado, com a prorrogação somada (o placar que vale no confronto).
+  const legGoals = (leg) => (leg.extra_time ? leg.extra_time : [leg.home_goals, leg.away_goals]);
+
+  function tieState(tie) {
+    const last = tie.legs[tie.legs.length - 1];
+    const pending = tie.legs.find((leg) => leg.status === "scheduled");
+    if (tie.winner_id) {
+      const how = last && last.penalties
+        ? ` nos pênaltis (${escapeHtml(S.shortOf(last.home_id))} ${last.penalties[0]} × ${last.penalties[1]} ${escapeHtml(S.shortOf(last.away_id))})`
+        : last && last.extra_time ? " na prorrogação" : "";
+      return `${escapeHtml(S.nameOf(tie.winner_id))} passou${how}`;
+    }
+    if (pending) return `${tie.stage === "FINAL" ? "Jogo único" : pending.leg === 1 ? "Ida" : "Volta"} em ${escapeHtml(dayMonth(pending.match_date))}`;
+    return tie.stage === "FINAL" ? "Jogo único" : "Volta ainda sem data";
+  }
+
+  function legLine(tie) {
+    return tie.legs.map((leg) => {
+      const label = tie.stage === "FINAL" ? "Final" : leg.leg === 1 ? "Ida" : "Volta";
+      if (leg.status !== "finished") return `<span>${label}: ${escapeHtml(S.shortOf(leg.home_id))} × ${escapeHtml(S.shortOf(leg.away_id))}, ${escapeHtml(dayMonth(leg.match_date))}</span>`;
+      const [home, away] = legGoals(leg);
+      return `<span>${label}: ${escapeHtml(S.shortOf(leg.home_id))} <b>${home} × ${away}</b> ${escapeHtml(S.shortOf(leg.away_id))}${leg.extra_time ? " (prorr.)" : ""}</span>`;
+    }).join("");
+  }
+
+  function tieCard(tie) {
+    const label = tie.stage === "FINAL" ? "título" : "passa";
+    const sides = tie.club_ids.map((id, index) => {
+      const decided = Boolean(tie.winner_id);
+      const won = decided && tie.winner_id === id;
+      const value = tie.advance[id];
+      const end = decided ? (won ? "passou" : "fora") : pct(value);
+      const aggregate = tie.aggregate ? `<span class="ko-agg" aria-label="${tie.legs.length > 1 ? "agregado" : "placar"}">${tie.aggregate[index]}</span>` : `<span class="ko-agg"></span>`;
+      return `<div class="ko-side${won ? " is-won" : decided ? " is-lost" : ""}">${team(id, 22)}${aggregate}<strong class="ko-adv${!decided && value >= 0.5 ? " is-top" : ""}" aria-label="${escapeHtml(S.nameOf(id))} ${label}: ${escapeHtml(end)}">${escapeHtml(end)}</strong></div>`;
+    }).join("");
+    return `<article class="ko-tie">
+      <div class="ko-head"><span>${escapeHtml(STAGE_NAMES[tie.stage])}</span><span>${tieState(tie)}</span></div>
+      ${sides}
+      <p class="ko-legs">${legLine(tie)}</p>
+    </article>`;
+  }
+
+  const tiesOf = (data, stage) => (data.knockout || []).filter((tie) => tie.stage === stage);
+
+  function knockoutHome(data) {
+    const stage = data.current_stage;
+    const current = tiesOf(data, stage);
+    const facts = knockoutFacts(data);
+    const alive = data.clubs.filter((club) => !facts.out.has(club.club_id));
+    const byWinner = [...alive].sort((a, b) => b.stages.winner - a.stages.winner).slice(0, 8);
+    const info = `<p>A fase de liga acabou: agora são os confrontos reais do mata-mata. Ida e volta decidem pelo agregado, sem gol fora; empate leva à prorrogação e aos pênaltis. A final é em jogo único.</p>
+      <p>"Passa" diz em quantas das ${data.n_simulations.toLocaleString("pt-BR")} simulações o clube vence o confronto. Placar real entra como aconteceu; só o que falta é simulado.</p>`;
+    const next = upcoming(data).sort(chronological).slice(0, HOME_MATCHES);
+    const stageBlock = current.length
+      ? `<section class="comp-block" aria-labelledby="ko-now"><div class="block-head"><h2 id="ko-now">${escapeHtml(STAGE_NAMES[stage])}</h2><a class="block-link" href="#/chave">Chave ›</a></div><div class="ko-grid">${current.map(tieCard).join("")}</div></section>`
+      : `<section class="comp-block" aria-labelledby="ko-now"><div class="block-head"><h2 id="ko-now">${escapeHtml(STAGE_NAMES[stage] || "Mata-mata")}</h2><a class="block-link" href="#/chave">Chave ›</a></div><p class="note">Os confrontos desta fase aparecem aqui quando a fonte trouxer os clubes. Até lá, a chave usa o regulamento e sorteia onde a UEFA sorteia.</p></section>`;
+    return `
+      ${S.screenHead("Quem ainda dá?", info)}
+      ${S.yourTeam(data)}
+      ${stageBlock}
+      ${next.length ? `<section class="comp-block" aria-labelledby="comp-next"><div class="block-head"><h2 id="comp-next">Próximos jogos</h2><a class="block-link" href="#/jogos">Ver todos ›</a></div>${S.matchesByDay(next)}</section>` : ""}
+      <div class="races">
+        ${S.raceCard("Título", "% das simulações em que é campeão.", S.raceRows(byWinner.map((club) => ({ id: club.club_id, value: club.stages.winner })), ""))}
+      </div>
+      <nav class="chip-row comp-links" aria-label="Mais"><a class="chip" href="#/chave">Chave do mata-mata ›</a><a class="chip" href="#/fase-de-liga">Fase de liga ›</a></nav>`;
+  }
+
+  function knockoutBracket(data) {
+    const info = `<p>Confrontos reais de cada fase, com o placar de cada jogo e o agregado. Nos que faltam decidir, a porcentagem diz em quantas simulações o clube passa.</p>
+      <p>Fases sem confronto definido mostram os clubes com mais simulações chegando lá. Onde a fonte ainda não mostra o cruzamento, a simulação sorteia entre as chaves do regulamento que batem com o que já aconteceu.</p>`;
+    const facts = knockoutFacts(data);
+    const blocks = STAGE_ORDER.map((stage) => {
+      const ties = tiesOf(data, stage);
+      if (ties.length) return `<section class="comp-block" aria-labelledby="ko-${stage}"><h2 id="ko-${stage}" class="ko-stage">${escapeHtml(STAGE_NAMES[stage])}</h2><div class="ko-grid">${ties.map(tieCard).join("")}</div></section>`;
+      const key = { PLAYOFFS: "round_of_16", LAST_16: "round_of_16", QUARTER_FINALS: "quarter_finals", SEMI_FINALS: "semi_finals", FINAL: "final" }[stage];
+      if (stage === "PLAYOFFS") return "";
+      const sure = data.clubs.filter((club) => facts.reached[key].has(club.club_id));
+      const likely = data.clubs.filter((club) => !facts.reached[key].has(club.club_id) && !facts.out.has(club.club_id) && club.stages[key] > 0)
+        .sort((a, b) => b.stages[key] - a.stages[key]).slice(0, 8);
+      if (!likely.length && !sure.length) return "";
+      const rows = [...sure.map((club) => ({ id: club.club_id, value: 1, label: "garantido" })), ...likely.map((club) => ({ id: club.club_id, value: club.stages[key] }))];
+      return `<section class="comp-block" aria-labelledby="ko-${stage}"><h2 id="ko-${stage}" class="ko-stage">${escapeHtml(STAGE_NAMES[stage])} <span>quem chega</span></h2>${S.raceRows(rows, "")}</section>`;
+    }).join("");
+    return `
+      ${S.screenHead("Chave do mata-mata", info)}
+      ${blocks}
+      <h2>Fase a fase</h2>
+      ${stagesTable({ ...data, clubs: data.clubs.filter((club) => club.zones.out < 1) })}`;
+  }
   const chronological = (a, b) => (a.kickoff_utc || a.match_date).localeCompare(b.kickoff_utc || b.match_date);
   const HOME_MATCHES = 4;
   const UPCOMING_ROUNDS = 2;
 
   function home(data) {
+    if (isKnockout(data)) return knockoutHome(data);
     const open = (zone) => data.clubs.filter((club) => club.clinched[zone] !== "out");
     const byWinner = [...data.clubs].sort((a, b) => b.stages.winner - a.stages.winner).slice(0, 8);
     const byTop8 = open("top8").sort((a, b) => b.zones.top8 - a.zones.top8).slice(0, 8);
@@ -92,6 +203,7 @@
   }
 
   function bracket(data) {
+    if (isKnockout(data)) return knockoutBracket(data);
     const label = (section) => `${section.seeds[0]}º/${section.seeds[1]}º × playoff ${section.playoff[0]}º–${section.playoff[3]}º`;
     const [a, b, c, d] = SECTIONS;
     const finalists = [...data.clubs].sort((x, y) => y.stages.final - x.stages.final).slice(0, 6);
@@ -116,14 +228,39 @@
       ${stagesTable(data)}`;
   }
 
+  // Fatos do mata-mata (nunca da simulação): quem já chegou a cada fase e quem já caiu. Top 8 vai direto às oitavas;
+  // vencedor de confronto decidido chega à fase seguinte; perdedor e quem ficou de 25º a 36º estão fora.
+  function knockoutFacts(data) {
+    const reached = Object.fromEntries(STAGES.map(([key]) => [key, new Set()]));
+    const out = new Set(data.clubs.filter((club) => club.zones.out === 1).map((club) => club.club_id));
+    data.clubs.filter((club) => club.zones.top8 === 1).forEach((club) => reached.round_of_16.add(club.club_id));
+    (data.knockout || []).filter((tie) => tie.winner_id).forEach((tie) => {
+      reached[NEXT[tie.stage]].add(tie.winner_id);
+      tie.club_ids.filter((id) => id !== tie.winner_id).forEach((id) => out.add(id));
+    });
+    // Quem chegou a uma fase também chegou às anteriores.
+    STAGES.map(([key]) => key).reduceRight((later, key) => { later.forEach((id) => reached[key].add(id)); return reached[key]; }, new Set());
+    return { reached, out };
+  }
+
+  function stageText(data, facts, club, key) {
+    if (!facts) return pct(club.stages[key]);
+    if (facts.reached[key].has(club.club_id)) return key === "winner" ? "campeão" : "garantido";
+    if (facts.out.has(club.club_id)) return "—";
+    return pct(club.stages[key]);
+  }
+
   function stagesTable(data) {
+    const knockout = isKnockout(data);
+    const facts = knockout ? knockoutFacts(data) : null;
     const rows = [...data.clubs]
-      .sort((a, b) => b.stages.winner - a.stages.winner || b.stages.round_of_16 - a.stages.round_of_16)
+      .sort((a, b) => b.stages.winner - a.stages.winner || b.stages.final - a.stages.final || b.stages.semi_finals - a.stages.semi_finals
+        || b.stages.quarter_finals - a.stages.quarter_finals || b.stages.round_of_16 - a.stages.round_of_16)
       .map((club) => `<tr>
         <td class="left club">${team(club.club_id, 20)}</td>
-        <td>${S.probCell(club.zones.top8, "lib", club.clinched.top8 ? zoneLabel(club, "top8") : null)}</td>
-        <td>${S.probCell(club.zones.playoff, "sula", club.clinched.playoff || club.clinched.top8 ? zoneLabel(club, "playoff") : null)}</td>
-        ${STAGES.map(([key]) => `<td class="stage${club.stages[key] >= 0.5 ? " strong" : ""}">${pct(club.stages[key])}</td>`).join("")}
+        <td>${knockout ? (club.zones.top8 === 1 ? "sim" : "—") : S.probCell(club.zones.top8, "lib", club.clinched.top8 ? zoneLabel(club, "top8") : null)}</td>
+        <td>${knockout ? (club.zones.playoff === 1 ? "sim" : "—") : S.probCell(club.zones.playoff, "sula", club.clinched.playoff || club.clinched.top8 ? zoneLabel(club, "playoff") : null)}</td>
+        ${STAGES.map(([key]) => `<td class="stage${club.stages[key] >= 0.5 ? " strong" : ""}">${stageText(data, facts, club, key)}</td>`).join("")}
       </tr>`)
       .join("");
     return `<div class="table-scroll" tabindex="0" role="region" aria-label="Probabilidade de cada clube por fase">
@@ -161,9 +298,10 @@
   }
 
   function matches(data) {
-    const scheduled = upcoming(data).filter((match) => match.round !== null);
+    const scheduled = upcoming(data).filter((match) => match.round !== null || match.stage);
     const info = "<p>Horários de Brasília. Probabilidade de vitória do mandante, de empate e de vitória do visitante, com a força de cada clube na data da edição. Toque num jogo para ver os detalhes.</p>";
     if (!scheduled.length) return `${S.screenHead("Jogos", info)}<div class="state"><p class="state-title">Sem jogos marcados</p><p class="state-text">Os próximos jogos aparecem aqui quando a fonte trouxer as datas.</p></div>`;
+    if (isKnockout(data)) return `${S.screenHead("Próximos jogos", info)}${S.matchesByDay(scheduled)}`;
     const rounds = [...new Set(scheduled.map((match) => match.round))].sort((a, b) => a - b).slice(0, UPCOMING_ROUNDS);
     return `
       ${S.screenHead("Próximos jogos", info)}
@@ -208,6 +346,15 @@
       clubs: (data) => data.clubs.map((club) => ({ id: club.club_id, name: club.name, meta: `${club.position}º na fase de liga · ${club.points} pts` })),
       stats: (data, id) => {
         const club = data.clubs.find((item) => item.club_id === id);
+        if (isKnockout(data)) {
+          const tie = (data.knockout || []).find((item) => item.stage === data.current_stage && item.club_ids.includes(id));
+          const now = tie ? (tie.winner_id ? (tie.winner_id === id ? "passou" : "fora") : pct(tie.advance[id])) : knockoutFacts(data).out.has(id) ? "fora" : "na disputa";
+          return [
+            { label: tie ? `Passa (${STAGE_NAMES[tie.stage]})` : "Mata-mata", text: now, tone: "is-g4" },
+            { label: "Final", text: pct(club.stages.final) },
+            { label: "Título", text: pct(club.stages.winner) },
+          ];
+        }
         return [
           { label: "Top 8", text: zoneLabel(club, "top8"), tone: "is-g4" },
           { label: "Playoff", text: zoneLabel(club, "playoff") },
@@ -223,7 +370,7 @@
     },
     routes: [
       { id: "", label: "Início", render: home },
-      { id: "chave", label: "Chave provável", render: bracket },
+      { id: "chave", label: "Chave", render: bracket },
       { id: "fase-de-liga", label: "Fase de liga", render: leaguePhase },
       { id: "jogos", label: "Jogos", render: matches },
       { id: "metodologia", label: "Como calculamos", render: method, after: (data, main) => window.AIndaDaMetodo && window.AIndaDaMetodo.render(main.querySelector("#metodo-elo"), data.competition) },

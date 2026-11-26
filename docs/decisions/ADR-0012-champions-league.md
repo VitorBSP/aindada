@@ -56,6 +56,37 @@ Regulations of the UEFA Champions League 2026/27 (documents.uefa.com, em vigor d
 previsão e o gate no passo seguinte, com falha isolada e o mesmo fallback (`gate --standalone`). 8 chamadas ao
 football-data.org por execução, com 6,5 s entre elas.
 
+## Decisão 5 — Mata-mata real (Kanban #26, 2026-11-26)
+
+Antes, qualquer jogo fora da fase de liga travava a previsão (`ensure_league_phase_only`), e o site congelaria no fim
+da fase de liga. Agora:
+
+- **Ingestão**: confronto do mata-mata sem os dois clubes definidos não é jogo marcado e sai. Com prorrogação ou
+  pênaltis, o placar do modelo vem de `regularTime` (o `fullTime` do v4 soma a prorrogação); o total dos 120 minutos
+  e os pênaltis vão para colunas próprias, como no openfootball.
+- **Leitura** (`europe/knockout.py`): fases `PLAYOFFS`, `LAST_16`, `QUARTER_FINALS`, `SEMI_FINALS` e `FINAL`.
+  - Ida e volta com mando invertido; agregado sem gol fora; prorrogação só com empate no tempo normal; pênaltis só
+    com empate depois da prorrogação.
+  - Só conta jogo encerrado até a data de referência. Jogo sem placar é jogo por disputar.
+- **Trava mantida**: qualquer coisa fora desse formato para a previsão (`KnockoutFormatError`). Isso inclui fase
+  desconhecida, mata-mata com a fase de liga em andamento, volta sem inverter o mando, prorrogação ou pênaltis sem
+  empate, clube numa fase sem ter vencido a anterior, confronto que não cabe em nenhuma chave do Art. 19 e empate em
+  todos os critérios com dados até o 24º (dependeria do coeficiente).
+- **Simulação** (`run_knockout`): fase de liga encerrada → ordem final pelo Art. 18. A chave é descrita por 12
+  sorteios binários: par do playoff e par das oitavas em cada seção, e o lado da chave de cada seção. A simulação
+  sorteia, com pesos iguais, entre as configurações que batem com os confrontos reais.
+  - Confronto decidido não é sorteado. Ida disputada entra com o placar real e só a volta é simulada.
+  - O mando é o da fonte.
+  - Com a fase de liga em andamento, o caminho antigo segue igual: mesma sequência de sorteios, resultado idêntico byte
+    a byte, então o backtest não muda.
+- **Export** (schema 1.1, campos novos com valor padrão):
+  - `phase` (`league`/`knockout`) e `current_stage`;
+  - `knockout`: confrontos com jogos (placar só se encerrado; probabilidade 1X2 só se por disputar), agregado,
+    vencedor e probabilidade de cada clube passar, que é a mesma da tabela fase a fase.
+- **Limitação**: enquanto a fonte não mostra o cruzamento das fases seguintes (lado da chave sorteado pela UEFA),
+  ele é sorteado entre os que batem com o já conhecido. Um arquivo de referência com a chave oficial resolveria isso.
+  Ver `docs/project/status.md`.
+
 ## Evidência e pendências
 
 Ver `docs/methodology/validation.md` (Champions League) e `docs/project/status.md`. Pendências: parecer do 06;

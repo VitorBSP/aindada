@@ -11,6 +11,7 @@ from typing import Any
 
 from brasileirao.contracts import BRASILIA_TIMEZONE, PUBLISHABLE_LICENSE_STATUSES, AllowedUse, LicenseStatus
 from brasileirao.europe.forecast import CHAMPIONS_SCHEMA_VERSION, ChampionsForecast
+from brasileirao.europe.knockout import KNOCKOUT_STAGES, NEXT_STAGE, TIES_PER_STAGE
 from brasileirao.ratings.examples import EXAMPLES_FILE_NAME, check_examples_file
 
 TOLERANCE = 1e-6
@@ -55,6 +56,62 @@ def check_forecast_core(forecast: ChampionsForecast, today: date) -> list[str]:
         findings.append("fase de liga não tem 144 jogos")
     if len(forecast.remaining) != forecast.remaining_matches:
         findings.append("jogos restantes sem probabilidade")
+    findings.extend(check_knockout(forecast))
+    return findings
+
+
+def _leg_findings(label: str, leg: Any) -> list[str]:
+    findings = []
+    scores = (leg.home_goals, leg.away_goals)
+    odds = (leg.p_home, leg.p_draw, leg.p_away)
+    if leg.status == "finished":
+        if None in scores or any(value is not None for value in odds):
+            findings.append(f"{label}: jogo encerrado sem placar ou com probabilidade")
+    elif leg.status == "scheduled":
+        if any(value is not None for value in scores) or leg.extra_time or leg.penalties:
+            findings.append(f"{label}: jogo por disputar com placar")
+        if None in odds or not math.isclose(sum(odds), 1.0, abs_tol=1e-6):
+            findings.append(f"{label}: probabilidades do jogo não somam 1")
+    else:
+        findings.append(f"{label}: status {leg.status!r}")
+    return findings
+
+
+def check_knockout(forecast: ChampionsForecast) -> list[str]:
+    """Mata-mata real: só com a fase de liga encerrada, confrontos no formato, placar só em jogo encerrado e a
+    probabilidade de avanço igual à da fase seguinte na tabela fase a fase."""
+    if forecast.phase == "league":
+        return ["mata-mata publicado com a fase de liga em andamento"] if forecast.knockout else []
+    if forecast.phase != "knockout":
+        return [f"fase {forecast.phase!r} desconhecida"]
+    findings = []
+    if forecast.remaining_matches:
+        findings.append("mata-mata com jogos da fase de liga por disputar")
+    if forecast.current_stage not in KNOCKOUT_STAGES:
+        findings.append(f"fase atual {forecast.current_stage!r} fora do mata-mata")
+    clubs = {club.club_id: club for club in forecast.clubs}
+    for stage in KNOCKOUT_STAGES:
+        stage_ties = [tie for tie in forecast.knockout if tie.stage == stage]
+        if len(stage_ties) > TIES_PER_STAGE[stage]:
+            findings.append(f"{len(stage_ties)} confrontos em {stage}")
+        for tie in stage_ties:
+            label = f"{stage} {'x'.join(tie.club_ids)}"
+            if len(tie.club_ids) != 2 or any(club not in clubs for club in tie.club_ids):
+                findings.append(f"{label}: clubes fora da fase de liga")
+                continue
+            for leg in tie.legs:
+                findings.extend(_leg_findings(f"{label} jogo {leg.leg}", leg))
+            if not math.isclose(sum(tie.advance.values()), 1.0, abs_tol=1e-3):
+                findings.append(f"{label}: probabilidades de avanço não somam 1")
+            for club_id in tie.club_ids:
+                reached = clubs[club_id].stages[NEXT_STAGE[stage]]
+                if not math.isclose(tie.advance.get(club_id, -1.0), reached, abs_tol=TOLERANCE):
+                    findings.append(f"{label}: avanço de {club_id} difere da tabela fase a fase")
+            if tie.winner_id is not None and tie.advance.get(tie.winner_id) != 1.0:
+                findings.append(f"{label}: confronto decidido sem avanço certo do vencedor")
+    unknown = {tie.stage for tie in forecast.knockout} - set(KNOCKOUT_STAGES)
+    if unknown:
+        findings.append(f"fases desconhecidas no mata-mata: {sorted(unknown)}")
     return findings
 
 
@@ -111,8 +168,15 @@ def check_artifact(
 
 def summary_line(site_dir: Path) -> str:
     payload = json.loads((site_dir / "data" / "forecast.json").read_text(encoding="utf-8"))
+    if payload.get("phase") == "knockout":
+        ties = payload.get("knockout") or []
+        decided = sum(tie["winner_id"] is not None for tie in ties)
+        progress = f"mata-mata em {payload.get('current_stage')}, {decided} de {len(ties)} confrontos reais decididos"
+    else:
+        progress = (
+            f"{payload['observed_matches']} jogos observados, {payload['remaining_matches']} restantes na fase de liga"
+        )
     return (
         f"{payload['competition_name']} | referência {payload['reference_date']} | modelo {payload['model_version']} | "
-        f"dados {payload['data_version']} | {payload['observed_matches']} jogos observados, "
-        f"{payload['remaining_matches']} restantes na fase de liga | {payload['n_simulations']} simulações"
+        f"dados {payload['data_version']} | {progress} | {payload['n_simulations']} simulações"
     )

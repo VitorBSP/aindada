@@ -1,4 +1,8 @@
-"""Previsão da Champions League (ADR-0012): Elo entre ligas, modelo de gols das copas e simulação completa."""
+"""Previsão da Champions League (ADR-0012): Elo entre ligas, modelo de gols das copas e simulação completa.
+
+Fase de liga em andamento: simula o resto da fase e o mata-mata inteiro. Fase de liga encerrada: parte do mata-mata
+real (europe/knockout.py), com os confrontos, placares e mandos que a fonte trouxe. Formato fora do conhecido trava.
+"""
 
 from __future__ import annotations
 
@@ -13,15 +17,28 @@ from pydantic import BaseModel, Field
 
 from brasileirao.config import MODEL_VERSION
 from brasileirao.data_pipeline.clubs import ClubRegistry
+from brasileirao.europe.knockout import (
+    KNOCKOUT_STAGES,
+    NEXT_STAGE,
+    STAGE_LABELS,
+    TIES_PER_STAGE,
+    KnockoutFormatError,
+    Leg,
+    RealTie,
+    check_progression,
+    consistent_configs,
+    league_complete,
+    read_knockout,
+)
 from brasileirao.europe.ratings import CUP_COMPETITIONS, GlobalElo, GlobalEloParams
-from brasileirao.europe.simulation import STAGES, ChampionsSimulator, split_league_phase
+from brasileirao.europe.simulation import STAGES, ChampionsSimulation, ChampionsSimulator, split_league_phase
 from brasileirao.frame_values import as_int, as_timestamp, optional_int
 from brasileirao.leagues.forecast import zone_clinch
 from brasileirao.leagues.rules import Zone
 from brasileirao.leagues.schema import ClinchState, SourceCredit
 from brasileirao.prediction.goals_model import GoalsModel
 
-CHAMPIONS_SCHEMA_VERSION = "1.0"
+CHAMPIONS_SCHEMA_VERSION = "1.1"
 CHAMPIONS_MODEL_VERSION = f"champions-0.1.0+{MODEL_VERSION}"
 ZONES = (
     Zone("top8", "Direto às oitavas", 1, 8, "up"),
@@ -29,6 +46,12 @@ ZONES = (
     Zone("out", "Eliminado", 25, 36, "down"),
 )
 TRAINING_SEASONS_WINDOW = 4
+KNOCKOUT_WARNINGS = (
+    "Mata-mata a partir do real: confronto decidido não é sorteado, ida disputada entra com o placar real e o mando "
+    "é o da fonte.",
+    "Enquanto a fonte não mostra o cruzamento das fases seguintes (lado da chave), a simulação sorteia entre os "
+    "chaveamentos do regulamento que batem com os confrontos já conhecidos.",
+)
 REGULATION_TITLE = "Regulations of the UEFA Champions League 2026/27, Art. 18 (empate na fase de liga) e Art. 19"
 REGULATION_URL = (
     "https://documents.uefa.com/r/Regulations-of-the-UEFA-Champions-League-2026/27/"
@@ -66,6 +89,39 @@ class ChampionsMatch(BaseModel):
     p_away: float
 
 
+class KnockoutLeg(BaseModel):
+    """Jogo do mata-mata. Encerrado: placar de 90 minutos, prorrogação (total dos 120) e pênaltis, sem probabilidade.
+    Por disputar: sem placar e com a probabilidade do modelo para os 90 minutos."""
+
+    match_id: str
+    leg: int = Field(ge=1, le=2)
+    match_date: str
+    kickoff_utc: str | None
+    home_id: str
+    away_id: str
+    status: str
+    home_goals: int | None = None
+    away_goals: int | None = None
+    extra_time: list[int] | None = None
+    penalties: list[int] | None = None
+    p_home: float | None = None
+    p_draw: float | None = None
+    p_away: float | None = None
+
+
+class KnockoutTie(BaseModel):
+    """`club_ids` = (mandante da ida, mandante da volta); na final, os dois finalistas. `aggregate` na mesma ordem,
+    com a prorrogação somada. `advance` = probabilidade de cada um passar (1 e 0 quando decidido)."""
+
+    stage: str
+    stage_label: str
+    club_ids: list[str]
+    legs: list[KnockoutLeg]
+    aggregate: list[int] | None
+    winner_id: str | None
+    advance: dict[str, float]
+
+
 class ChampionsForecast(BaseModel):
     schema_version: str = CHAMPIONS_SCHEMA_VERSION
     competition: str = "champions-league"
@@ -87,19 +143,27 @@ class ChampionsForecast(BaseModel):
     clubs: list[ClubForecast]
     remaining: list[ChampionsMatch]
     backtest: dict[str, Any] | None = None
+    phase: str = "league"
+    current_stage: str | None = None
+    knockout: list[KnockoutTie] = Field(default_factory=list)
 
 
-class KnockoutStartedError(RuntimeError):
-    """Com o mata-mata real em andamento, sortear confrontos já definidos publicaria chances falsas."""
+def knockout_ties(champions: pd.DataFrame, reference: pd.Timestamp) -> tuple[dict[str, list[RealTie]], bool]:
+    """Confrontos reais e se a fase de liga acabou. Mata-mata com a fase de liga em andamento trava (formato novo)."""
+    ties = read_knockout(champions, reference)
+    done = league_complete(champions, reference)
+    if not done and any(ties[stage] for stage in KNOCKOUT_STAGES):
+        raise KnockoutFormatError("jogos do mata-mata com a fase de liga ainda em andamento")
+    return ties, done
 
 
-def ensure_league_phase_only(champions: pd.DataFrame) -> None:
-    """Qualquer jogo da temporada fora da fase de liga (com clubes definidos ou encerrado) trava a previsão."""
-    knockout = champions[champions["stage"] != "LEAGUE_STAGE"]
-    if len(knockout):
-        raise KnockoutStartedError(
-            f"{len(knockout)} jogos da Champions fora da fase de liga: o modelo ainda não parte do mata-mata real"
-        )
+def current_stage(ties: dict[str, list[RealTie]]) -> str:
+    """Primeira fase com confronto por decidir; sem nenhum, a fase seguinte à última decidida (a do sorteio)."""
+    for stage in KNOCKOUT_STAGES:
+        stage_ties = ties[stage]
+        if len(stage_ties) < TIES_PER_STAGE[stage] or any(tie.winner is None for tie in stage_ties):
+            return stage
+    return "FINAL"
 
 
 def data_version(sources: dict[str, Any]) -> str:
@@ -135,11 +199,19 @@ def build_forecast(
     engine.start_season_if_needed(season)
     model = fit_goals_model(features, season, goal_dispersion)
     champions = matches_data[(matches_data["competition"] == "CL") & (matches_data["season"] == season)]
-    ensure_league_phase_only(champions)
+    ties, league_done = knockout_ties(champions, reference)
     phase = split_league_phase(champions, reference)
     ratings = {club: engine.rating(club) for club in phase.club_ids}
     simulator = ChampionsSimulator(phase, ratings, model, params.home_advantage)
-    result = simulator.run(n_simulations, seed)
+    final_order: list[int] | None = None
+    result: ChampionsSimulation
+    if league_done:
+        final_order = [int(club) for club in simulator.final_league_order()]
+        league_position = {phase.club_ids[club]: rank for rank, club in enumerate(final_order, start=1)}
+        check_progression(ties, league_position)
+        result = simulator.run_knockout(n_simulations, seed, ties, consistent_configs(ties, league_position))
+    else:
+        result = simulator.run(n_simulations, seed)
     n_clubs = len(phase.club_ids)
     distribution = np.stack([(result.positions == position).mean(axis=0) for position in range(n_clubs)], axis=1)
     played = np.zeros(n_clubs, dtype=np.int64)
@@ -158,7 +230,7 @@ def build_forecast(
         points_now[away] += 3 if away_goals > home_goals else 1 if home_goals == away_goals else 0
     remaining_counts = 8 - played
     clinch = {zone.zone_id: zone_clinch(points_now, remaining_counts, 3, zone) for zone in ZONES}
-    current_order = sorted(
+    current_order = final_order or sorted(
         range(n_clubs),
         key=lambda club: (
             -points_now[club],
@@ -207,6 +279,9 @@ def build_forecast(
                 p_away=float(outcome[2]),
             )
         )
+    knockout = (
+        knockout_view(ties, result, simulator.index, ratings, model, params.home_advantage) if league_done else []
+    )
     return ChampionsForecast(
         competition_name=f"Champions League {season}/{str(season + 1)[2:]}",
         season=season,
@@ -233,6 +308,7 @@ def build_forecast(
             "a simulação sorteia com probabilidades iguais.",
             "Prorrogação com um terço das taxas de gol; pênaltis 50/50.",
             "Ratings fixos no que falta da competição; a força de cada clube é a da data de referência.",
+            *(KNOCKOUT_WARNINGS if league_done else ()),
         ],
         sources=[
             SourceCredit(
@@ -248,4 +324,66 @@ def build_forecast(
         clubs=clubs,
         remaining=remaining,
         backtest=backtest,
+        phase="knockout" if league_done else "league",
+        current_stage=current_stage(ties) if league_done else None,
+        knockout=knockout,
     )
+
+
+def _leg_view(
+    leg_number: int, leg: Leg, ratings: Mapping[str, float], model: GoalsModel, advantage: float, neutral: bool
+) -> KnockoutLeg:
+    view = KnockoutLeg(
+        match_id=leg.match_id,
+        leg=leg_number,
+        match_date=leg.match_date.isoformat(),
+        kickoff_utc=leg.kickoff_utc,
+        home_id=leg.home_id,
+        away_id=leg.away_id,
+        status="finished" if leg.finished else "scheduled",
+    )
+    if leg.finished:
+        return view.model_copy(
+            update={
+                "home_goals": leg.home_goals,
+                "away_goals": leg.away_goals,
+                "extra_time": list(leg.extra_time) if leg.extra_time else None,
+                "penalties": list(leg.penalties) if leg.penalties else None,
+            }
+        )
+    diff = ratings[leg.home_id] + (0.0 if neutral else advantage) - ratings[leg.away_id]
+    outcome = model.outcome_probabilities({"elo_diff": np.array([diff])})[0]
+    return view.model_copy(
+        update={"p_home": float(outcome[0]), "p_draw": float(outcome[1]), "p_away": float(outcome[2])}
+    )
+
+
+def knockout_view(
+    ties: dict[str, list[RealTie]],
+    result: ChampionsSimulation,
+    index: Mapping[str, int],
+    ratings: Mapping[str, float],
+    model: GoalsModel,
+    advantage: float,
+) -> list[KnockoutTie]:
+    """Confrontos reais com placares e a probabilidade de cada clube passar, tirada da mesma simulação."""
+    view = []
+    for stage in KNOCKOUT_STAGES:
+        reached = result.stage_counts[NEXT_STAGE[stage]]
+        for tie in ties[stage]:
+            neutral = stage == "FINAL"
+            view.append(
+                KnockoutTie(
+                    stage=stage,
+                    stage_label=STAGE_LABELS[stage],
+                    club_ids=list(tie.clubs),
+                    legs=[
+                        _leg_view(number, leg, ratings, model, advantage, neutral)
+                        for number, leg in enumerate(tie.legs, start=1)
+                    ],
+                    aggregate=list(tie.aggregate) if tie.aggregate else None,
+                    winner_id=tie.winner,
+                    advance={club: float(reached[index[club]]) for club in tie.clubs},
+                )
+            )
+    return view
