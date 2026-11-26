@@ -13,9 +13,11 @@ from brasileirao.config import PATHS, SimulationConfig
 from brasileirao.contracts import BRASILIA_TIMEZONE
 from brasileirao.data_pipeline.clubs import load_club_registry
 from brasileirao.leagues.forecast import LEAGUE_MODEL_CONFIG, LEAGUE_MODEL_VERSION, build_forecast
-from brasileirao.leagues.gate import check_artifact, summary_line
+from brasileirao.leagues.gate import HISTORY_FILE_NAME, check_artifact, summary_line
+from brasileirao.leagues.history import HISTORY_SIMULATIONS, build_history
 from brasileirao.leagues.ingest import LeaguePins, compose, load_league_pins, read_silver, write_silver
 from brasileirao.leagues.rules import LeagueRules, load_league_rules
+from brasileirao.leagues.schema import LeagueForecast
 from brasileirao.leagues.sources import fetch_football_data, fetch_openfootball
 from brasileirao.leagues.validation import backtest_summary, run_tuning
 from brasileirao.logging_utils import configure_logging
@@ -141,12 +143,36 @@ def command_forecast(arguments: argparse.Namespace) -> None:
         print(f"{pins.code}: exemplos do Elo em {examples_path}")
 
 
+def command_history(arguments: argparse.Namespace) -> None:
+    """Histórico rodada a rodada (R18: reconstrução). Só grava o arquivo inteiro; em falha, o site fica sem a aba."""
+    pins = _pins(arguments.league)
+    forecast_dir = PATHS.league_data(pins.code) / "forecast"
+    target = forecast_dir / HISTORY_FILE_NAME
+    target.unlink(missing_ok=True)
+    matches_data, _ = read_silver(PATHS.league_data(pins.code) / "silver")
+    forecast = LeagueForecast.model_validate_json((forecast_dir / "forecast.json").read_text(encoding="utf-8"))
+    history = build_history(
+        matches_data,
+        forecast,
+        _rules(pins),
+        _model_config(pins.code),
+        pins.history_seasons[0],
+        arguments.simulations,
+        arguments.seed,
+    )
+    target.write_text(history.model_dump_json() + "\n", encoding="utf-8")
+    print(f"{pins.code}: histórico em {target} ({len(history.points)} pontos, {history.n_simulations} simulações cada)")
+
+
 def command_export_web(arguments: argparse.Namespace) -> None:
     target_dir = Path(arguments.target)
     target_dir.mkdir(parents=True, exist_ok=True)
     forecast_dir = PATHS.league_data(arguments.league) / "forecast"
     shutil.copyfile(forecast_dir / "forecast.json", target_dir / "forecast.json")
     print(f"exportado em {target_dir / 'forecast.json'}")
+    if (forecast_dir / HISTORY_FILE_NAME).exists():
+        shutil.copyfile(forecast_dir / HISTORY_FILE_NAME, target_dir / HISTORY_FILE_NAME)
+        print(f"exportado em {target_dir / HISTORY_FILE_NAME}")
     if copy_examples(forecast_dir, target_dir):
         print(f"exportado em {target_dir / EXAMPLES_FILE_NAME}")
 
@@ -183,6 +209,11 @@ def build_parser() -> argparse.ArgumentParser:
     forecast.add_argument("--simulations", type=int, default=SimulationConfig().n_simulations)
     forecast.add_argument("--seed", type=int, default=SimulationConfig().seed)
     forecast.set_defaults(handler=command_forecast)
+
+    history = commands.add_parser("history", help="histórico rodada a rodada (reconstrução com o modelo de hoje)")
+    history.add_argument("--simulations", type=int, default=HISTORY_SIMULATIONS)
+    history.add_argument("--seed", type=int, default=None, help="padrão: a semente do forecast.json")
+    history.set_defaults(handler=command_history)
 
     export = commands.add_parser("export-web", help="copia o forecast.json para a pasta do site")
     export.add_argument("--target", required=True)

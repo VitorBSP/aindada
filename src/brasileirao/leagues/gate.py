@@ -9,12 +9,14 @@ from pathlib import Path
 from typing import Any
 
 from brasileirao.contracts import BRASILIA_TIMEZONE, PUBLISHABLE_LICENSE_STATUSES, AllowedUse, LicenseStatus
-from brasileirao.leagues.schema import LEAGUE_SCHEMA_VERSION, LeagueForecast
+from brasileirao.leagues.schema import HISTORY_SCHEMA_VERSION, LEAGUE_SCHEMA_VERSION, CompetitionHistory, LeagueForecast
 from brasileirao.ratings.examples import EXAMPLES_FILE_NAME, check_examples_file
 
 TOLERANCE = 1e-6
 FORBIDDEN_DIRS = ("raw", "silver", "gold", "snapshots", "editorial")
-ALLOWED_DATA_FILES = frozenset({"forecast.json", EXAMPLES_FILE_NAME})
+HISTORY_FILE_NAME = "history.json"
+ALLOWED_DATA_FILES = frozenset({"forecast.json", HISTORY_FILE_NAME, EXAMPLES_FILE_NAME})
+HISTORY_TOLERANCE = 5e-3
 
 
 def check_forecast_core(forecast: LeagueForecast, today: date) -> list[str]:
@@ -49,6 +51,64 @@ def check_forecast_core(forecast: LeagueForecast, today: date) -> list[str]:
     for match in forecast.remaining:
         if not math.isclose(match.p_home + match.p_draw + match.p_away, 1.0, abs_tol=1e-6):
             findings.append(f"{match.match_id}: 1X2 não soma 1")
+    return findings
+
+
+def check_history(
+    history: CompetitionHistory,
+    competition: str,
+    reference_date: str,
+    club_ids: set[str],
+    zone_sizes: dict[str, int],
+    model_version: str,
+    data_version: str,
+    today: date,
+    ends_at_reference: bool = True,
+) -> list[str]:
+    """Contrato do `history.json`: a evolução precisa fechar com a edição publicada e marcar o que é reconstrução."""
+    findings: list[str] = []
+    if history.schema_version != HISTORY_SCHEMA_VERSION:
+        findings.append(f"history: schema_version {history.schema_version} != {HISTORY_SCHEMA_VERSION}")
+    if history.competition != competition:
+        findings.append(f"history de {history.competition} publicado em /{competition}/")
+    if (history.model_version, history.data_version) != (model_version, data_version):
+        findings.append("history: modelo ou dados diferentes do forecast.json")
+    if not history.points:
+        return [*findings, "history sem nenhum ponto"]
+    dates = [point.reference_date for point in history.points]
+    if dates != sorted(set(dates)):
+        findings.append("history: datas fora de ordem ou repetidas")
+    if date.fromisoformat(dates[-1]) > today:
+        findings.append(f"history: ponto de {dates[-1]} no futuro (hoje: {today})")
+    if ends_at_reference and dates[-1] != reference_date:
+        findings.append(f"history termina em {dates[-1]}; a edição é de {reference_date}")
+    if not ends_at_reference and dates[-1] > reference_date:
+        findings.append(f"history termina em {dates[-1]}, depois da edição de {reference_date}")
+    reconstructed = [point.reconstructed for point in history.points]
+    if (history.history_mode == "reconstructed") != any(reconstructed):
+        findings.append("history: history_mode não bate com os pontos reconstruídos")
+    if not all(reconstructed[:-1]):
+        findings.append("history: ponto anterior à edição sem a marca reconstructed (R18)")
+    previous_observed = 0
+    for point in history.points:
+        label = f"history {point.reference_date}"
+        if point.observed_matches < previous_observed:
+            findings.append(f"{label}: jogos observados diminuíram")
+        previous_observed = point.observed_matches
+        if set(point.teams) != club_ids:
+            findings.append(f"{label}: clubes diferentes dos da previsão")
+            continue
+        if sorted(team.position for team in point.teams.values()) != list(range(1, len(club_ids) + 1)):
+            findings.append(f"{label}: posições não são 1 a {len(club_ids)}")
+        for zone_id, size in zone_sizes.items():
+            values = [team.zones.get(zone_id, -1.0) for team in point.teams.values()]
+            if any(value < 0 or value > 1 for value in values):
+                findings.append(f"{label}: zona {zone_id} com probabilidade fora de 0 a 1")
+            elif not math.isclose(sum(values), size, abs_tol=HISTORY_TOLERANCE * len(values)):
+                findings.append(f"{label}: soma da zona {zone_id} = {sum(values):.3f}; esperado {size}")
+        winners = [team.stages["winner"] for team in point.teams.values() if team.stages and "winner" in team.stages]
+        if winners and not math.isclose(sum(winners), 1.0, abs_tol=HISTORY_TOLERANCE * len(winners)):
+            findings.append(f"{label}: chances de título somam {sum(winners):.3f}")
     return findings
 
 
@@ -107,6 +167,25 @@ def check_artifact(
     if extra:
         findings.append(f"arquivos inesperados em data/: {extra}")
     findings.extend(check_examples_file(site_dir / "data" / EXAMPLES_FILE_NAME, competition, forecast.reference_date))
+    history_path = site_dir / "data" / HISTORY_FILE_NAME
+    if history_path.exists():
+        try:
+            history = CompetitionHistory.model_validate_json(history_path.read_text(encoding="utf-8"))
+        except ValueError as error:
+            findings.append(f"history.json fora do esquema: {type(error).__name__}")
+        else:
+            findings.extend(
+                check_history(
+                    history,
+                    competition,
+                    forecast.reference_date,
+                    {team.club_id for team in forecast.teams},
+                    {zone.zone_id: zone.last - zone.first + 1 for zone in forecast.zones},
+                    forecast.model_version,
+                    forecast.data_version,
+                    today,
+                )
+            )
     return findings
 
 

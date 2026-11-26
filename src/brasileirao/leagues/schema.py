@@ -88,3 +88,43 @@ class LeagueForecast(BaseModel):
     teams: list[TeamForecast]
     remaining: list[MatchForecast]
     backtest: dict[str, Any] | None = None
+
+
+HISTORY_SCHEMA_VERSION = "1.0"
+HistoryMode = Literal["reconstructed", "recorded"]
+
+
+class HistoryTeam(BaseModel):
+    """Um clube numa data da história: tabela do dia e probabilidades daquele dia (`stages` só na Champions)."""
+
+    position: int = Field(ge=1)
+    points: int = Field(ge=0)
+    expected_points: float
+    zones: dict[str, float]
+    stages: dict[str, float] | None = None
+
+
+class HistoryPoint(BaseModel):
+    round: int = Field(ge=1)
+    reference_date: str
+    reconstructed: bool
+    observed_matches: int = Field(ge=0)
+    n_simulations: int = Field(ge=1)
+    teams: dict[str, HistoryTeam]
+
+
+class CompetitionHistory(BaseModel):
+    """`data/history.json`: a evolução das probabilidades rodada a rodada (R18: é sempre reconstrução com o modelo
+    do dia da geração, nunca o que foi publicado na época; `reconstructed` marca cada ponto)."""
+
+    schema_version: str = HISTORY_SCHEMA_VERSION
+    competition: str
+    season: int
+    history_mode: HistoryMode
+    generated_at: str
+    model_version: str
+    data_version: str
+    n_simulations: int
+    seed: int
+    zones: list[ZoneInfo]
+    points: list[HistoryPoint]
