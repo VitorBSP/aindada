@@ -442,3 +442,175 @@
   .sim-vstep { width: 96px; }
   .sim-card { padding: 12px; }
 }
+
+/* Kanban #43 (D-052): Simulador 2C (início com preview interativo + passo 2 em 2 colunas no PC) e 3B (Ranking + Agregado). */
+.sim-screen-head { align-items: center; gap: 10px; flex-wrap: wrap; }
+.sim-head-left { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.sim-info-btn { flex: none; }
+.sim-sub-lede { margin: -6px 0 14px; font-size: 14px; color: var(--ink-soft); }
+.sim-chips { margin: 0 0 14px; }
+.sim-subchips { margin: 0 0 14px; }
+
+.sim-account-pill {
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  max-width: 100%;
+  padding: 0 12px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.sim-account-pill:hover { border-color: var(--ink-soft); background: var(--surface-2); }
+.sim-account-pill:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.sim-account-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--positive); flex: none; }
+.sim-account-dot.is-guest { background: var(--signal); }
+
+.sim-account-sheet { display: flex; flex-direction: column; gap: 12px; font-size: 14px; }
+.sim-account-sheet p { margin: 0; }
+.sim-account-cta-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.sim-account-sheet .sim-account-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sim-account-sheet .sim-form { margin: 4px 0 0; padding: 12px; border: 1px solid var(--rule); border-radius: 12px; background: var(--surface-2); }
+.sim-account-sheet .sim-form label { width: 100%; }
+.sim-account-sheet .sim-form input[type=text],
+.sim-account-sheet .sim-form input[type=email] { width: 100%; min-height: 40px; padding: 8px 10px; border-radius: 10px; }
+.sim-account-danger { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-top: 8px; border-top: 1px solid var(--rule); font-size: 13px; color: var(--ink-soft); }
+.sim-account-danger .link-button { margin-left: 0; }
+.sim-consent { font-size: 12px; color: var(--ink-faint); }
+
+/* 2C: Home do Simulador (preview interativo + minhas simulações). */
+.sim-home-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.sim-hero-card { display: flex; flex-direction: column; gap: 14px; padding: 18px; }
+.sim-hero-title { margin: 0; font-size: 22px; font-weight: 850; letter-spacing: -0.02em; line-height: 1.15; }
+.sim-hero-sub { margin: 4px 0 0; font-size: 13px; color: var(--ink-soft); }
+
+.sim-mode-seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border: 1px solid var(--rule); border-radius: 12px; background: var(--surface-2); }
+.sim-mode-seg button { font: inherit; min-height: 36px; padding: 6px 8px; border: 0; border-radius: 9px; background: transparent; color: var(--ink-soft); font-size: 13px; font-weight: 650; cursor: pointer; white-space: nowrap; }
+.sim-mode-seg button:hover:not(:disabled) { color: var(--ink); }
+.sim-mode-seg button[aria-selected="true"] { background: var(--ink); color: var(--paper); font-weight: 750; }
+.sim-mode-seg button:disabled { opacity: 0.4; cursor: not-allowed; }
+.sim-mode-seg button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.sim-live-stage { display: flex; flex-direction: column; gap: 12px; padding: 14px; border: 1px solid var(--rule); border-radius: 14px; background: var(--surface-2); }
+.sim-live-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px 10px; font-size: 12px; font-weight: 650; color: var(--ink-soft); }
+.sim-live-teams { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 10px; }
+.sim-live-team { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; font-size: 14px; font-weight: 750; min-width: 0; }
+.sim-live-team span { overflow-wrap: anywhere; }
+.sim-live-vs { font-size: 12px; font-weight: 800; letter-spacing: 0.06em; color: var(--ink-faint); }
+.sim-live-probs { margin: 0; font-size: 12px; color: var(--ink-faint); text-align: center; font-variant-numeric: tabular-nums; }
+
+.sim-mini-score { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; }
+.sim-mini-side { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; text-align: center; }
+.sim-mini-name { font-size: 14px; font-weight: 750; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sim-mini-x { font-size: 20px; font-weight: 800; color: var(--ink-faint); }
+.sim-mini-ctrl { display: inline-flex; align-items: center; gap: 8px; }
+.sim-mini-ctrl button { font: inherit; width: 38px; height: 38px; border: 1px solid var(--rule); border-radius: 10px; background: var(--surface); color: var(--ink); font-size: 20px; font-weight: 700; line-height: 1; cursor: pointer; }
+.sim-mini-ctrl button:hover { border-color: var(--ink-soft); background: var(--surface-3); }
+.sim-mini-ctrl button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.sim-mini-ctrl strong { min-width: 28px; text-align: center; font-size: 32px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
+
+.sim-pick-1x2 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.sim-pick-btn { font: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 54px; padding: 8px 6px; border: 1px solid var(--rule); border-radius: 12px; background: var(--surface); color: var(--ink); font-size: 14px; font-weight: 750; cursor: pointer; }
+.sim-pick-btn small { font-size: 11px; font-weight: 600; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.sim-pick-btn:hover { border-color: var(--ink-soft); }
+.sim-pick-btn.is-on { background: var(--signal-fill); border-color: var(--signal-fill); color: var(--on-signal-fill); }
+.sim-pick-btn.is-on small { color: var(--on-signal-fill); }
+.sim-pick-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.sim-class-rows { display: flex; flex-direction: column; gap: 8px; }
+.sim-class-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 10px; background: var(--surface); font-size: 13px; font-weight: 700; }
+.sim-class-row > span:first-child { color: var(--ink-soft); }
+.sim-class-row > span.is-g4 { color: var(--libertadores); }
+.sim-class-row > span.is-z4 { color: var(--danger); }
+.sim-class-val { display: inline-flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.sim-class-val small { font-size: 11px; font-weight: 650; color: var(--ink-faint); }
+.sim-class-val small.is-open { color: var(--signal); }
+
+.sim-hero-cta { width: 100%; }
+
+.sim-draft-note { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 10px 12px; border: 1px dashed var(--signal); border-radius: 12px; background: var(--surface-2); font-size: 13px; color: var(--ink-soft); }
+.sim-draft-actions { display: inline-flex; align-items: center; gap: 10px; }
+.sim-draft-actions .block-link { margin: 0; font-size: 13px; }
+.sim-draft-actions .link-button { margin-left: 0; font-size: 13px; color: var(--ink-faint); }
+.sim-draft-link { flex-basis: 100%; margin: 2px 0 0; font-size: 12px; }
+
+.sim-list-card { display: flex; flex-direction: column; gap: 10px; padding: 16px; border: 1px solid var(--rule); border-radius: var(--radius-card); background: var(--surface); }
+.sim-list-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.sim-list-head h2 { margin: 0; font-size: 17px; font-weight: 800; }
+.sim-list-head .block-link { margin: 0; font-size: 13px; }
+.sim-list-sub { margin: 2px 0 0; font-size: 12px; color: var(--ink-faint); }
+.sim-saved-list { display: flex; flex-direction: column; }
+.sim-saved-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 4px; border-top: 1px solid var(--rule); color: var(--ink); text-decoration: none; }
+.sim-saved-row:first-child { border-top: 0; padding-top: 4px; }
+.sim-saved-row:hover { color: var(--ink); }
+.sim-saved-row:hover .sim-saved-id { text-decoration: underline; text-decoration-color: var(--signal); }
+.sim-saved-left { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.sim-saved-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; }
+.sim-saved-origin { font-size: 11px; color: var(--ink-faint); }
+.sim-saved-sub { font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.sim-saved-right { display: inline-flex; align-items: center; gap: 6px; flex: none; font-variant-numeric: tabular-nums; }
+.sim-saved-right strong { font-size: 16px; font-weight: 850; }
+.sim-saved-empty { margin: 4px 0 0; padding: 14px; border: 1px dashed var(--rule); border-radius: 12px; font-size: 13px; color: var(--ink-soft); line-height: 1.45; }
+
+/* Passo 2 (renderDeck) em 2 colunas no PC. */
+.sim-deck-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.sim-deck-main, .sim-deck-side { min-width: 0; }
+.sim-deck-main .sim-card { max-width: none; }
+
+/* 3B: Ranking e Agregado (pódio / divergências + tabela limpa com vs. Modelo). */
+.sim-agg-note { margin: 0 0 12px; font-size: 13px; color: var(--ink-soft); }
+.sim-highlights-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0 0 14px; }
+.sim-podium-card { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border: 1px solid var(--rule); border-radius: 14px; background: var(--surface); min-width: 0; }
+.sim-podium-card.is-first { border-color: var(--signal); }
+.sim-podium-kicker { font-size: 11px; font-weight: 750; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; }
+.sim-podium-card.is-first .sim-podium-kicker { color: var(--signal); }
+.sim-podium-kicker.is-up { color: var(--positive); }
+.sim-podium-kicker.is-dn { color: var(--danger); }
+.sim-podium-name { font-size: 16px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sim-podium-name small { font-size: 12px; font-weight: 600; color: var(--ink-faint); }
+.sim-podium-pts { font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.sim-podium-pts strong { font-size: 18px; font-weight: 900; color: var(--ink); }
+.sim-podium-club { font-size: 15px; font-weight: 800; }
+.sim-podium-sub { font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+
+.sim-my-rank { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin: 0 0 14px; padding: 12px 14px; border: 1px solid var(--rule); border-left: 3px solid var(--signal); border-radius: 12px; background: var(--surface); font-size: 13px; }
+.sim-vtable th, .sim-vtable td { padding: 10px 10px; }
+.sim-vtable th { font-size: 11px; color: var(--ink-faint); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+.sim-rank-pos.is-top { color: var(--signal); font-weight: 850; }
+.sim-row-id { font-size: 12px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+
+.sim-delta-pill { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; padding: 2px 7px; border-radius: 999px; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.sim-delta-pill.is-up { background: var(--libertadores-soft); color: var(--positive); }
+.sim-delta-pill.is-dn { background: var(--danger-soft); color: var(--danger); }
+.sim-delta-pill.is-eq { background: var(--surface-2); color: var(--ink-faint); }
+
+@media (max-width: 899px) {
+  .sim-highlights-3 {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    margin: 0 -16px 14px;
+    padding: 0 16px;
+    gap: 10px;
+  }
+  .sim-highlights-3::-webkit-scrollbar { display: none; }
+  .sim-highlights-3 .sim-podium-card { flex: 0 0 74%; scroll-snap-align: start; }
+  .sim-vtable th, .sim-vtable td { padding: 9px 6px; }
+}
+
+@media (min-width: 900px) {
+  .sim-home-grid { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 20px; }
+  .sim-deck-grid { grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); gap: 22px; }
+  .sim-deck-main { position: sticky; top: 76px; }
+  .sim-deck-side .sim-section-title:first-child { margin-top: 0; }
+  .sim-deck-side .sim-day-list { max-height: 620px; overflow-y: auto; }
+}
+

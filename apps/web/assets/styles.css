@@ -953,3 +953,62 @@ main .privacy-section p, main .privacy-summary p { font-family: var(--sans); fon
 .sim-consent a, .sim-privacy a { color: inherit; }
 .sim-captcha:empty { display: none; }
 .sim-captcha { margin: 8px 0; min-height: 65px; }
+
+/* ======================================================================================================
+   Kanban #43 (D-052): Desktop 1C (faixa Hero + 2 colunas), sem "escadinha" de larguras no PC (>= 900 px).
+   No celular (< 900 px) a Home aprovada permanece intacta.
+   ====================================================================================================== */
+.home-pc-disputes { display: none; }
+
+@media (min-width: 900px) {
+  .team-hero, .home-cta, .impact, .home-block.disputes, .race-group { max-width: none; }
+  .home-pc-disputes { display: block; grid-area: disputes; }
+  .home-pc-disputes .home-block { margin-bottom: 0; }
+
+  .home-v43 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "hero next"
+      "hero cta"
+      "impact matches"
+      "disputes matches";
+    column-gap: 18px;
+    row-gap: 14px;
+    align-items: start;
+  }
+  .home-v43.no-next {
+    grid-template-areas:
+      "hero cta"
+      "impact matches"
+      "disputes matches";
+  }
+  .home-v43 .team-hero { grid-area: hero; margin: 0; height: 100%; align-content: space-between; }
+  .home-v43 .home-next { grid-area: next; margin: 0; }
+  .home-v43 .home-next .mc-list { grid-template-columns: 1fr; margin-bottom: 0; }
+  .home-v43 .home-cta { grid-area: cta; margin: 0; align-self: end; }
+  .home-v43 .impact { grid-area: impact; margin: 0; }
+  .home-v43 .home-matches { grid-area: matches; margin: 0; }
+  .home-v43 .home-matches .mc-list { grid-template-columns: 1fr; }
+  .home-v43 .home-matches .day-title:first-of-type { margin-top: 0; }
+
+  .home-v43-empty {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    grid-template-areas:
+      "empty empty"
+      "matches disputes";
+    gap: 18px;
+    align-items: start;
+  }
+  .home-v43-empty .your-team { grid-area: empty; margin: 0; }
+  .home-v43-empty .home-matches { grid-area: matches; margin: 0; }
+  .home-v43-empty .home-matches .mc-list { grid-template-columns: 1fr; }
+  .home-v43-empty .disputes { grid-area: disputes; margin: 0; }
+
+  /* Classificação C2 no PC: cards em 2 colunas na largura cheia em vez de 720 px encostados à esquerda */
+  .rg-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rg-list .race-row-card:nth-child(2) { border-top: 0; }
+  .rg-list .race-row-card:nth-child(even) { border-left: 1px solid var(--rule); }
+}
+
