@@ -18,7 +18,11 @@ aparelho (fase 1) e a página não carrega nada do Supabase.
   função do esquema devolve e-mail.
 - **Apelido** é a única identificação pública, e só aparece no ranking de quem marcou "Aparecer no ranking".
   O banco recusa apelido com `@`, e a interface pede para não usar e-mail nem nome completo.
-- **Média dos visitantes** só sai com pelo menos 10 participantes por jogo ou por clube (`sim_community`).
+- **Média dos visitantes** (`sim_community`, `sim_consensus`, `0008`): só sai com pelo menos 50 pessoas, com ruído fixo
+  e secreto de até ±3 pessoas, frações de 0,05 em 0,05 e posição média de 0,5 em 0,5, para não expor a escolha de
+  ninguém. A tabela final de Vencedor e Placar exato só conta se bater com os palpites e com `sim_standings`. Medida
+  do ataque com 49 contas falsas: 100% de acerto antes, 61% depois. Risco que sobra e decisão pendente (CAPTCHA, e-mail
+  confirmado): ADR-0015, "Endurecimento do consenso".
 - **Apagar**: "Apagar minha participação" chama `sim_delete_me()`, que apaga a conta, o perfil e as simulações.
 - RLS em todas as tabelas: cada pessoa lê e escreve só as próprias simulações e o próprio perfil. Jogos, tabela e
   trava são escritos só pela chave de serviço do CI. A visão `sim_scores`, que junta todo mundo, não tem leitura
@@ -38,7 +42,7 @@ aparelho (fase 1) e a página não carrega nada do Supabase.
 ## Como ligar (passos do dono do produto)
 
 1. Criar o projeto em supabase.com (plano gratuito; região sugerida: São Paulo).
-2. Em **SQL Editor**, rodar em ordem as migrações de `infrastructure/supabase/migrations/` (`0001` a `0006`), cada uma inteira.
+2. Em **SQL Editor**, rodar em ordem as migrações de `infrastructure/supabase/migrations/` (`0001` a `0008`), cada uma inteira. A `0007` é a do Ao vivo (`0007_live_round.sql`).
 3. Em **Authentication → Sign In / Providers**: ligar **Allow anonymous sign-ins** e o provedor **Email** (link
    mágico). Em **URL Configuration**: Site URL = endereço do site no GitHub Pages; em Redirect URLs, acrescentar
    `http://localhost:8080/**` para testes locais.
@@ -61,7 +65,14 @@ aparelho (fase 1) e a página não carrega nada do Supabase.
 
 ## Limitações conhecidas
 
-- O SQL não foi executado neste ambiente (sem Postgres local). O navegador foi testado com um servidor simulado,
-  não com o Supabase de verdade.
+- As migrações `0001` a `0008` e os testes de SQL (`infrastructure/supabase/tests/run.sh`) rodam num Postgres 16
+  descartável com um stub do Supabase (papéis, `auth.users`, `auth.uid()`): não substituem o projeto real nem testam
+  PostgREST. Sem pgTAP; asserts em TAP próprio. Nada foi aplicado em produção.
 - A biblioteca `@supabase/supabase-js@2.45.4` vem do jsDelivr, com a versão fixada e sem hash de integridade.
 - Vagas e rebaixados da média dos visitantes usam 4 rebaixados (regra da Série A).
+
+## Testes de SQL
+
+`infrastructure/supabase/tests/run.sh` sobe um Postgres temporário, aplica `0001` a `0008` (com a `0007_live_round`) e roda RLS (`10_rls`), convivência com o Ao vivo (`15_live_round`), trava
+(`20_trava`), pontuação (`30_pontuacao`) e consenso (`40_consenso`), mais a medida do ataque antes e depois da `0008`.
+Com `TEST_DATABASE_URL`, usa um banco existente cujo nome termine em `_test` (recusa os demais). Dados sintéticos.
