@@ -413,20 +413,35 @@
         <circle cx="${x(recent.length - 1).toFixed(1)}" cy="${y(last.value).toFixed(1)}" r="3.5" class="hero-spark-dot"/></svg>`;
   }
 
-  function teamHero(team, raceId) {
+  function teamHeroSummaryCards(team) {
+    return `<div class="whatif"><p class="mc-label">Resumo nas disputas</p><div class="whatif-row">
+      <span class="whatif-cell"><span>Título</span><strong>${pct(team.title)}</strong></span>
+      <span class="whatif-cell"><span>G4</span><strong>${pct(team.top4)}</strong></span>
+      <span class="whatif-cell"><span>Queda</span><strong>${pct(team.relegation)}</strong></span>
+    </div></div>`;
+  }
+
+  function teamHero(team, raceId, nextMatch = null, ctaHtml = "") {
     const key = RACES[raceId].key;
     const points = teamHistory(team.club_id, key);
     const remaining = state.snapshot.matches.filter((match) => match.status !== "finished" && (match.home_id === team.club_id || match.away_id === team.club_id)).length;
     const chips = Object.keys(RACES).map((id) => `<a class="chip chip-sm" href="#/inicio/${id}"${id === raceId ? ' aria-current="page"' : ""}>${HERO_LABEL[id]}</a>`).join("");
+    const sideCards = (nextMatch && nextMatchWhatIf(team, nextMatch, raceId, true)) || teamHeroSummaryCards(team);
     return `<section class="card team-hero" aria-label="Seu time">
       <div class="yt-head">
         <a class="yt-club" href="#/clubes/${encodeURIComponent(team.club_id)}">${crest(team.club_id, 44)}<span class="yt-name"><strong>${escapeHtml(team.name)}</strong><span>${team.current_position}º lugar · ${team.current_points} pts · ${remaining} ${remaining === 1 ? "jogo" : "jogos"}</span></span></a>
         <button type="button" class="chip chip-sm" data-open-teams>Trocar</button>
       </div>
       <nav class="chip-row" aria-label="Disputa">${chips}</nav>
-      <div class="hero-main">
-        <p class="hero-number ${HERO_TONE[raceId]}"><span class="hero-label">Probabilidade de ${HERO_NOUN[raceId]}</span><strong>${pct(team[key])}</strong>${heroDelta(points, key)}</p>
-        ${sparkline(points, HERO_NOUN[raceId])}
+      <div class="hero-grid">
+        <div class="hero-main">
+          <p class="hero-number ${HERO_TONE[raceId]}"><span class="hero-label">Probabilidade de ${HERO_NOUN[raceId]}</span><strong>${pct(team[key])}</strong>${heroDelta(points, key)}</p>
+          ${sparkline(points, HERO_NOUN[raceId])}
+        </div>
+        <div class="home-pc-hero-side">
+          ${sideCards}
+          ${ctaHtml}
+        </div>
       </div>
     </section>`;
   }
@@ -434,10 +449,11 @@
   function teamNextMatch(team, raceId) {
     const match = upcomingMatches().find((item) => !isPostponed(item) && (item.home_id === team.club_id || item.away_id === team.club_id));
     if (!match) return "";
+    const mobWhatIf = nextMatchWhatIf(team, match, raceId, false);
     return `<section class="home-block home-next" aria-labelledby="home-next">
       <div class="block-head"><h2 id="home-next">Próximo jogo</h2><a class="block-link" href="#/clubes/${encodeURIComponent(team.club_id)}">Todos os jogos ›</a></div>
       ${matchList([match])}
-      ${nextMatchWhatIf(team, match, raceId)}
+      ${mobWhatIf ? `<div class="home-mob-whatif">${mobWhatIf}</div>` : ""}
     </section>`;
   }
 
@@ -477,11 +493,12 @@
   const usable = (bucket, key) => bucket && bucket.n >= WHAT_IF_MIN_SAMPLES && isProbability(bucket[key]);
 
   /* Os três finais possíveis do próximo jogo, do ponto de vista do seu time. */
-  function nextMatchWhatIf(team, match, raceId) {
+  function nextMatchWhatIf(team, match, raceId, showMatch = false) {
     if (!match) return "";
     const key = RACES[raceId].key;
+    const prefix = showMatch ? `Se ${escapeHtml(shortOf(match.home_id))} × ${escapeHtml(shortOf(match.away_id))} terminar em…` : "Se o jogo terminar em…";
     if (!whatIfReady(team)) {
-      return state.whatIf && state.whatIf.status === "loading" ? `<div class="whatif" aria-busy="true"><p class="mc-label">Se o jogo terminar em…</p><span class="skeleton sk-chips"></span></div>` : "";
+      return state.whatIf && state.whatIf.status === "loading" ? `<div class="whatif" aria-busy="true"><p class="mc-label">${prefix}</p><span class="skeleton sk-chips"></span></div>` : "";
     }
     const outcomes = state.whatIf.byMatch.get(match.match_id);
     if (!outcomes) return "";
@@ -495,7 +512,7 @@
       const now = current === outcome ? `<small>como está</small>` : "";
       return `<span class="whatif-cell${current === outcome ? " is-now" : ""}"><span>${label}</span><strong>${value}</strong>${now}</span>`;
     }).join("");
-    return `<div class="whatif"><p class="mc-label">Se o jogo terminar em… · probabilidade de ${HERO_NOUN[raceId]}</p><div class="whatif-row">${cells}</div></div>`;
+    return `<div class="whatif"><p class="mc-label">${prefix} · probabilidade de ${HERO_NOUN[raceId]}</p><div class="whatif-row">${cells}</div></div>`;
   }
 
   const engineOutcome = (home, away) => (home > away ? "H" : home < away ? "A" : "D");
@@ -571,18 +588,20 @@
 
   const HOME_FINISHED = 4;
 
-  /* Próximos jogos da Home: os HOME_MATCHES mais cedo, agrupados por dia; no fim da temporada, os últimos resultados. */
+  /* Próximos jogos da Home: os HOME_MATCHES mais cedo, agrupados por dia; no PC equilibra com a coluna esquerda. */
   function homeMatches(skipId = null) {
     const upcoming = upcomingMatches().filter((match) => !isPostponed(match) && match.match_id !== skipId);
     const recent = finishedMatches().slice(0, HOME_FINISHED);
     const list = upcoming.length ? upcoming.slice(0, HOME_MATCHES) : recent;
     if (!list.length) return "";
+    const pcList = list.slice(0, skipId ? 2 : 3);
     const analysis = state.currentRound ? `<a class="block-link" href="#/inicio/${ROUND_TAB}">O que mudou na rodada ${state.currentRound.number} ›</a>` : "";
     const title = upcoming.length ? "Próximos jogos" : "Últimos resultados";
     return `<section class="home-block home-matches" aria-labelledby="home-round">
       <div class="block-head"><h2 id="home-round">${title}</h2><a class="block-link" href="#/jogos">Ver a agenda ›</a></div>
       ${predictionNote()}
-      ${matchesByDay(list)}
+      <div class="home-matches-mob">${matchesByDay(list)}</div>
+      <div class="home-matches-pc">${matchesByDay(pcList)}</div>
       ${analysis}
     </section>`;
   }
@@ -626,12 +645,13 @@
     const raceId = RACES[requested] ? requested : openRaceFor(team);
     const next = upcomingMatches().find((item) => !isPostponed(item) && (item.home_id === team.club_id || item.away_id === team.club_id));
     const article = FEMININE_CLUBS.has(team.club_id) ? "da" : "do";
+    const ctaHtml = `<a class="btn-primary yt-cta" href="#/simular">Simular jogos ${article} ${escapeHtml(team.name)}</a>`;
     const nextBlock = teamNextMatch(team, raceId);
     const impactBlock = mostImpactful(team, raceId);
     const matchesBlock = homeMatches(next ? next.match_id : null);
     main.innerHTML = `<h1 class="visually-hidden">Início</h1>
       <div class="home-v43${nextBlock ? "" : " no-next"}">
-        ${teamHero(team, raceId)}
+        ${teamHero(team, raceId, next, ctaHtml)}
         ${nextBlock}
         <div class="home-pc-left">${impactBlock}<div class="home-pc-disputes">${disputesCard(raceId)}</div></div>
         <a class="btn-primary yt-cta home-cta" href="#/simular">Simular jogos ${article} ${escapeHtml(team.name)}</a>
