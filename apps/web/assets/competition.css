@@ -91,9 +91,6 @@ main p.comp-next-label { margin: 4px 0 6px; font-family: var(--sans); font-size:
 .your-team .mc .mc-team .crest-spacer { background: var(--surface-3); }
 .yt-stat strong { font-size: 20px; }
 .your-team .mc .mc-top, .your-team .mc p.mc-caption, .your-team .mc .mc-go { color: var(--ink-soft); }
-@media (min-width: 900px) {
-  .your-team { max-width: 720px; }
-}
 .yt-stat.is-word strong { font-size: 15px; line-height: 1.2; }
 .your-team .mc { padding: 10px; }
 .your-team .mc .mc-odds { gap: 4px; }
@@ -123,7 +120,7 @@ main p.comp-next-label { margin: 4px 0 6px; font-family: var(--sans); font-size:
   .rg-list.is-two { grid-template-columns: 1fr 1fr; }
   .rg-list.is-two > .race-row-card:nth-child(-n+2) { border-top: 0; }
   .rg-list.is-two > .race-row-card:nth-child(even) { border-left: 1px solid var(--rule); }
-  .race-group, .comp-day, .comp-block { max-width: none; }
+  .race-group, .comp-day, .comp-block, .your-team { max-width: none; }
 }
 
 /* Folha do clube */
@@ -149,17 +146,13 @@ h3.club-sub { margin: 0 0 6px; font-size: 14px; font-weight: 750; color: var(--i
 .spark-dot { fill: var(--signal); }
 
 /* Rodadas */
-.rd-chart { margin: 0 0 12px; padding: 12px 12px 8px; }
-main h2.rd-title { margin: 0 0 6px; padding: 0; border: 0; font-size: 15px; font-weight: 750; }
-.line-chart { width: 100%; height: auto; display: block; max-height: 240px; }
+.rd-chart { margin: 0 0 12px; padding: 14px 16px 10px; }
+main h2.rd-title { margin: 0 0 8px; padding: 0; border: 0; font-size: 16px; font-weight: 750; }
+.line-chart { width: 100%; height: auto; display: block; }
 .lc-grid { stroke: var(--rule); stroke-width: 1; }
-.lc-label { fill: var(--ink-faint); font-size: 10px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.lc-label { fill: var(--ink-faint); font-size: 11px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
 .lc-line { stroke: var(--signal); stroke-width: 2.4; }
-.lc-dot { fill: var(--surface); stroke: var(--signal); stroke-width: 1.6; }
+.lc-dot { fill: var(--surface); stroke: var(--signal); stroke-width: 1.8; }
 .lc-dot.is-last { fill: var(--signal); }
 .rd-tiles { margin: 0 0 12px; }
-@media (min-width: 900px) {
-  .rd-chart { max-width: 720px; }
-  .rd-tiles { max-width: 720px; }
-}
 main:focus, main:focus-visible { outline: none; }

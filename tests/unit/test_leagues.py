@@ -258,6 +258,14 @@ def test_round_end_dates_ignore_rounds_after_the_cutoff(synthetic_matches: pd.Da
     assert round_end_dates(synthetic_matches, 2032, first_round_day) == [(1, first_round_day)]
 
 
+def test_round_end_dates_keep_round_order_when_a_match_is_postponed(synthetic_matches: pd.DataFrame) -> None:
+    shifted = synthetic_matches.copy()
+    r1_first = shifted[(shifted["season"] == 2032) & (shifted["round"] == 1)].index[0]
+    shifted.loc[r1_first, "match_date"] = shifted.loc[r1_first, "match_date"] + pd.Timedelta(days=35)
+    rounds = [round_number for round_number, _ in round_end_dates(shifted, 2032, date(2032, 12, 31))]
+    assert rounds == sorted(rounds)
+
+
 def test_history_passes_its_gate(history_inputs: tuple) -> None:
     forecast, history, _ = history_inputs
     assert _findings(forecast, history) == []

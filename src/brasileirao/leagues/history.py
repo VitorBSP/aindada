@@ -25,8 +25,10 @@ HISTORY_SIMULATIONS = 5_000
 
 
 def round_end_dates(matches_data: pd.DataFrame, season: int, up_to: date) -> list[tuple[int, date]]:
-    """(rodada, último dia com jogo encerrado dela) até `up_to`, por data crescente.
+    """(rodada, fim da janela regular da rodada) até `up_to`, em ordem crescente de rodada e data.
 
+    Jogos adiados disputados mais de 14 dias depois da mediana da rodada não deslocam a data dela (evita
+    trocar a ordem dos chips, como R2 antes de R1); eles entram naturalmente no ponto da data em que ocorreram.
     Duas rodadas que terminam no mesmo dia ficam com a maior (a tabela daquele dia já tem as duas).
     """
     finished = matches_data[
@@ -34,12 +36,25 @@ def round_end_dates(matches_data: pd.DataFrame, season: int, up_to: date) -> lis
         & (matches_data["status"] == MatchStatus.FINISHED.value)
         & matches_data["round"].notna()
     ]
-    by_date: dict[date, int] = {}
+    raw: list[tuple[int, date]] = []
     for round_number, round_matches in finished.groupby("round"):
-        last_day = round_matches["match_date"].max().date()
-        if last_day <= up_to:
-            by_date[last_day] = max(by_date.get(last_day, 0), as_int(round_number))
-    return [(round_number, day) for day, round_number in sorted(by_date.items())]
+        days = sorted(ts.date() for ts in round_matches["match_date"] if ts.date() <= up_to)
+        if not days:
+            continue
+        median_day = days[len(days) // 2]
+        regular = [day for day in days if (day - median_day).days <= 14]
+        last_day = max(regular) if regular else days[-1]
+        raw.append((as_int(round_number), last_day))
+    raw.sort(key=lambda item: item[0])
+    monotonic: list[tuple[int, date]] = []
+    for round_number, day in raw:
+        if monotonic and day < monotonic[-1][1]:
+            continue
+        if monotonic and day == monotonic[-1][1]:
+            monotonic[-1] = (round_number, day)
+        else:
+            monotonic.append((round_number, day))
+    return monotonic
 
 
 def forecast_point(forecast: LeagueForecast, round_number: int, reconstructed: bool) -> HistoryPoint:
