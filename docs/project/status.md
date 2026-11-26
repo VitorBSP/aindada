@@ -4034,3 +4034,65 @@ mudou desde então (a `0007_live_round.sql` e o Simulador D0).
   - **Agente 05**: dizer "aproximado" na média dos visitantes (a resposta traz `noise_people`).
   - **Agente 06**: revisar.
   - Nada foi aplicado em produção.
+
+## Agentes 04/05/08: privacidade publicada e segurança do simulador antes de escalar (Kanban #27 + #38, 2026-11-26)
+
+- **O que mudou**:
+  - **Página `#/privacidade`** (`apps/web/assets/privacy.js`, estilos em `styles.css`): versão publicada do rascunho de
+    `docs/project/privacidade-simulador.md`, que agora aponta para ela.
+    - Texto conferido com o código atual: chaves do `localStorage`, GitHub Pages, Supabase `us-east-1` (art. 33),
+      jsDelivr, o que vai ao clicar em Participar, quem vê o quê, apagar na hora.
+    - Atende ao parecer do 00: diz que abrir o Simulador consulta a média no Supabase e baixa a biblioteca do jsDelivr,
+      e que em dia de jogo as páginas da Série A (e o Ao vivo a cada 15 s) consultam os placares parciais.
+    - Controlador **Vítor Pereira (Duck AI Labs)** e contato parametrizados em `CONTROLLER`, no topo do arquivo.
+      `email` está vazio, então a página indica o repositório e pede para não escrever dado pessoal na issue.
+    - O parágrafo da Cloudflare só aparece com o Turnstile ligado.
+    - A página abre mesmo se as probabilidades não carregarem (`renderPrivacy` antes da checagem do snapshot).
+  - **Links**: rodapé da Série A e dos 4 sub-sites (`../#/privacidade`), aviso recolhido do Simulador, e uma linha de
+    consentimento sob o botão Participar. O `storageNote` deixou de dizer "ligadas só ao seu apelido": são ligadas a
+    uma conta sem nome.
+  - **SRI no SDK** (`simulator-cloud.js`): `integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o"`
+    e `crossorigin="anonymous"` para `@supabase/supabase-js@2.45.4/dist/umd/supabase.js`.
+    - O hash foi calculado sobre o arquivo do tarball do npm, conferido com o `sha512` que o registro publica.
+    - O jsDelivr está bloqueado pelo proxy deste ambiente, então a igualdade com o arquivo servido por ele **não foi
+      vista daqui**. O jsDelivr `/npm/` serve o arquivo do pacote sem alteração.
+    - Se vier diferente, o navegador não executa a biblioteca e o simulador fica só no aparelho, com aviso.
+  - **Filtro de apelidos** (`nicknameProblem`): palavrões, ofensas comuns e nomes que imitam o site.
+    - Pega acentos, números no lugar de letras e letras repetidas. Termos curtos só como palavra inteira ("Cuca",
+      "Computador", "Picanha" e "Iporá" passam).
+    - Apelido já salvo não passa de novo pelo filtro, para conta antiga não quebrar ao mudar só o ranking.
+    - Sugestão de trava no banco em `infrastructure/supabase/sugestoes/apelidos_bloqueados.sql`, **não aplicada**: só
+      confere apelido novo ou trocado (`AIN01`) e traz a consulta de revisão manual.
+  - **Gancho do Turnstile**: `turnstileSiteKey: ""` em `simulator-config.js`. Vazio, o fluxo é o de hoje e nada carrega
+    da Cloudflare. Preenchido, o token vai em `signInAnonymously` e `signInWithOtp`. O script da Cloudflare não aceita
+    SRI (ela o atualiza na mesma URL).
+- **Evidência**:
+  - **G4**: `check_g4_attribution` com as atribuições reais dos adaptadores (Adão Duque v18 e football-data.org) sobre
+    `apps/web/index.html` deu OK; o link "Pedir a retirada" está presente.
+  - **Página de privacidade**: Playwright 375/1280 × 2 temas, 4 de 4 sem rolagem lateral, sem erro de JS, sem
+    "chance", e sem frase do tipo "nada vai/sai".
+  - **Links**: rodapé → `#/privacidade` em todas as telas, e também a partir de `/la-liga/`. No Simulador, os links de
+    consentimento e do aviso estão presentes.
+  - **SDK**: carregado com o `integrity` certo (arquivo do npm servido no lugar do jsDelivr); o arquivo adulterado
+    (1 linha a mais) foi bloqueado e o simulador mostrou "Servidor indisponível… continuam salvas neste aparelho".
+  - **Turnstile**: com site key de teste, o pedido `/auth/v1/signup` levou `gotrue_meta_security.captcha_token`, e a
+    página de privacidade passou a citar a Cloudflare. Nos testes do Turnstile e da privacidade, nenhuma chamada foi ao
+    Supabase de produção (interceptadas).
+  - **D0**: regressão em 8 de 8 combinações.
+  - **Trava SQL**: Postgres 16 descartável (UTF8) com `0001`–`0007` e o stub de testes. Recusa "C4R4LH0 fc",
+    "Pútaaaa" e "cu de mae"; aceita "Computador" e "Cuca 10"; conta antiga muda o ranking e regrava o mesmo apelido,
+    mas não troca por outro ruim; reaplicar o arquivo não dá erro.
+  - **Python**: `tests/unit/test_simulator_cloud_js.py` com 20 testes (apelidos, mesma lista no navegador e no SQL,
+    SDK com versão e SRI, CAPTCHA desligado em produção). `ruff check` e `ruff format --check` sem achados, `mypy`
+    sem erros, `pytest -q` com 997 passados e 6 pulados.
+- **Limitações**:
+  - A página não é parecer jurídico: base legal (art. 7º, I e art. 33, VIII) e o "sem prazo para contas sem uso"
+    pedem revisão de alguém com LGPD.
+  - O filtro de apelidos é deliberadamente curto e não pega tudo.
+  - A região `us-east-1` vem do rascunho e do dono (não aparece no código).
+- **Pendente**:
+  - **Dono**: preencher `CONTROLLER.email` com um e-mail público, se quiser; conferir o SRI em produção (abrir
+    `#/simular` e ver que não há erro de "integrity" no console); decidir aplicar a trava SQL; se ligar o Turnstile,
+    site key primeiro e Supabase depois.
+  - **Agente 08**: revisar os textos.
+  - **Agente 06**: revisar.

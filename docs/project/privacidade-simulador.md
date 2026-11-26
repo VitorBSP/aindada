@@ -1,5 +1,9 @@
 # Privacidade do simulador — rascunho para revisão
 
+> **Publicado (2026-11-26):** o texto em vigor é a página `#/privacidade` do site, gerada por
+> `apps/web/assets/privacy.js` (parâmetros do controlador no topo do arquivo). Este rascunho fica como histórico; ele
+> dizia que "nada vai para o servidor" sem Participar, o que não é verdade (ver a página).
+
 > Rascunho técnico escrito a partir do que o código faz (ADR-0015). Não é parecer jurídico: precisa da revisão do
 > dono do produto, e de alguém com conhecimento de LGPD, antes de virar página do site. Os campos entre colchetes
 > dependem de decisões ainda não tomadas.

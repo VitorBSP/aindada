@@ -936,3 +936,20 @@ main .impact h2.impact-title { margin: 0; padding: 0; border: 0; font-size: 15px
 main p.impact-note { margin: 6px 0 0; font-family: var(--sans); font-size: 11px; color: var(--ink-faint); }
 @media (min-width: 900px) { .impact { max-width: 720px; } }
 main .whatif p.mc-label { margin: 0; font-family: var(--sans); font-size: 11px; font-weight: 650; line-height: 1.3; color: var(--ink-faint); }
+
+/* Privacidade (#/privacidade, privacy.js): texto corrido v2.1, sem serifa, listas de termo e descrição. */
+.privacy-summary { margin: 0 0 24px; max-width: 720px; }
+main .privacy-summary h2, main .privacy-section h2 { margin: 0 0 8px; padding: 0; border: 0; font-size: 17px; font-weight: 750; }
+.privacy-summary ul, .privacy-section ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+.privacy-section { margin: 0 0 24px; max-width: 720px; }
+main .privacy-section h3 { margin: 16px 0 6px; font-size: 15px; font-weight: 750; }
+main .privacy-section p, main .privacy-summary p { font-family: var(--sans); font-size: 15px; line-height: 1.55; }
+.privacy-list { margin: 8px 0 0; display: grid; gap: 0; border: 1px solid var(--rule); border-radius: var(--radius-card); background: var(--surface); }
+.privacy-list > div { padding: 10px 14px; border-top: 1px solid var(--rule); }
+.privacy-list > div:first-child { border-top: 0; }
+.privacy-list dt { font-family: var(--sans); font-size: 14px; font-weight: 700; color: var(--ink); overflow-wrap: anywhere; }
+.privacy-list dd { margin: 2px 0 0; font-family: var(--sans); font-size: 14px; line-height: 1.5; color: var(--ink-soft); }
+.privacy-section code, .privacy-list code { overflow-wrap: anywhere; }
+.sim-consent a, .sim-privacy a { color: inherit; }
+.sim-captcha:empty { display: none; }
+.sim-captcha { margin: 8px 0; min-height: 65px; }

@@ -1577,10 +1577,20 @@
 
   let lastSection = null;
 
+  /* A privacidade não depende do snapshot: abre mesmo se as probabilidades não carregarem. */
+  function renderPrivacy() {
+    if (window.LiveRound) window.LiveRound.stop();
+    document.querySelectorAll(".masthead nav a").forEach((link) => link.removeAttribute("aria-current"));
+    window.AIndaDaPrivacidade.render(main);
+    if (lastSection !== "privacidade") window.scrollTo(0, 0);
+    lastSection = "privacidade";
+  }
+
   function route() {
+    const [, section = "", parameter = "", ...rest] = location.hash.replace(/^#/, "").split("/");
+    if (section === "privacidade") { renderPrivacy(); return; }
     if (!state.snapshot) return;
     state.prediction = latestPrediction();
-    const [, section = "", parameter = "", ...rest] = location.hash.replace(/^#/, "").split("/");
     const isHome = !section || section === "inicio";
     document.querySelectorAll(".masthead nav a").forEach((link) => {
       const active = (link.dataset.route === "home" && isHome) || link.dataset.route === section || (link.dataset.route === "jogos" && section === "partidas");
@@ -1615,11 +1625,12 @@
 
   async function start() {
     const section = location.hash.replace(/^#\/?/, "").split("/")[0];
-    main.innerHTML = skeleton(section);
+    if (section === "privacidade") renderPrivacy(); else main.innerHTML = skeleton(section);
     document.getElementById("reference-bar").textContent = "Carregando as simulações…";
     state.snapshot = await fetchJson(`/seasons/${SEASON}/predictions`);
     if (!state.snapshot) {
       document.getElementById("reference-bar").textContent = "";
+      if (location.hash.replace(/^#\/?/, "").split("/")[0] === "privacidade") return;
       main.innerHTML = stateBlock({
         icon: "offline",
         role: "alert",
