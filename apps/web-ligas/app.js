@@ -60,10 +60,13 @@
     const info = `<p>Contamos cada posição do 1º ao ${data.teams.length}º em ${data.n_simulations.toLocaleString("pt-BR")} simulações do que falta da temporada. Sem playoff: os ${down.last - down.first + 1} últimos caem direto.</p>
       <p>"Campeão", "já garantiu", "caiu", "não dá mais" e "não cai mais" só aparecem quando a conta de pontos fecha.</p>`;
     const next = upcoming(data).sort(chronological).slice(0, HOME_MATCHES);
+    const nextBlock = next.length
+      ? `<section class="comp-block" aria-labelledby="comp-next"><div class="block-head"><h2 id="comp-next">Próximos jogos</h2><a class="block-link" href="#/jogos">Ver todos ›</a></div>${S.matchesByDay(next)}</section>`
+      : "";
+    const racesBlock = `<div class="races">${data.zones.map((zone) => race(data, zone)).join("")}</div>`;
     return `
       ${S.screenHead("Quem ainda dá?", info)}
-      ${next.length ? `<section class="comp-block" aria-labelledby="comp-next"><div class="block-head"><h2 id="comp-next">Próximos jogos</h2><a class="block-link" href="#/jogos">Ver todos ›</a></div>${S.matchesByDay(next)}</section>` : ""}
-      <div class="races">${data.zones.map((zone) => race(data, zone)).join("")}</div>`;
+      ${next.length ? `<div class="comp-home-grid">${nextBlock}${racesBlock}</div>` : racesBlock}`;
   }
 
   const COLOR = { title: "title", up: "libertadores", down: "danger" };

@@ -6,7 +6,8 @@
   const number = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
   const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
   const BADGE_LABEL = /^[\p{Lu}\p{N}]{1,4}$/u;
-  const state = { crests: {}, names: {}, shorts: {}, info: new Map(), matches: new Map(), config: null, data: null, history: null, choices: new Map(), widgets: new Map() };
+  const state = { crests: {}, names: {}, shorts: {}, info: new Map(), matches: new Map(), config: null, data: null, history: null, choices: new Map(), widgets: new Map(), charts: new Map() };
+  let chartSeq = 0;
 
   function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
@@ -262,6 +263,7 @@
     container.innerHTML = render(choiceOf(key));
     container.querySelectorAll(".chip-strip").forEach((strip, index) => { if (strips[index] !== undefined) strip.scrollLeft = strips[index]; });
     revealSelected(container);
+    bindCharts(container);
     if (focusSelector) { const next = container.querySelector(focusSelector); if (next) next.focus({ preventScroll: true }); }
   }
 
@@ -410,26 +412,126 @@
 
   /* ---------------- Rodadas: evolução das probabilidades (history.json) */
 
-  function lineChart(rounds, values, metric) {
+  const SERIES_STYLES = [
+    { color: "var(--signal)", dash: "" },
+    { color: "var(--libertadores)", dash: "6 3" },
+    { color: "var(--sudamericana)", dash: "2 3" },
+    { color: "var(--series-4)", dash: "8 3 2 3" },
+  ];
+
+  /* Afasta rótulos de fim de linha sobrepostos sem empurrar rótulos isolados para fora do topo. */
+  function spreadLabels(positions, gap, minimum, maximum) {
+    const order = positions.map((value, index) => ({ value, index })).filter((item) => item.value !== null).sort((a, b) => a.value - b.value);
+    if (!order.length) return [...positions];
+    const ys = order.map((item) => Math.max(minimum, Math.min(maximum, item.value)));
+    for (let i = 1; i < ys.length; i += 1) {
+      if (ys[i] < ys[i - 1] + gap) ys[i] = ys[i - 1] + gap;
+    }
+    if (ys[ys.length - 1] > maximum) {
+      ys[ys.length - 1] = maximum;
+      for (let i = ys.length - 2; i >= 0; i -= 1) {
+        if (ys[i] > ys[i + 1] - gap) ys[i] = ys[i + 1] - gap;
+      }
+    }
+    const placed = [...positions];
+    order.forEach((item, idx) => { placed[item.index] = Math.max(minimum, ys[idx]); });
+    return placed;
+  }
+
+  function interactiveChart({ points, series, metric, ariaLabel, sameClub = false }) {
     const narrow = window.innerWidth < 600;
-    const width = narrow ? 340 : 640;
-    const height = narrow ? 165 : 210;
-    const pad = { left: 38, right: 14, top: 12, bottom: 24 };
-    const peak = Math.max(0.1, ...values);
+    const width = narrow ? 360 : 640;
+    const height = narrow ? 200 : 228;
+    const pad = { left: 38, right: sameClub ? (narrow ? 44 : 52) : (narrow ? 76 : 92), top: 14, bottom: 24 };
+    const allValues = series.flatMap((item) => item.values.filter((v) => v !== null && v !== undefined));
+    const peak = Math.max(0.1, ...allValues);
     const top = peak > 0.5 ? 1 : Math.ceil(peak * 10) / 10;
-    const x = (index) => pad.left + (rounds.length > 1 ? (index * (width - pad.left - pad.right)) / (rounds.length - 1) : 0);
+    const x = (index) => pad.left + (points.length > 1 ? (index * (width - pad.left - pad.right)) / (points.length - 1) : 0);
     const y = (value) => pad.top + (height - pad.top - pad.bottom) * (1 - value / top);
-    const path = values.map((value, index) => `${index ? "L" : "M"}${x(index).toFixed(1)} ${y(value).toFixed(1)}`).join(" ");
     const grid = [0, top / 2, top].map((value) => `<line x1="${pad.left}" x2="${width - pad.right}" y1="${y(value).toFixed(1)}" y2="${y(value).toFixed(1)}" class="lc-grid"/><text x="${pad.left - 6}" y="${(y(value) + 4).toFixed(1)}" text-anchor="end" class="lc-label">${Math.round(value * 100)}%</text>`).join("");
-    const every = Math.max(1, Math.ceil(rounds.length / (narrow ? 6 : 10)));
-    const ticks = rounds.map((round, index) => {
-      const isLast = index === rounds.length - 1;
-      const show = isLast || (index % every === 0 && (rounds.length - 1 - index) >= Math.max(2, Math.ceil(every / 2)));
-      return show ? `<text x="${x(index).toFixed(1)}" y="${height - 6}" text-anchor="middle" class="lc-label">R${round}</text>` : "";
+    const every = Math.max(1, Math.ceil(points.length / (narrow ? 6 : 10)));
+    const ticks = points.map((point, index) => {
+      const isLast = index === points.length - 1;
+      const show = isLast || (index % every === 0 && (points.length - 1 - index) >= Math.max(2, Math.ceil(every / 2)));
+      return show ? `<text x="${x(index).toFixed(1)}" y="${height - 6}" text-anchor="middle" class="lc-label">R${point.round}</text>` : "";
     }).join("");
-    const lastIndex = values.length - 1;
-    const summary = `${metric.label}: de ${pct(values[0])} na rodada ${rounds[0]} a ${pct(values[lastIndex])} na rodada ${rounds[lastIndex]}; pico de ${pct(Math.max(...values))}`;
-    return `<svg class="line-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(summary)}">${grid}${ticks}<path d="${path}" class="lc-line" fill="none" stroke-linejoin="round" stroke-linecap="round"/>${values.map((value, index) => `<circle cx="${x(index).toFixed(1)}" cy="${y(value).toFixed(1)}" r="${index === lastIndex ? 4.2 : 2.5}" class="${index === lastIndex ? "lc-dot is-last" : "lc-dot"}"/>`).join("")}</svg>`;
+
+    const endPoints = series.map((item) => {
+      const idx = item.values.map((v) => v !== null && v !== undefined).lastIndexOf(true);
+      return idx < 0 ? null : { idx, x: x(idx), y: y(item.values[idx]), value: item.values[idx] };
+    });
+    const labelY = spreadLabels(endPoints.map((pt) => (pt ? pt.y : null)), 15, pad.top + 6, height - pad.bottom - 2);
+    const lines = series.map((item, seriesIndex) => {
+      const style = SERIES_STYLES[seriesIndex % SERIES_STYLES.length];
+      const coords = item.values.map((v, idx) => (v === null || v === undefined ? null : [x(idx), y(v)]));
+      let path = "";
+      coords.forEach((pt, idx) => {
+        if (!pt) return;
+        path += `${path && coords[idx - 1] ? "L" : "M"}${pt[0].toFixed(1)} ${pt[1].toFixed(1)}`;
+      });
+      const end = endPoints[seriesIndex];
+      const dots = sameClub
+        ? coords.map((pt, idx) => (pt ? `<circle cx="${pt[0].toFixed(1)}" cy="${pt[1].toFixed(1)}" r="${end && idx === end.idx ? 4.2 : 2.5}" class="${end && idx === end.idx ? "lc-dot is-last" : "lc-dot"}"/>` : "")).join("")
+        : (end ? `<circle cx="${end.x.toFixed(1)}" cy="${end.y.toFixed(1)}" r="4" style="fill:${style.color};stroke:var(--surface);stroke-width:1.5"/>` : "");
+      const endText = end
+        ? `<text class="series-label" x="${(end.x + 8).toFixed(1)}" y="${(labelY[seriesIndex] + 4).toFixed(1)}" style="fill:${style.color}">${sameClub ? escapeHtml(pct(end.value)) : `${escapeHtml(item.short)} ${escapeHtml(pct(end.value))}`}</text>`
+        : "";
+      return `<path d="${path}" fill="none" stroke="${style.color}" stroke-width="2.3" stroke-dasharray="${style.dash}" stroke-linejoin="round" stroke-linecap="round"/>${dots}${endText}`;
+    }).join("");
+
+    const activeIndex = points.length - 1;
+    const buildReadout = (index) => {
+      const point = points[index];
+      const head = sameClub && point.teams[series[0].id]
+        ? `<strong>R${point.round} · ${point.teams[series[0].id].position}º (${point.teams[series[0].id].points} pts)</strong><span class="rr-readout-date">${escapeHtml(S_formatShort(point.reference_date))}</span>`
+        : `<strong>Rodada ${point.round}</strong><span class="rr-readout-date">${escapeHtml(S_formatShort(point.reference_date))}</span>`;
+      const items = series.map((item, seriesIndex) => {
+        const style = SERIES_STYLES[seriesIndex % SERIES_STYLES.length];
+        const val = item.values[index];
+        return `<span class="rr-readout-item"><i class="rr-dot" style="background:${style.color}"></i>${escapeHtml(sameClub ? metric.label : item.short)} <strong>${val === null || val === undefined ? "–" : escapeHtml(pct(val))}</strong></span>`;
+      }).join("");
+      return `<div class="rr-readout-head">${head}</div><div class="rr-readout-items">${items}</div>`;
+    };
+
+    const chartId = `c-${++chartSeq}`;
+    const xs = points.map((_, idx) => x(idx));
+    state.charts.set(chartId, { xs, width, buildReadout });
+    const colWidth = (width - pad.left - pad.right) / Math.max(points.length - 1, 1);
+    const hits = points.map((point, idx) => {
+      const desc = series.map((item) => `${sameClub ? metric.label : item.short}: ${item.values[idx] === null || item.values[idx] === undefined ? "–" : pct(item.values[idx])}`).join(" · ");
+      return `<rect class="hit" x="${(x(idx) - colWidth / 2).toFixed(1)}" y="${pad.top}" width="${Math.max(colWidth, 8).toFixed(1)}" height="${height - pad.top - pad.bottom}"><title>R${point.round} (${S_formatShort(point.reference_date)}): ${escapeHtml(desc)}</title></rect>`;
+    }).join("");
+    const ruleX = x(activeIndex).toFixed(1);
+    return `<div class="series-wrap" data-chart-id="${chartId}">
+      <svg class="line-chart series-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(ariaLabel)}">${grid}${ticks}${lines}<line class="tip-rule" x1="${ruleX}" x2="${ruleX}" y1="${pad.top}" y2="${height - pad.bottom}"/>${hits}</svg>
+      <div class="rr-readout" aria-live="polite">${buildReadout(activeIndex)}</div>
+    </div>`;
+  }
+
+  function bindCharts(root) {
+    root.querySelectorAll(".series-wrap[data-chart-id]").forEach((wrap) => {
+      const chart = state.charts.get(wrap.dataset.chartId);
+      const svg = wrap.querySelector("svg");
+      if (!chart || !svg) return;
+      const pick = (event) => {
+        const box = svg.getBoundingClientRect();
+        if (!box.width) return;
+        const localX = ((event.clientX - box.left) / box.width) * chart.width;
+        let best = 0;
+        for (let i = 1; i < chart.xs.length; i += 1) {
+          if (Math.abs(chart.xs[i] - localX) < Math.abs(chart.xs[best] - localX)) best = i;
+        }
+        const rule = wrap.querySelector(".tip-rule");
+        if (rule) {
+          rule.setAttribute("x1", chart.xs[best].toFixed(1));
+          rule.setAttribute("x2", chart.xs[best].toFixed(1));
+        }
+        const readout = wrap.querySelector(".rr-readout");
+        if (readout) readout.innerHTML = chart.buildReadout(best);
+      };
+      svg.addEventListener("pointermove", pick);
+      svg.addEventListener("pointerdown", pick);
+    });
   }
 
   function roundsView(data, segments) {
@@ -444,21 +546,58 @@
       <p>É uma reconstrução: usa só jogos até a data de cada ponto, mas não é o que o site mostrava na época. O último ponto é a edição atual.</p>`;
     return `${screenHead("Rodadas", info)}
       ${widget("rodadas", (choice) => {
-        const mode = choice.mode === "time" ? "time" : "rodada";
+        const mode = choice.mode === "rodada" || choice.mode === "time" ? choice.mode : "corrida";
         const metric = metrics.find((item) => item.id === choice.metric) || metrics[0];
-        const modeChips = `<nav class="chip-strip" aria-label="Visão">${chip("rodadas", "mode", "rodada", "Por rodada", mode === "rodada")}${chip("rodadas", "mode", "time", "Por time", mode === "time")}</nav>`;
+        const modeChips = `<nav class="chip-strip" aria-label="Visão">${chip("rodadas", "mode", "corrida", "Corrida", mode === "corrida")}${chip("rodadas", "mode", "rodada", "Por rodada", mode === "rodada")}${chip("rodadas", "mode", "time", "Por time", mode === "time")}</nav>`;
         const metricChips = `<nav class="chip-strip" aria-label="Disputa">${metrics.map((item) => chip("rodadas", "metric", item.id, escapeHtml(item.label), item.id === metric.id)).join("")}</nav>`;
         const note = `<p class="comp-notice">Reconstruído agora com o modelo de hoje (${state.history.n_simulations.toLocaleString("pt-BR")} simulações por rodada), não é o que foi publicado na época.</p>`;
+        const isDanger = metric.color === "danger";
+        const deltaClass = (delta) => {
+          if (Math.abs(delta) <= 0.0005) return "";
+          const good = isDanger ? delta < 0 : delta > 0;
+          return good ? "is-up" : "is-down";
+        };
+        const deltaHtml = (delta) => (delta === null ? "" : ` · <b class="${deltaClass(delta)}">${delta > 0.0005 ? "▲" : delta < -0.0005 ? "▼" : "="} ${number.format(Math.abs(delta) * 100)} p.p.</b>`);
+
+        if (mode === "corrida") {
+          const latest = points[points.length - 1];
+          const prev = points.length > 1 ? points[points.length - 2] : null;
+          const leaders = clubs.map((club) => {
+            const values = points.map((pt) => (pt.teams[club.id] ? metric.get(pt.teams[club.id]) : null));
+            const numeric = values.filter((v) => v !== null);
+            const peak = numeric.length ? Math.max(...numeric) : 0;
+            const current = values[values.length - 1] ?? 0;
+            const entry = latest.teams[club.id] || null;
+            const delta = entry && prev && prev.teams[club.id] ? current - metric.get(prev.teams[club.id]) : null;
+            return { club, values, peak, current, entry, delta };
+          }).filter((item) => item.peak >= 0.005).sort((a, b) => b.peak - a.peak || b.current - a.current || (a.entry ? a.entry.position : 99) - (b.entry ? b.entry.position : 99)).slice(0, 4);
+          if (!leaders.length) {
+            return `${modeChips}${metricChips}<p class="comp-notice">Nenhum clube com probabilidade relevante nesta disputa até aqui.</p>${note}`;
+          }
+          const series = leaders.map((item) => ({ id: item.club.id, short: shortOf(item.club.id), values: item.values }));
+          const summary = `Corrida por ${metric.label}: ${leaders.map((item) => `${item.club.name} ${pct(item.current)}`).join(", ")}`;
+          const cards = `<div class="rg-list is-two rd-leaders">${leaders.map((item, idx) => {
+            const style = SERIES_STYLES[idx % SERIES_STYLES.length];
+            return `<div class="race-row-card" data-club="${escapeHtml(item.club.id)}" role="button" tabindex="0">
+              <span class="rr-pos">${item.entry ? item.entry.position : "–"}</span>${crest(item.club.id, 26)}<span class="rr-name">${escapeHtml(item.club.name)}</span>
+              <span class="rr-meta">${item.entry ? `${item.entry.points} pts` : ""}${deltaHtml(item.delta)}</span>
+              <strong class="rr-value">${pct(item.current)}</strong><span class="rr-bar" aria-hidden="true"><i style="width:${(Math.min(1, item.current) * 100).toFixed(1)}%;background:${style.color}"></i></span></div>`;
+          }).join("")}</div>`;
+          return `${modeChips}${metricChips}<section class="card rd-chart"><h2 class="rd-title">Corrida: ${escapeHtml(metric.label)}</h2><p class="rd-hint">Os ${leaders.length} maiores picos na temporada. Passe o cursor ou toque no gráfico para ler cada rodada.</p>${interactiveChart({ points, series, metric, ariaLabel: summary })}</section>${cards}${note}`;
+        }
+
         if (mode === "time") {
           const club = clubs.find((item) => item.id === choice.club) || clubs[0];
-          const series = points.map((point) => (point.teams[club.id] ? metric.get(point.teams[club.id]) : null));
+          const seriesValues = points.map((point) => (point.teams[club.id] ? metric.get(point.teams[club.id]) : null));
           const rounds = points.map((point) => point.round);
           const clubChips = `<nav class="chip-strip" aria-label="Clube">${clubs.map((item) => chip("rodadas", "club", item.id, `${crest(item.id, 18)}<span>${escapeHtml(shortOf(item.id))}</span>`, item.id === club.id, " chip-club")).join("")}</nav>`;
-          const valid = series.every((value) => value !== null);
-          const peak = Math.max(...series.filter((value) => value !== null));
-          const tiles = valid ? `<div class="yt-stats rd-tiles"><span class="yt-stat"><span>Em R${rounds[0]}</span><strong>${pct(series[0])}</strong></span><span class="yt-stat"><span>Pico</span><strong>${pct(peak)}</strong></span><span class="yt-stat"><span>Agora</span><strong>${pct(series[series.length - 1])}</strong></span></div>` : "";
-          return `${modeChips}${clubChips}${metricChips}${valid ? `<section class="card rd-chart"><h2 class="rd-title">${escapeHtml(club.name)} · ${escapeHtml(metric.label)}</h2>${lineChart(rounds, series, metric)}</section>${tiles}` : '<p class="comp-notice">Este clube não está em todas as rodadas da história.</p>'}${note}`;
+          const valid = seriesValues.every((value) => value !== null);
+          const peak = valid ? Math.max(...seriesValues) : 0;
+          const summary = valid ? `${club.name}, ${metric.label}: de ${pct(seriesValues[0])} em R${rounds[0]} a ${pct(seriesValues[seriesValues.length - 1])} em R${rounds[rounds.length - 1]}; pico de ${pct(peak)}` : "";
+          const tiles = valid ? `<div class="yt-stats rd-tiles"><span class="yt-stat"><span>Em R${rounds[0]}</span><strong>${pct(seriesValues[0])}</strong></span><span class="yt-stat"><span>Pico</span><strong>${pct(peak)}</strong></span><span class="yt-stat"><span>Agora</span><strong>${pct(seriesValues[seriesValues.length - 1])}</strong></span></div>` : "";
+          return `${modeChips}${clubChips}${metricChips}${valid ? `<section class="card rd-chart"><h2 class="rd-title">${escapeHtml(club.name)} · ${escapeHtml(metric.label)}</h2><p class="rd-hint">Passe o cursor ou toque no gráfico para ler cada rodada.</p>${interactiveChart({ points, series: [{ id: club.id, short: shortOf(club.id), values: seriesValues }], metric, ariaLabel: summary, sameClub: true })}</section>${tiles}` : '<p class="comp-notice">Este clube não está em todas as rodadas da história.</p>'}${note}`;
         }
+
         const index = Math.min(points.length - 1, Math.max(0, Number.isInteger(Number(choice.round)) && choice.round !== undefined ? Number(choice.round) : points.length - 1));
         const point = points[index];
         const before = index > 0 ? points[index - 1] : null;
@@ -469,15 +608,9 @@
           const delta = entry && before && before.teams[club.id] ? value - metric.get(before.teams[club.id]) : null;
           return { club, entry, value, delta };
         }).filter((row) => row.entry && row.value >= 0.005).sort((a, b) => b.value - a.value || a.entry.position - b.entry.position).slice(0, 12);
-        const isDanger = metric.color === "danger";
-        const deltaClass = (delta) => {
-          if (Math.abs(delta) <= 0.0005) return "";
-          const good = isDanger ? delta < 0 : delta > 0;
-          return good ? "is-up" : "is-down";
-        };
         const list = rows.length ? `<div class="rg-list is-two">${rows.map((row) => `<div class="race-row-card" data-club="${escapeHtml(row.club.id)}" role="button" tabindex="0">
             <span class="rr-pos">${row.entry.position}</span>${crest(row.club.id, 26)}<span class="rr-name">${escapeHtml(row.club.name)}</span>
-            <span class="rr-meta">${row.entry.points} pts${row.delta === null ? "" : ` · <b class="${deltaClass(row.delta)}">${row.delta > 0.0005 ? "▲" : row.delta < -0.0005 ? "▼" : "="} ${number.format(Math.abs(row.delta) * 100)} p.p.</b>`}</span>
+            <span class="rr-meta">${row.entry.points} pts${deltaHtml(row.delta)}</span>
             <strong class="rr-value">${pct(row.value)}</strong><span class="rr-bar" aria-hidden="true"><i style="width:${(Math.min(1, row.value) * 100).toFixed(1)}%;background:var(--${metric.color || "title"})"></i></span></div>`).join("")}</div>` : '<p class="comp-notice">Nenhum clube com probabilidade relevante nesta rodada.</p>';
         return `${modeChips}${roundChips}${metricChips}<h2 class="comp-day-title">${escapeHtml(metric.label)} · rodada ${point.round}<span>${escapeHtml(S_formatShort(point.reference_date))}</span></h2>${list}${note}`;
       })}`;
@@ -541,8 +674,10 @@
       state.info = new Map();
       state.matches = new Map();
       state.widgets = new Map();
+      state.charts = new Map();
       main.innerHTML = route.render(data, rest);
       main.querySelectorAll("[data-cw]").forEach(revealSelected);
+      bindCharts(main);
       main.querySelectorAll("[data-screen-info]").forEach((button) => button.addEventListener("click", () => {
         const info = state.info.get(button.dataset.screenInfo);
         if (info && window.AIndaDaShell) window.AIndaDaShell.openSheet(escapeHtml(info.title), `<div class="sheet-info">${info.body}</div>`);

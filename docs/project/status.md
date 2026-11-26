@@ -4257,3 +4257,36 @@ mudou desde então (a `0007_live_round.sql` e o Simulador D0).
     no `publish-site.yml`.
   - **Agente 07**: observar a duração do passo `history` nas primeiras execuções (limite de 12 min por competição).
   - **Agente 08**: revisar os textos curtos (grupos "garantido / na briga / fora", aviso de reconstrução).
+
+## Polimento pós-revisão dos 6 sites publicados (2026-11-26)
+
+Responsável pelo registro: Agente 00 (integração 01 / 05 / 06 / 08).
+
+- **O que mudou**:
+  1. **Série B 2026 com fase regular encerrada (`src/brasileirao/serie_b/ingest.py`, `apps/web-serie-b/app.js`,
+     `tests/unit/test_serie_b.py`)**: `current_season_from_matrix` e `compose` passaram a aceitar a matriz da temporada
+     corrente marcada com `|update=complete` **somente quando todos os pares têm placar**, derivando `reference_date`
+     da data da classificação, do campo `término`/`fim` da infobox ou da data de coleta (sempre `<= collected_on`), e
+     mantendo a conferência integral (V/E/D/GP/GC) contra `standings.wikitext`. Na interface da Série B, `remaining == 0`
+     exibe `"fase regular encerrada · playoffs"` na barra de edição e estado vazio orientado para a chave do playoff em `#/jogos`.
+  2. **Home desktop lado a lado nas ligas europeias e Champions (`apps/web-ligas/app.js`, `apps/web-champions/app.js`,
+     `apps/web/assets/competition.css`)**: `.comp-home-grid` (`>= 900 px`) coloca `Próximos jogos` à esquerda e `Disputas`
+     à direita, deixando ambas as seções visíveis acima da dobra e eliminando o espaço vazio de dias com jogo único. Mobile
+     (`< 900 px`) inalterado.
+  3. **`Rodadas` nas ligas europeias e Champions (`apps/web/assets/competition.js`, `apps/web/assets/competition.css`)**:
+     adicionado modo padrão **`Corrida`** (4 maiores picos na temporada, paleta acessível a daltonismo, rótulos diretos com
+     afastamento por passo reverso e cartões clicáveis dos 4 líderes) e scrubber interativo por ponteiro/toque com barra
+     `.rr-readout` viva tanto em **`Corrida`** quanto em **`Por time`**.
+  4. **Champions `Chave` v2.1 (`apps/web-champions/app.js`, `apps/web/assets/competition.css`)**: removidas as bordas
+     superiores brancas herdadas dos `<h2>` legados (`comp-section-h`), seções A–D em cartões `.section-card` em grade 2×2
+     e `"Mais prováveis nas semifinais"` em `S.raceCard`.
+- **Evidência**:
+  - `node --check` nos 4 scripts alterados e `node --test tests/js/*.test.js` (56/56 passaram).
+  - `ruff check` e `ruff format --check` limpos em `src/brasileirao/serie_b/ingest.py` e `tests/unit/test_serie_b.py`.
+  - Playwright (Firefox) sobre o artefato real publicado (Premier League, LaLiga, Champions e Série B com `remaining=0`,
+    1280×800 e 375×812): `0` erros de console/página, `0 px` de overflow horizontal, scrubber vivo verificado em `Corrida`
+    e `Por time`, `thick_h2=0` em Champions `Chave`.
+  - CI `quality` (`ruff`, `mypy`, `pytest -q`, `node --test`) validado no PR.
+- **Próximo responsável**: **Agente 07** acompanha o disparo de `publish-site.yml` em `main` e confirma a atualização da
+  Série B 2026 com a fase regular encerrada e os playoffs.
+
