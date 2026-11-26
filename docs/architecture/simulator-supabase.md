@@ -56,12 +56,18 @@ aparelho (fase 1) e a página não carrega nada do Supabase.
 - Revisão dos Agentes 00 e 06 (AGENTS.md), incluindo rodar a migração num projeto de teste e conferir as regras de
   acesso com duas contas: uma não lê a simulação da outra, e o ranking não mostra quem não marcou a opção.
 - O plano gratuito do Supabase pausa projetos sem uso por uma semana; o CI diário mantém o projeto ativo.
-- Recomendado depois: CAPTCHA (Turnstile) nas contas anônimas, contra criação em massa. Pede uma mudança pequena em
-  `simulator-cloud.js` (`captchaToken`).
+- CAPTCHA (Turnstile) nas contas anônimas, contra criação em massa: o gancho está pronto e desligado. Para ligar,
+  (1) pôr a site key em `turnstileSiteKey` (`simulator-config.js`) e publicar; (2) só depois ligar "Captcha protection"
+  no Supabase (Authentication → Attack Protection) com a secret key. Na ordem inversa, Participar e o link de entrada
+  param. O token vai em `signInAnonymously` e `signInWithOtp`.
 
 ## Limitações conhecidas
 
 - O SQL não foi executado neste ambiente (sem Postgres local). O navegador foi testado com um servidor simulado,
   não com o Supabase de verdade.
-- A biblioteca `@supabase/supabase-js@2.45.4` vem do jsDelivr, com a versão fixada e sem hash de integridade.
+- A biblioteca `@supabase/supabase-js@2.45.4` vem do jsDelivr, com a versão fixada e hash de integridade (SRI
+  `sha384`, calculado sobre o arquivo do pacote npm conferido com o `sha512` do registro). Trocar a versão exige trocar
+  `LIBRARY_URL` e `LIBRARY_INTEGRITY` juntos.
+- Apelidos: filtro leve no navegador (`nicknameProblem`) e sugestão de trava no banco em
+  `infrastructure/supabase/sugestoes/apelidos_bloqueados.sql` (não aplicada; só confere apelido novo ou trocado).
 - Vagas e rebaixados da média dos visitantes usam 4 rebaixados (regra da Série A).

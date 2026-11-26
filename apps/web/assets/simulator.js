@@ -688,14 +688,14 @@
 
     function storageNote() {
       if (!cloud) return "Suas simulações ficam salvas só neste aparelho.";
-      return "Suas simulações ficam salvas neste aparelho; se você participar do ranking, também no nosso servidor, ligadas só ao seu apelido.";
+      return "Suas simulações ficam salvas neste aparelho; se você participar, também no nosso servidor, ligadas a uma conta sem nome.";
     }
 
     // Aviso de privacidade completo (ADR-0015): fica recolhido, para quem quiser os detalhes.
     function privacyDetails() {
       if (!cloud) return "";
       return `<details class="sim-privacy"><summary>Como guardamos seus dados</summary>
-        <p class="note">Ao abrir o simulador, o navegador baixa a biblioteca do Supabase pelo jsDelivr e consulta a média dos visitantes no servidor do AInda dá? (Supabase, nos Estados Unidos). Se você participar, as simulações também vão para lá, ligadas a uma conta sem nome. O e-mail é opcional e nunca aparece para ninguém; no ranking só aparece o apelido.</p></details>`;
+        <p class="note">Ao abrir o simulador, o navegador baixa a biblioteca do Supabase pelo jsDelivr e consulta a média dos visitantes no servidor do AInda dá? (Supabase, nos Estados Unidos). Se você participar, as simulações também vão para lá, ligadas a uma conta sem nome. O e-mail é opcional e nunca aparece para ninguém; no ranking só aparece o apelido. <a href="#/privacidade">Política de privacidade completa</a>.</p></details>`;
     }
 
     function shell(active, title, lede, body, options = {}) {
@@ -723,7 +723,8 @@
             <label>E-mail ligado à sua participação <input type="email" required autocomplete="email" id="sim-login-email"></label>
             <button type="submit">Enviar link de entrada</button></form>` : "";
         return `<div class="sim-account"><p><strong>Entre no ranking e compare com os outros visitantes.</strong> Participe para enviar suas simulações ao servidor (até ${EVENT_LIMIT} a cada jogo novo), ver o que os outros visitantes acham e aparecer no ranking com um apelido. Não precisa de cadastro.</p>
-          <p><button type="button" class="sim-button" id="sim-join">Participar</button> <button type="button" class="link-button" id="sim-login-open">Já participo em outro aparelho</button></p>${login}${status}</div>`;
+          <p><button type="button" class="sim-button" id="sim-join">Participar</button> <button type="button" class="link-button" id="sim-login-open">Já participo em outro aparelho</button></p>
+          <p class="note sim-consent">Ao participar, suas simulações vão para o Supabase, nos Estados Unidos, ligadas a uma conta sem nome que você apaga quando quiser. Veja a <a href="#/privacidade">política de privacidade</a>.</p>${captchaSlot()}${login}${status}</div>`;
       }
       const profile = cloudState.profile || {};
       const contact = cloudState.contact;
@@ -733,7 +734,7 @@
         profile: `<form class="sim-form" id="sim-profile-form">
           <label>Apelido <input type="text" id="sim-nickname" maxlength="20" minlength="3" value="${escapeHtml(profile.nickname || "")}" autocomplete="nickname"></label>
           <label class="sim-check"><input type="checkbox" id="sim-in-ranking" ${profile.show_in_ranking ? "checked" : ""}> Aparecer no ranking com este apelido</label>
-          <p class="note">De 3 a 20 letras, números, espaço, ponto, hífen ou _. Não use seu e-mail nem seu nome completo: o apelido é a única coisa que os outros veem.</p>
+          <p class="note">De 3 a 20 letras, números, espaço, ponto, hífen ou _. Não use seu e-mail nem seu nome completo: o apelido é a única coisa que os outros veem. Apelidos ofensivos ou que imitam o site são recusados.</p>
           <button type="submit">Salvar</button></form>`,
         contact: `<form class="sim-form" id="sim-contact-form">
           <label>E-mail para avisos <input type="email" required autocomplete="email" id="sim-contact-email" value="${escapeHtml(contact ? contact.email : "")}"></label>
@@ -751,6 +752,9 @@
         ${forms[cloudState.open] || ""}${status}</div>`;
     }
 
+    const captchaSlot = () => (cloud && cloud.captchaEnabled ? '<div class="sim-captcha" id="sim-captcha"></div>' : "");
+    const captchaHost = () => document.getElementById("sim-captcha");
+
     function bindAccount() {
       if (!cloud) return;
       const on = (id, event, handler) => { const element = document.getElementById(id); if (element) element.addEventListener(event, handler); };
@@ -759,7 +763,7 @@
       on("sim-join", "click", async () => {
         setStatus("Entrando…");
         try {
-          cloudState.user = await cloud.join();
+          cloudState.user = await cloud.join(captchaHost());
           [cloudState.profile, cloudState.contact] = await Promise.all([cloud.profile(), cloud.contact()]);
           const notes = [];
           for (const item of store.saved) if (!item.server_id) notes.push(await pushToServer(item));
@@ -774,7 +778,7 @@
       on("sim-login-form", "submit", async (event) => {
         event.preventDefault();
         try {
-          await cloud.signInWithEmail(document.getElementById("sim-login-email").value.trim());
+          await cloud.signInWithEmail(document.getElementById("sim-login-email").value.trim(), captchaHost());
           setStatus("Enviamos um link para esse e-mail. Abra-o neste aparelho para entrar.");
         } catch (error) { setStatus(`Não deu para enviar o link (${error.message}).`); }
       });
