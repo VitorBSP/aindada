@@ -92,10 +92,74 @@ main p.comp-next-label { margin: 4px 0 6px; font-family: var(--sans); font-size:
 .yt-stat strong { font-size: 20px; }
 .your-team .mc .mc-top, .your-team .mc p.mc-caption, .your-team .mc .mc-go { color: var(--ink-soft); }
 @media (min-width: 900px) {
-  .your-team, .comp-block { max-width: 720px; }
+  .your-team { max-width: 720px; }
 }
 .yt-stat.is-word strong { font-size: 15px; line-height: 1.2; }
 .your-team .mc { padding: 10px; }
 .your-team .mc .mc-odds { gap: 4px; }
 .your-team .mc .mc-odd { gap: 3px; padding: 8px 3px; font-size: 11px; }
 .your-team .mc .mc-odd strong { font-size: 14px; }
+
+/* Paridade com a Série A (Kanban #44): disputas, agenda por dia, folha do clube e Rodadas */
+.club-link { cursor: pointer; }
+.club-link:hover .name-full, .club-link:hover > span:not(.crest):not(.crest-badge) { text-decoration: underline; }
+.race-row[data-club], .mc-team[data-club] { cursor: pointer; }
+.cw { min-width: 0; }
+.cw > .chip-strip { margin-bottom: 12px; }
+.chip-club { gap: 6px; padding-left: 8px; }
+.chip-club .crest, .chip-club .crest-spacer { width: 18px; height: 18px; }
+.chip[aria-pressed="true"] .crest-on-dark { background: transparent; }
+.day-chip { cursor: pointer; font-family: inherit; }
+.day-chip[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+.day-chip[aria-pressed="true"] strong, .day-chip[aria-pressed="true"] small { color: var(--paper); }
+.race-row-card { cursor: pointer; }
+.rr-value.is-word { font-size: 13px; font-weight: 750; }
+.race-row-card:focus-visible, .club-link:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.rr-meta b.is-up { color: var(--libertadores); }
+.rr-meta b.is-down { color: var(--danger); }
+
+/* Desktop: listas e cartões em duas colunas, sem blocos esticados */
+@media (min-width: 900px) {
+  .rg-list.is-two { grid-template-columns: 1fr 1fr; }
+  .rg-list.is-two > .race-row-card:nth-child(-n+2) { border-top: 0; }
+  .rg-list.is-two > .race-row-card:nth-child(even) { border-left: 1px solid var(--rule); }
+  .race-group, .comp-day, .comp-block { max-width: none; }
+}
+
+/* Folha do clube */
+.club-sheet { display: grid; gap: 14px; }
+.club-sheet .yt-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.club-range { display: grid; gap: 2px; margin: 0; padding: 10px 12px; border-radius: var(--radius-button); background: var(--surface-2); font-size: 13px; color: var(--ink-soft); }
+.club-range strong { color: var(--ink); font-size: 14px; }
+h3.club-sub { margin: 0 0 6px; font-size: 14px; font-weight: 750; color: var(--ink-soft); }
+.club-next { list-style: none; margin: 0; padding: 0; display: grid; border: 1px solid var(--rule); border-radius: var(--radius-card); overflow: hidden; }
+.club-next li { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "w r" "o o"; gap: 2px 12px; align-items: center; padding: 10px 12px; border-top: 1px solid var(--rule); font-size: 13px; font-variant-numeric: tabular-nums; }
+.club-next li:first-child { border-top: 0; }
+.club-next-when { grid-area: w; color: var(--ink-faint); font-weight: 650; }
+.club-next-rival { grid-area: r; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.club-next-rival b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.club-next-odds { grid-area: o; color: var(--ink-soft); }
+.club-evolution { display: grid; gap: 6px; }
+.club-evolution-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 14px; }
+.club-evolution-head a { font-size: 13px; font-weight: 650; color: var(--signal); text-decoration: none; }
+.club-evolution-body { display: grid; gap: 4px; padding: 10px 12px; border-radius: var(--radius-button); background: var(--surface-2); color: var(--ink); }
+.club-evolution-body p { display: flex; justify-content: space-between; margin: 0; font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.club-evolution-body b { color: var(--ink); }
+.spark { width: 100%; height: 64px; display: block; }
+.spark-dot { fill: var(--signal); }
+
+/* Rodadas */
+.rd-chart { margin: 0 0 12px; padding: 12px 12px 8px; }
+main h2.rd-title { margin: 0 0 6px; padding: 0; border: 0; font-size: 15px; font-weight: 750; }
+.line-chart { width: 100%; height: auto; display: block; max-height: 240px; }
+.lc-grid { stroke: var(--rule); stroke-width: 1; }
+.lc-label { fill: var(--ink-faint); font-size: 10px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+.lc-line { stroke: var(--signal); stroke-width: 2.4; }
+.lc-dot { fill: var(--surface); stroke: var(--signal); stroke-width: 1.6; }
+.lc-dot.is-last { fill: var(--signal); }
+.rd-tiles { margin: 0 0 12px; }
+@media (min-width: 900px) {
+  .rd-chart { max-width: 720px; }
+  .rd-tiles { max-width: 720px; }
+}
+main:focus, main:focus-visible { outline: none; }

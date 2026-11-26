@@ -62,10 +62,13 @@ def prepare(
     reference_date: date,
     model_config: ModelConfig,
     first_history_season: int,
+    goals_model: GoalsModel | None = None,
 ) -> tuple[RatingEngine, GoalsModel, LeagueSimulator]:
+    """`goals_model` já treinado evita refazer o ajuste a cada data (histórico rodada a rodada): ele só usa
+    temporadas anteriores à corrente, então não depende da data de referência."""
     training = training_config(first_history_season)
     engine, features = build_state_as_of(matches_data, reference_date, rules.season, model_config.rating_params)
-    model = GoalsModel.fit(
+    model = goals_model or GoalsModel.fit(
         training_window(features, rules.season, training.training_seasons_window, training.first_training_season),
         model_config.feature_set,
         alpha=training.poisson_alpha,

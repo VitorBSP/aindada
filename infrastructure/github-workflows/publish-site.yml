@@ -48,6 +48,7 @@ env:
   SEASON: ${{ inputs.season || '2026' }}
   SIMULATIONS: "100000"
   HISTORY_SIMULATIONS: "10000"
+  COMPETITION_HISTORY_SIMULATIONS: "5000"
   ROUND_REVIEW_SIMULATIONS: "20000"
   SEED: "2026"
   PYTHONUTF8: "1"
@@ -233,6 +234,9 @@ jobs:
             if (
               set -e
               python -m brasileirao.leagues.cli "$league" forecast --simulations "$SIMULATIONS" --seed "$SEED"
+              # Histórico rodada a rodada (reconstrução, R18): opcional. Se falhar ou passar de 12 min, o site sai sem a aba Rodadas.
+              timeout 720 python -m brasileirao.leagues.cli "$league" history --simulations "$COMPETITION_HISTORY_SIMULATIONS" \
+                || echo "::warning::$league: histórico não gerado; o site sai sem a aba Rodadas"
               rm -rf "$site"
               cp -r apps/web-ligas "$site"
               rm -rf "$site/data"
@@ -253,6 +257,8 @@ jobs:
             if (
               set -e
               python -m brasileirao.europe.cli forecast --simulations "$SIMULATIONS" --seed "$SEED"
+              timeout 720 python -m brasileirao.europe.cli history --simulations "$COMPETITION_HISTORY_SIMULATIONS" \
+                || echo "::warning::champions-league: histórico não gerado; o site sai sem a aba Rodadas"
               rm -rf "$site"
               cp -r apps/web-champions "$site"
               rm -rf "$site/data"

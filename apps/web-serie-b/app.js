@@ -74,7 +74,40 @@
       <nav class="chip-row comp-links" aria-label="Mais"><a class="chip" href="#/tabela">Tabela completa ›</a><a class="chip" href="#/jogos">Jogos que faltam ›</a></nav>`;
   }
 
+  const WORDS = {
+    sobe: { sure: "Sobem em quase todas as simulações", open: "Na briga pelo acesso", out: "Longe do acesso" },
+    playoff: { sure: "No playoff em quase todas", open: "Na briga pelo playoff", out: "Fora do playoff" },
+    cai: { sure: "Caem em quase todas as simulações", open: "Ainda correm risco de queda", out: "Longe da queda" },
+  };
+
+  function races(data) {
+    const byId = Object.fromEntries(data.teams.map((club) => [club.club_id, club]));
+    const race = (id, label, color, words, key, text, state, info) => ({
+      id, label, color, words, info,
+      value: (model) => byId[model.id][key], text: (model) => text(byId[model.id]), state: (model) => state(byId[model.id]),
+    });
+    const text = (fn, clinchedAny) => (club) => (clinchedAny(club) ? fn(club) : null);
+    return [
+      race("direto", "Sobe direto", "libertadores", WORDS.sobe, "promotion_direct", text(directLabel, (club) => club.clinched.promoted_direct || club.clinched.out_of_top6 || club.clinched.out_of_top2),
+        (club) => (club.clinched.promoted_direct ? "in" : club.clinched.out_of_top6 || club.clinched.out_of_top2 ? "out" : null), "<p>% das simulações em que termina em 1º ou 2º e sobe direto.</p>"),
+      race("sobe", "Sobe", "libertadores", WORDS.sobe, "promotion", text(promotionLabel, (club) => club.clinched.promoted_direct || club.clinched.out_of_top6),
+        (club) => (club.clinched.promoted_direct ? "in" : club.clinched.out_of_top6 ? "out" : null), "<p>% das simulações em que termina com o acesso, direto ou pelo playoff.</p>"),
+      race("playoff", "Playoff", "sudamericana", WORDS.playoff, "playoff", text(() => "não dá mais", (club) => club.clinched.out_of_top6),
+        (club) => (club.clinched.out_of_top6 ? "out" : null), "<p>% das simulações em que termina entre 3º e 6º e disputa o playoff.</p>"),
+      race("cai", "Cai", "danger", WORDS.cai, "relegation", text(relegationLabel, (club) => club.clinched.relegated || club.clinched.safe),
+        (club) => (club.clinched.relegated ? "in" : club.clinched.safe ? "out" : null), "<p>% das simulações em que termina entre 17º e 20º.</p>"),
+    ];
+  }
+
   function table(data) {
+    const info = `<p>Escolha a disputa: quem já está garantido, quem está na briga e quem está fora. "Tabela completa" traz pontos, jogos, saldo e a faixa de posição final.</p><p>Faixa lateral da tabela: azul = acesso direto (1º e 2º), âmbar = playoff (3º ao 6º), vermelho = rebaixamento (17º ao 20º). "Sobe" soma o acesso direto e o pelo playoff.</p><p>Toque num clube para ver a ficha dele.</p>`;
+    const clubs = data.teams.map((club) => ({ id: club.club_id, name: club.name, position: club.position, points: club.points, meta: `${club.points} pts`, interval: club.points_interval_90 }));
+    return `
+      ${S.screenHead("Tabela", info + races(data).map((race) => `<p><strong>${escapeHtml(race.label)}.</strong> ${race.info.replace(/^<p>|<\/p>$/g, "")}</p>`).join(""))}
+      ${S.disputeBoard("tabela", { clubs, races: races(data), full: () => fullTable(data) })}`;
+  }
+
+  function fullTable(data) {
     const direct = data.rules.direct_promotion;
     const playoffLast = Math.max(...data.rules.playoff_groups.map((group) => group[1]));
     const safeLast = data.teams.length - data.rules.relegation;
@@ -96,12 +129,7 @@
         <td class="left">${S.heat(club.position_probabilities, club.name)}</td>
       </tr>`;
     }).join("");
-    const info = `<p>Faixa lateral: azul = acesso direto (1º e 2º), âmbar = playoff (3º ao 6º), vermelho = rebaixamento (17º ao 20º).</p>
-      <p>"Sobe" soma o acesso direto e o pelo playoff. Pts proj. = média simulada de pontos no fim; embaixo, a faixa onde terminam 90% das simulações.</p>
-      <p>A faixa à direita mostra a probabilidade de cada posição final: quanto mais escura, mais provável.</p>`;
-    return `
-      ${S.screenHead("Tabela", info)}
-      <div class="table-scroll table-card" tabindex="0" role="region" aria-label="Tabela da Série B">
+    return `<div class="table-scroll table-card" tabindex="0" role="region" aria-label="Tabela da Série B">
         <table class="standings">
           <thead><tr><th>#</th><th class="left">Clube</th><th>Pts</th><th class="view-start">Sobe direto</th><th>Playoff</th><th>Sobe</th><th>Cai</th><th class="rest-start">J</th><th>V</th><th>E</th><th>D</th><th>SG</th><th>Pts proj.</th><th class="left">Posição final (1º → 20º)</th></tr></thead>
           <tbody>${rows}</tbody>
@@ -161,6 +189,22 @@
           { label: "Queda", text: relegationLabel(club), tone: "is-z4" },
         ];
       },
+    },
+    club: (data, id) => {
+      const club = data.teams.find((item) => item.club_id === id);
+      if (!club) return null;
+      return {
+        name: club.name,
+        meta: `${club.position}º lugar · ${club.points} pts · ${club.played} J (${club.wins}V ${club.draws}E ${club.losses}D)`,
+        stats: [
+          { label: "Acesso", text: promotionLabel(club), tone: "is-g4" },
+          { label: "Playoff", text: club.clinched.out_of_top6 ? "não dá mais" : pct(club.playoff) },
+          { label: "Queda", text: relegationLabel(club), tone: "is-z4" },
+        ],
+        interval: club.points_interval_90,
+        expectedPoints: club.expected_points,
+        next: [],
+      };
     },
     edition,
     footer: (data) => `${data.sources.map((source) => `<a href="${S.safeUrl(source.origin)}">${escapeHtml(source.attribution || source.source_name)}</a>`).join("; ")}. Licenças: <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.pt-br">CC BY-SA 4.0</a> e <a href="https://creativecommons.org/publicdomain/zero/1.0/deed.pt-br">CC0 1.0</a>.`,

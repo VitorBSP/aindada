@@ -3,17 +3,22 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import date
+from datetime import date, timedelta
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
 
 from brasileirao.config import RatingParams
-from brasileirao.leagues.forecast import prepare, zone_clinch
+from brasileirao.data_pipeline.clubs import ClubRegistry
+from brasileirao.leagues.forecast import build_forecast, prepare, zone_clinch
+from brasileirao.leagues.gate import check_artifact, check_history
+from brasileirao.leagues.history import build_history, round_end_dates
 from brasileirao.leagues.ingest import CompositionError, conference
 from brasileirao.leagues.ranking import add_results, empty_head_to_head, resolve_order, validate_tiebreak_order
 from brasileirao.leagues.rules import Zone, load_league_rules
+from brasileirao.leagues.schema import CompetitionHistory, LeagueForecast
 from brasileirao.leagues.sources import SourceFormatError, parse_football_data, parse_openfootball
 from brasileirao.pipeline import ModelConfig
 
@@ -196,3 +201,195 @@ def test_current_table_ignores_head_to_head_mid_season(synthetic_matches: pd.Dat
         ),
     )
     assert simulator.observed_order(season_complete=False) == expected
+
+
+# ---------------------------------------------------------------- histórico rodada a rodada (data/history.json)
+
+TODAY = date(2033, 1, 1)
+HISTORY_SIMULATIONS = 120
+
+
+@pytest.fixture(scope="module")
+def history_inputs(
+    synthetic_matches: pd.DataFrame, synthetic_registry: ClubRegistry
+) -> tuple[LeagueForecast, CompetitionHistory, pd.DataFrame]:
+    rules = replace(load_league_rules("premier-league", 2026), season=2032)
+    finished = synthetic_matches[(synthetic_matches["season"] == 2032) & (synthetic_matches["status"] == "finished")]
+    # Um dia depois do último jogo: a edição ainda é a da última rodada e não pode duplicá-la na história.
+    reference = finished["match_date"].max().date() + timedelta(days=1)
+    sources = {
+        "reference_date": reference.isoformat(),
+        "sources": [
+            {
+                "tag": "synthetic@1",
+                "source_name": "synthetic",
+                "version": "1",
+                "origin": "tests/fixtures",
+                "retrieved_at": reference.isoformat(),
+            }
+        ],
+    }
+    config = ModelConfig("elo_only", RatingParams(), False)
+    forecast = build_forecast(synthetic_matches, sources, rules, synthetic_registry, config, 200, 7, 2030)
+    history = build_history(synthetic_matches, forecast, rules, config, 2030, HISTORY_SIMULATIONS)
+    return forecast, history, synthetic_matches
+
+
+def _findings(forecast: LeagueForecast, history: CompetitionHistory, **changes: object) -> list[str]:
+    return check_history(
+        history.model_copy(update=changes),
+        forecast.competition,
+        forecast.reference_date,
+        {team.club_id for team in forecast.teams},
+        {zone.zone_id: zone.last - zone.first + 1 for zone in forecast.zones},
+        forecast.model_version,
+        forecast.data_version,
+        TODAY,
+    )
+
+
+def test_round_end_dates_use_the_last_finished_day_of_each_round(synthetic_matches: pd.DataFrame) -> None:
+    ended = round_end_dates(synthetic_matches, 2032, date(2032, 12, 31))
+    assert (ended[0][0], len(ended)) == (1, 30)
+
+
+def test_round_end_dates_ignore_rounds_after_the_cutoff(synthetic_matches: pd.DataFrame) -> None:
+    first_round_day = round_end_dates(synthetic_matches, 2032, date(2032, 12, 31))[0][1]
+    assert round_end_dates(synthetic_matches, 2032, first_round_day) == [(1, first_round_day)]
+
+
+def test_history_passes_its_gate(history_inputs: tuple) -> None:
+    forecast, history, _ = history_inputs
+    assert _findings(forecast, history) == []
+
+
+def test_history_has_one_point_per_finished_round(history_inputs: tuple) -> None:
+    _, history, _ = history_inputs
+    assert [point.round for point in history.points] == list(range(1, 31))
+
+
+def test_history_last_point_is_the_published_forecast(history_inputs: tuple) -> None:
+    forecast, history, _ = history_inputs
+    leader = forecast.teams[0]
+    last = history.points[-1]
+    assert (last.reference_date, last.teams[leader.club_id].zones["title"], last.n_simulations) == (
+        forecast.reference_date,
+        round(leader.zones["title"], 4),
+        forecast.n_simulations,
+    )
+
+
+def test_history_earlier_points_are_reconstructions(history_inputs: tuple) -> None:
+    _, history, _ = history_inputs
+    assert (history.history_mode, all(point.reconstructed for point in history.points[:-1])) == ("reconstructed", True)
+
+
+def test_history_published_edition_is_not_a_reconstruction(history_inputs: tuple) -> None:
+    _, history, _ = history_inputs
+    assert history.points[-1].reconstructed is False
+
+
+def test_history_observed_matches_never_decrease(history_inputs: tuple) -> None:
+    _, history, _ = history_inputs
+    observed = [point.observed_matches for point in history.points]
+    assert observed == sorted(observed)
+
+
+def test_history_is_reproducible_with_the_seed(history_inputs: tuple) -> None:
+    forecast, history, matches = history_inputs
+    rules = replace(load_league_rules("premier-league", 2026), season=2032)
+    again = build_history(
+        matches, forecast, rules, ModelConfig("elo_only", RatingParams(), False), 2030, HISTORY_SIMULATIONS
+    )
+    assert again.points[3].teams == history.points[3].teams
+
+
+def test_history_uses_only_games_up_to_each_date(history_inputs: tuple) -> None:
+    _, history, _ = history_inputs
+    assert history.points[0].observed_matches < history.points[-1].observed_matches
+
+
+def test_gate_rejects_unsorted_history_dates(history_inputs: tuple) -> None:
+    forecast, history, _ = history_inputs
+    assert any("fora de ordem" in item for item in _findings(forecast, history, points=history.points[::-1]))
+
+
+def test_gate_rejects_history_that_ends_before_the_edition(history_inputs: tuple) -> None:
+    forecast, history, _ = history_inputs
+    assert any("termina em" in item for item in _findings(forecast, history, points=history.points[:-1]))
+
+
+def test_gate_rejects_history_from_another_competition(history_inputs: tuple) -> None:
+    forecast, history, _ = history_inputs
+    assert any("publicado em" in item for item in _findings(forecast, history, competition="la-liga"))
+
+
+def test_gate_rejects_history_with_another_model_version(history_inputs: tuple) -> None:
+    forecast, history, _ = history_inputs
+    assert any("modelo ou dados" in item for item in _findings(forecast, history, model_version="outro"))
+
+
+def test_gate_rejects_earlier_point_without_the_reconstruction_mark(history_inputs: tuple) -> None:
+    forecast, history, _ = history_inputs
+    points = [history.points[0].model_copy(update={"reconstructed": False}), *history.points[1:]]
+    assert any("reconstructed" in item for item in _findings(forecast, history, points=points))
+
+
+def test_gate_rejects_history_mode_that_does_not_match_the_points(history_inputs: tuple) -> None:
+    forecast, history, _ = history_inputs
+    assert any("history_mode" in item for item in _findings(forecast, history, history_mode="recorded"))
+
+
+def test_gate_rejects_zone_probabilities_that_do_not_add_up(history_inputs: tuple) -> None:
+    forecast, history, _ = history_inputs
+    point = history.points[2]
+    club_id = next(iter(point.teams))
+    team = point.teams[club_id].model_copy(update={"zones": {**point.teams[club_id].zones, "title": 0.9}})
+    broken = point.model_copy(update={"teams": {**point.teams, club_id: team}})
+    points = [*history.points[:2], broken, *history.points[3:]]
+    assert any("soma da zona title" in item for item in _findings(forecast, history, points=points))
+
+
+def test_gate_rejects_duplicate_positions(history_inputs: tuple) -> None:
+    forecast, history, _ = history_inputs
+    point = history.points[2]
+    first, second = list(point.teams)[:2]
+    clone = point.teams[first].model_copy(update={"position": point.teams[second].position})
+    broken = point.model_copy(update={"teams": {**point.teams, first: clone}})
+    points = [*history.points[:2], broken, *history.points[3:]]
+    assert any("posições" in item for item in _findings(forecast, history, points=points))
+
+
+def test_gate_rejects_empty_history(history_inputs: tuple) -> None:
+    forecast, history, _ = history_inputs
+    assert any("nenhum ponto" in item for item in _findings(forecast, history, points=[]))
+
+
+def _site(tmp_path: Path, forecast: LeagueForecast, history: CompetitionHistory | None) -> Path:
+    site = tmp_path / "site"
+    (site / "data").mkdir(parents=True)
+    for name in ("index.html", "app.js", "styles.css"):
+        (site / name).write_text("x", encoding="utf-8")
+    (site / "data" / "forecast.json").write_text(forecast.model_dump_json(), encoding="utf-8")
+    if history is not None:
+        (site / "data" / "history.json").write_text(history.model_dump_json(), encoding="utf-8")
+    return site
+
+
+def test_artifact_with_history_passes_the_gate(history_inputs: tuple, tmp_path: Path) -> None:
+    forecast, history, _ = history_inputs
+    assert check_artifact(_site(tmp_path, forecast, history), None, TODAY, forecast.competition) == []
+
+
+def test_artifact_without_history_still_passes_the_gate(history_inputs: tuple, tmp_path: Path) -> None:
+    forecast, _, _ = history_inputs
+    assert check_artifact(_site(tmp_path, forecast, None), None, TODAY, forecast.competition) == []
+
+
+def test_artifact_with_unreadable_history_is_rejected(history_inputs: tuple, tmp_path: Path) -> None:
+    forecast, _, _ = history_inputs
+    site = _site(tmp_path, forecast, None)
+    (site / "data" / "history.json").write_text("{}", encoding="utf-8")
+    assert any(
+        "history.json fora do esquema" in item for item in check_artifact(site, None, TODAY, forecast.competition)
+    )

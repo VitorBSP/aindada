@@ -123,7 +123,6 @@
       : `<section class="comp-block" aria-labelledby="ko-now"><div class="block-head"><h2 id="ko-now">${escapeHtml(STAGE_NAMES[stage] || "Mata-mata")}</h2><a class="block-link" href="#/chave">Chave ›</a></div><p class="note">Os confrontos desta fase aparecem aqui quando a fonte trouxer os clubes. Até lá, a chave usa o regulamento e sorteia onde a UEFA sorteia.</p></section>`;
     return `
       ${S.screenHead("Quem ainda dá?", info)}
-      ${S.yourTeam(data)}
       ${stageBlock}
       ${next.length ? `<section class="comp-block" aria-labelledby="comp-next"><div class="block-head"><h2 id="comp-next">Próximos jogos</h2><a class="block-link" href="#/jogos">Ver todos ›</a></div>${S.matchesByDay(next)}</section>` : ""}
       <div class="races">
@@ -156,7 +155,6 @@
   }
   const chronological = (a, b) => (a.kickoff_utc || a.match_date).localeCompare(b.kickoff_utc || b.match_date);
   const HOME_MATCHES = 4;
-  const UPCOMING_ROUNDS = 2;
 
   function home(data) {
     if (isKnockout(data)) return knockoutHome(data);
@@ -169,7 +167,6 @@
     const next = upcoming(data).sort(chronological).slice(0, HOME_MATCHES);
     return `
       ${S.screenHead("Quem ainda dá?", info)}
-      ${S.yourTeam(data)}
       ${next.length ? `<section class="comp-block" aria-labelledby="comp-next"><div class="block-head"><h2 id="comp-next">Próximos jogos</h2><a class="block-link" href="#/jogos">Ver todos ›</a></div>${S.matchesByDay(next)}</section>` : ""}
       <div class="races">
         ${S.raceCard("Título", "% das simulações em que é campeão.", S.raceRows(byWinner.map((club) => ({ id: club.club_id, value: club.stages.winner })), ""))}
@@ -268,7 +265,41 @@
     </div>`;
   }
 
+  const clubModels = (data) => data.clubs.map((club) => ({
+    id: club.club_id, name: club.name, position: club.position, points: club.points,
+    meta: `${club.points} pts · ${club.played} J`, interval: null,
+  }));
+
+  function races(data) {
+    const byId = Object.fromEntries(data.clubs.map((club) => [club.club_id, club]));
+    const zone = (id, label, color, words, text, info) => ({
+      id, label, color, words, info,
+      value: (model) => byId[model.id].zones[id],
+      text: (model) => { const label_ = byId[model.id].clinched[id] || (id === "playoff" && byId[model.id].clinched.top8) ? zoneLabel(byId[model.id], id) : null; return label_; },
+      state: (model) => { const club = byId[model.id]; return id === "playoff" ? (club.clinched.playoff === "in" ? "in" : club.clinched.playoff === "out" || club.clinched.top8 === "in" ? "out" : null) : club.clinched[id] || null; },
+    });
+    const winner = {
+      id: "winner", label: "Título", color: "title",
+      words: { sure: "Campeão", open: "Na briga pelo título", out: "Sem chance relevante de título" },
+      value: (model) => byId[model.id].stages.winner,
+      info: `<p>% das ${data.n_simulations.toLocaleString("pt-BR")} simulações (fase de liga e mata-mata até a final) em que o clube é campeão.</p>`,
+    };
+    return [
+      winner,
+      zone("top8", "Top 8", "libertadores", { sure: "Direto às oitavas em quase todas", open: "Na briga pelo top 8", out: "Longe do top 8" }, null, "<p>% das simulações em que termina entre 1º e 8º e vai direto às oitavas. \"Garantido\" só quando a conta de pontos fecha.</p>"),
+      zone("playoff", "Playoff", "sudamericana", { sure: "No playoff em quase todas", open: "Na briga pelo playoff", out: "Fora do playoff" }, null, "<p>% das simulações em que termina entre 9º e 24º e joga o playoff.</p>"),
+      zone("out", "Eliminado", "danger", { sure: "Eliminados em quase todas", open: "Ainda correm risco", out: "Longe da eliminação" }, null, "<p>% das simulações em que termina entre 25º e 36º e está fora.</p>"),
+    ];
+  }
+
   function leaguePhase(data) {
+    const info = `<p>Escolha a disputa: quem já está garantido, quem está na briga e quem está fora. "Tabela completa" traz a ordem atual por pontos, saldo e gols, com a chance de cada faixa. Faixa lateral: azul = direto às oitavas (1º ao 8º), âmbar = playoff (9º ao 24º), vermelho = eliminado (25º ao 36º).</p><p>Toque num clube para ver a ficha dele.</p>`;
+    return `
+      ${S.screenHead("Fase de liga", info + races(data).map((race) => `<p><strong>${escapeHtml(race.label)}.</strong> ${race.info.replace(/^<p>|<\/p>$/g, "")}</p>`).join(""))}
+      ${S.disputeBoard("fase", { clubs: clubModels(data), races: races(data), full: () => leagueTable(data) })}`;
+  }
+
+  function leagueTable(data) {
     const zone = (position) => (position <= 8 ? "zone-lib" : position <= 24 ? "zone-sula" : "zone-z4");
     // Probabilidades logo depois de Pts: no celular o percentual aparece sem rolar a tabela de lado.
     const rows = data.clubs.map((club) => {
@@ -285,11 +316,7 @@
         <td class="left">${S.heat(club.position_probabilities, club.name).replace('class="heat"', 'class="heat heat-wide"')}</td>
       </tr>`;
     }).join("");
-    const info = `<p>Faixa lateral: azul = direto às oitavas (1º ao 8º), âmbar = playoff (9º ao 24º), vermelho = eliminado (25º ao 36º).</p>
-      <p>Ordem atual por pontos, saldo e gols. Pts proj. = média simulada de pontos ao fim das 8 rodadas.</p>`;
-    return `
-      ${S.screenHead("Fase de liga", info)}
-      <div class="table-scroll table-card" tabindex="0" role="region" aria-label="Tabela da fase de liga">
+    return `<div class="table-scroll table-card" tabindex="0" role="region" aria-label="Tabela da fase de liga">
         <table class="standings">
           <thead><tr><th>#</th><th class="left">Clube</th><th>Pts</th><th class="view-start">Top 8</th><th>Playoff</th><th>Eliminado</th><th class="rest-start">J</th><th>SG</th><th>GP</th><th>Pts proj.</th><th class="left">Posição final (1º → 36º)</th></tr></thead>
           <tbody>${rows}</tbody>
@@ -299,13 +326,10 @@
 
   function matches(data) {
     const scheduled = upcoming(data).filter((match) => match.round !== null || match.stage);
-    const info = "<p>Horários de Brasília. Probabilidade de vitória do mandante, de empate e de vitória do visitante, com a força de cada clube na data da edição. Toque num jogo para ver os detalhes.</p>";
-    if (!scheduled.length) return `${S.screenHead("Jogos", info)}<div class="state"><p class="state-title">Sem jogos marcados</p><p class="state-text">Os próximos jogos aparecem aqui quando a fonte trouxer as datas.</p></div>`;
-    if (isKnockout(data)) return `${S.screenHead("Próximos jogos", info)}${S.matchesByDay(scheduled)}`;
-    const rounds = [...new Set(scheduled.map((match) => match.round))].sort((a, b) => a - b).slice(0, UPCOMING_ROUNDS);
+    const info = "<p>Horários de Brasília. Probabilidade de vitória do mandante, de empate e de vitória do visitante, com a força de cada clube na data da edição. Toque num jogo para ver os detalhes e num clube para ver a ficha dele.</p>";
     return `
-      ${S.screenHead("Próximos jogos", info)}
-      ${S.matchesByDay(scheduled.filter((match) => rounds.includes(match.round)))}`;
+      ${S.screenHead("Jogos", info)}
+      ${S.dayAgenda("jogos", scheduled)}`;
   }
 
   function method(data) {
@@ -341,27 +365,40 @@
   S.start({
     names: (data) => Object.fromEntries(data.clubs.map((club) => [club.club_id, club.name])),
     shorts: (data) => Object.fromEntries(data.clubs.map((club) => [club.club_id, club.short_name])),
-    favorite: {
-      code: () => "champions-league",
-      clubs: (data) => data.clubs.map((club) => ({ id: club.club_id, name: club.name, meta: `${club.position}º na fase de liga · ${club.points} pts` })),
-      stats: (data, id) => {
-        const club = data.clubs.find((item) => item.club_id === id);
-        if (isKnockout(data)) {
-          const tie = (data.knockout || []).find((item) => item.stage === data.current_stage && item.club_ids.includes(id));
-          const now = tie ? (tie.winner_id ? (tie.winner_id === id ? "passou" : "fora") : pct(tie.advance[id])) : knockoutFacts(data).out.has(id) ? "fora" : "na disputa";
-          return [
+    club: (data, id) => {
+      const club = data.clubs.find((item) => item.club_id === id);
+      if (!club) return null;
+      const meta = `${club.position}º na fase de liga · ${club.points} pts · ${club.played} J`;
+      const next = upcoming(data).filter((match) => match.home_id === id || match.away_id === id).sort(chronological).slice(0, 3);
+      if (isKnockout(data)) {
+        const tie = (data.knockout || []).find((item) => item.stage === data.current_stage && item.club_ids.includes(id));
+        const now = tie ? (tie.winner_id ? (tie.winner_id === id ? "passou" : "fora") : pct(tie.advance[id])) : knockoutFacts(data).out.has(id) ? "fora" : "na disputa";
+        return {
+          name: club.name, meta, next,
+          stats: [
             { label: tie ? `Passa (${STAGE_NAMES[tie.stage]})` : "Mata-mata", text: now, tone: "is-g4" },
             { label: "Final", text: pct(club.stages.final) },
             { label: "Título", text: pct(club.stages.winner) },
-          ];
-        }
-        return [
+          ],
+        };
+      }
+      return {
+        name: club.name, meta, next,
+        stats: [
           { label: "Top 8", text: zoneLabel(club, "top8"), tone: "is-g4" },
           { label: "Playoff", text: zoneLabel(club, "playoff") },
           { label: "Título", text: pct(club.stages.winner) },
-        ];
-      },
-      next: (data, id) => upcoming(data).filter((match) => match.home_id === id || match.away_id === id).sort(chronological)[0] || null,
+        ],
+      };
+    },
+    history: {
+      clubs: (data) => data.clubs.map((club) => ({ id: club.club_id, name: club.name })),
+      metrics: () => [
+        { id: "winner", label: "Título", color: "title", get: (entry) => (entry.stages ? entry.stages.winner : 0) },
+        { id: "top8", label: "Top 8", color: "libertadores", get: (entry) => entry.zones.top8 },
+        { id: "playoff", label: "Playoff", color: "sudamericana", get: (entry) => entry.zones.playoff },
+        { id: "out", label: "Eliminado", color: "danger", get: (entry) => entry.zones.out },
+      ],
     },
     edition,
     footer: (data) => {

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -10,8 +11,9 @@ import pytest
 
 from brasileirao.contracts import Club
 from brasileirao.data_pipeline.clubs import ClubRegistry
-from brasileirao.europe.forecast import build_forecast, current_stage, knockout_ties
-from brasileirao.europe.gate import check_forecast_core, check_knockout
+from brasileirao.europe.forecast import ChampionsForecast, build_forecast, current_stage, knockout_ties
+from brasileirao.europe.gate import check_artifact, check_forecast_core, check_knockout
+from brasileirao.europe.history import build_history, matchday_end_dates
 from brasileirao.europe.ingest import current_records, decided_score
 from brasileirao.europe.knockout import (
     PLAYOFF_SECTIONS,
@@ -24,6 +26,8 @@ from brasileirao.europe.knockout import (
 from brasileirao.europe.ratings import GlobalElo, GlobalEloParams
 from brasileirao.europe.simulation import STAGES, ChampionsSimulation, ChampionsSimulator, LeaguePhase
 from brasileirao.europe.sources import parse_cup
+from brasileirao.leagues.gate import check_history
+from brasileirao.leagues.schema import CompetitionHistory
 from brasileirao.leagues.sources import SourceFormatError
 from brasileirao.prediction.goals_model import GoalsModel
 
@@ -641,3 +645,117 @@ def test_gate_catches_a_score_on_a_scheduled_leg(knockout_forecast) -> None:  # 
     broken = knockout_forecast.model_copy(deep=True)
     broken.knockout[0].legs[1].home_goals = 0
     assert any("por disputar com placar" in finding for finding in check_knockout(broken))
+
+
+# ---------------------------------------------------------------- histórico rodada a rodada (data/history.json)
+
+TODAY = date(2041, 6, 1)
+
+
+@pytest.fixture(scope="module")
+def history_inputs() -> tuple[ChampionsForecast, CompetitionHistory, pd.DataFrame, dict[str, str]]:
+    # Rodada 5 em 05/11/2040; a edição é de 20/11: nada foi jogado no meio, então ela já é o ponto da rodada 5.
+    matches_data, sources, registry, countries = _forecast_inputs([], 5, pd.Timestamp("2040-11-20"))
+    forecast = build_forecast(matches_data, sources, registry, countries, GlobalEloParams(), 2040, 300, 5)
+    history = build_history(matches_data, forecast, countries, GlobalEloParams(), n_simulations=150)
+    return forecast, history, matches_data, countries
+
+
+def _history_findings(forecast: ChampionsForecast, history: CompetitionHistory, **changes: object) -> list[str]:
+    return check_history(
+        history.model_copy(update=changes),
+        "champions-league",
+        forecast.reference_date,
+        {club.club_id for club in forecast.clubs},
+        {zone["zone_id"]: zone["last"] - zone["first"] + 1 for zone in forecast.zones},
+        forecast.model_version,
+        forecast.data_version,
+        TODAY,
+    )
+
+
+def test_matchday_end_dates_list_each_finished_round(history_inputs: tuple) -> None:
+    _, _, matches_data, _ = history_inputs
+    assert [number for number, _ in matchday_end_dates(matches_data, 2040, date(2040, 12, 31))] == [1, 2, 3, 4, 5]
+
+
+def test_history_has_one_point_per_matchday_without_repeating_the_edition(history_inputs: tuple) -> None:
+    _, history, _, _ = history_inputs
+    assert [point.round for point in history.points] == [1, 2, 3, 4, 5]
+
+
+def test_history_last_point_is_the_published_forecast(history_inputs: tuple) -> None:
+    forecast, history, _, _ = history_inputs
+    last = history.points[-1]
+    assert (last.reference_date, last.n_simulations, last.reconstructed) == (forecast.reference_date, 300, False)
+
+
+def test_history_last_point_keeps_the_title_probability_of_the_forecast(history_inputs: tuple) -> None:
+    forecast, history, _, _ = history_inputs
+    club = forecast.clubs[0]
+    assert history.points[-1].teams[club.club_id].stages == {k: round(v, 4) for k, v in club.stages.items()}
+
+
+def test_history_earlier_points_are_reconstructions(history_inputs: tuple) -> None:
+    _, history, _, _ = history_inputs
+    assert (history.history_mode, all(point.reconstructed for point in history.points[:-1])) == ("reconstructed", True)
+
+
+def test_history_passes_its_gate(history_inputs: tuple) -> None:
+    forecast, history, _, _ = history_inputs
+    assert _history_findings(forecast, history) == []
+
+
+def test_history_title_chances_add_up_to_one_at_every_round(history_inputs: tuple) -> None:
+    _, history, _, _ = history_inputs
+    totals = [sum(team.stages["winner"] for team in point.teams.values() if team.stages) for point in history.points]
+    assert all(abs(total - 1.0) < 0.02 for total in totals)
+
+
+def test_history_top8_zone_adds_up_to_eight(history_inputs: tuple) -> None:
+    _, history, _, _ = history_inputs
+    assert abs(sum(team.zones["top8"] for team in history.points[1].teams.values()) - 8.0) < 0.05
+
+
+def test_history_is_reproducible_with_the_seed(history_inputs: tuple) -> None:
+    forecast, history, matches_data, countries = history_inputs
+    again = build_history(matches_data, forecast, countries, GlobalEloParams(), n_simulations=150)
+    assert again.points[1].teams == history.points[1].teams
+
+
+def test_gate_rejects_champions_history_that_ends_before_the_edition(history_inputs: tuple) -> None:
+    forecast, history, _, _ = history_inputs
+    assert any("termina em" in item for item in _history_findings(forecast, history, points=history.points[:-1]))
+
+
+def test_gate_rejects_champions_title_chances_that_do_not_add_up(history_inputs: tuple) -> None:
+    forecast, history, _, _ = history_inputs
+    point = history.points[1]
+    club_id = next(iter(point.teams))
+    team = point.teams[club_id]
+    stages = {**(team.stages or {}), "winner": 0.9}
+    broken = point.model_copy(update={"teams": {**point.teams, club_id: team.model_copy(update={"stages": stages})}})
+    points = [history.points[0], broken, *history.points[2:]]
+    assert any("chances de título" in item for item in _history_findings(forecast, history, points=points))
+
+
+def test_knockout_phase_history_stops_at_the_last_matchday(knockout_forecast, complete_league) -> None:  # type: ignore[no-untyped-def]
+    _, at = complete_league
+    rows = []
+    for index, (host_first, host_second) in enumerate(_playoff_pairs(at)):
+        rows.append(_leg("PLAYOFFS", 1, host_first, host_second, (0, 4) if index == 0 else (1, 1)))
+        rows.append(_leg("PLAYOFFS", 2, host_second, host_first, None, day="2041-03-25"))
+    matches_data, _, _, countries = _forecast_inputs(rows, 8, REFERENCE)
+    history = build_history(matches_data, knockout_forecast, countries, GlobalEloParams(), n_simulations=100)
+    assert (knockout_forecast.phase, [point.round for point in history.points]) == ("knockout", list(range(1, 9)))
+
+
+def test_champions_artifact_accepts_history_json(history_inputs: tuple, tmp_path: Path) -> None:
+    forecast, history, _, _ = history_inputs
+    site = tmp_path / "site"
+    (site / "data").mkdir(parents=True)
+    for name in ("index.html", "app.js", "styles.css"):
+        (site / name).write_text("x", encoding="utf-8")
+    (site / "data" / "forecast.json").write_text(forecast.model_dump_json(), encoding="utf-8")
+    (site / "data" / "history.json").write_text(history.model_dump_json(), encoding="utf-8")
+    assert check_artifact(site, None, TODAY) == []

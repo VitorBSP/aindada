@@ -4168,3 +4168,63 @@ mudou desde então (a `0007_live_round.sql` e o Simulador D0).
   - **Agente 03**: conferir o Art. 21 no texto oficial.
   - **Agente 07**: nada muda no workflow (mesmos comandos).
   - **Agente 00**: decidir se vale um arquivo de referência com a chave oficial.
+
+## Outras competições v2: paridade com a Série A e histórico rodada a rodada (Kanban #44, 2026-11-26)
+
+- **O que mudou**:
+  - **Seu Time só na Série B**: o card saiu do Início da Premier League, da LaLiga e da Champions; a Home delas abre
+    em próximos jogos e disputas (ou chave). O Mundial de LoL não tinha o card.
+  - **`apps/web/assets/competition.js` e `.css`** (compartilhados pelos 5 sub-sites):
+    - classificação por disputa (C2 da Série A) com chips (`Título · Top 4 · Rebaixamento · Tabela completa` nas ligas;
+      `Sobe direto · Sobe · Playoff · Cai · Tabela completa` na Série B; `Título · Top 8 · Playoff · Eliminado · Tabela
+      completa` na fase de liga da Champions), grupos "garantido / na briga / fora (recolhido)" e barras, em duas
+      colunas a partir de 900 px;
+    - agenda por dia (faixa de dias + lista do dia, adiados em chip à parte) na Premier League, LaLiga e Champions; a
+      Série B 2026 segue com o aviso honesto de jogos sem data;
+    - folha do clube (`AIndaDaShell.openSheet`) ao tocar num clube na tabela, nas barras ou nos cards de jogo: posição,
+      pontos, probabilidades, faixa de 90% de pontos, próximos jogos e a curva de evolução quando há histórico;
+    - aba **Rodadas** (só quando existe `data/history.json` com 2 ou mais pontos): "Por rodada" (chips de rodada e
+      disputa, variação em p.p. contra a rodada anterior) e "Por time" (curva e início/pico/agora). Sem o arquivo, ou com
+      ele quebrado, a aba não aparece e o resto do site fica igual.
+  - **Histórico** (`src/brasileirao/leagues/history.py`, `europe/history.py`, comando `history` das duas CLIs):
+    - cada rodada já disputada vira um ponto, refeito como se a edição fosse o último jogo dela, com 5.000 simulações e
+      a semente do `forecast.json`, e o modelo de gols treinado uma vez (ele só usa temporadas anteriores);
+    - o último ponto é a própria edição publicada (mesmos números do `forecast.json`, sem recalcular) e só entra uma
+      vez: se não houve jogo depois do último dia de rodada, o ponto da edição é o da rodada;
+    - todo ponto anterior leva `reconstructed: true` e o arquivo `history_mode: "reconstructed"` (R18);
+    - Champions: só a fase de liga (rodadas 1 a 8); no mata-mata a história termina na rodada 8.
+  - **Gates** (`leagues/gate.py`, `europe/gate.py`): `history.json` é arquivo permitido em `data/` e, se existir, é
+    conferido (esquema; competição; modelo e dados iguais aos do forecast; datas crescentes e não futuras; termina na
+    edição; ponto anterior sem a marca de reconstrução reprova; `history_mode` coerente; clubes iguais; posições 1 a N;
+    soma de cada zona e do título). Sem o arquivo, o gate aprova como antes.
+  - **Workflow** (`publish-site.yml` e a cópia em `infrastructure/github-workflows/`): passo `history` por liga com
+    `timeout 720` e `|| warning`: se falhar ou estourar, o site sai sem a aba Rodadas. `COMPETITION_HISTORY_SIMULATIONS`
+    = 5000. No fallback (liga que falhou), o histórico do site no ar não é reaproveitado: a aba some até a próxima
+    execução.
+- **Evidência**:
+  - `ruff check`, `ruff format --check`, `mypy` sem achados; `pytest -q` com 1103 passados e 1 pulado (a falha de
+    `test_match_priors` era `pyarrow` ausente neste ambiente; é dependência `dev` e passou depois de instalada).
+  - Testes novos: 22 em `tests/unit/test_leagues.py` (rodadas, ponto final igual ao forecast, reprodutível com a
+    semente, `reconstructed`, 9 reprovações do gate, artefato com e sem `history.json`) e 13 em
+    `tests/unit/test_champions.py` (inclui mata-mata e título somando 1 a cada rodada).
+  - Tempo (sintético, 20 clubes, 30 rodadas, 5.000 simulações por rodada): Premier League 98 s e LaLiga 109 s; com
+    380 jogos reais por temporada e 38 rodadas deve ficar na mesma ordem. Champions não foi medida com 5.000.
+  - Playwright (Chromium, fora do repositório) nos 5 sub-sites (`serie-b`, `premier-league`, `la-liga`,
+    `champions-league`, `mundial-lol`) × 375 e 1280 px × tema escuro e claro: 88 rotas e todas as trocas de chip, clube,
+    dia, Rodadas, teclado (Enter) e folha, com chip de competição presente, **zero rolagem lateral e zero erro de JS**;
+    Seu Time só na Série B; sem `history.json` (404, 1 ponto ou JSON quebrado) a aba Rodadas some sem erro.
+- **Limitações**:
+  - **Não rodei com dados reais**: o ambiente não tem as fontes. Os dados do navegador e dos testes são sintéticos
+    (`tests/fixtures`), sem escudos (aparecem como círculos). Falta o 06 ver as curvas com os dados reais de uma
+    execução do workflow.
+  - O histórico é reconstrução com o modelo de hoje: muda inteiro quando o modelo, um placar passado ou o calendário
+    mudam (R18). A página diz isso em cada vista.
+  - A Série B 2026 e o Mundial de LoL não têm histórico (sem datas por rodada na fonte); a Série B só ganhou os chips de
+    disputa e a folha do clube (sem "próximos jogos", pelo mesmo motivo).
+  - O toque no escudo ou nome dentro do card de jogo abre o clube; o resto do card abre o jogo. Por teclado só a tabela
+    e as barras abrem o clube (o card é um botão só, para não aninhar botões).
+- **Próximo responsável**:
+  - **Agente 06**: rodar o `history` com dados reais, conferir a curva da primeira rodada em diante e o tempo do passo
+    no `publish-site.yml`.
+  - **Agente 07**: observar a duração do passo `history` nas primeiras execuções (limite de 12 min por competição).
+  - **Agente 08**: revisar os textos curtos (grupos "garantido / na briga / fora", aviso de reconstrução).

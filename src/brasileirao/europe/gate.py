@@ -12,12 +12,14 @@ from typing import Any
 from brasileirao.contracts import BRASILIA_TIMEZONE, PUBLISHABLE_LICENSE_STATUSES, AllowedUse, LicenseStatus
 from brasileirao.europe.forecast import CHAMPIONS_SCHEMA_VERSION, ChampionsForecast
 from brasileirao.europe.knockout import KNOCKOUT_STAGES, NEXT_STAGE, TIES_PER_STAGE
+from brasileirao.leagues.gate import HISTORY_FILE_NAME, check_history
+from brasileirao.leagues.schema import CompetitionHistory
 from brasileirao.ratings.examples import EXAMPLES_FILE_NAME, check_examples_file
 
 TOLERANCE = 1e-6
 STAGE_TOTALS = {"round_of_16": 16.0, "quarter_finals": 8.0, "semi_finals": 4.0, "final": 2.0, "winner": 1.0}
 FORBIDDEN_DIRS = ("raw", "silver", "gold", "snapshots", "editorial")
-ALLOWED_DATA_FILES = frozenset({"forecast.json", EXAMPLES_FILE_NAME})
+ALLOWED_DATA_FILES = frozenset({"forecast.json", HISTORY_FILE_NAME, EXAMPLES_FILE_NAME})
 
 
 def check_forecast_core(forecast: ChampionsForecast, today: date) -> list[str]:
@@ -163,6 +165,26 @@ def check_artifact(
     findings.extend(
         check_examples_file(site_dir / "data" / EXAMPLES_FILE_NAME, "champions-league", forecast.reference_date)
     )
+    history_path = site_dir / "data" / HISTORY_FILE_NAME
+    if history_path.exists():
+        try:
+            history = CompetitionHistory.model_validate_json(history_path.read_text(encoding="utf-8"))
+        except ValueError as error:
+            findings.append(f"history.json fora do esquema: {type(error).__name__}")
+        else:
+            findings.extend(
+                check_history(
+                    history,
+                    "champions-league",
+                    forecast.reference_date,
+                    {club.club_id for club in forecast.clubs},
+                    {zone["zone_id"]: zone["last"] - zone["first"] + 1 for zone in forecast.zones},
+                    forecast.model_version,
+                    forecast.data_version,
+                    today,
+                    ends_at_reference=forecast.phase == "league",
+                )
+            )
     return findings
 
 
