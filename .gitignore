@@ -77,3 +77,6 @@ data/reference/manual_corrections.csv
 # Cópia local antiga do Vasco. Bragantino, Corinthians e Vasco agora entram pelo ADR-0014
 # (escudo oficial, risco aceito pelo dono do produto), em PNG com proveniência.
 apps/web/assets/crests/vasco.svg
+
+# --- Exports locais (match priors etc.): linha a linha de fonte restrita; nunca versionar (ADR-0007, ADR-0008) ---
+/exports/
