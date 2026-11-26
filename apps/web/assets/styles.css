@@ -925,8 +925,8 @@ details.rg-out[open] summary::after { transform: rotate(90deg); }
 .impact .block-head { margin-bottom: 4px; }
 main .impact h2.impact-title { margin: 0; padding: 0; border: 0; font-size: 15px; font-weight: 750; }
 .impact .skeleton { margin-top: 6px; }
-.impact-row { display: grid; gap: 6px; padding: 10px 0; border-top: 1px solid var(--rule); }
-.impact-row:first-of-type { border-top: 0; }
+.impact .impact-row { display: grid; gap: 6px; padding: 10px 0; border-top: 1px solid var(--rule); justify-content: stretch; justify-items: stretch; }
+.impact .impact-row:first-of-type { border-top: 0; }
 .impact-match { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 14px; font-weight: 700; }
 .impact-match small { flex: none; font-size: 11px; font-weight: 600; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
 .impact-outcomes { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
@@ -955,38 +955,45 @@ main .privacy-section p, main .privacy-summary p { font-family: var(--sans); fon
 .sim-captcha { margin: 8px 0; min-height: 65px; }
 
 /* ======================================================================================================
-   Kanban #43 (D-052): Desktop 1C (faixa Hero + 2 colunas), sem "escadinha" de larguras no PC (>= 900 px).
-   No celular (< 900 px) a Home aprovada permanece intacta.
+   Kanban #43 (D-052): Desktop 1C (faixa Hero panorâmica no topo + 2 colunas equilibradas abaixo).
+   No celular (< 900 px) a Home aprovada permanece 100% intacta.
    ====================================================================================================== */
 .home-pc-left { display: contents; }
-.home-pc-disputes { display: none; }
+.home-pc-disputes, .home-pc-hero-side, .home-matches-pc { display: none; }
 
 @media (min-width: 900px) {
   .team-hero, .home-cta, .impact, .home-block.disputes, .race-group { max-width: none; }
-  .home-pc-left { display: flex; flex-direction: column; gap: 14px; grid-area: left; min-width: 0; }
+  .home-pc-left { display: flex; flex-direction: column; gap: 16px; grid-area: left; min-width: 0; }
   .home-pc-disputes { display: block; }
   .home-pc-disputes .home-block { margin-bottom: 0; }
+  .home-mob-whatif, .home-matches-mob, .home-v43 > .home-cta { display: none; }
+  .home-matches-pc { display: block; }
 
   .home-v43 {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-areas:
-      "hero next"
-      "hero cta"
+      "hero hero"
+      "left next"
       "left matches";
+    grid-template-rows: auto auto 1fr;
     column-gap: 18px;
-    row-gap: 14px;
+    row-gap: 16px;
     align-items: start;
   }
   .home-v43.no-next {
     grid-template-areas:
-      "hero cta"
+      "hero hero"
       "left matches";
+    grid-template-rows: auto 1fr;
   }
-  .home-v43 .team-hero { grid-area: hero; margin: 0; align-self: stretch; align-content: start; }
+  .home-v43 .team-hero { grid-area: hero; margin: 0; }
+  .home-v43 .hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: center; }
+  .home-v43 .home-pc-hero-side { display: grid; gap: 10px; align-content: center; }
+  .home-v43 .home-pc-hero-side .whatif { margin-top: 0; }
+  .home-v43 .home-pc-hero-side .yt-cta { width: 100%; }
   .home-v43 .home-next { grid-area: next; margin: 0; }
   .home-v43 .home-next .mc-list { grid-template-columns: 1fr; margin-bottom: 0; }
-  .home-v43 .home-cta { grid-area: cta; margin: 0; align-self: end; }
   .home-v43 .impact { margin: 0; }
   .home-v43 .home-matches { grid-area: matches; margin: 0; }
   .home-v43 .home-matches .mc-list { grid-template-columns: 1fr; }

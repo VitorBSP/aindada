@@ -128,7 +128,7 @@
         ${S.raceCard("Título", "% das simulações em que é campeão.", S.raceRows(byWinner.map((club) => ({ id: club.club_id, value: club.stages.winner })), ""))}
       </div>`;
     return `
-      ${S.screenHead("Quem ainda dá?", info)}
+      ${S.screenHead("Para quem ainda dá?", info)}
       ${stageBlock}
       ${next.length ? `<div class="comp-home-grid">${nextBlock}${racesBlock}</div>` : racesBlock}
       <nav class="chip-row comp-links" aria-label="Mais"><a class="chip" href="#/chave">Chave do mata-mata ›</a><a class="chip" href="#/fase-de-liga">Fase de liga ›</a></nav>`;
@@ -177,7 +177,7 @@
         ${S.raceCard("Eliminado na fase de liga", "% das simulações em que termina entre 25º e 36º.", S.raceRows(byOut.map((club) => ({ id: club.club_id, value: club.zones.out, label: zoneLabel(club, "out") })), "danger"))}
       </div>`;
     return `
-      ${S.screenHead("Quem ainda dá?", info)}
+      ${S.screenHead("Para quem ainda dá?", info)}
       ${next.length ? `<div class="comp-home-grid">${nextBlock}${racesBlock}</div>` : racesBlock}
       <nav class="chip-row comp-links" aria-label="Mais"><a class="chip" href="#/chave">Chave provável ›</a><a class="chip" href="#/fase-de-liga">Fase de liga ›</a></nav>`;
   }

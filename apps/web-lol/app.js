@@ -151,7 +151,7 @@
       ? S.raceCard("Chave do mata-mata", "Quartas 1 e 2 formam a semifinal 1; quartas 3 e 4, a semifinal 2. Todas em melhor de 5.", bracket(data))
       : swiss.length ? S.raceCard("Vaga nas quartas", "% das simulações em que o time chega às quartas.", S.raceRows(swiss.map((item) => ({ id: item.team_id, value: item.stages.qualify })), "lib")) : "";
     return `
-      ${S.screenHead("Quem ainda dá?", info)}
+      ${S.screenHead("Para quem ainda dá?", info)}
       ${knockoutBlock}
       <div class="races">${S.raceCard("Título", "% das simulações em que o time é campeão.", S.raceRows(favorites.map((item) => ({ id: item.team_id, value: item.stages.champion })), ""))}</div>
       ${rivals(data)}`;

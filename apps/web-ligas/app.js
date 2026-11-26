@@ -65,7 +65,7 @@
       : "";
     const racesBlock = `<div class="races">${data.zones.map((zone) => race(data, zone)).join("")}</div>`;
     return `
-      ${S.screenHead("Quem ainda dá?", info)}
+      ${S.screenHead("Para quem ainda dá?", info)}
       ${next.length ? `<div class="comp-home-grid">${nextBlock}${racesBlock}</div>` : racesBlock}`;
   }
 
