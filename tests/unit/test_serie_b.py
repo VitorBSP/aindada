@@ -20,7 +20,9 @@ from brasileirao.serie_b.gate import check_artifact, check_forecast
 from brasileirao.serie_b.ingest import (
     CompositionError,
     check_against_standings,
+    current_season_from_matrix,
     imputed_rounds,
+    season_end_from_wikitext,
     wikipedia_with_schedule,
 )
 from brasileirao.serie_b.playoffs import PairRates, simulate_playoffs
@@ -385,3 +387,86 @@ def test_gate_rejects_backtest_from_another_model(synthetic_forecast_inputs: tup
     forecast, sources = synthetic_forecast_inputs
     mismatched = forecast.model_copy(update={"backtest": {"model_version": "serie-b-0.0.1"}})
     assert any("backtest de" in finding for finding in check_forecast(mismatched, sources, TODAY))
+
+
+WIKI_COMPLETE_SYNTHETIC = (
+    WIKI_SYNTHETIC.replace("|update = 27 de outubro", "|update = complete")
+    .replace("|match_BET_ALF=", "|match_BET_ALF=2–1")
+    .replace("|match_GAM_BET=", "|match_GAM_BET=0–0")
+)
+
+STANDINGS_COMPLETE_SYNTHETIC = """{{#invoke:Sports table|main|style=WDL
+|update=14 de novembro
+|name_ALF={{Futebol Alfa|estado=antes}}
+|name_BET={{Futebol Beta|estado=antes}}
+|name_GAM={{Futebol Gama|estado=antes}}
+|win_ALF=1 |draw_ALF=2 |loss_ALF=1|gf_ALF=5 |ga_ALF=5
+|win_BET=1 |draw_BET=1 |loss_BET=2|gf_BET=2 |ga_BET=5
+|win_GAM=1 |draw_GAM=3 |loss_GAM=0|gf_GAM=6 |ga_GAM=3
+}}
+"""
+
+
+def test_completed_matrix_accepts_full_scores_with_cutoff() -> None:
+    matrix = parse_wikipedia_matrix(WIKI_COMPLETE_SYNTHETIC, 2040)
+    registry = ClubRegistry(clubs={}, alias_index={"Alfa": "alfa", "Beta": "beta", "Gama": "gama"})
+    records = current_season_from_matrix(
+        matrix, date(2040, 4, 1), registry, "wiki@synthetic", completed_cutoff=date(2040, 11, 14)
+    )
+    assert len(records) == 6 and all(record["status"] == "finished" for record in records)
+
+
+def test_completed_matrix_rejects_missing_score() -> None:
+    incomplete = WIKI_SYNTHETIC.replace("|update = 27 de outubro", "|update = complete")
+    matrix = parse_wikipedia_matrix(incomplete, 2040)
+    registry = ClubRegistry(clubs={}, alias_index={"Alfa": "alfa", "Beta": "beta", "Gama": "gama"})
+    with pytest.raises(CompositionError):
+        current_season_from_matrix(
+            matrix, date(2040, 4, 1), registry, "wiki@synthetic", completed_cutoff=date(2040, 11, 14)
+        )
+
+
+def test_completed_matrix_passes_standings_check_against_dated_table() -> None:
+    matrix = parse_wikipedia_matrix(WIKI_COMPLETE_SYNTHETIC, 2040)
+    registry = ClubRegistry(clubs={}, alias_index={"Alfa": "alfa", "Beta": "beta", "Gama": "gama"})
+    records = current_season_from_matrix(
+        matrix, date(2040, 4, 1), registry, "wiki@synthetic", completed_cutoff=date(2040, 11, 14)
+    )
+    check_against_standings(records, parse_wikipedia_standings(STANDINGS_COMPLETE_SYNTHETIC, 2040), matrix, registry)
+
+
+def test_season_end_from_wikitext_reads_portuguese_date() -> None:
+    assert season_end_from_wikitext("| início = 20 de março\n| término = [[14 de novembro]]\n", 2040) == date(
+        2040, 11, 14
+    )
+
+
+def test_completed_regular_season_forecast_passes_gate(
+    synthetic_matches: pd.DataFrame, synthetic_registry: ClubRegistry
+) -> None:
+    completed = synthetic_matches.copy()
+    pending = (completed["season"] == 2032) & (completed["status"] != "finished")
+    completed.loc[pending, "home_goals"] = 1
+    completed.loc[pending, "away_goals"] = 0
+    completed.loc[pending, "status"] = "finished"
+    reference_date = completed.loc[completed["season"] == 2032, "match_date"].max().date()
+    sources = {
+        "reference_date": reference_date.isoformat(),
+        "sources": [
+            {
+                "tag": "synthetic@complete",
+                "source_name": "synthetic",
+                "version": "2032-r1",
+                "origin": "tests/fixtures",
+                "retrieved_at": (reference_date + timedelta(days=1)).isoformat(),
+                "license_status": "verified_open",
+                "license_name": "synthetic",
+                "allowed_uses": ["public_display_derived"],
+                "attribution": "dados sintéticos",
+            }
+        ],
+    }
+    rules = replace(load_serie_b_rules(2026), season=2032)
+    config = ModelConfig("elo_attack_defense", RatingParams(), False)
+    forecast = build_forecast(completed, sources, rules, synthetic_registry, config, 400, 11)
+    assert forecast.remaining_matches == 0 and check_forecast(forecast, sources, TODAY) == []

@@ -53,6 +53,8 @@ MATCH_COLUMNS = [
     "awarded",
 ]
 SEASON_START_PATTERN = re.compile(r"^\s*\|\s*início\s*=\s*(.+?)\s*$", re.MULTILINE)
+SEASON_END_PATTERN = re.compile(r"^\s*\|\s*(?:término|fim)\s*=\s*(.+?)\s*$", re.MULTILINE)
+PORTUGUESE_DAY_FRAGMENT = re.compile(r"(\d{1,2}\s+de\s+[a-zç]+(?:\s+de\s+\d{4})?)", re.IGNORECASE)
 
 
 class CompositionError(ValueError):
@@ -201,18 +203,24 @@ def imputed_rounds(pairs: list[tuple[str, str]]) -> list[int]:
 
 
 def current_season_from_matrix(
-    matrix: ResultsMatrix, season_start: date, registry: ClubRegistry, source: str
+    matrix: ResultsMatrix,
+    season_start: date,
+    registry: ClubRegistry,
+    source: str,
+    completed_cutoff: date | None = None,
 ) -> list[dict[str, object]]:
+    played = [result for result in matrix.results if result.home_goals is not None]
+    pending = [result for result in matrix.results if result.home_goals is None]
     cutoff = matrix.cutoff_date()
     if cutoff is None:
-        raise CompositionError(
-            f"{matrix.season}: matriz marcada como completa; use o calendário de temporada encerrada"
-        )
+        if pending or completed_cutoff is None:
+            raise CompositionError(
+                f"{matrix.season}: matriz marcada como completa; use o calendário de temporada encerrada"
+            )
+        cutoff = completed_cutoff
     if cutoff < season_start:
         raise CompositionError(f"{matrix.season}: data de atualização {cutoff} anterior ao início {season_start}")
     names = registry.resolve_many({r.home_name for r in matrix.results} | {r.away_name for r in matrix.results})
-    played = [result for result in matrix.results if result.home_goals is not None]
-    pending = [result for result in matrix.results if result.home_goals is None]
     pairs = [(names[result.home_name], names[result.away_name]) for result in played]
     slots = imputed_rounds(pairs)
     n_slots = max(slots, default=1)
@@ -245,7 +253,12 @@ def check_against_standings(
 
     Pega placar vandalizado ou atrasado num dos dois e perda de pontos (não modelada: a ingestão falha).
     """
-    if standings.updated.strip() != matrix.updated.strip():
+    matrix_updated = matrix.updated.strip().lower()
+    standings_updated = standings.updated.strip().lower()
+    all_finished = all(record["status"] == MatchStatus.FINISHED.value for record in records)
+    if standings_updated != matrix_updated and not (
+        all_finished and (matrix_updated == "complete" or standings_updated == "complete")
+    ):
         raise CompositionError(
             f"{matrix.season}: matriz atualizada em {matrix.updated!r} e classificação em {standings.updated!r}"
         )
@@ -275,6 +288,38 @@ def season_start_from_wikitext(wikitext: str, season: int) -> date:
     if start is None:
         raise SourceFormatError(f"{season}: campo 'início' ausente na página")
     return start
+
+
+def season_end_from_wikitext(wikitext: str, season: int) -> date | None:
+    found = SEASON_END_PATTERN.search(wikitext)
+    if not found:
+        return None
+    text = re.sub(r"\[\[(?:[^\]|]*\|)?([^\]]*)\]\]", r"\1", found.group(1))
+    date_match = PORTUGUESE_DAY_FRAGMENT.search(text)
+    if not date_match:
+        return None
+    try:
+        return parse_portuguese_day(date_match.group(1), season)
+    except SourceFormatError:
+        return None
+
+
+def _completed_cutoff_date(wikitext: str, standings: StandingsTable, season: int, collected_on: date) -> date:
+    candidates: list[date] = []
+    if standings.updated.strip():
+        try:
+            standings_date = parse_portuguese_day(standings.updated, season)
+        except SourceFormatError:
+            standings_date = None
+        if standings_date is not None:
+            candidates.append(standings_date)
+    infobox_end = season_end_from_wikitext(wikitext, season)
+    if infobox_end is not None:
+        candidates.append(infobox_end)
+    for candidate in candidates:
+        if candidate <= collected_on:
+            return candidate
+    return collected_on
 
 
 @dataclass(frozen=True)
@@ -337,19 +382,26 @@ def compose(raw_dir: Path, pins: SerieBPins, registry: ClubRegistry) -> Composit
     manifests[current_tag] = current_manifest
     wikitext = (current_dir / "page.wikitext").read_text(encoding="utf-8")
     matrix = parse_wikipedia_matrix(wikitext, current)
-    current_records = current_season_from_matrix(
-        matrix, season_start_from_wikitext(wikitext, current), registry, current_tag
-    )
     if "standings.wikitext" not in current_manifest.files:
         raise CompositionError(f"{current}: ingestão sem a predefinição de classificação para conferência")
     standings = parse_wikipedia_standings((current_dir / "standings.wikitext").read_text(encoding="utf-8"), current)
+    collected_on = current_manifest.retrieved_at.astimezone(BRASILIA_TIMEZONE).date()
+    completed_cutoff = (
+        _completed_cutoff_date(wikitext, standings, current, collected_on) if matrix.cutoff_date() is None else None
+    )
+    current_records = current_season_from_matrix(
+        matrix,
+        season_start_from_wikitext(wikitext, current),
+        registry,
+        current_tag,
+        completed_cutoff=completed_cutoff,
+    )
     check_against_standings(current_records, standings, matrix, registry)
     records.extend(current_records)
     seasons_info[str(current)] = {"results": current_tag, "dates": "imputed"}
-    reference_date = matrix.cutoff_date()
+    reference_date = matrix.cutoff_date() or completed_cutoff
     if reference_date is None:
         raise CompositionError("temporada corrente sem data de atualização")
-    collected_on = current_manifest.retrieved_at.astimezone(BRASILIA_TIMEZONE).date()
     if reference_date > collected_on:
         raise CompositionError(f"data de atualização {reference_date} posterior à coleta ({collected_on})")
     matches = pd.DataFrame.from_records(records, columns=MATCH_COLUMNS)

@@ -29,8 +29,10 @@
 
   function edition(data) {
     const left = roundsLeft(data);
-    return `<p class="edition"><span class="edition-name">Edição de ${escapeHtml(S.formatDate(data.reference_date, { weekday: "long", day: "numeric", month: "long", year: "numeric" }))}</span> · Série B ${data.season} · ${left === 1 ? "falta 1 rodada" : `faltam ${left} rodadas`}</p>
-      <p class="edition-facts"><strong>${data.observed_matches}</strong> jogos disputados · <strong>${data.n_simulations.toLocaleString("pt-BR")}</strong> simulações do que falta e dos playoffs</p>`;
+    const phase = left === 0 ? "fase regular encerrada · playoffs" : left === 1 ? "falta 1 rodada" : `faltam ${left} rodadas`;
+    const simScope = left === 0 ? "simulações dos playoffs" : "simulações do que falta e dos playoffs";
+    return `<p class="edition"><span class="edition-name">Edição de ${escapeHtml(S.formatDate(data.reference_date, { weekday: "long", day: "numeric", month: "long", year: "numeric" }))}</span> · Série B ${data.season} · ${phase}</p>
+      <p class="edition-facts"><strong>${data.observed_matches}</strong> jogos disputados · <strong>${data.n_simulations.toLocaleString("pt-BR")}</strong> ${simScope}</p>`;
   }
 
   function playoffBracket(data, byId) {
@@ -71,7 +73,7 @@
         ${S.raceCard("Cai", "% das simulações em que termina entre 17º e 20º.", S.raceRows(drop.map((club) => ({ id: club.club_id, value: club.relegation, label: relegationLabel(club) })), "danger"))}
       </div>
       ${S.raceCard("Chave do playoff", playoffInfo, playoffBracket(data, byId))}
-      <nav class="chip-row comp-links" aria-label="Mais"><a class="chip" href="#/tabela">Tabela completa ›</a><a class="chip" href="#/jogos">Jogos que faltam ›</a></nav>`;
+      <nav class="chip-row comp-links" aria-label="Mais"><a class="chip" href="#/tabela">Tabela completa ›</a>${data.remaining.length ? '<a class="chip" href="#/jogos">Jogos que faltam ›</a>' : ""}</nav>`;
   }
 
   const WORDS = {
@@ -138,9 +140,18 @@
   }
 
   function matches(data) {
+    const info = "<p>Probabilidade de vitória do mandante, de empate e de vitória do visitante, com a força de cada clube na data da edição. Toque num jogo para ver os detalhes.</p><p>A fonte da Série B não traz as datas dos jogos que faltam; por isso eles aparecem em ordem da tabela (pela posição do mandante).</p>";
+    if (!data.remaining.length) {
+      return `
+        ${S.screenHead("Jogos", info)}
+        <div class="state">
+          <p class="state-title">Fase regular encerrada</p>
+          <p class="state-text">Todos os ${data.observed_matches} jogos dos pontos corridos já foram disputados. Veja os confrontos e probabilidades do playoff no Início.</p>
+          <a class="state-action btn-secondary" href="#/">Ver chave do playoff</a>
+        </div>`;
+    }
     const byId = Object.fromEntries(data.teams.map((club) => [club.club_id, club]));
     const list = [...data.remaining].sort((a, b) => byId[a.home_id].position - byId[b.home_id].position);
-    const info = "<p>Probabilidade de vitória do mandante, de empate e de vitória do visitante, com a força de cada clube na data da edição. Toque num jogo para ver os detalhes.</p><p>A fonte da Série B não traz as datas dos jogos que faltam; por isso eles aparecem em ordem da tabela (pela posição do mandante).</p>";
     return `
       ${S.screenHead(`Jogos que faltam · ${data.remaining.length}`, info)}
       <p class="comp-notice">Sem datas na fonte: jogos na ordem da tabela.</p>

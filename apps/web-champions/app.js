@@ -121,13 +121,16 @@
     const stageBlock = current.length
       ? `<section class="comp-block" aria-labelledby="ko-now"><div class="block-head"><h2 id="ko-now">${escapeHtml(STAGE_NAMES[stage])}</h2><a class="block-link" href="#/chave">Chave ›</a></div><div class="ko-grid">${current.map(tieCard).join("")}</div></section>`
       : `<section class="comp-block" aria-labelledby="ko-now"><div class="block-head"><h2 id="ko-now">${escapeHtml(STAGE_NAMES[stage] || "Mata-mata")}</h2><a class="block-link" href="#/chave">Chave ›</a></div><p class="note">Os confrontos desta fase aparecem aqui quando a fonte trouxer os clubes. Até lá, a chave usa o regulamento e sorteia onde a UEFA sorteia.</p></section>`;
+    const nextBlock = next.length
+      ? `<section class="comp-block" aria-labelledby="comp-next"><div class="block-head"><h2 id="comp-next">Próximos jogos</h2><a class="block-link" href="#/jogos">Ver todos ›</a></div>${S.matchesByDay(next)}</section>`
+      : "";
+    const racesBlock = `<div class="races">
+        ${S.raceCard("Título", "% das simulações em que é campeão.", S.raceRows(byWinner.map((club) => ({ id: club.club_id, value: club.stages.winner })), ""))}
+      </div>`;
     return `
       ${S.screenHead("Quem ainda dá?", info)}
       ${stageBlock}
-      ${next.length ? `<section class="comp-block" aria-labelledby="comp-next"><div class="block-head"><h2 id="comp-next">Próximos jogos</h2><a class="block-link" href="#/jogos">Ver todos ›</a></div>${S.matchesByDay(next)}</section>` : ""}
-      <div class="races">
-        ${S.raceCard("Título", "% das simulações em que é campeão.", S.raceRows(byWinner.map((club) => ({ id: club.club_id, value: club.stages.winner })), ""))}
-      </div>
+      ${next.length ? `<div class="comp-home-grid">${nextBlock}${racesBlock}</div>` : racesBlock}
       <nav class="chip-row comp-links" aria-label="Mais"><a class="chip" href="#/chave">Chave do mata-mata ›</a><a class="chip" href="#/fase-de-liga">Fase de liga ›</a></nav>`;
   }
 
@@ -150,7 +153,7 @@
     return `
       ${S.screenHead("Chave do mata-mata", info)}
       ${blocks}
-      <h2>Fase a fase</h2>
+      <h2 class="comp-section-h">Fase a fase</h2>
       ${stagesTable({ ...data, clubs: data.clubs.filter((club) => club.zones.out < 1) })}`;
   }
   const chronological = (a, b) => (a.kickoff_utc || a.match_date).localeCompare(b.kickoff_utc || b.match_date);
@@ -165,14 +168,17 @@
     const info = `<p>Do 1º ao 8º vão direto às oitavas, do 9º ao 24º jogam o playoff e do 25º em diante saem.</p>
       <p>Cada porcentagem diz em quantas das ${data.n_simulations.toLocaleString("pt-BR")} simulações (fase de liga e mata-mata até a final) aquilo aconteceu. "Garantido", "não dá mais" e "eliminado" só aparecem quando a conta de pontos fecha.</p>`;
     const next = upcoming(data).sort(chronological).slice(0, HOME_MATCHES);
-    return `
-      ${S.screenHead("Quem ainda dá?", info)}
-      ${next.length ? `<section class="comp-block" aria-labelledby="comp-next"><div class="block-head"><h2 id="comp-next">Próximos jogos</h2><a class="block-link" href="#/jogos">Ver todos ›</a></div>${S.matchesByDay(next)}</section>` : ""}
-      <div class="races">
+    const nextBlock = next.length
+      ? `<section class="comp-block" aria-labelledby="comp-next"><div class="block-head"><h2 id="comp-next">Próximos jogos</h2><a class="block-link" href="#/jogos">Ver todos ›</a></div>${S.matchesByDay(next)}</section>`
+      : "";
+    const racesBlock = `<div class="races">
         ${S.raceCard("Título", "% das simulações em que é campeão.", S.raceRows(byWinner.map((club) => ({ id: club.club_id, value: club.stages.winner })), ""))}
         ${S.raceCard("Direto às oitavas", "% das simulações em que termina entre 1º e 8º.", S.raceRows(byTop8.map((club) => ({ id: club.club_id, value: club.zones.top8, label: zoneLabel(club, "top8") })), "lib"))}
         ${S.raceCard("Eliminado na fase de liga", "% das simulações em que termina entre 25º e 36º.", S.raceRows(byOut.map((club) => ({ id: club.club_id, value: club.zones.out, label: zoneLabel(club, "out") })), "danger"))}
-      </div>
+      </div>`;
+    return `
+      ${S.screenHead("Quem ainda dá?", info)}
+      ${next.length ? `<div class="comp-home-grid">${nextBlock}${racesBlock}</div>` : racesBlock}
       <nav class="chip-row comp-links" aria-label="Mais"><a class="chip" href="#/chave">Chave provável ›</a><a class="chip" href="#/fase-de-liga">Fase de liga ›</a></nav>`;
   }
 
@@ -210,18 +216,17 @@
       <p>Na tabela fase a fase, o percentual diz em quantas simulações o clube chega a cada fase. As oitavas somam quem foi direto e quem passou no playoff.</p>`;
     return `
       ${S.screenHead("Chave provável", info)}
-      <h2>O caminho de um lado da chave</h2>
+      <h2 class="comp-section-h">O caminho de um lado da chave</h2>
       <div class="bracket" style="--rounds:4">
         <div class="bracket-round"><h3>Oitavas</h3>${[a, d, b, c].map((section) => bracketBox(`Seção ${section.id}`, [label(section)])).join("")}</div>
         <div class="bracket-round"><h3>Quartas</h3>${bracketBox("A × D", ["vencedor da seção A", "vencedor da seção D"])}${bracketBox("B × C", ["vencedor da seção B", "vencedor da seção C"])}</div>
         <div class="bracket-round"><h3>Semifinal</h3>${bracketBox("(A × D) × (B × C)", ["vencedores das quartas"])}</div>
         <div class="bracket-round"><h3>Final</h3><div class="tie"><div class="tie-head"><span>Jogo único</span><b>final</b></div><p class="candidates-label">Mais prováveis na final</p><ul class="candidates">${finalists.map((club) => `<li>${team(club.club_id, 16)}<strong>${pct(club.stages.final)}</strong></li>`).join("")}</ul></div></div>
       </div>
-      <h2>Quem pode ocupar cada seção</h2>
+      <h2 class="comp-section-h">Quem pode ocupar cada seção</h2>
       <div class="sections-grid">${SECTIONS.map((section) => sectionCard(data, section)).join("")}</div>
-      <h2>Mais prováveis nas semifinais</h2>
-      ${S.raceRows(semis.map((club) => ({ id: club.club_id, value: club.stages.semi_finals })), "")}
-      <h2>Fase a fase</h2>
+      <div class="comp-block">${S.raceCard("Mais prováveis nas semifinais", "% das simulações em que o clube chega às semifinais.", S.raceRows(semis.map((club) => ({ id: club.club_id, value: club.stages.semi_finals })), ""))}</div>
+      <h2 class="comp-section-h">Fase a fase</h2>
       ${stagesTable(data)}`;
   }
 
