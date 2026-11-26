@@ -4168,3 +4168,29 @@ mudou desde então (a `0007_live_round.sql` e o Simulador D0).
   - **Agente 03**: conferir o Art. 21 no texto oficial.
   - **Agente 07**: nada muda no workflow (mesmos comandos).
   - **Agente 00**: decidir se vale um arquivo de referência com a chave oficial.
+
+## Agentes 05/08: polimento UI Série A — Desktop 1280 px, Simulador e Rodada a rodada (Kanban #43, D-052, 2026-11-26)
+
+- **O que mudou**:
+  - **Desktop `1C` (`apps/web/assets/app.js`, `apps/web/assets/styles.css`)**:
+    - Home no PC (`>= 900 px`) em faixa Hero panorâmica (`.team-hero` à esquerda, `Próximo jogo` + CTA `Simular` à direita) e 2 colunas abaixo (`Impacto + Disputas` | `Próximos jogos`); Home sem time em 2 colunas (`Próximos jogos` | `Disputas`); removidas travas legadas de `620/720 px` e grade de 2 colunas na Tabela `C2` (`.rg-list`).
+    - Home mobile (`< 900 px`) preservada intacta conforme aprovação do dono do produto.
+  - **Simulador `2C` e `3B` (`apps/web/assets/simulator.js`, `apps/web/assets/simulator.css`)**:
+    - Cabeçalho v2.1 (`Simulador` + sheet `(i)` + pílula de conta abrindo sheet modal com fluxo completo de participação/Turnstile/apelido/avisos/exclusão) e tabs em chips.
+    - Início `2C` em 2 colunas no PC com preview interativo do próximo jogo (`Placar exato`, `Vencedor` 1X2 e resumo `Classificação`) levando o 1º palpite direto ao Passo 2 (`.sim-deck-grid` em 2 colunas no PC), nota inline de rascunho e lista compacta `Minhas simulações`.
+    - Ranking e Agregado `3B` com pódio top 3 / cards "Onde a torcida mais discorda do modelo" (3 colunas no PC, carrossel snap no celular), tabela `.table-card` com pílulas `vs. Modelo` e estados vazios `.state`.
+  - **Rodada a rodada `4A`, `5B + Jornada` e `6C expandida` (`apps/web/assets/rounds.js`, `apps/web/assets/rounds.css`)**:
+    - Cabeçalho com chips `Visão geral · Por time · Comparar`.
+    - `4A`: gráfico padrão "Corrida rodada a rodada" (top 4 clubes por pico na disputa, rótulos coloridos diretos no fim das linhas e barra de leitura viva) com alternância `Corrida | Agito` (1 cor `--libertadores` + destaque `--signal` só no pico) e rodadas decisivas em 2 colunas no PC.
+    - `5B + Jornada`: seletor `[escudo] Nome ▾` em sheet, 4 cards de resumo, grid 2 colunas no PC com gráfico unificado (`Probabilidades | Posição`) + tabela completa recolhível à esquerda, e `Momentos decisivos` (2 extremos) + `Jornada na temporada` (linha do tempo cronológica clicável sincronizada com o gráfico) à direita.
+    - `6C expandida`: chips de até 4 clubes com aro colorido + sheet de adição, playback `▶ Evoluir` + slider sincronizados ao vivo com a `Foto da Rodada` ao lado (`Comparados | Tabela`, com setas `▲/▼` de posição).
+  - **Documentação**: `docs/brand/BRAND_DECISIONS.md` (D-052) e `docs/ux/REDESIGN_SPEC.md` (§6 v2.2).
+- **Evidência**:
+  - `node --check apps/web/assets/app.js apps/web/assets/simulator.js apps/web/assets/rounds.js` sem erros.
+  - `node --test tests/js/*.test.js`: **56/56 passaram** (incluindo invariante de não duplicação da lógica pura em `simulator.js`).
+  - Playwright (Firefox headless, com JSONs reais da temporada 2026 servidos em overlay fora do repositório): **17 visões auditadas** em `1280×800` e `375×812` (escuro e claro), `overflow: false` em 17/17 (`scrollWidth === innerWidth`), 4 folhas CSS carregadas, zero ocorrências de "chance" no diff (D-046), e fluxos interativos validados (preview `2C` → Passo 2, `4A` Corrida/Agito, `5B` Jornada clicável, `6C` Tabela + slider R15).
+- **Premissas e limitações**:
+  - `pytest` completo da suíte Python roda no CI do GitHub Actions ao abrir o PR (VM local sem `pandas` instalado no ambiente padrão).
+- **Próximo responsável**:
+  - **Agente 06 / dono do produto**: revisão visual do PR da branch `feat/polimento-ui-serie-a` e merge após CI verde.
+
