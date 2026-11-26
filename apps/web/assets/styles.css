@@ -983,7 +983,7 @@ main .privacy-section p, main .privacy-summary p { font-family: var(--sans); fon
       "impact matches"
       "disputes matches";
   }
-  .home-v43 .team-hero { grid-area: hero; margin: 0; height: 100%; align-content: space-between; }
+  .home-v43 .team-hero { grid-area: hero; margin: 0; align-self: stretch; align-content: start; }
   .home-v43 .home-next { grid-area: next; margin: 0; }
   .home-v43 .home-next .mc-list { grid-template-columns: 1fr; margin-bottom: 0; }
   .home-v43 .home-cta { grid-area: cta; margin: 0; align-self: end; }

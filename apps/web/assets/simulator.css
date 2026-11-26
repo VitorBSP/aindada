@@ -488,7 +488,7 @@
 /* 2C: Home do Simulador (preview interativo + minhas simulações). */
 .sim-home-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
 .sim-hero-card { display: flex; flex-direction: column; gap: 14px; padding: 18px; }
-.sim-hero-title { margin: 0; font-size: 22px; font-weight: 850; letter-spacing: -0.02em; line-height: 1.15; }
+.sim-hero-title { margin: 0; padding: 0; border: 0; font-size: 22px; font-weight: 850; letter-spacing: -0.02em; line-height: 1.15; }
 .sim-hero-sub { margin: 4px 0 0; font-size: 13px; color: var(--ink-soft); }
 
 .sim-mode-seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border: 1px solid var(--rule); border-radius: 12px; background: var(--surface-2); }
@@ -543,7 +543,7 @@
 
 .sim-list-card { display: flex; flex-direction: column; gap: 10px; padding: 16px; border: 1px solid var(--rule); border-radius: var(--radius-card); background: var(--surface); }
 .sim-list-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
-.sim-list-head h2 { margin: 0; font-size: 17px; font-weight: 800; }
+.sim-list-head h2 { margin: 0; padding: 0; border: 0; font-size: 17px; font-weight: 800; }
 .sim-list-head .block-link { margin: 0; font-size: 13px; }
 .sim-list-sub { margin: 2px 0 0; font-size: 12px; color: var(--ink-faint); }
 .sim-saved-list { display: flex; flex-direction: column; }
