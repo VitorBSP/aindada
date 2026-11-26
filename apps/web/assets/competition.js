@@ -56,7 +56,11 @@
     `<span class="club-cell">${trailing ? "" : crest(id, size)}<span>${escapeHtml(nameOf(id))}</span>${trailing ? crest(id, size) : ""}</span>`;
 
   // Célula de clube das tabelas: nome inteiro no computador, sigla no celular (mesmo padrão da Série A).
-  const teamCell = (id, size = 20, extra = "") => `<span class="club-cell club-link" data-club="${escapeHtml(id)}" role="button" tabindex="0" title="${escapeHtml(nameOf(id))}">${crest(id, size)}<span class="name-full">${escapeHtml(nameOf(id))}${extra ? ` ${extra}` : ""}</span><span class="name-short" aria-hidden="true">${escapeHtml(state.shorts[id] || nameOf(id).slice(0, 3).toUpperCase())}</span></span>`;
+  const teamCell = (id, size = 20, extra = "") => {
+    const interactive = Boolean(state.config && state.config.club);
+    const attrs = interactive ? ` class="club-cell club-link" data-club="${escapeHtml(id)}" role="button" tabindex="0"` : ' class="club-cell"';
+    return `<span${attrs} title="${escapeHtml(nameOf(id))}">${crest(id, size)}<span class="name-full">${escapeHtml(nameOf(id))}${extra ? ` ${extra}` : ""}</span><span class="name-short" aria-hidden="true">${escapeHtml(state.shorts[id] || nameOf(id).slice(0, 3).toUpperCase())}</span></span>`;
+  };
 
   function probCell(value, kind, label) {
     const intensity = Math.min(1, Math.max(0, value));
@@ -407,20 +411,25 @@
   /* ---------------- Rodadas: evolução das probabilidades (history.json) */
 
   function lineChart(rounds, values, metric) {
-    const width = 320;
-    const height = 150;
-    const pad = { left: 34, right: 10, top: 10, bottom: 22 };
+    const narrow = window.innerWidth < 600;
+    const width = narrow ? 340 : 640;
+    const height = narrow ? 165 : 210;
+    const pad = { left: 38, right: 14, top: 12, bottom: 24 };
     const peak = Math.max(0.1, ...values);
     const top = peak > 0.5 ? 1 : Math.ceil(peak * 10) / 10;
     const x = (index) => pad.left + (rounds.length > 1 ? (index * (width - pad.left - pad.right)) / (rounds.length - 1) : 0);
     const y = (value) => pad.top + (height - pad.top - pad.bottom) * (1 - value / top);
     const path = values.map((value, index) => `${index ? "L" : "M"}${x(index).toFixed(1)} ${y(value).toFixed(1)}`).join(" ");
-    const grid = [0, top / 2, top].map((value) => `<line x1="${pad.left}" x2="${width - pad.right}" y1="${y(value).toFixed(1)}" y2="${y(value).toFixed(1)}" class="lc-grid"/><text x="${pad.left - 5}" y="${(y(value) + 4).toFixed(1)}" text-anchor="end" class="lc-label">${Math.round(value * 100)}%</text>`).join("");
-    const every = Math.max(1, Math.ceil(rounds.length / 7));
-    const ticks = rounds.map((round, index) => (index % every === 0 || index === rounds.length - 1 ? `<text x="${x(index).toFixed(1)}" y="${height - 5}" text-anchor="middle" class="lc-label">R${round}</text>` : "")).join("");
+    const grid = [0, top / 2, top].map((value) => `<line x1="${pad.left}" x2="${width - pad.right}" y1="${y(value).toFixed(1)}" y2="${y(value).toFixed(1)}" class="lc-grid"/><text x="${pad.left - 6}" y="${(y(value) + 4).toFixed(1)}" text-anchor="end" class="lc-label">${Math.round(value * 100)}%</text>`).join("");
+    const every = Math.max(1, Math.ceil(rounds.length / (narrow ? 6 : 10)));
+    const ticks = rounds.map((round, index) => {
+      const isLast = index === rounds.length - 1;
+      const show = isLast || (index % every === 0 && (rounds.length - 1 - index) >= Math.max(2, Math.ceil(every / 2)));
+      return show ? `<text x="${x(index).toFixed(1)}" y="${height - 6}" text-anchor="middle" class="lc-label">R${round}</text>` : "";
+    }).join("");
     const lastIndex = values.length - 1;
     const summary = `${metric.label}: de ${pct(values[0])} na rodada ${rounds[0]} a ${pct(values[lastIndex])} na rodada ${rounds[lastIndex]}; pico de ${pct(Math.max(...values))}`;
-    return `<svg class="line-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(summary)}">${grid}${ticks}<path d="${path}" class="lc-line" fill="none" stroke-linejoin="round" stroke-linecap="round"/>${values.map((value, index) => `<circle cx="${x(index).toFixed(1)}" cy="${y(value).toFixed(1)}" r="${index === lastIndex ? 4 : 2.2}" class="${index === lastIndex ? "lc-dot is-last" : "lc-dot"}"/>`).join("")}</svg>`;
+    return `<svg class="line-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(summary)}">${grid}${ticks}<path d="${path}" class="lc-line" fill="none" stroke-linejoin="round" stroke-linecap="round"/>${values.map((value, index) => `<circle cx="${x(index).toFixed(1)}" cy="${y(value).toFixed(1)}" r="${index === lastIndex ? 4.2 : 2.5}" class="${index === lastIndex ? "lc-dot is-last" : "lc-dot"}"/>`).join("")}</svg>`;
   }
 
   function roundsView(data, segments) {
@@ -460,9 +469,15 @@
           const delta = entry && before && before.teams[club.id] ? value - metric.get(before.teams[club.id]) : null;
           return { club, entry, value, delta };
         }).filter((row) => row.entry && row.value >= 0.005).sort((a, b) => b.value - a.value || a.entry.position - b.entry.position).slice(0, 12);
+        const isDanger = metric.color === "danger";
+        const deltaClass = (delta) => {
+          if (Math.abs(delta) <= 0.0005) return "";
+          const good = isDanger ? delta < 0 : delta > 0;
+          return good ? "is-up" : "is-down";
+        };
         const list = rows.length ? `<div class="rg-list is-two">${rows.map((row) => `<div class="race-row-card" data-club="${escapeHtml(row.club.id)}" role="button" tabindex="0">
             <span class="rr-pos">${row.entry.position}</span>${crest(row.club.id, 26)}<span class="rr-name">${escapeHtml(row.club.name)}</span>
-            <span class="rr-meta">${row.entry.points} pts${row.delta === null ? "" : ` · <b class="${row.delta > 0.0005 ? "is-up" : row.delta < -0.0005 ? "is-down" : ""}">${row.delta > 0.0005 ? "▲" : row.delta < -0.0005 ? "▼" : "="} ${number.format(Math.abs(row.delta) * 100)} p.p.</b>`}</span>
+            <span class="rr-meta">${row.entry.points} pts${row.delta === null ? "" : ` · <b class="${deltaClass(row.delta)}">${row.delta > 0.0005 ? "▲" : row.delta < -0.0005 ? "▼" : "="} ${number.format(Math.abs(row.delta) * 100)} p.p.</b>`}</span>
             <strong class="rr-value">${pct(row.value)}</strong><span class="rr-bar" aria-hidden="true"><i style="width:${(Math.min(1, row.value) * 100).toFixed(1)}%;background:var(--${metric.color || "title"})"></i></span></div>`).join("")}</div>` : '<p class="comp-notice">Nenhum clube com probabilidade relevante nesta rodada.</p>';
         return `${modeChips}${roundChips}${metricChips}<h2 class="comp-day-title">${escapeHtml(metric.label)} · rodada ${point.round}<span>${escapeHtml(S_formatShort(point.reference_date))}</span></h2>${list}${note}`;
       })}`;

@@ -633,10 +633,9 @@
       <div class="home-v43${nextBlock ? "" : " no-next"}">
         ${teamHero(team, raceId)}
         ${nextBlock}
-        ${impactBlock}
+        <div class="home-pc-left">${impactBlock}<div class="home-pc-disputes">${disputesCard(raceId)}</div></div>
         <a class="btn-primary yt-cta home-cta" href="#/simular">Simular jogos ${article} ${escapeHtml(team.name)}</a>
         ${matchesBlock}
-        <div class="home-pc-disputes">${disputesCard(raceId)}</div>
       </div>`;
     bindHome();
     bindScreenInfo("Como este cálculo é feito", WHAT_IF_EXPLANATION);

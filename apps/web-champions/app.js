@@ -254,13 +254,13 @@
       .sort((a, b) => b.stages.winner - a.stages.winner || b.stages.final - a.stages.final || b.stages.semi_finals - a.stages.semi_finals
         || b.stages.quarter_finals - a.stages.quarter_finals || b.stages.round_of_16 - a.stages.round_of_16)
       .map((club) => `<tr>
-        <td class="left club">${team(club.club_id, 20)}</td>
+        <td class="left club">${S.teamCell(club.club_id, 20)}</td>
         <td>${knockout ? (club.zones.top8 === 1 ? "sim" : "—") : S.probCell(club.zones.top8, "lib", club.clinched.top8 ? zoneLabel(club, "top8") : null)}</td>
         <td>${knockout ? (club.zones.playoff === 1 ? "sim" : "—") : S.probCell(club.zones.playoff, "sula", club.clinched.playoff || club.clinched.top8 ? zoneLabel(club, "playoff") : null)}</td>
         ${STAGES.map(([key]) => `<td class="stage${club.stages[key] >= 0.5 ? " strong" : ""}">${stageText(data, facts, club, key)}</td>`).join("")}
       </tr>`)
       .join("");
-    return `<div class="table-scroll" tabindex="0" role="region" aria-label="Probabilidade de cada clube por fase">
+    return `<div class="table-scroll table-card" tabindex="0" role="region" aria-label="Probabilidade de cada clube por fase">
       <table><thead><tr><th class="left">Clube</th><th>Top 8</th><th>Playoff</th>${STAGES.map(([, label]) => `<th>${label}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table>
     </div>`;
   }
