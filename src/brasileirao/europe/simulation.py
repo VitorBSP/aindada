@@ -5,17 +5,26 @@ vitórias fora, pontos, saldo e gols dos adversários; pontos disciplinares e co
 sorteio. Mata-mata: ida e volta pelo agregado, sem gol fora; prorrogação de 30 minutos (taxas / 3) e pênaltis
 50/50; final em campo neutro. Onde o regulamento sorteia (pares de cada seção, lado da chave), a simulação
 sorteia com probabilidades iguais.
+
+Com a fase de liga encerrada, `run_knockout` parte do mata-mata real (europe/knockout.py): confronto decidido não é
+sorteado, ida disputada entra com o placar real e só a volta é simulada, e o mando é o que a fonte marcou. Onde a
+chave ainda depende de sorteio da UEFA que os dados não mostram, a simulação sorteia entre as chaves que batem com
+os confrontos reais.
 """
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from itertools import pairwise
 
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
 
 from brasileirao.contracts import MatchStatus
+from brasileirao.europe import knockout as real_knockout
+from brasileirao.europe.knockout import CONFIG_BITS, KNOCKOUT_STAGES, KnockoutFormatError, RealTie
 from brasileirao.frame_values import as_int
 from brasileirao.prediction.goals_model import GoalsModel, score_matrix
 from brasileirao.serie_b.playoffs import PairRates
@@ -144,6 +153,36 @@ class ChampionsSimulator:
             totals["away_wins"][away] += away_goals > home_goals
         return totals
 
+    def _league_keys(self, totals: dict[str, IntArray]) -> list[IntArray]:
+        """Critérios do Art. 18 com dados, do primeiro ao último (pontos disciplinares e coeficiente viram sorteio)."""
+        goal_difference = totals["gf"] - totals["ga"]
+        return [
+            totals["points"],
+            goal_difference,
+            totals["gf"],
+            totals["away_gf"],
+            totals["wins"],
+            totals["away_wins"],
+            totals["points"] @ self.opponents,
+            goal_difference @ self.opponents,
+            totals["gf"] @ self.opponents,
+        ]
+
+    def final_league_order(self) -> IntArray:
+        """Ordem final com a fase de liga encerrada. Empate em todos os critérios com dados até o 24º trava."""
+        if len(self.phase.remaining):
+            raise KnockoutFormatError("a fase de liga ainda tem jogos por disputar")
+        observed = {name: values[None, :] for name, values in self._observed_totals().items()}
+        keys = np.stack([key[0] for key in self._league_keys(observed)], axis=1)
+        order = np.lexsort(tuple(-keys[:, column] for column in reversed(range(keys.shape[1]))))
+        for upper, lower in pairwise(order[:25]):
+            if (keys[upper] == keys[lower]).all():
+                raise KnockoutFormatError(
+                    f"{self.phase.club_ids[upper]} e {self.phase.club_ids[lower]} empatados em todos os critérios "
+                    "com dados: a posição depende do coeficiente da UEFA"
+                )
+        return order.astype(np.int64)
+
     def _league_phase(self, n_simulations: int, generator: np.random.Generator) -> tuple[IntArray, IntArray]:
         observed = self._observed_totals()
         totals = {name: np.tile(values, (n_simulations, 1)) for name, values in observed.items()}
@@ -162,18 +201,7 @@ class ChampionsSimulator:
             totals["wins"][:, home] += home_goals > away_goals
             totals["wins"][:, away] += away_goals > home_goals
             totals["away_wins"][:, away] += away_goals > home_goals
-        goal_difference = totals["gf"] - totals["ga"]
-        keys = [
-            totals["points"],
-            goal_difference,
-            totals["gf"],
-            totals["away_gf"],
-            totals["wins"],
-            totals["away_wins"],
-            totals["points"] @ self.opponents,
-            goal_difference @ self.opponents,
-            totals["gf"] @ self.opponents,
-        ]
+        keys = self._league_keys(totals)
         lot = generator.random(totals["points"].shape)
         final_order = np.lexsort((-lot, *[-key for key in reversed(keys)]), axis=1)
         return final_order.astype(np.int64), totals["points"]
@@ -282,3 +310,147 @@ class ChampionsSimulator:
             points=points,
             stage_counts={stage: values / n_simulations for stage, values in counts.items()},
         )
+
+    # ---------------------------------------------------------------- Mata-mata real (fase de liga encerrada)
+
+    def _real_tie(
+        self, table: RealTable, first: IntArray, first_position: IntArray, second: IntArray, second_position: IntArray,
+        generator: np.random.Generator,
+    ) -> tuple[IntArray, IntArray]:  # fmt: skip
+        """Como `_tie`, mas com o que já aconteceu: mando real, ida real e confronto decidido sem sorteio."""
+        code = np.minimum(first, second) * table.n_clubs + np.maximum(first, second)
+        host_second = np.where(first_position <= second_position, first, second)
+        real_host = table.second_host[code]
+        host_second = np.where(real_host >= 0, real_host, host_second)
+        host_first = first + second - host_second
+        first_home, first_away = self.home_sampler.sample(host_first, host_second, generator)
+        played = table.first_home_goals[code] >= 0
+        first_home = np.where(played, table.first_home_goals[code], first_home)
+        first_away = np.where(played, table.first_away_goals[code], first_away)
+        second_home, second_away = self.home_sampler.sample(host_second, host_first, generator)
+        second_total = first_away + second_home
+        first_total = first_home + second_away
+        tied = second_total == first_total
+        second_total = second_total + generator.poisson(self.with_home.home[host_second, host_first] / 3) * tied
+        first_total = first_total + generator.poisson(self.with_home.away[host_second, host_first] / 3) * tied
+        penalties_second = generator.random(len(first)) < 0.5
+        second_wins = (second_total > first_total) | ((second_total == first_total) & penalties_second)
+        winner = np.where(second_wins, host_second, host_first)
+        decided = table.winner[code]
+        return np.where(decided >= 0, decided, winner), np.minimum(first_position, second_position)
+
+    def _real_final(
+        self, table: RealTable, first: IntArray, second: IntArray, generator: np.random.Generator
+    ) -> IntArray:
+        winner = self._final(first, second, generator)
+        decided = table.winner[np.minimum(first, second) * table.n_clubs + np.maximum(first, second)]
+        return np.where(decided >= 0, decided, winner)
+
+    def run_knockout(
+        self,
+        n_simulations: int,
+        seed: int,
+        ties: Mapping[str, Sequence[RealTie]],
+        configs: Sequence[tuple[int, ...]],
+    ) -> ChampionsSimulation:
+        """Mata-mata a partir do estado real. `configs` = chaves do Art. 19 que batem com os confrontos reais."""
+        if not configs or any(len(config) != CONFIG_BITS for config in configs):
+            raise KnockoutFormatError("nenhuma configuração de chave válida para simular")
+        generator = np.random.default_rng(seed)
+        order = self.final_league_order()
+        n_clubs = len(self.phase.club_ids)
+        tables = {stage: RealTable.build(ties.get(stage, ()), self.index, n_clubs) for stage in KNOCKOUT_STAGES}
+        chosen = np.asarray(configs, dtype=np.int64)[generator.integers(len(configs), size=n_simulations)]
+        playoff_swap, round_swap, half = chosen[:, 0:4] == 1, chosen[:, 4:8] == 1, chosen[:, 8:12] == 1
+
+        def club_at(position: IntArray) -> IntArray:
+            return order[position - 1]
+
+        playoff_winners: list[list[tuple[IntArray, IntArray]]] = []
+        for section, (seeds, unseeded) in enumerate(real_knockout.PLAYOFF_SECTIONS):
+            winners = []
+            for slot in (0, 1):
+                seed_position = np.full(n_simulations, seeds[slot], dtype=np.int64)
+                other_position = np.where(playoff_swap[:, section], unseeded[1 - slot], unseeded[slot]).astype(np.int64)
+                winners.append(
+                    self._real_tie(
+                        tables["PLAYOFFS"], club_at(seed_position), seed_position, club_at(other_position),
+                        other_position, generator,
+                    )
+                )  # fmt: skip
+            playoff_winners.append(winners)
+        counts: dict[str, FloatArray] = {stage: np.zeros(n_clubs) for stage in STAGES}
+        halves: list[list[tuple[IntArray, IntArray]]] = [[], []]
+        for section, (seeds, playoff_section) in enumerate(real_knockout.ROUND_OF_16_SECTIONS):
+            section_ties = []
+            for slot in (0, 1):
+                swap = round_swap[:, section]
+                pair = playoff_winners[playoff_section]
+                opponent = np.where(swap, pair[1 - slot][0], pair[slot][0])
+                opponent_position = np.where(swap, pair[1 - slot][1], pair[slot][1])
+                seed_position = np.full(n_simulations, seeds[slot], dtype=np.int64)
+                seeded = club_at(seed_position)
+                np.add.at(counts["round_of_16"], seeded, 1)
+                np.add.at(counts["round_of_16"], opponent, 1)
+                section_ties.append(
+                    self._real_tie(tables["LAST_16"], seeded, seed_position, opponent, opponent_position, generator)
+                )
+            for side, take_second in ((0, half[:, section]), (1, ~half[:, section])):
+                halves[side].append(
+                    (
+                        np.where(take_second, section_ties[1][0], section_ties[0][0]),
+                        np.where(take_second, section_ties[1][1], section_ties[0][1]),
+                    )
+                )
+        finalists = []
+        for side in (0, 1):
+            section_a, section_b, section_c, section_d = halves[side]
+            for club, _ in (section_a, section_b, section_c, section_d):
+                np.add.at(counts["quarter_finals"], club, 1)
+            quarter_one = self._real_tie(tables["QUARTER_FINALS"], *section_a, *section_d, generator)
+            quarter_two = self._real_tie(tables["QUARTER_FINALS"], *section_b, *section_c, generator)
+            for club, _ in (quarter_one, quarter_two):
+                np.add.at(counts["semi_finals"], club, 1)
+            finalists.append(self._real_tie(tables["SEMI_FINALS"], *quarter_one, *quarter_two, generator))
+        for club, _ in finalists:
+            np.add.at(counts["final"], club, 1)
+        champion = self._real_final(tables["FINAL"], finalists[0][0], finalists[1][0], generator)
+        np.add.at(counts["winner"], champion, 1)
+        rank = np.empty(n_clubs, dtype=np.int64)
+        rank[order] = np.arange(n_clubs)
+        return ChampionsSimulation(
+            club_ids=self.phase.club_ids,
+            positions=np.tile(rank, (n_simulations, 1)),
+            points=np.tile(self._observed_totals()["points"], (n_simulations, 1)),
+            stage_counts={stage: values / n_simulations for stage, values in counts.items()},
+        )
+
+
+@dataclass(frozen=True)
+class RealTable:
+    """Confrontos reais de uma fase em tabelas densas pelo par (menor índice, maior índice); -1 = não se aplica."""
+
+    n_clubs: int
+    winner: IntArray
+    second_host: IntArray
+    first_home_goals: IntArray
+    first_away_goals: IntArray
+
+    @classmethod
+    def build(cls, ties: Sequence[RealTie], index: Mapping[str, int], n_clubs: int) -> RealTable:
+        size = n_clubs * n_clubs
+        tables = {name: np.full(size, -1, dtype=np.int64) for name in ("winner", "host", "home", "away")}
+        for tie in ties:
+            missing = [club for club in tie.clubs if club not in index]
+            if missing:
+                raise KnockoutFormatError(f"{missing} no mata-mata sem ter jogado a fase de liga")
+            first, second = (index[club] for club in tie.clubs)
+            code = min(first, second) * n_clubs + max(first, second)
+            tables["host"][code] = second
+            if tie.winner is not None:
+                tables["winner"][code] = index[tie.winner]
+            leg = tie.first_leg
+            if leg is not None and tie.stage != "FINAL" and leg.home_goals is not None and leg.away_goals is not None:
+                tables["home"][code] = leg.home_goals
+                tables["away"][code] = leg.away_goals
+        return cls(n_clubs, tables["winner"], tables["host"], tables["home"], tables["away"])

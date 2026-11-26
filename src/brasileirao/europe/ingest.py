@@ -26,6 +26,7 @@ from brasileirao.europe.sources import parse_cup
 from brasileirao.leagues.sources import (
     FOOTBALL_DATA_SOURCE,
     OPENFOOTBALL_SOURCE,
+    SourceFormatError,
     openfootball_manifest,
     parse_football_data,
     parse_openfootball,
@@ -177,18 +178,61 @@ def history_records(raw_dir: Path, pins: EuropePins, registry: ClubRegistry) -> 
     return records, tag
 
 
+def _defined(match: dict[str, Any]) -> bool:
+    """Confronto do mata-mata ainda sem clube (depende de jogo anterior ou de sorteio) não é jogo marcado."""
+    return match["homeTeam"].get("id") is not None and match["awayTeam"].get("id") is not None
+
+
+def _pair(score: dict[str, Any], key: str, match_id: object) -> tuple[int, int]:
+    part = score.get(key) or {}
+    if part.get("home") is None or part.get("away") is None:
+        raise SourceFormatError(f"jogo {match_id} decidido em {score.get('duration')} sem {key}")
+    return int(part["home"]), int(part["away"])
+
+
+def decided_score(raw: dict[str, Any]) -> tuple[tuple[int, int] | None, tuple[int, int] | None, tuple[int, int] | None]:
+    """90 minutos, total com prorrogação (120 minutos) e pênaltis de um jogo encerrado do football-data.org.
+
+    Com prorrogação ou pênaltis, o `fullTime` do v4 soma a prorrogação (e pode somar os pênaltis): o placar do modelo
+    sai de `regularTime`. Jogo sem prorrogação devolve (None, None, None) e fica com o `fullTime` de sempre. Na volta
+    de um confronto, quem decide se a prorrogação cabia é o agregado (conferido em europe/knockout.py).
+    """
+    score = raw.get("score") or {}
+    duration = str(score.get("duration") or "REGULAR")
+    if duration == "REGULAR":
+        return None, None, None
+    if duration not in {"EXTRA_TIME", "PENALTY_SHOOTOUT"}:
+        raise SourceFormatError(f"jogo {raw.get('id')} com duração desconhecida {duration!r}")
+    regular = _pair(score, "regularTime", raw.get("id"))
+    extra = _pair(score, "extraTime", raw.get("id"))
+    after_extra = (regular[0] + extra[0], regular[1] + extra[1])
+    if duration == "EXTRA_TIME":
+        return regular, after_extra, None
+    penalties = _pair(score, "penalties", raw.get("id"))
+    if penalties[0] == penalties[1]:
+        raise SourceFormatError(f"jogo {raw.get('id')} com pênaltis empatados")
+    return regular, after_extra, penalties
+
+
 def current_records(
     payload: dict[str, Any], code: str, season: int, timezone: str, registry: ClubRegistry, tag: str
 ) -> tuple[list[dict[str, object]], int]:
-    """Jogos com resultado dado pela organização saem (devolve quantos); os demais seguem as regras das ligas."""
-    played = [match for match in payload["matches"] if match["status"] != "AWARDED"]
-    skipped = len(payload["matches"]) - len(played)
+    """Jogos com resultado dado pela organização saem (devolve quantos), e confrontos do mata-mata sem os dois
+    clubes definidos também (não são jogos marcados); os demais seguem as regras das ligas.
+
+    Prorrogação e pênaltis (mata-mata): placar de 90 minutos para o modelo e o resto em colunas próprias.
+    """
+    played = [match for match in payload["matches"] if match["status"] != "AWARDED" and _defined(match)]
+    skipped = sum(match["status"] == "AWARDED" for match in payload["matches"])
     parsed = parse_football_data({"matches": played}, season, timezone)
     records = []
     for raw, row in zip(played, parsed, strict=True):
         home = registry.resolve(f"fd:{raw['homeTeam']['id']}")
         away = registry.resolve(f"fd:{raw['awayTeam']['id']}")
         stage = str(raw.get("stage") or "REGULAR_SEASON")
+        finished = row.status == MatchStatus.FINISHED
+        regular, extra_time, penalties = decided_score(raw) if finished else (None, None, None)
+        home_goals, away_goals = regular if regular is not None else (row.home_goals, row.away_goals)
         records.append(
             _record(
                 match_id=f"{code}-{season}-{raw['id']}",
@@ -200,8 +244,12 @@ def current_records(
                 kickoff_utc=row.kickoff_utc.isoformat() if row.kickoff_utc else None,
                 home_id=home,
                 away_id=away,
-                home_goals=row.home_goals,
-                away_goals=row.away_goals,
+                home_goals=home_goals,
+                away_goals=away_goals,
+                extra_time_home=extra_time[0] if extra_time else None,
+                extra_time_away=extra_time[1] if extra_time else None,
+                penalties_home=penalties[0] if penalties else None,
+                penalties_away=penalties[1] if penalties else None,
                 neutral=stage == "FINAL",
                 status=row.status.value,
                 source=tag,

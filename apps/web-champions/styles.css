@@ -1,1 +1,21 @@
 /* Ajustes só deste site; a base vem de ../assets/styles.css e ../assets/competition.css (D-043). */
+
+/* Mata-mata real (v2.1): um card por confronto, com agregado e probabilidade de passar. */
+.ko-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+.ko-tie { padding: 12px 14px; border: 1px solid var(--rule); border-radius: var(--radius-card); background: var(--surface); }
+.ko-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 0 0 6px; font-size: 12px; font-weight: 600; color: var(--ink-faint); }
+.ko-head span:first-child { color: var(--ink-soft); font-weight: 750; text-transform: uppercase; letter-spacing: 0.04em; }
+.ko-side { display: grid; grid-template-columns: minmax(0, 1fr) 28px 64px; align-items: center; gap: 8px; min-height: 40px; border-top: 1px solid var(--rule); }
+.ko-side:first-of-type { border-top: 0; }
+.ko-side .club-cell { min-width: 0; font-weight: 650; }
+.ko-side .club-cell span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ko-agg { font-size: 17px; font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; }
+.ko-adv { justify-self: end; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+.ko-adv.is-top { color: var(--ink); }
+.ko-side.is-won .ko-adv { color: var(--positive); }
+.ko-side.is-lost { color: var(--ink-faint); }
+.ko-side.is-lost .club-cell { font-weight: 500; }
+main p.ko-legs { display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 6px 0 0; font-family: var(--sans); font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.ko-legs b { color: var(--ink); }
+main h2.ko-stage { display: flex; align-items: baseline; gap: 8px; margin: 0 0 8px; padding: 0; border: 0; font-size: 17px; font-weight: 750; }
+main h2.ko-stage span { font-size: 12px; font-weight: 600; color: var(--ink-faint); }

@@ -4096,3 +4096,75 @@ mudou desde então (a `0007_live_round.sql` e o Simulador D0).
     site key primeiro e Supabase depois.
   - **Agente 08**: revisar os textos.
   - **Agente 06**: revisar.
+
+## Agentes 01/02/04/05/06: mata-mata real da Champions League (Kanban #26, ADR-0012 Decisão 5, 2026-11-26)
+
+- **O que mudou**:
+  - **Ingestão** (`europe/ingest.py`):
+    - confronto sem os dois clubes definidos sai, porque não é jogo marcado;
+    - `decided_score` tira o placar de 90 minutos de `regularTime` quando houve prorrogação ou pênaltis, e guarda o
+      total dos 120 minutos e os pênaltis em colunas próprias;
+    - duração desconhecida ou campo ausente dá `SourceFormatError`.
+  - **Leitura e validação do mata-mata** (novo `europe/knockout.py`): fases suportadas `PLAYOFFS`, `LAST_16`,
+    `QUARTER_FINALS`, `SEMI_FINALS` e `FINAL`. Confere:
+    - mando invertido na volta;
+    - agregado sem gol fora, prorrogação só com empate e pênaltis só com empate depois da prorrogação;
+    - progressão entre fases (só passa quem venceu a anterior; nas oitavas, o top 8 não aparece no playoff);
+    - chave do Art. 19: 12 sorteios binários e só as configurações que batem com os confrontos reais.
+  - **Trava**: `ensure_league_phase_only` saiu. Formato fora do conhecido continua parando a previsão com
+    `KnockoutFormatError`:
+    - fase desconhecida;
+    - mata-mata durante a fase de liga;
+    - chave impossível;
+    - empate em todos os critérios até o 24º.
+  - **Simulação** (`europe/simulation.py`):
+    - `run_knockout` parte do estado real: confronto decidido não é sorteado, a ida real entra com o placar, e o mando
+      é o da fonte;
+    - o caminho da fase de liga não mudou (mesma sequência de sorteios); `final_league_order` aplica o Art. 18 com a
+      fase de liga encerrada.
+  - **Previsão** (`europe/forecast.py`, schema 1.1): `phase`, `current_stage` e `knockout`. Cada confronto traz os
+    jogos (placar só se encerrado; probabilidade só se por disputar), o agregado, o vencedor e a probabilidade de
+    cada clube passar. Mais duas advertências na metodologia.
+  - **Gate** (`europe/gate.py`, `check_knockout`):
+    - mata-mata só com a fase de liga encerrada;
+    - jogo encerrado sem probabilidade, jogo por disputar sem placar e com 1X2 que soma 1;
+    - avanço que soma 1 e é igual à tabela fase a fase, e vencedor com avanço certo;
+    - o `summary_line` diz a fase atual.
+  - **Site** (`apps/web-champions/app.js` e `styles.css`, v2.1):
+    - Início e Chave mostram os confrontos reais em cards, com agregado, placares de ida e volta (prorrogação e
+      pênaltis com a sigla de cada lado) e "passa" ou "título" em porcentagem;
+    - fases ainda sem confronto mostram quem chega lá;
+    - os jogos por disputar do mata-mata entram em Próximos jogos e no "Seu time".
+    - "garantido", "campeão" e "—" na tabela fase a fase vêm só de fatos (confronto decidido, top 8, eliminado),
+      nunca de 100% ou 0% da simulação.
+    - O item do menu passou de "Chave provável" para "Chave".
+- **Evidência**:
+  - **Testes**: `tests/unit/test_champions.py` com 41 testes, todos sintéticos:
+    - fase de liga (os antigos, mais a previsão completa passando no gate);
+    - meio dos playoffs com a ida disputada: totais 16/8/4/2/1; top 8 com 100% nas oitavas; do 25º ao 36º com 0%;
+      0 x 4 na ida dá mais de 95% ao 9º; 256 chaves possíveis;
+    - oitavas: decisão nos pênaltis; playoff decidido vira 1 ou 0; confronto decidido não é simulado;
+    - final: só os dois finalistas somam o título; final nos pênaltis com 1 campeão; com as semifinais conhecidas
+      sobram só as 2 chaves espelhadas;
+    - recusas de formato;
+    - ingestão do v4.
+  - **Previsão completa**: `build_forecast` sintético na fase de liga e no meio dos playoffs passa em
+    `check_forecast_core`, e o gate pega placar num jogo por disputar.
+  - **Fase de liga intacta**: o resultado da simulação na fase de liga é idêntico byte a byte antes e depois da
+    mudança (hash `218dbc9956838c47` nos dois).
+  - **Site**: Playwright no site da Champions (fora do repositório), com previsões sintéticas de 4 estados (fase de
+    liga, meio dos playoffs, oitavas, final) × Início, Chave, Jogos e Fase de liga × 375/1280 px × 2 temas. Sem erro
+    de JS, sem rolagem lateral, sem "chance", sem NaN ou undefined.
+  - **Código**: `ruff check`, `ruff format --check` e `mypy` sem achados; `pytest -q` com 1006 passados e 6 pulados.
+- **Limitações**:
+  - Os nomes das fases do football-data.org (`PLAYOFFS`, `LAST_16`…) seguem a documentação do v4. Não vi um payload
+    real do mata-mata, porque a API não é alcançável deste ambiente. Um nome diferente cai na trava, não em número
+    errado.
+  - O lado da chave sorteado pela UEFA não vem na fonte. Até as fases seguintes aparecerem, a simulação sorteia entre
+    as chaves compatíveis.
+  - Perna com resultado dado pela organização (W.O.) continua fora, como antes.
+- **Próximo responsável**:
+  - **Agente 06**: revisar as regras do mata-mata e as recusas.
+  - **Agente 03**: conferir o Art. 21 no texto oficial.
+  - **Agente 07**: nada muda no workflow (mesmos comandos).
+  - **Agente 00**: decidir se vale um arquivo de referência com a chave oficial.
