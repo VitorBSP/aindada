@@ -10,6 +10,11 @@ Exemplos:
   python scripts/update_live_scores.py --match 2026-palmeiras-flamengo --score 2-1 --status finished
   python scripts/update_live_scores.py --from-json placares.json
   python scripts/update_live_scores.py --list
+  python scripts/update_live_scores.py --watch          # placares automáticos da football-data.org (Ctrl+C para parar)
+
+--watch lê também FOOTBALL_DATA_ORG_TOKEN e confere a fonte a cada 30 s (o plano gratuito aceita 10 chamadas por
+minuto). Jogo da fonte vira linha pelo `source_match_id` do predictions.json publicado. O minuto vem da fonte quando
+ela informa; senão é estimado pelo horário do pontapé (1º tempo até 48', depois 15 min de intervalo).
 
 JSON aceito: {"round": 38, "matches": [{"match_id": "...", "score": "1-0", "status": "live", "minute": 34}, ...]}
 ou uma lista desses objetos, cada um com "round". Jogo que não começou vai como "scheduled", sem placar.
@@ -22,11 +27,13 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -39,7 +46,14 @@ MAX_GOALS = 30
 MAX_MINUTE = 130
 MAX_ROUND = 38
 HALF_TIME_MINUTE = 45
+BRASILIA_OFFSET = timezone(timedelta(hours=-3))
 TIMEOUT_SECONDS = 15
+FOOTBALL_DATA_URL = "https://api.football-data.org/v4/competitions/BSA/matches"
+PREDICTIONS_URL = "https://vitorbsp.github.io/aindada/data/api/seasons/2026/predictions.json"
+SOURCE_STATUS = {"IN_PLAY": "live", "LIVE": "live", "PAUSED": "ht", "FINISHED": "finished"}
+FIRST_HALF_END = 48
+HALF_TIME_BREAK = 15
+LAST_MINUTE = 95
 
 
 class LiveScoreError(ValueError):
@@ -254,6 +268,118 @@ def describe(row: Mapping[str, Any]) -> str:
     return f"r{row.get('round')} {row['match_id']}: {score} {row['status']}{minute} ({row.get('updated_at', '')})"
 
 
+def estimate_minute(kickoff: datetime, now: datetime) -> int:
+    """Minuto aproximado de um jogo em andamento pelo horário do pontapé (sem o minuto da fonte)."""
+    elapsed = max(1, int((now - kickoff).total_seconds() // 60) + 1)
+    if elapsed <= FIRST_HALF_END:
+        return elapsed
+    return max(HALF_TIME_MINUTE + 1, min(elapsed - HALF_TIME_BREAK - (FIRST_HALF_END - HALF_TIME_MINUTE), LAST_MINUTE))
+
+
+def _source_minute(match: Mapping[str, Any]) -> int | None:
+    value = match.get("minute")
+    try:
+        minute = int(str(value).split("+", 1)[0])
+    except (TypeError, ValueError):
+        return None
+    return minute if 0 <= minute <= MAX_MINUTE else None
+
+
+def football_data_scores(
+    payload: Mapping[str, Any], predictions: Mapping[str, Any], now: datetime
+) -> tuple[list[LiveScore], list[str]]:
+    """Jogos em andamento ou encerrados da fonte, já com o `match_id` e a rodada do snapshot publicado.
+
+    Jogo que não começou não vira linha; jogo sem placar na fonte é pulado (nunca 0 x 0 inventado).
+    """
+    by_source = {
+        str(match["source_match_id"]): match
+        for match in predictions.get("matches", [])
+        if match.get("source_match_id") is not None
+    }
+    scores: list[LiveScore] = []
+    notes: list[str] = []
+    for match in payload.get("matches", []):
+        status = SOURCE_STATUS.get(str(match.get("status")))
+        if status is None:
+            continue
+        known = by_source.get(str(match.get("id")))
+        label = f"{(match.get('homeTeam') or {}).get('name')} x {(match.get('awayTeam') or {}).get('name')}"
+        if known is None or known.get("round") is None:
+            notes.append(f"fonte {match.get('id')} ({label}): fora do snapshot publicado, ignorado")
+            continue
+        if known.get("status") == "finished":
+            continue
+        full_time = (match.get("score") or {}).get("fullTime") or {}
+        home, away = full_time.get("home"), full_time.get("away")
+        if home is None or away is None:
+            notes.append(f"{known['match_id']}: fonte ainda sem placar, aguardando")
+            continue
+        minute = None
+        if status == "live":
+            minute = _source_minute(match)
+            if minute is None and match.get("utcDate"):
+                kickoff = datetime.fromisoformat(str(match["utcDate"]).replace("Z", "+00:00"))
+                minute = estimate_minute(kickoff, now)
+            minute = 1 if minute is None else minute
+        scores.append(build_score(str(known["match_id"]), status, f"{home}-{away}", minute, int(known["round"])))
+    return scores, notes
+
+
+def fetch_football_data(token: str, now: datetime, send: Sender = urllib_sender) -> dict[str, Any]:
+    window = {"dateFrom": (now - timedelta(days=1)).date(), "dateTo": (now + timedelta(days=1)).date()}
+    query = urllib.parse.urlencode({key: day.isoformat() for key, day in window.items()})
+    headers = {"X-Auth-Token": token, "Accept": "application/json"}
+    status, text = send("GET", f"{FOOTBALL_DATA_URL}?{query}", headers, None)
+    if status >= 300:
+        raise RuntimeError(f"football-data.org: HTTP {status}: {text[:200]}")
+    payload: dict[str, Any] = json.loads(text)
+    return payload
+
+
+def watch(
+    arguments: argparse.Namespace,
+    environ: Mapping[str, str],
+    send: Sender = urllib_sender,
+    sleep: Callable[[float], None] = time.sleep,
+    clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+    output: Callable[[str], None] = print,
+) -> None:
+    """Confere a fonte a cada `--interval` segundos e grava só o que mudou. `--once` faz uma volta só."""
+    token = environ.get("FOOTBALL_DATA_ORG_TOKEN", "")
+    if not token:
+        raise LiveScoreError("--watch precisa de FOOTBALL_DATA_ORG_TOKEN (ambiente ou .env)")
+    base_url = environ.get("SUPABASE_URL", "")
+    service_key = environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+    if not (base_url and service_key) and not arguments.dry_run:
+        raise LiveScoreError("defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY (ambiente ou .env)")
+    client = LiveClient(base_url, service_key, send)
+    predictions = read_json(arguments.predictions or PREDICTIONS_URL)
+    sent: dict[str, dict[str, Any]] = {}
+    seen_notes: set[str] = set()
+    while True:
+        now = clock()
+        try:
+            scores, notes = football_data_scores(fetch_football_data(token, now, send), predictions, now)
+            for note in notes:
+                if note not in seen_notes:
+                    seen_notes.add(note)
+                    output(f"aviso: {note}")
+            changed = [score for score in scores if sent.get(score.match_id) != score.as_row()]
+            if changed and not arguments.dry_run:
+                client.upsert(changed)
+            for score in changed:
+                sent[score.match_id] = score.as_row()
+                output(f"{now.astimezone(BRASILIA_OFFSET):%H:%M:%S} {describe(score.as_row())}")
+            if not scores:
+                output(f"{now.astimezone(BRASILIA_OFFSET):%H:%M:%S} nenhum jogo da Série A em andamento na fonte")
+        except (RuntimeError, OSError, json.JSONDecodeError) as error:
+            output(f"erro (tento de novo em {arguments.interval} s): {error}")
+        if arguments.once:
+            return
+        sleep(arguments.interval)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Placares do modo Ao vivo (live_round_scores).")
     action = parser.add_mutually_exclusive_group(required=True)
@@ -263,11 +389,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--init-round", type=int, help="cria a rodada inteira como scheduled (precisa de --predictions)"
     )
     action.add_argument("--list", action="store_true", help="mostra o que está na tabela")
+    action.add_argument("--watch", action="store_true", help="placares automáticos da football-data.org")
+    parser.add_argument("--interval", type=int, default=30, help="segundos entre consultas no --watch (mín. 15)")
+    parser.add_argument("--once", action="store_true", help="no --watch, faz uma consulta só")
     parser.add_argument("--score", help="placar mandante-visitante, ex.: 1-0")
     parser.add_argument("--status", choices=STATUSES, help="scheduled, live, ht (intervalo) ou finished")
     parser.add_argument("--minute", type=int, help="minuto do jogo (obrigatório com live)")
     parser.add_argument("--round", type=int, help="rodada (só para criar a linha do jogo)")
-    parser.add_argument("--predictions", help="predictions.json (arquivo ou URL) para --init-round")
+    parser.add_argument("--predictions", help="predictions.json (arquivo ou URL); padrão no --watch: o publicado")
     parser.add_argument("--season", type=int, default=2026, help="temporada para --list")
     parser.add_argument("--dry-run", action="store_true", help="mostra o que seria enviado, sem enviar")
     return parser
@@ -316,8 +445,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     environ = dict(os.environ)
     load_env_file(ROOT / ".env", environ)
     try:
+        if arguments.watch:
+            arguments.interval = max(15, arguments.interval)
+            watch(arguments, environ)
+            return 0
         for line in run(arguments, environ):
             print(line)
+    except KeyboardInterrupt:
+        print("parado")
     except (LiveScoreError, RuntimeError, OSError, json.JSONDecodeError) as error:
         print(f"erro: {error}", file=sys.stderr)
         return 1

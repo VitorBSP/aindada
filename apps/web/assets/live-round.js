@@ -32,6 +32,11 @@
   const MIN_REMAINING_FRACTION = 0.01;
   const MAX_EXTRA_GOALS = 10;
   const HALF_TIME_MINUTE = 45;
+  // Relógio: entre duas atualizações o minuto anda sozinho (a probabilidade muda com o tempo, mesmo sem gol). Para não
+  // inventar jogo, o relógio para 3 minutos depois do fim de cada tempo e nunca anda mais de 20 minutos sem dado novo.
+  const MAX_CLOCK_DRIFT = 20;
+  const FIRST_HALF_CAP = 48;
+  const SECOND_HALF_CAP = 95;
   const FOREIGN_PREFIX = "foreign:";
 
   const engine = () => root.Simulator && root.Simulator.engine;
@@ -202,7 +207,16 @@
 
   /* Junta snapshot e placares ao vivo. `round` é a rodada mostrada; `fixed` são os jogos com placar conhecido fora
      dela; `roundMatches` traz o estado de cada jogo da rodada; `future` são os outros jogos ainda por jogar. */
-  function prepare(snapshot, liveRows) {
+  function clockMinute(row, now) {
+    if (!Number.isInteger(row.minute)) return null;
+    const updated = Date.parse(row.updated_at || "");
+    if (Number.isNaN(updated)) return row.minute;
+    const elapsed = Math.max(0, Math.floor((now - updated) / 60000));
+    const cap = row.minute <= HALF_TIME_MINUTE ? FIRST_HALF_CAP : SECOND_HALF_CAP;
+    return Math.max(row.minute, Math.min(row.minute + Math.min(elapsed, MAX_CLOCK_DRIFT), cap));
+  }
+
+  function prepare(snapshot, liveRows, now = Date.now()) {
     const known = new Map(snapshot.matches.map((match) => [match.match_id, match]));
     const rowsById = new Map();
     let ignored = 0;
@@ -220,7 +234,7 @@
         const row = rowsById.get(match.match_id);
         let state = "scheduled", homeGoals = null, awayGoals = null, minute = null, official = false;
         if (match.status === "finished") { state = "finished"; homeGoals = match.home_goals; awayGoals = match.away_goals; official = true; }
-        else if (row && row.status !== "scheduled") { state = row.status; homeGoals = row.home_goals; awayGoals = row.away_goals; minute = Number.isInteger(row.minute) ? row.minute : null; }
+        else if (row && row.status !== "scheduled") { state = row.status; homeGoals = row.home_goals; awayGoals = row.away_goals; minute = row.status === "live" ? clockMinute(row, now) : Number.isInteger(row.minute) ? row.minute : null; }
         roundMatches.push({ match, state, homeGoals, awayGoals, minute, official, updatedAt: row ? row.updated_at : null });
       } else if (match.status === "finished") {
         fixed.push(match);
@@ -467,8 +481,11 @@
 
     function badge(item) {
       if (item.state === "finished") return `<span class="mc-badge is-final">${item.official ? "Encerrado" : "Fim · provisório"}</span>`;
-      if (item.state === "ht") return `<span class="mc-badge is-live">Intervalo</span>`;
-      if (item.state === "live") return `<span class="mc-badge is-live">Ao vivo${item.minute === null ? "" : ` · ${item.minute}'`}</span>`;
+      if (item.state === "ht") return `<span class="mc-badge is-live is-ht"><span class="live-dot" aria-hidden="true"></span>Intervalo</span>`;
+      if (item.state === "live") {
+        const label = item.minute === null ? "Ao vivo" : `${item.minute}'`;
+        return `<span class="mc-badge is-live" aria-label="Ao vivo${item.minute === null ? "" : `, ${item.minute} minutos`}"><span class="live-dot" aria-hidden="true"></span>${label}</span>`;
+      }
       return "";
     }
 
@@ -654,7 +671,7 @@
       const rolling = model.roundMatches.filter((item) => LIVE_STATUSES.has(item.state)).length;
       const ended = model.roundMatches.filter((item) => item.state === "finished").length;
       const waiting = model.roundMatches.filter((item) => item.state === "scheduled").length;
-      const tally = [rolling ? `${rolling} rolando` : "", ended ? `${ended} ${ended === 1 ? "encerrado" : "encerrados"}` : "", waiting ? `${waiting} a jogar` : ""].filter(Boolean).join(" · ");
+      const tally = [rolling ? `${rolling} ao vivo` : "", ended ? `${ended} ${ended === 1 ? "encerrado" : "encerrados"}` : "", waiting ? `${waiting} a jogar` : ""].filter(Boolean).join(" · ");
       const notices = [];
       if (model.ignored) notices.push(`<p class="note">${model.ignored === 1 ? "1 placar ignorado" : `${model.ignored} placares ignorados`}: jogo desconhecido, de outra temporada ou já encerrado de forma diferente.</p>`);
       body.innerHTML = `
@@ -664,7 +681,7 @@
           <p class="live-impact-head"><strong id="live-impact-title">O que está mudando agora</strong><span>desde o início da rodada</span></p>
           <div id="live-impact">${hasScores ? `<p class="live-impact-empty">Calculando…</p>` : `<p class="live-impact-empty">${model.liveFinished ? "" : "Sem jogos ao vivo no momento. "}Quando a bola rolar, as mudanças aparecem aqui sozinhas (a página confere a cada 15 segundos).</p>`}</div>
         </section>
-        <h2 class="live-h">Jogos <span>${escapeHtml(tally)}</span></h2>
+        <h2 class="live-h">Jogos <span>${rolling ? '<span class="live-dot" aria-hidden="true"></span>' : ""}${escapeHtml(tally)}</span></h2>
         <ul class="mc-list live-matches">${model.roundMatches.map(matchCard).join("")}</ul>
         ${hasScores ? `
           <section class="live-now" aria-labelledby="live-now-title">
@@ -719,11 +736,10 @@
       stamp.innerHTML = controller.updatedAt
         ? `<span class="live-badge">${brasiliaTime(controller.updatedAt)} · a cada 15 s</span>${controller.error ? ` <span class="sim-warning">${escapeHtml(controller.error)}</span>` : ""}`
         : `<span class="sim-warning">${escapeHtml(controller.error)}</span>`;
-      const signature = JSON.stringify([...controller.rows].sort((left, right) => String(left.match_id).localeCompare(String(right.match_id)))
-        .map((row) => [row.match_id, row.status, row.home_goals, row.away_goals, row.minute]));
+      const model = prepare(snapshot, controller.rows);
+      const signature = JSON.stringify([model.round, model.ignored, ...model.roundMatches.map((item) => [item.match.match_id, item.state, item.homeGoals, item.awayGoals, item.minute])]);
       if (!force && signature === controller.signature) return;
       controller.signature = signature;
-      const model = prepare(snapshot, controller.rows);
       if (model.round === null) {
         body.innerHTML = `<p class="live-empty" role="status"><strong>Temporada encerrada.</strong> Não há mais jogos para acompanhar ao vivo.</p>`;
         body.setAttribute("aria-busy", "false");
@@ -744,5 +760,5 @@
 
   function stop() { if (active) active.stop(); }
 
-  root.LiveRound = { render, stop, fetchLiveRows, prepare, tables, simulate, allocateSlots, parseScenario, liveDistribution, outcomeChances, RULES };
+  root.LiveRound = { render, stop, fetchLiveRows, clockMinute, prepare, tables, simulate, allocateSlots, parseScenario, liveDistribution, outcomeChances, RULES };
 })(typeof window !== "undefined" ? window : globalThis);

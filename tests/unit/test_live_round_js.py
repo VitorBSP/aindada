@@ -45,6 +45,7 @@ const input = JSON.parse(fs.readFileSync(0, "utf8"));
     });
   }
   if (input.rules) output.rules = live.RULES;
+  if (input.clock) output.clock = input.clock.map(({ row, now }) => live.clockMinute(row, Date.parse(now)));
   if (input.distribution) {
     const distribution = live.liveDistribution(input.distribution.match, input.distribution.row);
     output.distribution = {
@@ -337,3 +338,25 @@ def test_finished_match_is_not_tracked() -> None:
 
 def test_simulation_without_track_returns_empty_list() -> None:
     assert _tracked_run()["plain"] == []
+
+
+def _clock(minute: int, updated: str, now: str) -> int:
+    row = {"status": "live", "minute": minute, "updated_at": updated}
+    result: int = _node({"clock": [{"row": row, "now": now}]})["clock"][0]
+    return result
+
+
+def test_clock_advances_between_updates() -> None:
+    assert _clock(60, "2099-11-27T23:00:00Z", "2099-11-27T23:07:30Z") == 67
+
+
+def test_clock_stops_after_first_half() -> None:
+    assert _clock(44, "2099-11-27T23:00:00Z", "2099-11-27T23:15:00Z") == 48
+
+
+def test_clock_never_drifts_more_than_twenty_minutes() -> None:
+    assert _clock(50, "2099-11-27T23:00:00Z", "2099-11-28T01:00:00Z") == 70
+
+
+def test_clock_ignores_future_timestamp() -> None:
+    assert _clock(30, "2099-11-27T23:10:00Z", "2099-11-27T23:00:00Z") == 30
