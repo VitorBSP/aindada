@@ -11,7 +11,16 @@
 .live-match { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-areas: "status status status" "home score away" "odds odds odds"; align-items: center; gap: 6px 10px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius-card, 16px); }
 .live-status { grid-area: status; font-size: 12px; color: var(--ink-faint); font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 6px; }
 .live-live .live-status, .live-ht .live-status { color: var(--signal); font-weight: 600; }
-.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--signal); }
+.live-dot { display: inline-block; flex: none; width: 8px; height: 8px; margin-right: 5px; border-radius: 50%; background: #ff3b30; box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.6); animation: live-pulse 1.6s ease-out infinite; vertical-align: 1px; }
+.live-mc .mc-badge.is-live { background: color-mix(in srgb, #ff3b30 14%, transparent); color: #ff3b30; font-variant-numeric: tabular-nums; }
+:root[data-theme="light"] .live-mc .mc-badge.is-live { color: #c4231b; }
+.live-dot.is-static, .mc-badge.is-ht .live-dot { animation: none; opacity: 0.75; }
+@keyframes live-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.6); opacity: 1; }
+  60% { box-shadow: 0 0 0 6px rgba(255, 59, 48, 0); opacity: 0.55; }
+  100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
 .live-home { grid-area: home; display: flex; align-items: center; justify-content: flex-end; gap: 6px; text-align: right; font-weight: 600; min-width: 0; }
 .live-away { grid-area: away; display: flex; align-items: center; gap: 6px; font-weight: 600; min-width: 0; }
 .live-home > span, .live-away > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -4290,3 +4290,18 @@ Responsável pelo registro: Agente 00 (integração 01 / 05 / 06 / 08).
 - **Próximo responsável**: **Agente 07** acompanha o disparo de `publish-site.yml` em `main` e confirma a atualização da
   Série B 2026 com a fase regular encerrada e os playoffs.
 
+
+## Ao vivo: placar automático, relógio e bolinha de "ao vivo" (2026-11-27)
+
+- **O que mudou**: `scripts/update_live_scores.py --watch` lê a football-data.org (`FOOTBALL_DATA_ORG_TOKEN`) a cada
+  30 s e grava em `live_round_scores` só o que mudou, casando pelo `source_match_id` do `predictions.json` publicado.
+  `IN_PLAY`/`LIVE` → live, `PAUSED` → intervalo, `FINISHED` → encerrado; jogo sem placar na fonte é pulado (nunca 0 x 0
+  inventado); minuto da fonte quando há, senão estimado pelo pontapé. `live-round.js`: entre atualizações o minuto
+  anda sozinho (para 3 min após o fim de cada tempo e nunca anda mais de 20 min sem dado novo), e a página recalcula
+  quando o minuto muda; selo com bolinha vermelha pulsando (sem animação com `prefers-reduced-motion`).
+- **Evidência**: `ruff`, `ruff format --check`, `mypy` sem achados; `pytest -q` 1121 passaram, 1 falhou
+  (`test_match_priors::test_export_writes_parquet_csv_and_manifest`, que falha igual na `main` neste ambiente por falta
+  do motor de parquet). Navegador 375 px com snapshot sintético: 30' gravado há 7 min aparece como 37', animação
+  `live-pulse` ativa, `scrollWidth` 375.
+- **Limitações**: o `--watch` roda na máquina do dono (este ambiente não alcança a fonte nem o Supabase); o minuto
+  estimado ignora acréscimos reais.

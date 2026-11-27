@@ -8,6 +8,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -181,3 +182,81 @@ def test_env_file_does_not_override_environment(tmp_path: Path) -> None:
     environ = {"SUPABASE_URL": "https://do-ambiente"}
     live.load_env_file(path, environ)
     assert environ == {"SUPABASE_URL": "https://do-ambiente", "SUPABASE_SERVICE_ROLE_KEY": "chave"}
+
+
+SOURCE_NOW = datetime(2099, 11, 27, 23, 30, tzinfo=UTC)
+SYNTHETIC_PREDICTIONS = {
+    "matches": [
+        {"match_id": MATCH, "round": 37, "status": "scheduled", "source_match_id": "900"},
+        {"match_id": "2099-sintetico-03-sintetico-04", "round": 37, "status": "finished", "source_match_id": "901"},
+    ]
+}
+
+
+def _source_match(status: str, score: dict[str, Any] | None, **extra: Any) -> dict[str, Any]:
+    return {
+        "id": extra.pop("match_id", 900),
+        "status": status,
+        "utcDate": "2099-11-27T23:00:00Z",
+        "homeTeam": {"name": "Sintético 1"},
+        "awayTeam": {"name": "Sintético 2"},
+        "score": {"fullTime": score or {"home": None, "away": None}},
+        **extra,
+    }
+
+
+def _source_scores(*matches: dict[str, Any]) -> list[Any]:
+    scores, _ = live.football_data_scores({"matches": list(matches)}, SYNTHETIC_PREDICTIONS, SOURCE_NOW)
+    return list(scores)
+
+
+def test_first_half_minute_from_kickoff() -> None:
+    assert live.estimate_minute(datetime(2099, 1, 1, 20, 0, tzinfo=UTC), datetime(2099, 1, 1, 20, 23, tzinfo=UTC)) == 24
+
+
+def test_second_half_minute_discounts_break() -> None:
+    assert live.estimate_minute(datetime(2099, 1, 1, 20, 0, tzinfo=UTC), datetime(2099, 1, 1, 21, 20, tzinfo=UTC)) == 63
+
+
+def test_source_in_play_becomes_live_row() -> None:
+    score = _source_scores(_source_match("IN_PLAY", {"home": 1, "away": 0}))[0]
+    assert (score.match_id, score.status, score.home_goals, score.round) == (MATCH, "live", 1, 37)
+
+
+def test_source_minute_preferred_over_estimate() -> None:
+    assert _source_scores(_source_match("IN_PLAY", {"home": 0, "away": 0}, minute="45+2"))[0].minute == 45
+
+
+def test_source_paused_is_half_time() -> None:
+    assert _source_scores(_source_match("PAUSED", {"home": 0, "away": 0}))[0].status == "ht"
+
+
+def test_source_without_score_is_skipped() -> None:
+    assert _source_scores(_source_match("IN_PLAY", None)) == []
+
+
+def test_source_not_started_is_skipped() -> None:
+    assert _source_scores(_source_match("TIMED", None)) == []
+
+
+def test_source_match_already_official_is_skipped() -> None:
+    assert _source_scores(_source_match("FINISHED", {"home": 2, "away": 2}, match_id=901)) == []
+
+
+def test_watch_reads_source_then_writes_supabase() -> None:
+    source = {"matches": [_source_match("IN_PLAY", {"home": 1, "away": 0}, minute=30)]}
+
+    def sender(method: str, url: str, headers: dict[str, str], body: bytes | None) -> tuple[int, str]:
+        calls.append(method)
+        return 200, json.dumps(source if "football-data" in url else [])
+
+    calls: list[str] = []
+    arguments = live.build_parser().parse_args(["--watch", "--once", "--predictions", "unused"])
+    environ = {**ENVIRON, "FOOTBALL_DATA_ORG_TOKEN": "token-sintetico"}
+    original = live.read_json
+    live.read_json = lambda source_path: SYNTHETIC_PREDICTIONS
+    try:
+        live.watch(arguments, environ, sender, clock=lambda: SOURCE_NOW, output=lambda line: None)
+    finally:
+        live.read_json = original
+    assert calls == ["GET", "POST"]
