@@ -14,6 +14,8 @@
   "use strict";
 
   const logic = window.SimulatorLogic;
+  const SKELETON_ROWS = `<div class="skeleton-page"><span class="skeleton sk-row"></span><span class="skeleton sk-row"></span><span class="skeleton sk-row"></span></div>`;
+  const loadingBlock = (text, detail) => (window.AIndaDaLoading ? window.AIndaDaLoading.html(text, { detail }) : SKELETON_ROWS);
   const {
     LIBERTADORES_GROUPS, LIBERTADORES_SLOTS, SUDAMERICANA_SLOTS, RELEGATED, POINTS,
     outcomeOf, scoreSampler, draw, newRows, addResult, goalDifference, compareMain, rankRows, matchPoints, maxForPick, encodeLink,
@@ -493,7 +495,10 @@
       return `<div class="table-wrap"><table class="sim-table sim-path"><thead><tr><th class="num">Rod.</th><th>Jogo</th><th>Resultado</th></tr></thead><tbody>${rows}</tbody></table></div>`;
     }
 
-    const jointSlot = (id) => `<section class="sim-joint" id="${id}" aria-live="polite"><p class="sim-joint-label">Probabilidade de tudo junto</p><p class="note">Calculando ${JOINT_DRAWS.toLocaleString("pt-BR")} campeonatos sorteados…</p></section>`;
+    const jointWaiting = `Sorteando ${JOINT_DRAWS.toLocaleString("pt-BR")} campeonatos…`;
+    const jointSlot = (id) => `<section class="sim-joint" id="${id}" aria-live="polite"><p class="sim-joint-label">Probabilidade de tudo junto</p>${window.AIndaDaLoading
+      ? window.AIndaDaLoading.html(jointWaiting, { compact: true, detail: "Contando em quantos sai a sua tabela." })
+      : `<p class="note">${jointWaiting}</p>`}</section>`;
 
     function fillJoint(id, order, withPath) {
       if (!canSample || !order || order.length !== clubIds.length) {
@@ -1733,7 +1738,7 @@
       const subTabs = `<nav class="chip-row sim-subchips" aria-label="Ranking por modo">${Object.entries(MODES).map(([key, item]) =>
         `<a class="chip chip-sm" href="#/simular/ranking/${key}" ${key === rankMode ? 'aria-current="page"' : ""}>${item.label}</a>`).join("")}</nav>`;
       shell("ranking", "Simulador", "",
-        `${subTabs}<div id="sim-ranking" aria-live="polite"><div class="skeleton-page"><span class="skeleton sk-row"></span><span class="skeleton sk-row"></span><span class="skeleton sk-row"></span></div></div>`);
+        `${subTabs}<div id="sim-ranking" aria-live="polite">${loadingBlock("Carregando o ranking…", "Somando os pontos de cada simulação.")}</div>`);
       const target = document.getElementById("sim-ranking");
       try {
         const rows = await cloud.ranking(season, rankMode);
@@ -1837,7 +1842,7 @@
       const scopeName = scope === "minhas" ? "minhas" : "todas";
       const subTabs = `<nav class="chip-row sim-subchips" aria-label="Escopo do agregado">${cloud ? `<a class="chip chip-sm" href="#/simular/agregado" ${scopeName === "todas" ? 'aria-current="page"' : ""}>Visitantes</a>` : ""}<a class="chip chip-sm" href="#/simular/agregado/minhas" ${scopeName === "minhas" || !cloud ? 'aria-current="page"' : ""}>As minhas</a></nav>`;
       shell("agregado", "Simulador", "",
-        `${subTabs}<div id="sim-aggregate" aria-live="polite"><div class="skeleton-page"><span class="skeleton sk-row"></span><span class="skeleton sk-row"></span><span class="skeleton sk-row"></span></div></div>`);
+        `${subTabs}<div id="sim-aggregate" aria-live="polite">${loadingBlock("Calculando o consenso…", "Juntando as simulações de quem participa.")}</div>`);
       const target = document.getElementById("sim-aggregate");
       if (scopeName === "minhas" || !cloud) {
         const tables = store.saved.map((item) => finalOrderOf(item.mode, item.entry)).filter((order) => Array.isArray(order) && order.length === clubIds.length);

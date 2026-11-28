@@ -569,6 +569,9 @@
   }
 
   function skeleton(section) {
+    if (section === "simular" && window.AIndaDaLoading) {
+      return window.AIndaDaLoading.html("Carregando o simulador…", { page: true, detail: "Buscando as probabilidades de cada jogo." });
+    }
     const chips = `<span class="skeleton sk-chips"></span>`;
     let body;
     if (section === "classificacao") body = `<span class="skeleton sk-title"></span>${chips}${Array.from({ length: 10 }, () => `<span class="skeleton sk-row"></span>`).join("")}`;
