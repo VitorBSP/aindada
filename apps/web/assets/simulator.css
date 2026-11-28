@@ -614,3 +614,27 @@
   .sim-deck-side .sim-day-list { max-height: 620px; overflow-y: auto; }
 }
 
+
+/* ---------------- Carregamento com o Duck (D-053) */
+/* Fica pelo menos 1 s na tela (AIndaDaLoading.hold), então entra na hora, com um fade curto. */
+.duck-loading {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  padding: 32px 16px; text-align: center;
+  animation: duck-loading-in 200ms ease-out;
+}
+.duck-loading--page { min-height: min(60vh, 520px); }
+.duck-frame {
+  display: block; flex: none; width: clamp(140px, 38vw, 176px); aspect-ratio: 1 / 1; overflow: hidden;
+  border-radius: var(--radius-card, 16px); background: #1b1e23;
+  box-shadow: 0 0 0 1px var(--rule), 0 8px 24px rgb(0 0 0 / 0.18);
+}
+.duck-media { display: block; width: 100%; height: 100%; object-fit: cover; }
+.duck-loading-text { display: flex; flex-direction: column; gap: 4px; max-width: 34ch; }
+.duck-loading-title { font-weight: 600; font-size: 1rem; color: var(--ink); }
+.duck-loading-detail { font-size: 0.875rem; color: var(--ink-soft); }
+.duck-loading--compact { flex-direction: row; justify-content: flex-start; gap: 12px; padding: 4px 0; text-align: left; }
+.duck-loading--compact .duck-loading-title { font-size: 0.9375rem; }
+.duck-loading--compact .duck-frame { width: 72px; border-radius: 12px; box-shadow: 0 0 0 1px var(--rule); }
+@media (min-width: 900px) { .duck-loading--compact .duck-frame { width: 88px; } }
+@keyframes duck-loading-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .duck-loading { animation: none; } }

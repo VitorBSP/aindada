@@ -468,21 +468,31 @@
 
   const whatIfKey = (team) => `${team.club_id}|${state.snapshot.generated_at}|${[...state.live.values()].map((row) => `${row.match_id}:${row.status}:${row.home_goals}:${row.away_goals}`).sort().join(",")}`;
 
+  /* Marca o cálculo como em andamento antes de desenhar a Home, para o Duck aparecer já no 1º desenho. */
+  function primeWhatIf(team) {
+    const live = window.LiveRound;
+    if (!live || typeof live.simulate !== "function" || !window.Simulator) return false;
+    const key = whatIfKey(team);
+    if (state.whatIf && state.whatIf.key === key) return false;
+    state.whatIf = { key, status: "loading" };
+    return true;
+  }
+
   async function computeWhatIf(team) {
     const live = window.LiveRound;
-    if (!live || typeof live.simulate !== "function" || !window.Simulator) return;
-    const key = whatIfKey(team);
-    if (state.whatIf && state.whatIf.key === key) return;
-    state.whatIf = { key, status: "loading" };
+    const { key } = state.whatIf;
+    const startedAt = await loadingPainted();
     try {
       const model = live.prepare(state.snapshot, [...state.live.values()]);
       const matchIds = upcomingMatches().filter((match) => !isPostponed(match)).slice(0, WHAT_IF_MATCHES).map((match) => match.match_id);
       const own = upcomingMatches().find((match) => !isPostponed(match) && (match.home_id === team.club_id || match.away_id === team.club_id));
       if (own && !matchIds.includes(own.match_id)) matchIds.push(own.match_id);
       const result = await live.simulate(model, { track: { clubId: team.club_id, matchIds } });
+      await loadingHold(startedAt);
       if (!state.whatIf || state.whatIf.key !== key) return;
       state.whatIf = { key, status: "done", simulations: result.simulations, byMatch: new Map(result.track.map((entry) => [entry.match_id, entry.outcomes])) };
     } catch (error) {
+      await loadingHold(startedAt);
       if (state.whatIf && state.whatIf.key === key) state.whatIf = { key, status: "error" };
     }
     const [, section = ""] = location.hash.replace(/^#/, "").split("/");
@@ -498,7 +508,9 @@
     const key = RACES[raceId].key;
     const prefix = showMatch ? `Se ${escapeHtml(shortOf(match.home_id))} × ${escapeHtml(shortOf(match.away_id))} terminar em…` : "Se o jogo terminar em…";
     if (!whatIfReady(team)) {
-      return state.whatIf && state.whatIf.status === "loading" ? `<div class="whatif" aria-busy="true"><p class="mc-label">${prefix}</p><span class="skeleton sk-chips"></span></div>` : "";
+      if (!state.whatIf || state.whatIf.status !== "loading") return "";
+      const waiting = window.AIndaDaLoading ? compactDuck("Calculando o que muda…", "Simulando os três finais do jogo.") : `<span class="skeleton sk-chips"></span>`;
+      return `<div class="whatif" aria-busy="true"><p class="mc-label">${prefix}</p>${waiting}</div>`;
     }
     const outcomes = state.whatIf.byMatch.get(match.match_id);
     if (!outcomes) return "";
@@ -523,7 +535,8 @@
     const noun = HERO_NOUN[raceId];
     if (!whatIfReady(team)) {
       if (!state.whatIf || state.whatIf.status !== "loading") return "";
-      return `<section class="card home-block impact" aria-busy="true"><h2 class="impact-title">O que mais mexe na sua probabilidade de ${noun}</h2><span class="skeleton sk-row"></span><span class="skeleton sk-row"></span><span class="skeleton sk-row"></span></section>`;
+      const waiting = window.AIndaDaLoading ? compactDuck("Procurando os jogos que mais mexem…", "Simulando os próximos jogos no seu navegador.") : `<span class="skeleton sk-row"></span><span class="skeleton sk-row"></span><span class="skeleton sk-row"></span>`;
+      return `<section class="card home-block impact" aria-busy="true"><h2 class="impact-title">O que mais mexe na sua probabilidade de ${noun}</h2>${waiting}</section>`;
     }
     const byId = new Map(state.snapshot.matches.map((match) => [match.match_id, match]));
     const good = raceId === "rebaixamento" ? (left, right) => left < right : (left, right) => left > right;
@@ -568,7 +581,18 @@
       <p class="state-title">${title}</p>${text ? `<p class="state-text">${text}</p>` : ""}${action}</div>`;
   }
 
+  /* Home e Simulador carregam com o Duck (D-053); as outras telas mantêm o skeleton. */
+  const DUCK_SECTIONS = { "": ["Carregando as probabilidades…", "Juntando as simulações do campeonato."], inicio: ["Carregando as probabilidades…", "Juntando as simulações do campeonato."], simular: ["Carregando o simulador…", "Buscando as probabilidades de cada jogo."] };
+  const duckLoading = (section) => Boolean(window.AIndaDaLoading && DUCK_SECTIONS[section]);
+  const loadingHold = (startedAt) => (window.AIndaDaLoading ? window.AIndaDaLoading.hold(startedAt) : Promise.resolve());
+  const loadingPainted = () => (window.AIndaDaLoading ? window.AIndaDaLoading.painted() : Promise.resolve(0));
+  const compactDuck = (text, detail) => window.AIndaDaLoading.html(text, { compact: true, detail });
+
   function skeleton(section) {
+    if (duckLoading(section)) {
+      const [text, detail] = DUCK_SECTIONS[section];
+      return window.AIndaDaLoading.html(text, { page: true, detail });
+    }
     const chips = `<span class="skeleton sk-chips"></span>`;
     let body;
     if (section === "classificacao") body = `<span class="skeleton sk-title"></span>${chips}${Array.from({ length: 10 }, () => `<span class="skeleton sk-row"></span>`).join("")}`;
@@ -643,6 +667,7 @@
       return;
     }
     const raceId = RACES[requested] ? requested : openRaceFor(team);
+    const whatIfStarted = primeWhatIf(team);
     const next = upcomingMatches().find((item) => !isPostponed(item) && (item.home_id === team.club_id || item.away_id === team.club_id));
     const article = FEMININE_CLUBS.has(team.club_id) ? "da" : "do";
     const ctaHtml = `<a class="btn-primary yt-cta" href="#/simular">Simular jogos ${article} ${escapeHtml(team.name)}</a>`;
@@ -659,7 +684,7 @@
       </div>`;
     bindHome();
     bindScreenInfo("Como este cálculo é feito", WHAT_IF_EXPLANATION);
-    computeWhatIf(team);
+    if (whatIfStarted) computeWhatIf(team);
   }
 
   /* Cenários externos em chips (REDESIGN_SPEC v2.1 §3.4): só os torneios ainda em aberto aparecem. */
@@ -1651,9 +1676,11 @@
   async function start() {
     const section = location.hash.replace(/^#\/?/, "").split("/")[0];
     if (section === "privacidade") renderPrivacy(); else main.innerHTML = skeleton(section);
+    const paintedAt = duckLoading(section) ? loadingPainted() : null;
     document.getElementById("reference-bar").textContent = "Carregando as simulações…";
     state.snapshot = await fetchJson(`/seasons/${SEASON}/predictions`);
     if (!state.snapshot) {
+      if (paintedAt !== null) await loadingHold(await paintedAt);
       document.getElementById("reference-bar").textContent = "";
       if (location.hash.replace(/^#\/?/, "").split("/")[0] === "privacidade") return;
       main.innerHTML = stateBlock({
@@ -1679,6 +1706,7 @@
       state.currentRound = null;
     }
     state.crests = await loadCrests();
+    if (paintedAt !== null) await loadingHold(await paintedAt);
     renderReferenceBar();
     route();
     loadLive();

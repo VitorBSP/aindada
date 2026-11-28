@@ -4305,3 +4305,73 @@ Responsável pelo registro: Agente 00 (integração 01 / 05 / 06 / 08).
   `live-pulse` ativa, `scrollWidth` 375.
 - **Limitações**: o `--watch` roda na máquina do dono (este ambiente não alcança a fonte nem o Supabase); o minuto
   estimado ignora acréscimos reais.
+
+## Agentes 05/08: carregamento do Simulador com o Duck (D-053, 2026-11-27)
+
+- **O que mudou**
+  - `apps/web/assets/duck-loading.js` (novo): `window.AIndaDaLoading.html(texto, { compact, page, detail })`, incluído em `index.html` antes dos scripts que o usam.
+  - Estilos `.duck-*` no fim de `simulator.css`.
+  - `app.js`: o `skeleton("simular")` mostra o Duck com "Carregando o simulador…" enquanto o snapshot carrega.
+  - `simulator.js`: Ranking ("Carregando o ranking…"), Agregado ("Calculando o consenso…") e `jointSlot` compacto ("Sorteando 20.000 campeonatos…"). Sem `AIndaDaLoading`, volta o skeleton antigo.
+  - Decisão D-053 em `docs/brand/BRAND_DECISIONS.md`.
+  - Nenhum contrato JSON, regra do modelo ou pontuação mudou. `simulator-logic.js` não foi tocado.
+- **Assets** (`apps/web/assets/media/`)
+  - Origem: vídeo e imagem do dono do produto, gerados no Google Flow, marca Duck AI, direitos do dono.
+  - Vídeo: recorte quadrado 1080×1080 (x=540) escalado para 400×400, 24 fps, sem áudio.
+    - `duck-simulador-loading.webm`: VP9, 123.947 B.
+    - `duck-simulador-loading.mp4`: H.264 `yuv420p`, `+faststart`, 125.960 B.
+  - `duck-simulador-loading.webp`: 1º quadro do vídeo, 13.552 B. É o pôster (sem salto ao começar) e a imagem do movimento reduzido.
+  - `duck-simulador-loading-compacto.webp`: 192×192 da imagem do dono, 6.850 B. O compacto usa só a imagem parada, por escolha do dono.
+- **Comportamento**
+  - Sem atraso artificial: o bloco entra com `opacity: 0` e só aparece após 300 ms (CSS), então espera curta não pisca.
+  - Some assim que o dado chega, porque o conteúdo real substitui o bloco.
+  - Com `prefers-reduced-motion: reduce`, mostra só a imagem.
+  - O vídeo tem `muted playsinline` e `aria-hidden`. O bloco tem `role="status"`.
+- **Evidência**
+  - `node --check` em `app.js`, `simulator.js` e `duck-loading.js`: ok.
+  - `node --test tests/js/*.test.js`: 56/56.
+  - `ruff check`: ok. `ruff format --check`: ok. `mypy`: 98 arquivos, sem problemas.
+  - `pytest -q`: 1109 passed, 6 skipped e 1 falha, que é ambiental. `test_match_priors` exige `pyarrow`, que faltava no contêiner e também falha no `main`. Instalado o `pyarrow`, os 25 testes do arquivo passam.
+  - `check_g5_artifact` sobre uma cópia de `apps/web`: sem achados. O gate não filtra `.webm`, `.mp4` nem `.webp`.
+  - Playwright em 375×812 e 1280×800, escuro e claro, com site sintético local e Supabase de teste interceptado (zero chamada à produção). Respostas atrasadas só no teste.
+    - O Duck aparece (opacity 1, vídeo tocando via `.webm`) na abertura de `#/simular`, no Ranking e no Agregado, e some quando o dado chega.
+    - Compacto na probabilidade conjunta (CPU 20× mais lenta): imagem de 72 px no celular e 88 px no PC.
+    - Movimento reduzido: só `.webp`.
+    - Nenhum texto do bloco contém "chance".
+    - Varredura de `#/`, `#/classificacao`, `#/jogos`, `#/simular`, `/ranking`, `/agregado`, `/minhas`, `#/rodadas`, `#/metodologia` e `#/privacidade`: `scrollWidth` igual à largura e 0 erro de console.
+- **Limitações**
+  - O pipeline completo `publish-site.yml` não foi executado: rodei só a checagem G5 e os testes do `check_site_artifact`.
+  - Safari/iOS real não foi testado. O `.mp4` H.264 com `playsinline` é o caminho previsto para ele.
+- **Próximo responsável**: 06, para revisar contraste e consistência dos estados. 07 não precisa mudar nada no workflow.
+
+## Agentes 05/08: Duck em todo carregamento real da Home e do Simulador, 1 s mínimo (D-054, 2026-11-28)
+
+- **O que mudou**
+  - `duck-loading.js`: `painted()` devolve o instante em que o Duck foi pintado (rAF + `setTimeout 0`, com teto de 100 ms em aba oculta).
+  - `hold(instante)` garante 1.000 ms (`MIN_VISIBLE_MS`) de Duck na tela.
+  - O CSS deixa de esconder o bloco nos primeiros 300 ms. Agora ele entra com um fade de 200 ms (sem animação com movimento reduzido).
+- **Home** (`app.js`)
+  - Abertura direta de `#/` ou `#/inicio` com o Duck da página ("Carregando as probabilidades…").
+  - `start()` segura o resultado e o erro até completar 1 s.
+  - `primeWhatIf()` marca o cálculo como em andamento antes do 1º desenho. Antes, o "E se…" e "O que mais mexe" nunca chegavam a mostrar o carregamento.
+  - O Duck compacto aparece nos dois blocos. `computeWhatIf` espera a pintura antes do cálculo pesado e segura o resultado ou o erro por 1 s.
+- **Simulador** (`simulator.js`)
+  - Ranking e Agregado ("Visitantes") seguram o resultado e o erro por 1 s. A busca começa em paralelo, sem atraso.
+  - "As minhas", que não tem espera, não mostra o Duck.
+  - A probabilidade conjunta espera a pintura do Duck compacto e segura 1 s.
+  - Nenhum contrato, modelo, pontuação ou `simulator-logic.js` mudou.
+- **Evidência**
+  - `node --check`: ok. `node --test tests/js/*.test.js`: 56/56.
+  - `ruff check`, `ruff format --check` e `mypy` (98 arquivos): ok.
+  - `pytest -q`: 1110 passed, 6 skipped, com `pyarrow` instalado no contêiner.
+  - Playwright em 375×812 e 1280×800, escuro e claro, com site sintético e Supabase de teste interceptado (zero chamada à produção). Um `MutationObserver` mediu quanto tempo cada Duck ficou no DOM:
+    - página da Home: 1.026–1.027 ms;
+    - "E se…" e "O que mais mexe": 1.094–1.264 ms;
+    - Ranking e Agregado: 1.002 ms;
+    - "As minhas": sem Duck.
+  - O compacto da probabilidade conjunta, o movimento reduzido (só `.webp`), "chance" ausente e o vídeo tocando foram reconferidos.
+  - `scrollWidth` ficou igual à largura em `#/`, `#/classificacao`, `#/jogos`, `#/simular`, `/ranking`, `/agregado`, `/minhas`, `#/rodadas`, `#/metodologia` e `#/privacidade`, com 0 erro de console.
+- **Limitações**
+  - Com placar ao vivo mudando, o "E se…" é recalculado, e o Duck compacto volta por 1 s a cada recálculo.
+  - Safari/iOS real não foi testado.
+- **Próximo responsável**: 06, para revisar.
