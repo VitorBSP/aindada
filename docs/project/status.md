@@ -4343,3 +4343,35 @@ Responsável pelo registro: Agente 00 (integração 01 / 05 / 06 / 08).
   - O pipeline completo `publish-site.yml` não foi executado: rodei só a checagem G5 e os testes do `check_site_artifact`.
   - Safari/iOS real não foi testado. O `.mp4` H.264 com `playsinline` é o caminho previsto para ele.
 - **Próximo responsável**: 06, para revisar contraste e consistência dos estados. 07 não precisa mudar nada no workflow.
+
+## Agentes 05/08: Duck em todo carregamento real da Home e do Simulador, 1 s mínimo (D-054, 2026-11-28)
+
+- **O que mudou**
+  - `duck-loading.js`: `painted()` devolve o instante em que o Duck foi pintado (rAF + `setTimeout 0`, com teto de 100 ms em aba oculta).
+  - `hold(instante)` garante 1.000 ms (`MIN_VISIBLE_MS`) de Duck na tela.
+  - O CSS deixa de esconder o bloco nos primeiros 300 ms. Agora ele entra com um fade de 200 ms (sem animação com movimento reduzido).
+- **Home** (`app.js`)
+  - Abertura direta de `#/` ou `#/inicio` com o Duck da página ("Carregando as probabilidades…").
+  - `start()` segura o resultado e o erro até completar 1 s.
+  - `primeWhatIf()` marca o cálculo como em andamento antes do 1º desenho. Antes, o "E se…" e "O que mais mexe" nunca chegavam a mostrar o carregamento.
+  - O Duck compacto aparece nos dois blocos. `computeWhatIf` espera a pintura antes do cálculo pesado e segura o resultado ou o erro por 1 s.
+- **Simulador** (`simulator.js`)
+  - Ranking e Agregado ("Visitantes") seguram o resultado e o erro por 1 s. A busca começa em paralelo, sem atraso.
+  - "As minhas", que não tem espera, não mostra o Duck.
+  - A probabilidade conjunta espera a pintura do Duck compacto e segura 1 s.
+  - Nenhum contrato, modelo, pontuação ou `simulator-logic.js` mudou.
+- **Evidência**
+  - `node --check`: ok. `node --test tests/js/*.test.js`: 56/56.
+  - `ruff check`, `ruff format --check` e `mypy` (98 arquivos): ok.
+  - `pytest -q`: 1110 passed, 6 skipped, com `pyarrow` instalado no contêiner.
+  - Playwright em 375×812 e 1280×800, escuro e claro, com site sintético e Supabase de teste interceptado (zero chamada à produção). Um `MutationObserver` mediu quanto tempo cada Duck ficou no DOM:
+    - página da Home: 1.026–1.027 ms;
+    - "E se…" e "O que mais mexe": 1.094–1.264 ms;
+    - Ranking e Agregado: 1.002 ms;
+    - "As minhas": sem Duck.
+  - O compacto da probabilidade conjunta, o movimento reduzido (só `.webp`), "chance" ausente e o vídeo tocando foram reconferidos.
+  - `scrollWidth` ficou igual à largura em `#/`, `#/classificacao`, `#/jogos`, `#/simular`, `/ranking`, `/agregado`, `/minhas`, `#/rodadas`, `#/metodologia` e `#/privacidade`, com 0 erro de console.
+- **Limitações**
+  - Com placar ao vivo mudando, o "E se…" é recalculado, e o Duck compacto volta por 1 s a cada recálculo.
+  - Safari/iOS real não foi testado.
+- **Próximo responsável**: 06, para revisar.

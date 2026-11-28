@@ -16,6 +16,8 @@
   const logic = window.SimulatorLogic;
   const SKELETON_ROWS = `<div class="skeleton-page"><span class="skeleton sk-row"></span><span class="skeleton sk-row"></span><span class="skeleton sk-row"></span></div>`;
   const loadingBlock = (text, detail) => (window.AIndaDaLoading ? window.AIndaDaLoading.html(text, { detail }) : SKELETON_ROWS);
+  const loadingHold = (startedAt) => (window.AIndaDaLoading ? window.AIndaDaLoading.hold(startedAt) : Promise.resolve());
+  const loadingPainted = () => (window.AIndaDaLoading ? window.AIndaDaLoading.painted() : Promise.resolve(0));
   const {
     LIBERTADORES_GROUPS, LIBERTADORES_SLOTS, SUDAMERICANA_SLOTS, RELEGATED, POINTS,
     outcomeOf, scoreSampler, draw, newRows, addResult, goalDifference, compareMain, rankRows, matchPoints, maxForPick, encodeLink,
@@ -507,7 +509,9 @@
         return;
       }
       const target = targetOf(order);
-      jointChance(target).then((result) => {
+      loadingPainted().then(async (startedAt) => {
+        const result = await jointChance(target);
+        await loadingHold(startedAt);
         const slot = document.getElementById(id);
         if (!slot) return;
         const names = (list) => list.map((clubId) => shortName(clubId)).join(", ");
@@ -1740,8 +1744,10 @@
       shell("ranking", "Simulador", "",
         `${subTabs}<div id="sim-ranking" aria-live="polite">${loadingBlock("Carregando o ranking…", "Somando os pontos de cada simulação.")}</div>`);
       const target = document.getElementById("sim-ranking");
+      const paintedAt = loadingPainted();
       try {
         const rows = await cloud.ranking(season, rankMode);
+        await loadingHold(await paintedAt);
         if (!document.body.contains(target)) return;
         if (!rows.length) {
           target.innerHTML = `<div class="state"><p class="state-title">Ninguém pontuou ainda em ${MODES[rankMode].label}</p><p class="state-text">Os pontos entram assim que os jogos com palpite terminam${rankMode === "classificacao" ? " e, na Classificação, no fim da temporada" : ""}.</p><a class="btn-primary btn-sm state-action" href="#/simular">Fazer simulação</a></div>`;
@@ -1768,6 +1774,7 @@
         const joinBtn = document.getElementById("sim-rank-join");
         if (joinBtn) joinBtn.addEventListener("click", openAccountSheet);
       } catch (error) {
+        await loadingHold(await paintedAt);
         if (document.body.contains(target)) target.innerHTML = `<div class="state" role="alert"><p class="state-title">Ranking indisponível agora</p><p class="state-text">${escapeHtml(error.message)}</p></div>`;
       }
     }
@@ -1842,8 +1849,9 @@
       const scopeName = scope === "minhas" ? "minhas" : "todas";
       const subTabs = `<nav class="chip-row sim-subchips" aria-label="Escopo do agregado">${cloud ? `<a class="chip chip-sm" href="#/simular/agregado" ${scopeName === "todas" ? 'aria-current="page"' : ""}>Visitantes</a>` : ""}<a class="chip chip-sm" href="#/simular/agregado/minhas" ${scopeName === "minhas" || !cloud ? 'aria-current="page"' : ""}>As minhas</a></nav>`;
       shell("agregado", "Simulador", "",
-        `${subTabs}<div id="sim-aggregate" aria-live="polite">${loadingBlock("Calculando o consenso…", "Juntando as simulações de quem participa.")}</div>`);
+        `${subTabs}<div id="sim-aggregate" aria-live="polite">${scopeName === "minhas" || !cloud ? "" : loadingBlock("Calculando o consenso…", "Juntando as simulações de quem participa.")}</div>`);
       const target = document.getElementById("sim-aggregate");
+      const paintedAt = loadingPainted();
       if (scopeName === "minhas" || !cloud) {
         const tables = store.saved.map((item) => finalOrderOf(item.mode, item.entry)).filter((order) => Array.isArray(order) && order.length === clubIds.length);
         target.innerHTML = tables.length
@@ -1853,6 +1861,7 @@
       }
       try {
         const data = await cloud.consensus(season);
+        await loadingHold(await paintedAt);
         if (!document.body.contains(target)) return;
         if (!data.clubs || !data.clubs.length) {
           target.innerHTML = `<div class="state"><p class="state-title">Consenso ainda em formação</p><p class="state-text">A média dos visitantes aparece com pelo menos ${data.min_users} participantes, para proteger a escolha individual. Enquanto isso, veja a média das suas simulações.</p><a class="btn-secondary btn-sm state-action" href="#/simular/agregado/minhas">Ver as minhas ›</a></div>`;
@@ -1861,6 +1870,7 @@
         const approx = data.approximate ? " · aproximado" : "";
         target.innerHTML = aggregateTable(data.clubs, `Consenso de pelo menos ${data.users_at_least} participantes${approx} · cada pessoa pesa igual.`, true);
       } catch (error) {
+        await loadingHold(await paintedAt);
         if (document.body.contains(target)) target.innerHTML = `<div class="state" role="alert"><p class="state-title">Consenso indisponível agora</p><p class="state-text">${escapeHtml(error.message)}</p></div>`;
       }
     }

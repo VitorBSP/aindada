@@ -1,6 +1,7 @@
 /* Estado de carregamento com o Duck (marca Duck AI, do dono do projeto; BRAND_DECISIONS D-053).
-   Sem atraso artificial: o bloco entra invisível e só aparece se a espera passar de ~300 ms (CSS),
-   para não piscar quando o cálculo ou o fetch terminam rápido. Com movimento reduzido, só a imagem. */
+   Só em carregamento real (fetch ou cálculo) da Home e do Simulador. Quando aparece, fica pelo menos
+   MIN_VISIBLE_MS na tela (pedido do dono, 2026-11-28): quem chama pega o instante em que ele foi pintado
+   com painted() e espera hold(instante) antes de trocar pelo resultado. Com movimento reduzido, só a imagem. */
 (() => {
   const BASE = "assets/media/duck-simulador-loading";
   const reducedMotion = () => {
@@ -24,5 +25,20 @@
       <span class="duck-loading-text"><span class="duck-loading-title">${text}</span>${extra}</span></div>`;
   }
 
-  window.AIndaDaLoading = { html };
+  const MIN_VISIBLE_MS = 1000;
+  /* Resolve quando o Duck já ficou MIN_VISIBLE_MS na tela desde `startedAt` (na hora, se já ficou). */
+  const hold = (startedAt) => new Promise((resolve) => {
+    setTimeout(resolve, Math.max(0, MIN_VISIBLE_MS - (performance.now() - startedAt)));
+  });
+
+  /* Espera o Duck ser pintado antes de um cálculo pesado no mesmo processo, e devolve esse instante como
+     início: o segundo mínimo conta a partir de quando ele aparece de fato. Aba oculta não pinta: 100 ms bastam. */
+  const painted = () => new Promise((resolve) => {
+    let done = false;
+    const finish = () => { if (!done) { done = true; resolve(performance.now()); } };
+    requestAnimationFrame(() => setTimeout(finish, 0));
+    setTimeout(finish, 100);
+  });
+
+  window.AIndaDaLoading = { html, hold, painted, MIN_VISIBLE_MS };
 })();

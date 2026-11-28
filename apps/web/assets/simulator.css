@@ -616,11 +616,11 @@
 
 
 /* ---------------- Carregamento com o Duck (D-053) */
-/* Entra invisível e só aparece depois de ~300 ms: espera curta não pisca. */
+/* Fica pelo menos 1 s na tela (AIndaDaLoading.hold), então entra na hora, com um fade curto. */
 .duck-loading {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
   padding: 32px 16px; text-align: center;
-  opacity: 0; animation: duck-loading-in 240ms ease-out 300ms forwards;
+  animation: duck-loading-in 200ms ease-out;
 }
 .duck-loading--page { min-height: min(60vh, 520px); }
 .duck-frame {
@@ -633,9 +633,8 @@
 .duck-loading-title { font-weight: 600; font-size: 1rem; color: var(--ink); }
 .duck-loading-detail { font-size: 0.875rem; color: var(--ink-soft); }
 .duck-loading--compact { flex-direction: row; justify-content: flex-start; gap: 12px; padding: 4px 0; text-align: left; }
+.duck-loading--compact .duck-loading-title { font-size: 0.9375rem; }
 .duck-loading--compact .duck-frame { width: 72px; border-radius: 12px; box-shadow: 0 0 0 1px var(--rule); }
 @media (min-width: 900px) { .duck-loading--compact .duck-frame { width: 88px; } }
 @keyframes duck-loading-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) {
-  .duck-loading { animation: duck-loading-in 1ms linear 300ms forwards; }
-}
+@media (prefers-reduced-motion: reduce) { .duck-loading { animation: none; } }
